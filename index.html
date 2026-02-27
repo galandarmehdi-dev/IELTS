@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IELTS Test</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ================= EXAM NAV (NEW) ================= -->
+  <div class="exam-nav" id="examNav">
+  <div class="exam-nav-left">
+    <b>IELTS Test</b>
+    <span class="exam-nav-status" id="examNavStatus">Status: In progress</span>
+  </div>
+
+  <div class="exam-nav-actions">
+    <button class="btn secondary" type="button" id="navToListeningBtn">Listening</button>
+    <button class="btn secondary" type="button" id="navToReadingBtn">Reading</button>
+    <button class="btn secondary" type="button" id="navToWritingBtn">Writing</button>
+    <button class="btn" type="button" id="resetExamBtn">New attempt</button>
+  </div>
+</div>
+
+  <!-- ================= LISTENING (LOCKS READING UNTIL SUBMITTED) ================ -->
+  <section id="listeningSection" class="listening-screen">
+    <div class="listening-shell">
+
+      <div class="listen-top">
+        <div class="listen-top-row">
+          <div>
+            <h1 class="listen-title">IELTS Listening</h1>
+            <div class="listen-sub">You must complete Listening before starting Reading.</div>
+          </div>
+          <div class="listen-status" id="listenStatus">Status: Not started</div>
+        </div>
+
+        <!-- Listening navigation -->
+        <div class="listen-nav" aria-label="Listening section navigation">
+          <div class="listen-tabs" role="tablist" aria-label="Listening tabs">
+            <button class="listenTab" type="button" data-listen-tab="0" role="tab" aria-selected="true">Section 1</button>
+            <button class="listenTab" type="button" data-listen-tab="1" role="tab" aria-selected="false">Section 2</button>
+            <button class="listenTab" type="button" data-listen-tab="2" role="tab" aria-selected="false">Section 3</button>
+            <button class="listenTab" type="button" data-listen-tab="3" role="tab" aria-selected="false">Section 4</button>
+          </div>
+
+          <div class="listen-nav-actions">
+            <button class="btn secondary" type="button" id="listenPrevBtn">Prev</button>
+            <button class="btn secondary" type="button" id="listenNextBtn">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Warning Modal -->
+      <div class="listen-modal" id="listenModal">
+        <div class="listen-modal-card">
+          <h2>Before you start</h2>
+          <ul>
+            <li>Make sure you are ready. Once you press <b>START</b>, the audio will begin automatically.</li>
+            <li>You <b>cannot pause</b>, <b>cannot skip</b> forward/backward, and <b>cannot restart</b> inside this attempt.</li>
+            <li>Your Listening will be <b>submitted automatically</b> when the audio ends.</li>
+          </ul>
+          <div class="listen-modal-actions">
+            <button class="btn secondary" id="cancelListeningBtn" type="button">Not ready</button>
+            <button class="btn" id="startListeningBtn" type="button">START</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden audio (no controls) -->
+      <audio id="listeningAudio" preload="auto">
+        <source
+          src="https://ieltstrainingonline.com/wp-content/uploads/2021/07/IELTS-Recent-Actual-Test-With-Answers-Practice-Test-10-Section1.mp3?_=1"
+          type="audio/mpeg"
+        >
+      </audio>
+
+      <!-- Listening body -->
+      <div class="listen-body" id="listenBody">
+
+        <!-- PAGE 1 -->
+        <div class="listen-page" id="listenSec1">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 1 — Questions 1–10</div>
+            <div class="listen-inst">
+              Complete the notes/table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.
+              Write your answers <b>in the gaps</b>.
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Transport from Bayswater</div>
+
+              <div class="listen-example">
+                <div><b>Example</b></div>
+                <div>Destination: <b><i>Harbour City</i></b></div>
+              </div>
+
+              <div class="listen-notes">
+                <div class="note-row"><span class="qnum">1</span> Express train leaves at <input data-lq="1" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">2</span> Nearest station is <input data-lq="2" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">3</span> Number 706 bus goes to <input data-lq="3" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">4</span> Number <input data-lq="4" class="l-input small"> bus goes to station.</div>
+                <div class="note-row"><span class="qnum">5</span> Earlier bus leaves at <input data-lq="5" class="l-input">.</div>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 6–10</div>
+
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Transport</th>
+                      <th>Cash fare</th>
+                      <th>Card fare</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Bus</td>
+                      <td>$ <span class="qnum">6</span> <input data-lq="6" class="l-input tiny"></td>
+                      <td>$1.50</td>
+                    </tr>
+                    <tr>
+                      <td>Train (peak)</td>
+                      <td>$10</td>
+                      <td>$10</td>
+                    </tr>
+                    <tr>
+                      <td>Train (off-peak)<br>
+                        <span class="muted">before 5pm or after <span class="qnum">7</span> <input data-lq="7" class="l-input tiny"> pm</span>
+                      </td>
+                      <td>$10</td>
+                      <td>$ <span class="qnum">8</span> <input data-lq="8" class="l-input tiny"></td>
+                    </tr>
+                    <tr>
+                      <td><span class="qnum">9</span> <input data-lq="9" class="l-input tiny"> ferry</td>
+                      <td>$4.50</td>
+                      <td>$3.55</td>
+                    </tr>
+                    <tr>
+                      <td>Tourist ferry (<span class="qnum">10</span> <input data-lq="10" class="l-input tiny">)</td>
+                      <td>$35</td>
+                      <td>–</td>
+                    </tr>
+                    <tr>
+                      <td>Tourist ferry (whole day)</td>
+                      <td>$65</td>
+                      <td>–</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAGE 2 -->
+        <div class="listen-page hidden" id="listenSec2">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 2 — Questions 11–20</div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 11–14</div>
+              <div class="listen-inst">Which counsellor should you see? Write the correct letter, <b>A, B or C</b>, in the gaps.</div>
+
+              <div class="people-box">
+                <div><b>A</b> Louise Bagshaw</div>
+                <div><b>B</b> Tony Denby</div>
+                <div><b>C</b> Naomi Flynn</div>
+              </div>
+
+              <div class="note-row"><span class="qnum">11</span> if you do not have an appointment
+                <select data-lq="11" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">12</span> if it is your first time seeing a counsellor
+                <select data-lq="12" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">13</span> if your concerns are related to anxiety
+                <select data-lq="13" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">14</span> if you are unable to see a counsellor during normal office hours
+                <select data-lq="14" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 15–20</div>
+              <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Workshop</th>
+                      <th>Content</th>
+                      <th>Target group</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Adjusting</td>
+                      <td>what you need to succeed academically</td>
+                      <td><span class="qnum">15</span> <input data-lq="15" class="l-input tiny"> students</td>
+                    </tr>
+                    <tr>
+                      <td>Getting Organised</td>
+                      <td>use time effectively, find <span class="qnum">16</span> <input data-lq="16" class="l-input tiny"> between study and leisure</td>
+                      <td>all students</td>
+                    </tr>
+                    <tr>
+                      <td>Communicating</td>
+                      <td>talking with staff, communicating across cultures</td>
+                      <td>all students, especially <span class="qnum">17</span> <input data-lq="17" class="l-input tiny"></td>
+                    </tr>
+                    <tr>
+                      <td>Anxiety</td>
+                      <td><span class="qnum">18</span> <input data-lq="18" class="l-input tiny">, breathing techniques, meditation, etc.</td>
+                      <td>students about to sit exams</td>
+                    </tr>
+                    <tr>
+                      <td><span class="qnum">19</span> <input data-lq="19" class="l-input tiny"></td>
+                      <td>staying on track for long periods</td>
+                      <td><span class="qnum">20</span> <input data-lq="20" class="l-input tiny"> students only</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAGE 3 -->
+        <div class="listen-page hidden" id="listenSec3">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 3 — Questions 21–30</div>
+            <div class="listen-inst">Complete the notes below. Write <b>NO MORE THAN THREE WORDS</b> for each answer.</div>
+
+            <div class="listen-card">
+              <div class="note-row"><b>Novel:</b> <span class="qnum">21</span> <input data-lq="21" class="l-input"></div>
+              <div class="note-row"><b>Protagonists:</b> Mary Lennox; Colin Craven</div>
+              <div class="note-row"><b>Time period:</b> Early in <span class="qnum">22</span> <input data-lq="22" class="l-input"></div>
+              <div class="note-row"><b>Plot:</b> Mary → UK — meets Colin who thinks he’ll never be able to <span class="qnum">23</span> <input data-lq="23" class="l-input">. They become friends.</div>
+              <div class="note-row"><b>Point of view:</b> “Omniscient” — narrator knows all about characters’ feelings, opinions and <span class="qnum">24</span> <input data-lq="24" class="l-input">.</div>
+              <div class="note-row"><b>Audience:</b> Good for children — story simple to follow</div>
+              <div class="note-row"><b>Symbols</b> (physical items that represent <span class="qnum">25</span> <input data-lq="25" class="l-input">):</div>
+              <div class="note-row bullet">• the robin redbreast</div>
+              <div class="note-row bullet">• <span class="qnum">26</span> <input data-lq="26" class="l-input"></div>
+              <div class="note-row bullet">• the portrait of Mistress Craven</div>
+              <div class="note-row"><b>Motifs</b> (patterns in the story):</div>
+              <div class="note-row bullet">• the Garden of Eden</div>
+              <div class="note-row bullet">• secrecy — metaphorical and literal transition from <span class="qnum">27</span> <input data-lq="27" class="l-input"></div>
+              <div class="note-row"><b>Themes:</b> Connections between</div>
+              <div class="note-row bullet">• <span class="qnum">28</span> <input data-lq="28" class="l-input"> and outlook</div>
+              <div class="note-row bullet">• <span class="qnum">29</span> <input data-lq="29" class="l-input"> and well-being</div>
+              <div class="note-row bullet">• individuals and the need for <span class="qnum">30</span> <input data-lq="30" class="l-input"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 4 -->
+        <div class="listen-page hidden" id="listenSec4">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 4 — Questions 31–40</div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 31–35</div>
+              <div class="listen-inst">Complete the table below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+
+              <div class="listen-card-title" style="margin-top:10px;">Time Perspectives</div>
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Time Zone</th>
+                      <th>Outlook</th>
+                      <th>Features &amp; Consequences</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Past</td>
+                      <td>Positive</td>
+                      <td>Remember good times, e.g. birthdays. Keep family records, photo albums, etc.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td><span class="qnum">31</span> <input data-lq="31" class="l-input tiny"></td>
+                      <td>Focus on disappointments, failures, bad decisions.</td>
+                    </tr>
+                    <tr>
+                      <td>Present</td>
+                      <td>Hedonistic</td>
+                      <td>Live for <span class="qnum">32</span> <input data-lq="32" class="l-input tiny">; seek sensation; avoid pain.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td>Fatalistic</td>
+                      <td>Life is governed by <span class="qnum">33</span> <input data-lq="33" class="l-input tiny">, religious beliefs, social conditions. Life’s path can’t be changed.</td>
+                    </tr>
+                    <tr>
+                      <td>Future</td>
+                      <td><span class="qnum">34</span> <input data-lq="34" class="l-input tiny"></td>
+                      <td>Prefer work to play. Don’t give in to temptation.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td>Fatalistic</td>
+                      <td>Have a strong belief in life after death and importance of <span class="qnum">35</span> <input data-lq="35" class="l-input tiny"> in life.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 37–39</div>
+              <div class="listen-inst">Complete each sentence with the correct ending, <b>A–E</b>, below.</div>
+
+              <div class="endings-box">
+                <div><b>A</b>. feeling a certain way at the conclusion of an experience decides how we remember it.</div>
+                <div><b>B</b>. decision-making and judgments are made too quickly.</div>
+                <div><b>C</b>. having less energy means we are more likely to succumb to an irrational bias.</div>
+                <div><b>D</b>. being sensitive to one’s surroundings is a useful survival skill.</div>
+                <div><b>E</b>. wanting more food or drink may distract us from the decision we are making.</div>
+              </div>
+
+              <div class="note-row"><span class="qnum">37</span> In the course of evolutionary history System 1 has served humans well because
+                <select data-lq="37" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+
+              <div class="note-row"><span class="qnum">38</span> Low blood sugar or tiredness may be factors in decision making because
+                <select data-lq="38" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+
+              <div class="note-row"><span class="qnum">39</span> The ‘peak-end rule’ shows us that
+                <select data-lq="39" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Question 40</div>
+              <div class="listen-inst">Choose the correct letter, <b>A, B, C or D</b>.</div>
+
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">40</span> What is the writer’s primary purpose in writing this article?</div>
+                <label class="mcq-opt"><input type="radio" name="q40" value="A" data-lq-radio="40"> A) to introduce their own research to the general reader</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="B" data-lq-radio="40"> B) to summarize and review a recently published book</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="C" data-lq-radio="40"> C) to argue against a commonly-held theory</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="D" data-lq-radio="40"> D) to encourage readers to question their own decision-making processes</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="listen-footer">
+          <div class="muted" id="listenAutosave">Autosave: ready</div>
+          <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+          <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+          <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= READING UI ================= -->
+  <div class="controls" id="readingControls">
+    <div class="timer">Reading time left: <span id="timeLeft">60:00</span></div>
+    <button class="btn secondary" id="focusBtn" title="Hide distractions" type="button">Focus mode</button>
+    <button class="btn" id="submitBtn" type="button">Submit</button>
+  </div>
+
+  <div class="container" id="container">
+    <section class="passage" id="passage">
+      <h2>The Life of Sir Isaac Newton</h2>
+      <p>A. Isaac Newton was born on January 4, 1643, in Lincolnshire, England. The son of a farmer, who died three months before he was born, Newton spent most of his early years with his maternal grandmother after his mother remarried. Following an education interrupted by a failed attempt to turn him into a farmer, he attended the King’s School in Grantham before enrolling at the University of Cambridge’s Trinity College in 1661, where he soon became fascinated by the works of modern philosophers such as René Descartes. When the Great Plague shut Cambridge off from the rest of England in 1665, Newton returned home and began formulating his theories on calculus, light and color, his farm the setting for the supposed falling apple that inspired his work on gravity.</p>
+      <p>B. Newton returned to Cambridge in 1667. He constructed the first reflecting telescope in 1668, and the following year he received his Master of Arts degree and took over as Cambridge’s Professor of Mathematics. In 1671 he was asked to give a demonstration of his telescope to the Royal Society of London in 1671, the same year he was elected to the prestigious Society. The following year, fascinated with the study of light, he published his notes on optics for his peers. Through his experiments, Newton determined that white light was a composite of all the colors on the spectrum, and he asserted that light was composed of particles instead of waves. His methods were heavily criticized by established Society member Robert Hooke, who was also unwilling to compromise again with Newton’s follow-up paper in 1675. Known for his temperamental defense of his work, Newton engaged in heated correspondence with Hooke before suffering a nervous breakdown and withdrawing from the public eye in 1678. In the following years, he returned to his earlier studies on the forces governing gravity.</p>
+      <p>C. In 1684, English astronomer Edmund Halley paid a visit to the reclusive Newton. Upon learning that Newton had mathematically worked out the elliptical paths of celestial bodies, such as the movement of the planets around the sun, Halley urged him to organize his notes. The result was the 1687 publication of “Philosophiae Naturalis Principia Mathematica” (Mathematical Principles of Natural Philosophy), which established the three laws of motion and the law of universal gravity. Principia made Newton a star in intellectual circles, eventually earning him widespread acclaim as one of the most important figures in modern science.</p>
+      <p>D. As a now influential figure, Newton opposed King James II’s attempts to reinstate Catholic teachings at English Universities, and was elected to represent Cambridge in Parliament in 1689. He moved to London permanently after being named warden of the Royal Mint in 1696, earning a promotion to master of the Mint three years later. Determined to prove his position wasn’t merely symbolic, Newton moved the pound sterling from the silver to the gold standard and sought to punish forgers.</p>
+      <p>E. The death of Hooke in 1703 allowed Newton to take over as president of the Royal Society, and the following year he published his second major work, “Opticks.” Composed largely from his earlier notes on the subject, the book detailed Newton’s experiments with refraction and the color spectrum, and also contained his conclusions on such matters as energy and electricity. In 1705, he was knighted by Queen Anne of England.</p>
+      <p>F. Around this time, the debate over Newton’s claims to originating the field of calculus, the mathematical study of change, exploded into a nasty dispute. Newton had developed his mathematical concept of ‘fluxions’ (differentials) in the mid-1660s to account for celestial orbits, though there was no public record of his work. In the meantime, German mathematician Gottfried Leibniz formulated his own theories and published them in 1684. As president of the Royal Society, Newton oversaw an investigation that ruled his work to be the founding basis of the field, but the debate continued even after Leibniz’s death in 1716. Researchers later concluded that both men likely arrived at their conclusions independent of one another.</p>
+      <p>G. Newton was also obsessed with history and religious doctrines, and his writings on those subjects were collected into multiple books that were published after his death. Having never married, Newton spent his later years living with his niece at Cranbury Park, near Winchester, England. He died on March 31, 1727, and was buried in Westminster Abbey. A giant even among the brilliant minds that drove the Scientific Revolution, Newton is remembered as an extraordinary scholar, inventor and writer. His theories about the movement of bodies in the solar system transformed our understanding of the universe and his precise methodology helped to give birth to what is known as the scientific method. Although his theories of space-time and gravity were eventually superseded by those of Einstein his work remains the foundation stone of modern physics was built.</p>
+    </section>
+
+    <section class="questions">
+      <div class="qcard" id="qCard"></div>
+      <div class="foot">
+        <div class="small" id="autosaveStatus">Autosave: ready</div>
+        <button class="btn secondary" id="downloadBtn" type="button">Download answers (JSON)</button>
+        <button class="btn secondary" id="copyBtn" type="button">Copy answers</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= WRITING (LOCKED UNTIL READING TIMER ENDS) ================= -->
+  <section id="writingSection" class="writing-screen hidden" aria-label="IELTS Writing">
+    <div class="writing-shell">
+      <div class="writing-top">
+        <div>
+          <h1 class="writing-title">IELTS Writing</h1>
+          <div class="writing-sub">Writing starts only after Reading time ends.</div>
+        </div>
+
+        <div class="writing-meta">
+          <div class="writing-timer">Writing time left: <span id="writingTimeLeft">60:00</span></div>
+          
+        </div>
+      </div>
+
+      <div class="writing-body">
+        <div class="writing-card">
+          <div class="writing-card-title">WRITING TASK 1</div>
+          <div class="writing-inst">
+            You should spend about 20 minutes on this task.<br>
+            The graphs below give information about computer ownership as a percentage of the population between 2002 and 2010,
+            and by level of education for the years 2002 and 2010.<br>
+            Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+            <b>Write at least 150 words.</b>
+          </div>
+
+          <div class="writing-graph">
+            <img
+              src="https://static.wixstatic.com/media/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg/v1/fill/w_568,h_650,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg"
+              alt="Task 1 graph"
+              loading="lazy"
+            >
+          </div>
+
+          <label class="writing-label" for="writingTask1">Task 1 answer</label>
+          <textarea id="writingTask1" class="writing-textarea" rows="14" placeholder="Type your Task 1 response here..."></textarea>
+          <div class="small muted" id="wt1Count">Word count: 0</div>
+        </div>
+
+        <div class="writing-card">
+          <div class="writing-card-title">WRITING TASK 2</div>
+          <div class="writing-inst">
+            You should spend about 40 minutes on this task.<br><br>
+            A person’s worth nowadays seems to be judged according to social status and material possessions.
+            Old-fashioned values, such as honour, kindness and trust, no longer seem important.<br>
+            <b>To what extent do you agree or disagree with this opinion?</b><br>
+            Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
+            <b>Write at least 250 words.</b>
+          </div>
+
+          <label class="writing-label" for="writingTask2">Task 2 answer</label>
+          <textarea id="writingTask2" class="writing-textarea" rows="18" placeholder="Type your Task 2 response here..."></textarea>
+          <div class="small muted" id="wt2Count">Word count: 0</div>
+        </div>
+
+        <div class="writing-footer">
+          <div class="small" id="writingAutosave">Autosave: ready</div>
+          <div class="writing-actions">
+            <button class="btn secondary" id="downloadWritingBtn" type="button">Download Writing (JSON)</button>
+            <button class="btn secondary" id="copyWritingBtn" type="button">Copy Writing</button>
+            <button class="btn" id="endExamBtn" type="button">End the exam</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal (reused) -->
+  <div class="modal hidden" id="modal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Submitted</h3>
+      <p class="small" id="modalText"></p>
+      
+      <div class="modal-actions">
+  <button class="btn secondary hidden" id="modalCancelBtn" type="button">Cancel</button>
+  <button class="btn" id="modalSubmitBtn" type="button">OK</button>
+</div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

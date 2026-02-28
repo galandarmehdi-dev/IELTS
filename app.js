@@ -33,6 +33,49 @@ function hideModal() {
   const m = $("modal");
   if (m) m.classList.add("hidden");
 }
+// ================= HOME / ROUTING =================
+const HOME_KEY = "IELTS:HOME:lastView";
+const EXAM_STARTED_KEY = "IELTS:EXAM:started";
+
+function isExamStarted() {
+  return localStorage.getItem(EXAM_STARTED_KEY) === "true";
+}
+
+function setExamStarted(v) {
+  localStorage.setItem(EXAM_STARTED_KEY, v ? "true" : "false");
+}
+
+function updateHomeStatusLine() {
+  const line = document.getElementById("homeStatusLine");
+  if (!line) return;
+
+  const finalDone = localStorage.getItem(EXAM.keys.finalSubmitted) === "true";
+  const listeningDone = localStorage.getItem("IELTS:LISTENING:submitted") === "true";
+  const readingDone = localStorage.getItem("ielts-reading-3parts-001:submitted") === "true";
+  const writingStarted = localStorage.getItem("IELTS:WRITING:started") === "true";
+
+  if (finalDone) {
+    line.textContent = "Status: Submitted (Review mode available)";
+    return;
+  }
+  if (!isExamStarted()) {
+    line.textContent = "Status: Ready";
+    return;
+  }
+  if (!listeningDone) {
+    line.textContent = "Status: In progress — Listening";
+    return;
+  }
+  if (!readingDone) {
+    line.textContent = "Status: In progress — Reading";
+    return;
+  }
+  if (!writingStarted) {
+    line.textContent = "Status: Ready — Writing unlocked";
+    return;
+  }
+  line.textContent = "Status: In progress — Writing";
+}
 /* =========================================================
    HIGHLIGHTING SYSTEM (Listening + Reading + Writing)
    - Safe for inputs/selects
@@ -511,24 +554,39 @@ function lockWholeExamAfterFinalSubmit() {
 }
 
 function showOnly(target) {
+  const home = $("homeSection");
   const listening = $("listeningSection");
   const readingControls = $("readingControls");
   const readingContainer = $("container");
   const writing = $("writingSection");
+  const examNav = $("examNav");
 
+  const isHome = target === "home";
+
+  // Home
+  if (home) home.style.display = isHome ? "" : "none";
+
+  // Exam nav only for exam views
+  if (examNav) examNav.style.display = isHome ? "none" : "flex";
+
+  // Listening
   if (listening) {
     if (target === "listening") listening.classList.remove("hidden");
     else listening.classList.add("hidden");
   }
 
+  // Reading
   const showReading = target === "reading";
   if (readingControls) readingControls.style.display = showReading ? "" : "none";
   if (readingContainer) readingContainer.style.display = showReading ? "" : "none";
 
+  // Writing
   if (writing) {
     if (target === "writing") writing.classList.remove("hidden");
     else writing.classList.add("hidden");
   }
+
+  try { localStorage.setItem(HOME_KEY, target); } catch {}
 
   window.scrollTo({ top: 0, behavior: "instant" });
 }
@@ -737,7 +795,7 @@ function isValidFullName(fullName) {
    1) LISTENING GATE (unchanged logic, kept working)
 ========================================================= */
 
-(() => {
+function initListeningSystem() {
   if (window.__IELTS_LISTENING_INIT__) return;
   window.__IELTS_LISTENING_INIT__ = true;
 
@@ -1084,7 +1142,7 @@ function isValidFullName(fullName) {
     }
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function setupListeningUI() {
     if (submitted) {
       const s = sec();
       if (s) s.classList.add("hidden");
@@ -1157,8 +1215,14 @@ showModal(
         setStatus(ok ? "Status: Copied answers." : "Status: Copy blocked by browser.");
       };
     }
-  });
-})();
+  }
+  // Run now if DOM is already loaded, otherwise wait for it
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", setupListeningUI);
+  } else {
+    setupListeningUI();
+  }
+}
 
 /* =========================================================
    2) WRITING SYSTEM (starts only after Reading submit / time end)
@@ -2656,10 +2720,11 @@ startTimer();
    - FIXED: Writing nav gate now works because Reading sets :submitted
 ========================================================= */
 document.addEventListener("DOMContentLoaded", () => {
-  const toL = $("navToListeningBtn");
-  const toR = $("navToReadingBtn");
-  const toW = $("navToWritingBtn");
-  const resetBtn = $("resetExamBtn");
+  const toHome = $("navToHomeBtn");
+const toL = $("navToListeningBtn");
+const toR = $("navToReadingBtn");
+const toW = $("navToWritingBtn");
+const resetBtn = $("resetExamBtn");
 
   // Backup end button binding (kept)
   const endBtnBackup = $("endExamBtn");
@@ -2764,31 +2829,62 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+// ---------- HOME first ----------
+showOnly("home");
+updateHomeStatusLine();
+
+// Home buttons
+const startBtn = $("startIelts1Btn");
+const startBtn2 = $("cardStartIelts1Btn");
+const contBtn = $("homeContinueBtn");
+const resetHomeBtn = $("homeNewAttemptBtn");
+const resetCardBtn = $("cardResetBtn");
+const howBtn = $("homeHowItWorksBtn");
+
+function startOrContinueExam() {
+  setExamStarted(true);
+
+// Init listening system only now
+initListeningSystem();
+
+  const finalDone = localStorage.getItem(EXAM.keys.finalSubmitted) === "true";
+  const listeningDone = localStorage.getItem("IELTS:LISTENING:submitted") === "true";
+
+  if (finalDone) {
+    showOnly("writing");
+    setExamNavStatus("Status: Submitted (Review mode)");
+    return;
+  }
+
+  if (listeningDone) {
+    startReadingSystem();
+    showOnly("reading");
+    setExamNavStatus("Status: Reading in progress");
+    return;
+  }
+
   showOnly("listening");
   setExamNavStatus("Status: Listening in progress");
+}
 
-const onDone = () => {
-  document.removeEventListener("listening:submitted", onDone);
+if (startBtn) startBtn.onclick = startOrContinueExam;
+if (startBtn2) startBtn2.onclick = startOrContinueExam;
+if (contBtn) contBtn.onclick = startOrContinueExam;
 
-  showModal(
-    "Listening submitted",
-    "Listening is submitted. Start Reading now?",
-    {
-      mode: "confirm",
-      showCancel: true,
-      submitText: "Start Reading",
-      cancelText: "Later",
-      onConfirm: () => {
-        startReadingSystem();
-        showOnly("reading");
-        setExamNavStatus("Status: Reading in progress");
-      },
-      onCancel: () => {
-        showOnly("listening");
-        setExamNavStatus("Status: Listening submitted (review)");
-      }
-    }
-  );
-};
-document.addEventListener("listening:submitted", onDone);
+if (howBtn) {
+  howBtn.onclick = () => {
+    const el = $("homeHowItWorks");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+}
+
+function clearAttemptFromHome() {
+  const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
+  if (!ok) return;
+  setExamStarted(false);
+  resetExamAttempt(); // your existing function (already clears + reload)
+}
+
+if (resetHomeBtn) resetHomeBtn.onclick = clearAttemptFromHome;
+if (resetCardBtn) resetCardBtn.onclick = clearAttemptFromHome;
 });

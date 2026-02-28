@@ -6,6 +6,109 @@
   <title>IELTS Test</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
+<!-- ================= HOME ================= -->
+<section id="homeSection" class="home-screen" aria-label="Home">
+  <header class="home-header">
+    <div class="home-topbar">
+      <div class="home-brand">
+        <img
+          class="home-logo landau"
+          src="https://landauschool.com/default.jpg"
+          alt="Landau School"
+          loading="lazy"
+        />
+        <div class="home-brand-divider" aria-hidden="true"></div>
+        <img
+          class="home-logo ielts"
+          src="https://webberz.in/blog/wp-content/uploads/2020/06/1200px-IELTS_logo.svg_-1170x441.png"
+          alt="IELTS"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="home-top-actions">
+        <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button>
+        <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
+      </div>
+    </div>
+
+    <div class="home-hero">
+      <div class="home-hero-left">
+        <div class="home-badge">Practice portal</div>
+        <h1 class="home-title">Choose a test and start your attempt</h1>
+        <p class="home-subtitle">
+          Complete Listening, then Reading, then Writing. Your answers are saved automatically on this browser.
+        </p>
+
+        <div class="home-hero-cta">
+          <button class="home-btn" type="button" id="startIelts1Btn">Start IELTS Test 1</button>
+          <button class="home-btn ghost" type="button" id="homeNewAttemptBtn">New attempt</button>
+        </div>
+
+        <div class="home-notes" id="homeStatusLine">Status: Ready</div>
+      </div>
+
+      <div class="home-hero-right">
+        <div class="home-card">
+          <div class="home-card-h">IELTS Test 1</div>
+          <div class="home-card-p">
+            Full exam flow: Listening → Reading → Writing. Review mode after submission.
+          </div>
+
+          <div class="home-card-meta">
+            <div class="meta-pill">Listening: auto-submit</div>
+            <div class="meta-pill">Reading: 60 min</div>
+            <div class="meta-pill">Writing: 60 min</div>
+          </div>
+
+          <div class="home-card-actions">
+            <button class="home-btn" type="button" id="cardStartIelts1Btn">Open IELTS Test 1</button>
+            <button class="home-btn ghost" type="button" id="cardResetBtn">Clear this browser</button>
+          </div>
+        </div>
+
+        <div class="home-mini">
+          More tests will appear here as you add them (IELTS Test 2, SAT, etc.).
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="home-main" id="homeHowItWorks">
+    <div class="home-grid">
+      <div class="home-info">
+        <div class="home-info-h">How it works</div>
+        <div class="home-info-p">
+          1) Start the test<br/>
+          2) Listening runs with no pause/skip<br/>
+          3) Reading unlocks after Listening submit<br/>
+          4) Writing unlocks after Reading submit or time end
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Autosave</div>
+        <div class="home-info-p">
+          Answers are saved automatically in your browser storage. If you refresh, you can continue from where you left off.
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Submission</div>
+        <div class="home-info-p">
+          After Writing, the final payload is stored locally and (if enabled) sent to Google Sheets via your Apps Script endpoint.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <div>© Landau School</div>
+      <div class="home-footer-muted">IELTS practice portal</div>
+    </div>
+  </footer>
+</section>
 <body>
 
   <!-- ================= EXAM NAV (NEW) ================= -->
@@ -16,6 +119,7 @@
   </div>
 
   <div class="exam-nav-actions">
+<button class="btn secondary" type="button" id="navToHomeBtn">Home</button>
     <button class="btn secondary" type="button" id="navToListeningBtn">Listening</button>
     <button class="btn secondary" type="button" id="navToReadingBtn">Reading</button>
     <button class="btn secondary" type="button" id="navToWritingBtn">Writing</button>

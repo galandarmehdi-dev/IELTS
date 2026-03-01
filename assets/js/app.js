@@ -22,6 +22,11 @@
     const resetBtn = $("resetExamBtn");
 
     // Final submitted?
+    // If browser somehow has finalSubmitted=true but no payload, treat as NOT submitted
+const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
+if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
+  S().set(R().EXAM.keys.finalSubmitted, "false");
+}
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
     if (finalDone) {
       UI().setExamNavStatus("Status: Submitted (Review mode)");
@@ -38,13 +43,7 @@
       if (ws) ws.classList.add("view-only");
 
       UI().showOnly("writing");
-
-      Modal().showModal(
-        "Submitted (Review mode)",
-        "You can review Listening/Reading/Writing using the top buttons. Click 'New attempt' for a fresh exam.",
-        { mode: "confirm" }
-      );
-      return;
+return;
     }
 
     // NAV buttons

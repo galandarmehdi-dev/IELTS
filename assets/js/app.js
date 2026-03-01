@@ -14,6 +14,10 @@
     // bind modal buttons once
     if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
   window.IELTS.Modal.bindModalOnce();
+      // --- BOOT SAFETY: never show modal on first load ---
+try { Modal().hideModal(); } catch {}
+const m = document.getElementById("modal");
+if (m) m.classList.add("hidden");
 } else {
   console.error("Modal module not loaded properly.");
 }

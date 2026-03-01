@@ -1,14 +1,42 @@
-/* ===================== BASE SITE (READING) ===================== */
+/* ===================== BASE (GLOBAL) ===================== */
 :root{
   --border:#e6e6e6;
   --bg:#ffffff;
   --muted:#666;
   --shadow: 0 8px 20px rgba(0,0,0,.08);
 }
+
 *{ box-sizing:border-box; }
+
 body{
   margin:0;
   font-family: Arial, sans-serif;
   background: var(--bg);
   color:#111;
 }
+
+/* Shared helpers */
+.hidden{ display:none; }
+.small{ font-size:13px; color:var(--muted); }
+.muted{ color:#666; }
+
+/* Buttons (used everywhere) */
+.btn{
+  padding:8px 12px;
+  border:1px solid #111;
+  border-radius:12px;
+  background:#111;
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn.secondary{
+  background:#fff;
+  color:#111;
+  border:1px solid var(--border);
+}
+.btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.btn:active{ transform: translateY(1px); }

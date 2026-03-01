@@ -1,1 +1,14 @@
-/* base styles */
+/* ===================== BASE SITE (READING) ===================== */
+:root{
+  --border:#e6e6e6;
+  --bg:#ffffff;
+  --muted:#666;
+  --shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color:#111;
+}

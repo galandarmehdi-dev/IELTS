@@ -130,8 +130,9 @@
 .listen-notes .note-row{ margin: 10px 0; }
 .note-row{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:10px;
+  flex-wrap:wrap;
   line-height:1.35;
 }
 .note-row.bullet{ margin-left: 14px; }
@@ -147,7 +148,8 @@
   font-size: 13px;
 }
 .l-input{
-  flex:1;
+  flex:0 0 260px;
+  max-width:260px;
   padding:10px 12px;
   border-radius:12px;
   border:1px solid #ddd;
@@ -819,4 +821,28 @@ mark.hl{
 .home-footer-muted{
   color:#666;
   font-weight: 600;
+}
+/* ===== SECTION 3 STRUCTURE ===== */
+
+.section3-notes{
+  line-height: 1.5;
+}
+
+.s3-group{
+  margin-bottom: 22px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.s3-group:last-child{
+  border-bottom: none;
+}
+
+.s3-title{
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.note-row.bullet{
+  margin-left: 26px;
 }

@@ -33,3 +33,4 @@
   border: 1px solid #ddd;
   font-size: 14px;
 }
+#modal.hidden { display: none !important; }

@@ -1,1 +1,246 @@
-/* base styles */
+/* ===================== HOME ===================== */
+:root{
+  --brand: #e3001b;
+  --brandDark: #b80016;
+  --ink: #111;
+  --paper: #fff;
+  --soft: #f6f7f9;
+  --line: #e7e7ea;
+}
+
+.home-screen{
+  min-height: 100vh;
+  background: var(--soft);
+  color: var(--ink);
+}
+
+.home-header{
+  background:
+    radial-gradient(1200px 380px at 10% 10%, rgba(227,0,27,.15), transparent 60%),
+    radial-gradient(900px 300px at 90% 0%, rgba(227,0,27,.10), transparent 55%),
+    linear-gradient(180deg, #ffffff 0%, #fbfbfd 55%, var(--soft) 100%);
+  border-bottom: 1px solid var(--line);
+}
+
+.home-topbar{
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  padding: 14px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+}
+
+.home-brand{
+  display:flex;
+  align-items:center;
+  gap: 12px;
+}
+
+.home-logo{
+  height: 38px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  background:#fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 26px rgba(0,0,0,.06);
+}
+
+.home-logo.ielts{
+  border-radius: 12px;
+  padding: 6px 10px;
+}
+
+.home-logo.landau{
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+}
+
+.home-brand-divider{
+  width: 1px;
+  height: 34px;
+  background: var(--line);
+}
+
+.home-top-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+}
+
+.home-btn{
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  cursor:pointer;
+  font-weight: 800;
+}
+.home-btn:hover{ background: var(--brandDark); border-color: var(--brandDark); }
+.home-btn:active{ transform: translateY(1px); }
+
+.home-btn.ghost{
+  background: transparent;
+  color: var(--brand);
+  border-color: rgba(227,0,27,.35);
+}
+
+.home-hero{
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  padding: 24px 0 26px;
+  display:grid;
+  grid-template-columns: 1.05fr .95fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px){
+  .home-hero{ grid-template-columns: 1fr; }
+}
+
+.home-badge{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(227,0,27,.08);
+  border: 1px solid rgba(227,0,27,.22);
+  color: var(--brand);
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.home-title{
+  margin: 12px 0 8px;
+  font-size: 38px;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+.home-subtitle{
+  margin: 0 0 16px;
+  color: #444;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.home-hero-cta{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+  margin-bottom: 12px;
+}
+
+.home-notes{
+  color:#555;
+  font-size: 13px;
+}
+
+.home-card{
+  background:#fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.08);
+}
+
+.home-card-h{
+  font-weight: 950;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.home-card-p{
+  color:#444;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.home-card-meta{
+  display:flex;
+  gap: 8px;
+  flex-wrap:wrap;
+  margin-bottom: 14px;
+}
+
+.meta-pill{
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color:#333;
+}
+
+.home-card-actions{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.home-mini{
+  margin-top: 12px;
+  color:#666;
+  font-size: 13px;
+}
+
+.home-main{
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  padding: 18px 0 26px;
+}
+
+.home-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px){
+  .home-grid{ grid-template-columns: 1fr; }
+}
+
+.home-info{
+  background:#fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.06);
+}
+
+.home-info-h{
+  font-weight: 950;
+  margin-bottom: 8px;
+}
+
+.home-info-p{
+  color:#444;
+  line-height: 1.55;
+}
+
+.home-footer{
+  border-top: 1px solid var(--line);
+  background:#fff;
+}
+
+.home-footer-inner{
+  width: min(1100px, 92%);
+  margin: 0 auto;
+  padding: 14px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  color:#333;
+  font-weight: 700;
+}
+
+.home-footer-muted{
+  color:#666;
+  font-weight: 600;
+}

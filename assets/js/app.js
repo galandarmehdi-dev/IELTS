@@ -18,6 +18,9 @@
 try { Modal().hideModal(); } catch {}
 const m = document.getElementById("modal");
 if (m) m.classList.add("hidden");
+      // --- Disable auto "review/submitted" mode on load ---
+S().set(R().EXAM.keys.finalSubmitted, "false");
+S().remove(R().EXAM.keys.finalSubmission);
 } else {
   console.error("Modal module not loaded properly.");
 }

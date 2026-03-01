@@ -1,1 +1,93 @@
-/* base styles */
+/* ===================== READING (EXAM UI) ===================== */
+
+/* ===================== EXAM NAV (NEW) ===================== */
+.exam-nav{
+  position: sticky;
+  top: 0;
+  z-index: 120000;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.exam-nav-left{
+  display:flex;
+  align-items:baseline;
+  gap:12px;
+}
+.exam-nav-status{
+  color: var(--muted);
+  font-size: 13px;
+}
+.exam-nav-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* ===================== VIEW-ONLY (NEW) ===================== */
+.view-only{ opacity: .98; }
+
+.view-only input,
+.view-only select,
+.view-only textarea{
+  pointer-events: none;
+  opacity: .85;
+}
+
+.controls{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background:#fff;
+}
+
+.timer{ font-weight:700; }
+
+.container{
+  display:flex;
+  height: calc(100vh - 58px);
+}
+
+.passage{
+  width:50%;
+  padding:18px 18px 28px;
+  overflow-y:auto;
+  border-right:1px solid var(--border);
+  position: relative; /* needed for highlight toolbar inside passage */
+}
+.passage h2{ margin:0 0 10px; }
+.passage p{ line-height:1.55; margin:0 0 12px; }
+
+.questions{
+  width:50%;
+  padding:14px 14px 18px;
+  overflow-y:auto;
+}
+
+.qcard{
+  margin-top:14px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+  box-shadow: var(--shadow);
+  background:#fff;
+}
+
+.foot{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* Focus mode */
+.focus .controls{ display:none; }
+.focus .container{ height:100vh; }

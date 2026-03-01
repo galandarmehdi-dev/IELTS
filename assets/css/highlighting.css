@@ -1,1 +1,62 @@
-/* base styles */
+/* ===================== HIGHLIGHTING (GLOBAL) ===================== */
+mark.hl{
+  background:#fff2a8;
+  padding:0 .05em;
+  border-radius:4px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.hl-toolbar{
+  position:fixed;
+  z-index:200000;
+  display:none;               /* JS controls show/hide */
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  background:#fff;
+  border:1px solid var(--border, #e6e6e6);
+  border-radius:14px;
+  box-shadow:0 12px 28px rgba(0,0,0,.14);
+  min-width:260px;
+  max-width:min(520px, calc(100vw - 24px));
+  flex-wrap:wrap;
+}
+
+.hl-toolbtn{
+  width:auto;                 /* prevents square buttons */
+  height:38px;
+  padding:0 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid var(--border, #e6e6e6);
+  border-radius:12px;
+  background:#fff;
+  cursor:pointer;
+  font-weight:800;
+  user-select:none;
+  color:#111;
+  white-space:nowrap;
+}
+
+.hl-toolbtn.primary{ border-color:#111; }
+.hl-toolbtn.danger{ border-color:#b00020; color:#b00020; }
+
+/* Reading: toolbar inside passage panel */
+.passage .hl-toolbar{
+  position:absolute;
+  z-index:200000;
+  min-width:unset;
+  max-width:calc(100% - 16px);
+  padding:8px 10px;
+  gap:8px;
+  border-radius:12px;
+}
+
+.passage .hl-toolbtn{
+  height:34px;
+  padding:0 12px;
+  border-radius:10px;
+  font-weight:700;
+}

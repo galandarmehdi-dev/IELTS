@@ -33,6 +33,28 @@ function hideModal() {
   const m = $("modal");
   if (m) m.classList.add("hidden");
 }
+// ================= ROUTING (URL) =================
+// We will use URLs like: #/ielts1/listening
+function setHashRoute(testId, view) {
+  // view: home | listening | reading | writing
+  const safeTest = encodeURIComponent(testId || "ielts1");
+  const safeView = encodeURIComponent(view || "home");
+  const newHash = `#/` + safeTest + `/` + safeView;
+
+  // Only set if different (avoids extra history entries)
+  if (location.hash !== newHash) location.hash = newHash;
+}
+
+function parseHashRoute() {
+  // Accept: #/ielts1/listening
+  const h = (location.hash || "").replace(/^#/, ""); // "/ielts1/listening"
+  const parts = h.split("/").filter(Boolean);        // ["ielts1","listening"]
+  if (parts.length < 2) return null;
+
+  const testId = parts[0];
+  const view = parts[1];
+  return { testId, view };
+}
 // ================= HOME / ROUTING =================
 const HOME_KEY = "IELTS:HOME:lastView";
 const EXAM_STARTED_KEY = "IELTS:EXAM:started";
@@ -585,7 +607,8 @@ function showOnly(target) {
     if (target === "writing") writing.classList.remove("hidden");
     else writing.classList.add("hidden");
   }
-
+  // Update the URL hash route (default test: ielts1)
+  setHashRoute("ielts1", target);
   try { localStorage.setItem(HOME_KEY, target); } catch {}
 
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -2829,10 +2852,34 @@ const resetBtn = $("resetExamBtn");
     return;
   }
 
-// ---------- HOME first ----------
-showOnly("home");
-updateHomeStatusLine();
-
+// ---------- Decide initial view from URL (if provided) ----------
+const route = parseHashRoute();
+if (route && route.view) {
+  // IMPORTANT: make sure systems are initialized when needed
+  if (route.view === "listening") {
+    setExamStarted(true);
+    initListeningSystem();
+    showOnly("listening");
+    setExamNavStatus("Status: Listening in progress");
+  } else if (route.view === "reading") {
+    setExamStarted(true);
+    startReadingSystem();
+    showOnly("reading");
+    setExamNavStatus("Status: Viewing Reading");
+  } else if (route.view === "writing") {
+    setExamStarted(true);
+    startWritingSystem();
+    showOnly("writing");
+    setExamNavStatus("Status: Viewing Writing");
+  } else {
+    showOnly("home");
+    updateHomeStatusLine();
+  }
+} else {
+  // No hash route → normal behavior
+  showOnly("home");
+  updateHomeStatusLine();
+}
 // Home buttons
 const startBtn = $("startIelts1Btn");
 const startBtn2 = $("cardStartIelts1Btn");

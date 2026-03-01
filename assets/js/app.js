@@ -12,7 +12,11 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     // bind modal buttons once
-    Modal().bindModalOnce();
+    if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
+  window.IELTS.Modal.bindModalOnce();
+} else {
+  console.error("Modal module not loaded properly.");
+}
 
     const $ = UI().$;
 

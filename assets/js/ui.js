@@ -72,7 +72,7 @@
       }
     }
   } catch {}
-}
+
   function setExamStarted(v) {
     try {
       S().set(R().KEYS.EXAM_STARTED, v ? "true" : "false");
@@ -178,7 +178,140 @@ function resetExamAttempt() {
   }
 }
 
+// =====================
+// STUDENT ANTI-CHEAT (best-effort, browser-limited)
+// =====================
+let __IELTS_ANTI_CHEAT_BOUND__ = false;
+
+function isStudentInActiveAttempt() {
+  try {
+    if (isAdminView()) return false;
+    const started = S()?.get(R().KEYS.EXAM_STARTED, "false") === "true";
+    const finalDone = S()?.get(R().EXAM.keys.finalSubmitted, "false") === "true";
+    return started && !finalDone;
+  } catch {
+    return false;
+  }
+}
+
+function allowContextMenuForCopyPasteOnly(e) {
+  // Allow right-click on inputs/textareas (paste) OR when user has a selection (copy).
+  const t = e.target;
+  const tag = (t && t.tagName ? String(t.tagName).toLowerCase() : "");
+  const isEditable =
+    !!(t && (t.isContentEditable || tag === "input" || tag === "textarea" || tag === "select"));
+  const hasSelection = !!(window.getSelection && String(window.getSelection().toString() || "").trim());
+
+  if (isEditable || hasSelection) return; // allow copy/paste menus
+  e.preventDefault();
+}
+
+function blockFindOnPageShortcut(e) {
+  // Block Ctrl/Cmd+F and F3/Enter find-next style keys.
+  const k = String(e.key || "").toLowerCase();
+  const isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform || "");
+  const mod = isMac ? e.metaKey : e.ctrlKey;
+
+  if (mod && k === "f") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  // Optional: also block F3 (find next)
+  if (k === "f3") {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}
+
+function showFocusLostSubmitGate(reason) {
+  // We cannot truly prevent tab switching/minimize/close in browsers.
+  // Best effort: when student returns, lock the UI and require final submit.
+  if (!isStudentInActiveAttempt()) return;
+
+  try {
+    // Ensure Writing engine exists so modal "final" submit can work (needs __IELTS_SUBMIT_FINAL__)
+    window.IELTS?.Engines?.Writing?.startWritingSystem?.();
+  } catch {}
+
+  try { showOnly("writing"); } catch {}
+  try { setExamNavStatus("Status: Submission required"); } catch {}
+
+  try {
+    window.IELTS?.Modal?.showModal?.(
+      "Exam locked",
+      (reason || "You left the exam window.") +
+        " To continue, you must end the exam and submit using your Name and Surname.",
+      {
+        mode: "final",
+        showCancel: false,
+        submitText: "Submit exam",
+      }
+    );
+  } catch {}
+}
+
+function bindStudentAntiCheatOnce() {
+  if (__IELTS_ANTI_CHEAT_BOUND__) return;
+  __IELTS_ANTI_CHEAT_BOUND__ = true;
+
+  // Right-click policy
+  document.addEventListener(
+    "contextmenu",
+    (e) => {
+      if (isAdminView()) return;
+      allowContextMenuForCopyPasteOnly(e);
+    },
+    true
+  );
+
+  // Block Ctrl/Cmd+F
+  document.addEventListener("keydown", (e) => {
+    if (isAdminView()) return;
+    blockFindOnPageShortcut(e);
+  }, true);
+
+  // Warn on close/refresh while attempt active
+  window.addEventListener("beforeunload", (e) => {
+    if (!isStudentInActiveAttempt()) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+
+  // Detect focus loss / tab change and force submit gate on return
+  window.addEventListener("blur", () => {
+    if (!isStudentInActiveAttempt()) return;
+    // mark a flag so we only gate when they come back
+    try { S()?.set("IELTS:ANTI_CHEAT:focusLost", "true"); } catch {}
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (!isStudentInActiveAttempt()) return;
+    if (document.hidden) {
+      try { S()?.set("IELTS:ANTI_CHEAT:focusLost", "true"); } catch {}
+      return;
+    }
+    // Returned to tab
+    const lost = S()?.get("IELTS:ANTI_CHEAT:focusLost", "false") === "true";
+    if (lost) {
+      try { S()?.set("IELTS:ANTI_CHEAT:focusLost", "false"); } catch {}
+      showFocusLostSubmitGate("You changed the exam window/tab.");
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    if (!isStudentInActiveAttempt()) return;
+    const lost = S()?.get("IELTS:ANTI_CHEAT:focusLost", "false") === "true";
+    if (lost) {
+      try { S()?.set("IELTS:ANTI_CHEAT:focusLost", "false"); } catch {}
+      showFocusLostSubmitGate("You changed the exam window/tab.");
+    }
+  });
+}
+
 function applyStudentLockdownUI() {
+  // Bind anti-cheat listeners (students only)
+  try { bindStudentAntiCheatOnce(); } catch {}
+
     // Hide Copy/Download utility buttons for students
   if (!isAdminView()) {
     [

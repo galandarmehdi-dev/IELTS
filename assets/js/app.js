@@ -150,7 +150,7 @@ return;
 
     // Default to home
     UI().showOnly("home");
-    UI().updateHomeStatusLine();
+    UI().updateHomeStatusLine("Status: Ready");
 
     // Home buttons
     const startBtn = $("startIelts1Btn");

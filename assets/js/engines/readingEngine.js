@@ -1024,30 +1024,29 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function renderPassageForActivePart() {
-      const passageEl = $("passage");
-      if (!passageEl) return;
+  const passageEl = $("passage");
+  if (!passageEl) return;
 
-      if (activePart === "part1") {
-        passageEl.innerHTML = PART1_PASSAGE_HTML;
-        return;
-      }
+  const text =
+    activePart === "part1"
+      ? PART1_PASSAGE_TEXT
+      : activePart === "part2"
+      ? PART2_PASSAGE_TEXT
+      : PART3_PASSAGE_TEXT;
 
-      const text = activePart === "part2" ? PART2_PASSAGE_TEXT : PART3_PASSAGE_TEXT;
+  const html = text
+    .trim()
+    .split("\n\n")
+    .map((para, i) => {
+      const p = para.trim();
+      if (!p) return "";
+      if (i === 0) return `<h2>${escapeHtml(p)}</h2>`;
+      return `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("");
 
-      const html = text
-        .trim()
-        .split("\n\n")
-        .map((para, i) => {
-          const p = para.trim();
-          if (!p) return "";
-          if (i === 0) return `<h2>${escapeHtml(p)}</h2>`;
-          return `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
-        })
-        .join("");
-
-      passageEl.innerHTML = html;
-    }
-
+  passageEl.innerHTML = html;
+}
     function renderQuestionsForActivePart(answers) {
       const card = $("qCard");
       if (!card) return;

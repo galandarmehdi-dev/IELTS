@@ -6,66 +6,79 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  // Modal mode: "confirm" (no name) | "final" (name required)
-  let MODAL_MODE = "confirm";
+  let MODAL_MODE = "confirm"; // confirm | final | locked
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
+  let MODAL_LOCKED = false;
+
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   function hideModal() {
-    const m = UI().$("modal");
-    if (m) m.classList.add("hidden");
+    if (MODAL_LOCKED) return; // locked means cannot close
+    const modal = $("modal");
+    if (modal) modal.classList.add("hidden");
   }
 
   function showModal(title, text, opts = {}) {
-    const $ = UI().$;
-
-    if ($("modalTitle")) $("modalTitle").textContent = title;
-    if ($("modalText")) $("modalText").textContent = text;
-
-    MODAL_MODE = opts.mode === "final" ? "final" : "confirm";
-    const needName = MODAL_MODE === "final";
-
+    const modal = $("modal");
+    const t = $("modalTitle");
+    const p = $("modalText");
     const nameWrap = $("modalNameWrap");
     const nameInput = $("modalFullName");
-    const submitBtn = $("modalSubmitBtn");
-    const cancelBtn = $("modalCancelBtn");
+    const submit = $("modalSubmitBtn");
+    const cancel = $("modalCancelBtn");
 
-    if (nameWrap) nameWrap.classList.toggle("hidden", !needName);
-
-    if (submitBtn) submitBtn.textContent = opts.submitText || (needName ? "Submit" : "OK");
-
-    const showCancel = !!opts.showCancel;
-    if (cancelBtn) {
-      cancelBtn.classList.toggle("hidden", !showCancel);
-      cancelBtn.textContent = opts.cancelText || "Cancel";
-    }
-
+    MODAL_MODE = opts.mode || "confirm";
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    // Prefill name from writing storage
-    if (needName) {
-      const existing = (S().get(R().TESTS.writingKeys.studentName, "") || "")
-        .trim()
-        .replace(/\s+/g, " ");
-      if (nameInput) {
-        if (!nameInput.value.trim() && existing) nameInput.value = existing;
-        setTimeout(() => nameInput.focus(), 0);
-      }
+    MODAL_LOCKED = MODAL_MODE === "locked";
+
+    if (t) t.textContent = title || "";
+    if (p) p.textContent = text || "";
+
+    // name required only in "final"
+    const isFinal = MODAL_MODE === "final";
+    if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
+
+    // buttons
+    if (cancel) {
+      const showCancel = opts.showCancel === true;
+      cancel.classList.toggle("hidden", !(showCancel && !MODAL_LOCKED));
+      cancel.textContent = opts.cancelText || "Cancel";
+      cancel.disabled = MODAL_LOCKED;
     }
 
-    const modal = $("modal");
+    if (submit) {
+      submit.classList.toggle("hidden", MODAL_LOCKED); // in locked mode: no OK button at all
+      submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
+      submit.disabled = false;
+    }
+
+    if (nameInput && isFinal) {
+      // preload saved name if exists
+      const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
+      if (saved && !nameInput.value) nameInput.value = saved;
+    }
+
     if (modal) modal.classList.remove("hidden");
+
+    if (isFinal) {
+      setTimeout(() => nameInput?.focus?.(), 0);
+    }
   }
 
   function bindModalOnce() {
-    const $ = UI().$;
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
 
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
+        if (MODAL_LOCKED) return;
+
         // CONFIRM MODE
         if (MODAL_MODE === "confirm") {
           const fn = MODAL_ONCONFIRM;
@@ -106,6 +119,7 @@
     if (cancel && !cancel.dataset.bound) {
       cancel.dataset.bound = "1";
       cancel.addEventListener("click", () => {
+        if (MODAL_LOCKED) return;
         const fn = MODAL_ONCANCEL;
         MODAL_ONCONFIRM = null;
         MODAL_ONCANCEL = null;

@@ -39,9 +39,11 @@
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
+    // name required only in "final"
     const isFinal = MODAL_MODE === "final";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
 
+    // buttons
     if (cancel) {
       const showCancel = opts.showCancel === true;
       cancel.classList.toggle("hidden", !(showCancel && !MODAL_LOCKED));
@@ -50,13 +52,13 @@
     }
 
     if (submit) {
-      // locked: no button; gate: button visible
-      submit.classList.toggle("hidden", MODAL_MODE === "locked");
+      submit.classList.toggle("hidden", MODAL_MODE === "locked"); // locked: no button; gate: button visible
       submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
       submit.disabled = false;
     }
 
     if (nameInput && isFinal) {
+      // preload saved name if exists
       const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
       if (saved && !nameInput.value) nameInput.value = saved;
     }
@@ -75,15 +77,13 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        if (MODAL_LOCKED && MODAL_MODE === "locked") return;
+        if (MODAL_LOCKED) return;
 
-        // CONFIRM / GATE MODE
+        // CONFIRM MODE
         if (MODAL_MODE === "confirm" || MODAL_MODE === "gate") {
           const fn = MODAL_ONCONFIRM;
           MODAL_ONCONFIRM = null;
           MODAL_ONCANCEL = null;
-
-          // gate is "locked" until clicking, so force-close is required
           hideModal(MODAL_MODE === "gate");
           if (typeof fn === "function") fn();
           return;
@@ -94,23 +94,25 @@
         const fullName = (nameInput?.value || "").trim().replace(/\s+/g, " ");
 
         if (!UI().isValidFullName(fullName)) {
-          $("modalText").textContent =
-            "Name required. Please type your Name and Surname before submitting.";
-          nameInput?.focus?.();
+          showModal("Name required", "Please type your Name and Surname to submit the exam.", {
+            mode: "final",
+          });
+          setTimeout(() => nameInput?.focus?.(), 0);
           return;
         }
 
-        // persist name
-        try {
-          S().set(R().TESTS.writingKeys.studentName, fullName);
-        } catch {}
+        S().set(R().TESTS.writingKeys.studentName, fullName);
 
-        const fn = MODAL_ONCONFIRM;
-        MODAL_ONCONFIRM = null;
-        MODAL_ONCANCEL = null;
+        if (typeof window.__IELTS_SUBMIT_FINAL__ === "function") {
+          submit.disabled = true;
+          submit.textContent = "Submitting...";
+          await window.__IELTS_SUBMIT_FINAL__("Student submitted exam.");
+          return;
+        }
 
-        hideModal();
-        if (typeof fn === "function") fn(fullName);
+        showModal("Error", "Submit function is not ready. Please refresh and try again.", {
+          mode: "confirm",
+        });
       });
     }
 
@@ -121,8 +123,8 @@
         const fn = MODAL_ONCANCEL;
         MODAL_ONCONFIRM = null;
         MODAL_ONCANCEL = null;
-        hideModal();
-        if (typeof fn === "function") fn();
+        hideModal(MODAL_MODE === "gate");
+          if (typeof fn === "function") fn();
       });
     }
   }

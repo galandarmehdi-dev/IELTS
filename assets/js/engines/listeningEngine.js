@@ -318,57 +318,70 @@
     }
 
     function setupListeningUI() {
-      if (submitted) {
-        const s = sec();
-        if (s) s.classList.add("hidden");
-        lockReading(false);
-        document.dispatchEvent(new CustomEvent("listening:submitted"));
-        return;
-      }
+  // Admin gate (students must NOT be able to submit early / control flow)
+  const isAdmin =
+    (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
+    (window.IELTS?.Access?.isAdmin?.() === true) ||
+    false;
 
-      showListening();
+  if (submitted) {
+    const s = sec();
+    if (s) s.classList.add("hidden");
+    lockReading(false);
+    document.dispatchEvent(new CustomEvent("listening:submitted"));
+    return;
+  }
 
-      const sBtn = startBtn();
-      if (sBtn) sBtn.onclick = startAudioFromUserGesture;
+  showListening();
 
-      const submitNow = $("submitListeningBtn");
-      if (submitNow) {
-        submitNow.onclick = () => {
-          if (submitted) return;
+  const sBtn = startBtn();
+  if (sBtn) sBtn.onclick = startAudioFromUserGesture;
 
-          const ok = confirm("Submit Listening now? You will NOT be able to change answers after submitting.");
-          if (!ok) return;
+  const submitNow = $("submitListeningBtn");
+  if (submitNow) {
+    if (!isAdmin) {
+      // Students cannot submit early
+      submitNow.classList.add("hidden");
+    } else {
+      // Admin can submit early (for testing / supervision)
+      submitNow.onclick = () => {
+        if (submitted) return;
 
-          finishListening("Student submitted listening early.");
+        const ok = confirm(
+          "Submit Listening now? You will NOT be able to change answers after submitting."
+        );
+        if (!ok) return;
 
-          Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
-            mode: "confirm",
-            showCancel: true,
-            submitText: "Start Reading",
-            cancelText: "Stay here",
-            onConfirm: () => {
-              window.IELTS.Engines.Reading.startReadingSystem();
-              UI().showOnly("reading");
-              UI().setExamNavStatus("Status: Reading in progress");
-            },
-            onCancel: () => {
-              UI().showOnly("listening");
-              UI().setExamNavStatus("Status: Listening submitted (review)");
-            },
-          });
-        };
-      }
+        finishListening("Admin submitted listening early.");
 
-      const cBtn = cancelBtn();
-      if (cBtn) {
-        cBtn.onclick = () => {
-          const m = modal();
-          if (m) m.style.display = "flex";
-          setStatus("Status: Not started");
-        };
-      }
+        Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
+          mode: "confirm",
+          showCancel: true,
+          submitText: "Start Reading",
+          cancelText: "Stay here",
+          onConfirm: () => {
+            window.IELTS.Engines.Reading.startReadingSystem();
+            UI().showOnly("reading");
+            UI().setExamNavStatus("Status: Reading in progress");
+          },
+          onCancel: () => {
+            UI().showOnly("listening");
+            UI().setExamNavStatus("Status: Listening submitted (review)");
+          },
+        });
+      };
     }
+  }
 
+  const cBtn = cancelBtn();
+  if (cBtn) {
+    cBtn.onclick = () => {
+      const m = modal();
+      if (m) m.style.display = "flex";
+      setStatus("Status: Not started");
+    };
+  }
+}
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", setupListeningUI);
     } else {

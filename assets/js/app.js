@@ -261,7 +261,8 @@
 
   const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
   const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-  const readingDone2 = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+  const readingDone2 =
+  S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
 
   // If fully submitted, show locked overlay and do NOT route back into exam
   if (finalDone2) {

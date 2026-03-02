@@ -38,6 +38,62 @@
     const isAdmin = isAdminView();
     const $ = UI().$;
 
+    // =========================
+    // STUDENT AUTO-FLOW GATES
+    // =========================
+    let listeningGateShown = false;
+    let readingGateShown = false;
+
+    document.addEventListener("listening:submitted", () => {
+      // Only for student flow (admins already have their own controls)
+      if (isAdmin) return;
+      if (listeningGateShown) return;
+      listeningGateShown = true;
+
+      // Keep student on Listening view, but force a "Start Reading" gate.
+      UI().showOnly("listening");
+      UI().setExamNavStatus("Status: Listening finished");
+
+      Modal().showModal(
+        "Listening finished",
+        "The Listening audio has ended and your answers have been submitted. Click START READING to continue.",
+        {
+          mode: "gate",
+          submitText: "Start Reading",
+          onConfirm: () => {
+            window.IELTS.Engines.Reading.startReadingSystem();
+            UI().clearReadingLockStyles();
+            UI().showOnly("reading");
+            UI().setExamNavStatus("Status: Reading in progress");
+          },
+        }
+      );
+    });
+
+    document.addEventListener("reading:submitted", () => {
+      if (isAdmin) return;
+      if (readingGateShown) return;
+      readingGateShown = true;
+
+      // Force a "Start Writing" gate.
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading finished");
+
+      Modal().showModal(
+        "Reading finished",
+        "Your Reading time has ended and your answers have been submitted. Click START WRITING to continue.",
+        {
+          mode: "gate",
+          submitText: "Start Writing",
+          onConfirm: () => {
+            window.IELTS.Engines.Writing.startWritingSystem();
+            UI().showOnly("writing");
+            UI().setExamNavStatus("Status: Writing in progress");
+          },
+        }
+      );
+    });
+
     const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");

@@ -164,6 +164,22 @@ function resetExamAttempt() {
 }
 
 function applyStudentLockdownUI() {
+    // Hide Copy/Download utility buttons for students
+  if (!isAdminView()) {
+    [
+      // Listening
+      "downloadListeningBtn",
+      "copyListeningBtn",
+
+      // Reading
+      "downloadBtn",
+      "copyBtn",
+
+      // Writing
+      "downloadWritingBtn",
+      "copyWritingBtn",
+    ].forEach((id) => $(id)?.classList.add("hidden"));
+  }
   // Hide global exam navigation actions for students
   const nav = $("examNav");
   if (nav && !isAdminView()) {

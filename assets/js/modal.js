@@ -6,7 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  let MODAL_MODE = "confirm"; // confirm | final | locked
+  let MODAL_MODE = "confirm"; // confirm | final | locked | gate
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -15,8 +15,8 @@
     return document.getElementById(id);
   }
 
-  function hideModal() {
-    if (MODAL_LOCKED) return; // locked means cannot close
+  function hideModal(force = false) {
+    if (MODAL_LOCKED && !force) return; // locked/gate means cannot close unless forced
     const modal = $("modal");
     if (modal) modal.classList.add("hidden");
   }
@@ -34,16 +34,14 @@
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    MODAL_LOCKED = MODAL_MODE === "locked";
+    MODAL_LOCKED = MODAL_MODE === "locked" || MODAL_MODE === "gate";
 
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
-    // name required only in "final"
     const isFinal = MODAL_MODE === "final";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
 
-    // buttons
     if (cancel) {
       const showCancel = opts.showCancel === true;
       cancel.classList.toggle("hidden", !(showCancel && !MODAL_LOCKED));
@@ -52,13 +50,13 @@
     }
 
     if (submit) {
-      submit.classList.toggle("hidden", MODAL_LOCKED); // in locked mode: no OK button at all
+      // locked: no button; gate: button visible
+      submit.classList.toggle("hidden", MODAL_MODE === "locked");
       submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
       submit.disabled = false;
     }
 
     if (nameInput && isFinal) {
-      // preload saved name if exists
       const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
       if (saved && !nameInput.value) nameInput.value = saved;
     }
@@ -77,14 +75,16 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        if (MODAL_LOCKED) return;
+        if (MODAL_LOCKED && MODAL_MODE === "locked") return;
 
-        // CONFIRM MODE
-        if (MODAL_MODE === "confirm") {
+        // CONFIRM / GATE MODE
+        if (MODAL_MODE === "confirm" || MODAL_MODE === "gate") {
           const fn = MODAL_ONCONFIRM;
           MODAL_ONCONFIRM = null;
           MODAL_ONCANCEL = null;
-          hideModal();
+
+          // gate is "locked" until clicking, so force-close is required
+          hideModal(MODAL_MODE === "gate");
           if (typeof fn === "function") fn();
           return;
         }
@@ -94,25 +94,23 @@
         const fullName = (nameInput?.value || "").trim().replace(/\s+/g, " ");
 
         if (!UI().isValidFullName(fullName)) {
-          showModal("Name required", "Please type your Name and Surname to submit the exam.", {
-            mode: "final",
-          });
-          setTimeout(() => nameInput?.focus?.(), 0);
+          $("modalText").textContent =
+            "Name required. Please type your Name and Surname before submitting.";
+          nameInput?.focus?.();
           return;
         }
 
-        S().set(R().TESTS.writingKeys.studentName, fullName);
+        // persist name
+        try {
+          S().set(R().TESTS.writingKeys.studentName, fullName);
+        } catch {}
 
-        if (typeof window.__IELTS_SUBMIT_FINAL__ === "function") {
-          submit.disabled = true;
-          submit.textContent = "Submitting...";
-          await window.__IELTS_SUBMIT_FINAL__("Student submitted exam.");
-          return;
-        }
+        const fn = MODAL_ONCONFIRM;
+        MODAL_ONCONFIRM = null;
+        MODAL_ONCANCEL = null;
 
-        showModal("Error", "Submit function is not ready. Please refresh and try again.", {
-          mode: "confirm",
-        });
+        hideModal();
+        if (typeof fn === "function") fn(fullName);
       });
     }
 

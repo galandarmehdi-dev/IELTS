@@ -16,7 +16,7 @@ body{
 }
 
 /* Shared helpers */
-.hidden{ display:none; }
+.hidden{ display:none !important; }
 .small{ font-size:13px; color:var(--muted); }
 .muted{ color:#666; }
 

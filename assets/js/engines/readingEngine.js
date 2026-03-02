@@ -1085,10 +1085,11 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
     }
 
-    function transitionToWritingOnce(reason) {
+    function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-      document.dispatchEvent(new CustomEvent("reading:ended", { detail: { reason: reason || "Reading ended." } }));
+      // Do NOT auto-start writing here. App.js will show a required gate.
+      document.dispatchEvent(new CustomEvent("reading:ended"));
     }
 
     function startTimer(answersRef) {
@@ -1116,7 +1117,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          transitionToWritingOnce("Reading time ended.");
+          transitionToWritingOnce();
         }
       }, 1000);
     }
@@ -1144,7 +1145,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       $("submitBtn").addEventListener("click", async () => {
         if (hasSubmittedReading) return;
 
-        const ok = confirm("Submit Reading now and start Writing?");
+        const ok = confirm("Submit Reading now?");
         if (!ok) return;
 
         await submitReading("Student submitted reading early.", answersRef.current);
@@ -1154,7 +1155,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           timerInterval = null;
         }
 
-        transitionToWritingOnce("Reading time ended.");
+        transitionToWritingOnce();
       });
     }
 

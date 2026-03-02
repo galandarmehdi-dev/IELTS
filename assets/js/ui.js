@@ -223,6 +223,24 @@ function hideAllExamViews() {
 }
 
 function showSubmittedOverlay(text) {
+  // If this browser is in admin mode, allow the teacher to unlock the homepage
+  // (useful for testing without clearing site data manually).
+  try {
+    const isAdmin =
+      (typeof isAdminView === "function" && isAdminView() === true) ||
+      (window.IELTS?.Access?.isAdmin?.() === true);
+
+    if (isAdmin) {
+      const pass = prompt("Admin passcode (to return to Home / start a new attempt):");
+      if (pass && String(pass) === String(R()?.ADMIN_PASSCODE || "")) {
+        // Clear attempt + go back to Home (reload cleanly)
+        try { resetExamAttempt(); } catch {}
+        return;
+      }
+      // wrong / cancelled -> fall through to the locked overlay
+    }
+  } catch {}
+
   hideAllExamViews();
   try {
     window.IELTS?.Modal?.showModal?.(

@@ -121,30 +121,38 @@
     writing?.classList.add("view-only");
   }
 
-  function resetExamAttempt() {
-    // Clear saved keys and go home
-    // Prefix-based cleanup is safest
-    try {
-      S().removeByPrefixes([
-        "IELTS:",
-        "ielts-reading-",
-        "ielts-writing-",
-        "ielts-full-",
-      ]);
-    } catch {}
+function resetExamAttempt() {
+  // Students cannot reset
+  const isAdmin =
+    (window.IELTS &&
+      window.IELTS.Access &&
+      typeof window.IELTS.Access.isAdmin === "function" &&
+      window.IELTS.Access.isAdmin() === true) ||
+    false;
 
-    // Also clear a couple known keys explicitly
-    try {
-      S().remove(R().EXAM.keys.finalSubmission);
-      S().remove(R().EXAM.keys.finalSubmitted);
-      S().remove(R().KEYS.EXAM_STARTED);
-      S().remove(R().KEYS.HOME_LAST_VIEW);
-    } catch {}
+  if (!isAdmin) return;
 
-    // Hard reload to reset one-time init guards
+  // Clear everything related to this exam attempt
+  try {
+    // Remove by prefixes (your existing helper)
+    S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]);
+  } catch (e) {}
+
+  try {
+    // Also remove known keys explicitly
+    S().remove(R().EXAM.keys.finalSubmission);
+    S().remove(R().EXAM.keys.finalSubmitted);
+    S().remove(R().KEYS.EXAM_STARTED);
+    S().remove(R().KEYS.HOME_LAST_VIEW);
+  } catch (e) {}
+
+  // Reset route + reload cleanly
+  try {
     location.hash = "";
-    location.reload();
-  }
+  } catch (e) {}
+
+  location.reload();
+}
 
   window.IELTS = window.IELTS || {};
   function isAdminView() {
@@ -190,17 +198,23 @@ function showSubmittedOverlay(text) {
     );
   } catch {}
 }
-  window.IELTS.UI = {
-    $,
-    showOnly,
-    setExamNavStatus,
-    setExamStarted,
-    updateHomeStatusLine,
-    formatTime,
-    wordCount,
-    isValidFullName,
-    clearReadingLockStyles,
-    lockWholeExamAfterFinalSubmit,
-    resetExamAttempt,
-  };
+window.IELTS.UI = {
+  $,
+  showOnly,
+  setExamNavStatus,
+  setExamStarted,
+  updateHomeStatusLine,
+  formatTime,
+  wordCount,
+  isValidFullName,
+  clearReadingLockStyles,
+  lockWholeExamAfterFinalSubmit,
+  resetExamAttempt,
+
+  // NEW:
+  isAdminView,
+  applyStudentLockdownUI,
+  hideAllExamViews,
+  showSubmittedOverlay,
+};
 })();

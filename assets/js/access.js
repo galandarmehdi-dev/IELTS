@@ -119,9 +119,6 @@
     // 3) Tab switch / minimize / window blur detection (cannot truly block; show a forced gate)
     let warned = false;
     const warn = (reason) => {
-      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-      if (finalDone) return;
-
       if (warned) return;
       warned = true;
 
@@ -130,23 +127,39 @@
         reason +
         "). To close the window / switch tabs, you must END the exam and submit with your Name and Surname first.";
 
-      // If final submit is available (Writing started), offer final submit flow.
-      if (typeof window.__IELTS_SUBMIT_FINAL__ === "function" && window.IELTS?.Modal?.showModal) {
-        window.IELTS.Modal.showModal("Exam security", msg, { mode: "final" });
-        return;
-      }
+      // If already submitted, do nothing.
+      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+      if (finalDone) return;
 
-      // Otherwise, show a non-closable gate to push student back into the exam.
-      if (window.IELTS?.Modal?.showModal) {
-        window.IELTS.Modal.showModal("Exam security", msg, {
-          mode: "gate",
-          submitText: "Back to exam",
-          onConfirm: () => {
-            warned = false;
-            try { window.focus(); } catch {}
-          },
-        });
-      }
+      // Force the student into the final-submit modal (no "Back to exam" gate).
+      // Browsers can't truly block tab switching/closing; the best reliable flow is to require submission.
+      const forceFinal = () => {
+        try {
+          window.IELTS?.Engines?.Writing?.startWritingSystem?.();
+        } catch {}
+        try {
+          UI()?.showOnly?.("writing");
+          UI()?.setExamNavStatus?.("Status: Writing in progress");
+        } catch {}
+
+        // Writing engine defines __IELTS_SUBMIT_FINAL__. Show the final modal as soon as it's available.
+        const showFinalModal = () => {
+          if (typeof window.__IELTS_SUBMIT_FINAL__ === "function" && window.IELTS?.Modal?.showModal) {
+            window.IELTS.Modal.showModal("Exam security", msg, { mode: "final" });
+            return true;
+          }
+          return false;
+        };
+
+        if (showFinalModal()) return;
+
+        // small retry in case writing engine registers the submit function async
+        setTimeout(() => {
+          showFinalModal();
+        }, 0);
+      };
+
+      forceFinal();
     };
 
     document.addEventListener("visibilitychange", () => {

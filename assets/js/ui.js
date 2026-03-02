@@ -147,6 +147,49 @@
   }
 
   window.IELTS = window.IELTS || {};
+  function isAdminView() {
+  try {
+    return window.IELTS?.Access?.isAdmin?.() === true;
+  } catch {
+    return false;
+  }
+}
+
+function applyStudentLockdownUI() {
+  // Hide global exam navigation actions for students
+  const nav = $("examNav");
+  if (nav && !isAdminView()) {
+    nav.classList.add("student-locked");
+    // hide buttons if they exist
+    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
+      const b = $(id);
+      if (b) b.classList.add("hidden");
+    });
+  }
+
+  // Hide “new attempt / clear browser” from home for students
+  if (!isAdminView()) {
+    $("homeNewAttemptBtn")?.classList.add("hidden");
+    $("cardResetBtn")?.classList.add("hidden");
+  }
+}
+
+// Completely hide exam UI (so student cannot see questions after final submit)
+function hideAllExamViews() {
+  const ids = ["homeSection","listeningSection","readingControls","container","writingSection","examNav"];
+  ids.forEach((id) => $(id)?.classList.add("hidden"));
+}
+
+function showSubmittedOverlay(text) {
+  hideAllExamViews();
+  try {
+    window.IELTS?.Modal?.showModal?.(
+      "Submitted",
+      text || "Your exam has been submitted. Please wait for your teacher.",
+      { mode: "locked" }
+    );
+  } catch {}
+}
   window.IELTS.UI = {
     $,
     showOnly,

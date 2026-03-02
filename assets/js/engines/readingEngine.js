@@ -7,6 +7,8 @@
   const R = () => window.IELTS.Registry;
 
   function startReadingSystem() {
+    const isAdmin = (window.IELTS?.Access?.isAdmin?.() === true) || (UI && typeof UI().isAdminView === 'function' && UI().isAdminView() === true) || false;
+
     if (window.__IELTS_READING_INIT__) return;
     window.__IELTS_READING_INIT__ = true;
 
@@ -114,9 +116,6 @@ G. Newton was also obsessed with history and religious doctrines, and his writin
         return wrap;
       },
     };
-
-    // Part 1 passage is embedded in HTML initially; capture it at runtime.
-    let PART1_PASSAGE_HTML = "";
 
     const PART2_PASSAGE_TEXT = `
 The Geography of Antarctica
@@ -1024,7 +1023,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       renderQuestionsForActivePart(fresh);
 
       if (hasSubmittedReading) lockReadingUI();
-    }
+        try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
+}
 
     function renderPassageForActivePart() {
   const passageEl = $("passage");
@@ -1119,7 +1119,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          transitionToWritingOnce();
+          try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
+          // Writing will start only after student clicks Start Writing.
         }
       }, 1000);
     }
@@ -1144,21 +1145,25 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     if (hasSubmittedReading) lockReadingUI();
 
     if ($("submitBtn")) {
-      $("submitBtn").addEventListener("click", async () => {
-        if (hasSubmittedReading) return;
+      if (!isAdmin) {
+        $("submitBtn").classList.add("hidden"); // students cannot submit early
+      } else {
+        $("submitBtn").addEventListener("click", async () => {
+          if (hasSubmittedReading) return;
 
-        const ok = confirm("Submit Reading now and start Writing?");
-        if (!ok) return;
+          const ok = confirm("Submit Reading now?");
+          if (!ok) return;
 
-        await submitReading("Student submitted reading early.", answersRef.current);
+          await submitReading("Admin submitted reading early.", answersRef.current);
 
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
 
-        transitionToWritingOnce();
-      });
+          try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
+        });
+      }
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);

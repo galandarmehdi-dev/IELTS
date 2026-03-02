@@ -37,7 +37,7 @@
     document.addEventListener("listening:submitted", () => {
       if (isAdminView()) return;
 
-      const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+   const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (readingDone) return;
 
       try {
@@ -82,7 +82,10 @@
 
     const isAdmin = isAdminView();
     const $ = UI().$;
-
+// --- Reading uses dynamic keys: `${readingTestId}:submitted`
+const readingKey = (suffix) => `${R().TESTS.readingTestId}:${suffix}`;
+const readingSubmittedKey = () => readingKey("submitted");
+    
     const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");
@@ -190,7 +193,7 @@
     // AUTO-RESUME (STUDENT FLOW)
     // =========================
     const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-    const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+    const readingDone = S().get(readingSubmittedKey(), "false") === "true";
     const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
 
     // If Listening finished but Reading not started/submitted -> show a non-closeable gate
@@ -294,7 +297,7 @@
 
   const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
   const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-  const readingDone2 = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+  const readingDone2 = S().get(readingSubmittedKey(), "false") === "true";
 
   // If fully submitted, show locked overlay and do NOT route back into exam
   if (finalDone2) {

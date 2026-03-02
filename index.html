@@ -648,5 +648,113 @@
 <script src="assets/js/engines/writingEngine.js"></script>
 
 <script src="assets/js/app.v5.js"></script>
+<script>
+/**
+ * EMERGENCY BOOTSTRAP (guarantees Start works even if app.js fails)
+ * Paste at the very end of index.html (right before </body>)
+ */
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+
+  function hasIELTS() {
+    return !!(window.IELTS && window.IELTS.UI && window.IELTS.Storage && window.IELTS.Engines);
+  }
+
+  function startListeningNow() {
+    if (!hasIELTS()) {
+      alert("Boot error: window.IELTS is not ready. Check Console for script loading errors.");
+      return;
+    }
+
+    // Fresh attempt id (helps admin/backend)
+    try {
+      const attemptId = Date.now() + "-" + Math.random().toString(16).slice(2);
+      window.IELTS.Storage.set(window.IELTS.Registry.EXAM.keys.attemptId || "IELTS:EXAM:attemptId", attemptId);
+    } catch (e) {}
+
+    // Start Listening immediately (no router dependency)
+    try { window.IELTS.UI.setExamStarted(true); } catch (e) {}
+    try { window.IELTS.Engines.Listening.initListeningSystem(); } catch (e) {}
+
+    window.IELTS.UI.showOnly("listening");
+    if (typeof window.IELTS.UI.setExamNavStatus === "function") {
+      window.IELTS.UI.setExamNavStatus("Status: Listening");
+    }
+  }
+
+  function goReadingNow() {
+    if (!hasIELTS()) return;
+    window.IELTS.UI.showOnly("reading");
+    if (typeof window.IELTS.Engines.Reading.startReading === "function") {
+      window.IELTS.Engines.Reading.startReading();
+    } else if (typeof window.IELTS.Engines.Reading.initReadingSystem === "function") {
+      window.IELTS.Engines.Reading.initReadingSystem();
+      if (typeof window.IELTS.Engines.Reading.startReading === "function") window.IELTS.Engines.Reading.startReading();
+    }
+    if (typeof window.IELTS.UI.setExamNavStatus === "function") {
+      window.IELTS.UI.setExamNavStatus("Status: Reading");
+    }
+  }
+
+  function showLockedActionGate(title, msg, btnText, onClick) {
+    // Preferred: your modal
+    if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.showModal === "function") {
+      window.IELTS.Modal.showModal(title, msg, {
+        mode: "lockedAction",
+        okText: btnText,
+        onOk: onClick
+      });
+      return;
+    }
+
+    // Fallback: minimal blocking dialog
+    // (Not ideal, but prevents students getting stuck)
+    alert(title + "\n\n" + msg);
+    onClick();
+  }
+
+  function bindStartButtons() {
+    const b1 = $("startIelts1Btn");
+    const b2 = $("cardStartIelts1Btn");
+    const b3 = $("startListeningBtn"); // if you ever use it
+
+    [b1, b2, b3].forEach((b) => {
+      if (!b) return;
+      b.onclick = (e) => {
+        e.preventDefault();
+        startListeningNow();
+      };
+    });
+  }
+
+  // Listening finished -> gate -> Reading
+  document.addEventListener("listening:submitted", function () {
+    showLockedActionGate(
+      "Listening finished",
+      "When you are ready, click START READING to continue.",
+      "START READING",
+      goReadingNow
+    );
+  });
+
+  // If your listening engine fires a different event on audio end, include it too:
+  document.addEventListener("listening:ended", function () {
+    showLockedActionGate(
+      "Listening finished",
+      "When you are ready, click START READING to continue.",
+      "START READING",
+      goReadingNow
+    );
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindStartButtons);
+  } else {
+    bindStartButtons();
+  }
+})();
+</script>
 </body>
 </html>

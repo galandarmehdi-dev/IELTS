@@ -634,7 +634,11 @@
 </div>
     </div>
   </div>
-
+<script>
+  window.addEventListener("error", (e) => {
+    console.log("SCRIPT ERROR:", e.message, "at", e.filename + ":" + e.lineno + ":" + e.colno);
+  });
+</script>
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/tests/registry.js"></script>
 <script src="assets/js/access.js"></script>

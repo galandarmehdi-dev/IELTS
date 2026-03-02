@@ -64,6 +64,108 @@
     return true;
   }
 
+  // =========================
+  // STUDENT SECURITY (best-effort; cannot be perfect in a browser)
+  // =========================
+  function applyExamSecurityLockdown() {
+    // Admins should not be restricted
+    if (isAdmin()) return;
+
+    // 1) Disable right-click (allow in inputs / textareas / editable, and allow normal copy when text is selected)
+    document.addEventListener(
+      "contextmenu",
+      (e) => {
+        const t = e.target;
+        const isEditable =
+          t &&
+          (t.closest?.("input, textarea, [contenteditable='true']") ||
+            t.isContentEditable);
+
+        const sel = (window.getSelection?.().toString?.() || "").trim();
+        const hasSelection = sel.length > 0;
+
+        // Allow right-click inside text fields, or when user has selected text (copy)
+        if (isEditable || hasSelection) return;
+
+        e.preventDefault();
+      },
+      true
+    );
+
+    // 2) Block Find-on-page and some common "escape" shortcuts (keep copy/paste allowed)
+    document.addEventListener(
+      "keydown",
+      (e) => {
+        const k = String(e.key || "").toLowerCase();
+        const ctrl = e.ctrlKey || e.metaKey;
+
+        // Block Ctrl/Cmd+F (Find), Ctrl/Cmd+P (Print), Ctrl/Cmd+S (Save), Ctrl/Cmd+U (View source)
+        if (ctrl && (k === "f" || k === "p" || k === "s" || k === "u")) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        // Block DevTools shortcuts
+        if (k === "f12" || (ctrl && e.shiftKey && (k === "i" || k === "j" || k === "c"))) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      },
+      true
+    );
+
+    // 3) Tab switch / minimize / window blur detection (cannot truly block; show a forced gate)
+    let warned = false;
+    const warn = (reason) => {
+      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+      if (finalDone) return;
+
+      if (warned) return;
+      warned = true;
+
+      const msg =
+        "We detected you leaving the exam (" +
+        reason +
+        "). To close the window / switch tabs, you must END the exam and submit with your Name and Surname first.";
+
+      // If final submit is available (Writing started), offer final submit flow.
+      if (typeof window.__IELTS_SUBMIT_FINAL__ === "function" && window.IELTS?.Modal?.showModal) {
+        window.IELTS.Modal.showModal("Exam security", msg, { mode: "final" });
+        return;
+      }
+
+      // Otherwise, show a non-closable gate to push student back into the exam.
+      if (window.IELTS?.Modal?.showModal) {
+        window.IELTS.Modal.showModal("Exam security", msg, {
+          mode: "gate",
+          submitText: "Back to exam",
+          onConfirm: () => {
+            warned = false;
+            try { window.focus(); } catch {}
+          },
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) warn("tab hidden");
+    });
+
+    window.addEventListener("blur", () => warn("window blur"));
+
+    // 4) Leaving the page (close/reload) — browsers may ignore custom text
+    window.addEventListener("beforeunload", (e) => {
+      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+      if (!finalDone) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
+  }
+
+
   function init() {
     // If URL asks for admin, request passcode (unless session already valid)
     if (isAdminRequestedByUrl() && !hasValidSession()) {
@@ -74,6 +176,9 @@
     try {
       document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
     } catch {}
+
+    // Apply student security restrictions (best-effort)
+    try { applyExamSecurityLockdown(); } catch {}
   }
 
   window.IELTS = window.IELTS || {};

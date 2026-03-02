@@ -65,9 +65,14 @@
   }
 
   function updateHomeStatusLine(text) {
-    const el = $("homeStatusLine");
-    if (el) el.textContent = text;
-  }
+  const el = $("homeStatusLine");
+  if (!el) return;
+
+  // If text is missing, show a default instead of "undefined"
+  el.textContent = (typeof text === "string" && text.trim())
+    ? text
+    : "Status: Ready";
+}
 
   function formatTime(seconds) {
     const s = Math.max(0, Number(seconds) || 0);

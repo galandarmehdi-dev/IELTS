@@ -77,7 +77,7 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        if (MODAL_LOCKED) return;
+        if (MODAL_MODE === "locked") return;
 
         // CONFIRM MODE
         if (MODAL_MODE === "confirm" || MODAL_MODE === "gate") {
@@ -119,7 +119,7 @@
     if (cancel && !cancel.dataset.bound) {
       cancel.dataset.bound = "1";
       cancel.addEventListener("click", () => {
-        if (MODAL_LOCKED) return;
+        if (MODAL_MODE === "locked") return;
         const fn = MODAL_ONCANCEL;
         MODAL_ONCONFIRM = null;
         MODAL_ONCANCEL = null;

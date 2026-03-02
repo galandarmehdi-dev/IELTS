@@ -302,12 +302,14 @@
   }
 
   // Otherwise -> start listening
-  if (window.IELTS?.Router?.setHashRoute) {
-    window.IELTS.Router.setHashRoute("ielts1", "listening");
-  } else {
-    UI().showOnly("listening");
-    UI().setExamNavStatus("Status: Listening in progress");
-  }
+  // Always start Listening immediately (hash route is optional, just for nicer URLs)
+try { window.IELTS?.Router?.setHashRoute?.("ielts1", "listening"); } catch {}
+
+UI().showOnly("listening");
+UI().setExamNavStatus("Status: Listening in progress");
+
+// make sure Listening engine is initialized
+window.IELTS.Engines.Listening.initListeningSystem();
 }
     if (startBtn) startBtn.onclick = startOrContinueExam;
     if (startBtn2) startBtn2.onclick = startOrContinueExam;

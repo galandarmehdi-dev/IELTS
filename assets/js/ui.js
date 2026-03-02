@@ -21,38 +21,25 @@
   }
 
   function showOnly(view) {
-    // Home
     const home = $("homeSection");
-
-    // Listening
     const listening = $("listeningSection");
-
-    // Reading (not wrapped in a section in your HTML)
     const readingControls = $("readingControls");
     const readingContainer = $("container");
-
-    // Writing
     const writing = $("writingSection");
 
-    // Modal should not be auto-hidden here (modal controls itself)
     const isHome = view === "home";
     const isListening = view === "listening";
     const isReading = view === "reading";
     const isWriting = view === "writing";
 
     if (home) home.classList.toggle("hidden", !isHome);
-
     if (listening) listening.classList.toggle("hidden", !isListening);
-
     if (readingControls) readingControls.classList.toggle("hidden", !isReading);
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
-
     if (writing) writing.classList.toggle("hidden", !isWriting);
 
-    // Exam nav hidden on home, visible elsewhere
     showExamNav(!isHome);
 
-    // Remember last view (optional, used by app.js auto-resume)
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
     } catch {}
@@ -65,14 +52,12 @@
   }
 
   function updateHomeStatusLine(text) {
-  const el = $("homeStatusLine");
-  if (!el) return;
+    const el = $("homeStatusLine");
+    if (!el) return;
 
-  // If text is missing, show a default instead of "undefined"
-  el.textContent = (typeof text === "string" && text.trim())
-    ? text
-    : "Status: Ready";
-}
+    el.textContent =
+      typeof text === "string" && text.trim() ? text : "Status: Ready";
+  }
 
   function formatTime(seconds) {
     const s = Math.max(0, Number(seconds) || 0);
@@ -89,13 +74,11 @@
     return t.split(/\s+/).filter(Boolean).length;
   }
 
-  // Simple “two words minimum” name check
   function isValidFullName(name) {
     const n = String(name || "").trim().replace(/\s+/g, " ");
     if (n.length < 3) return false;
     const parts = n.split(" ");
     if (parts.length < 2) return false;
-    // avoid single-letter parts like "A B"
     if (parts.some((p) => p.length < 2)) return false;
     return true;
   }
@@ -109,7 +92,6 @@
   }
 
   function lockWholeExamAfterFinalSubmit() {
-    // Used after final submit: make everything view-only
     const listening = $("listeningSection");
     const readingControls = $("readingControls");
     const readingContainer = $("container");
@@ -121,116 +103,109 @@
     writing?.classList.add("view-only");
   }
 
-function resetExamAttempt() {
-  // Students cannot reset
-  const isAdmin =
-    (window.IELTS &&
-      window.IELTS.Access &&
-      typeof window.IELTS.Access.isAdmin === "function" &&
-      window.IELTS.Access.isAdmin() === true) ||
-    false;
+  function resetExamAttempt() {
+    const isAdmin =
+      (window.IELTS &&
+        window.IELTS.Access &&
+        typeof window.IELTS.Access.isAdmin === "function" &&
+        window.IELTS.Access.isAdmin() === true) ||
+      false;
 
-  if (!isAdmin) return;
+    if (!isAdmin) return;
 
-  // Clear everything related to this exam attempt
-  try {
-    // Remove by prefixes (your existing helper)
-    S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]);
-  } catch (e) {}
+    try {
+      S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]);
+    } catch (e) {}
 
-  try {
-    // Also remove known keys explicitly
-    S().remove(R().EXAM.keys.finalSubmission);
-    S().remove(R().EXAM.keys.finalSubmitted);
-    S().remove(R().KEYS.EXAM_STARTED);
-    S().remove(R().KEYS.HOME_LAST_VIEW);
-  } catch (e) {}
+    try {
+      S().remove(R().EXAM.keys.finalSubmission);
+      S().remove(R().EXAM.keys.finalSubmitted);
+      S().remove(R().KEYS.EXAM_STARTED);
+      S().remove(R().KEYS.HOME_LAST_VIEW);
+    } catch (e) {}
 
-  // Reset route + reload cleanly
-  try {
-    location.hash = "";
-  } catch (e) {}
+    try {
+      location.hash = "";
+    } catch (e) {}
 
-  location.reload();
-}
+    location.reload();
+  }
 
   window.IELTS = window.IELTS || {};
   function isAdminView() {
-  try {
-    return window.IELTS?.Access?.isAdmin?.() === true;
-  } catch {
-    return false;
-  }
-}
-
-function applyStudentLockdownUI() {
-    // Hide Copy/Download utility buttons for students
-  if (!isAdminView()) {
-    [
-      // Listening
-      "downloadListeningBtn",
-      "copyListeningBtn",
-
-      // Reading
-      "downloadBtn",
-      "copyBtn",
-
-      // Writing
-      "downloadWritingBtn",
-      "copyWritingBtn",
-    ].forEach((id) => $(id)?.classList.add("hidden"));
-  }
-  // Hide global exam navigation actions for students
-  const nav = $("examNav");
-  if (nav && !isAdminView()) {
-    nav.classList.add("student-locked");
-    // hide buttons if they exist
-    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
-      const b = $(id);
-      if (b) b.classList.add("hidden");
-    });
+    try {
+      return window.IELTS?.Access?.isAdmin?.() === true;
+    } catch {
+      return false;
+    }
   }
 
-  // Hide “new attempt / clear browser” from home for students
-  if (!isAdminView()) {
-    $("homeNewAttemptBtn")?.classList.add("hidden");
-    $("cardResetBtn")?.classList.add("hidden");
+  function applyStudentLockdownUI() {
+    // Hide Copy/Download + SUBMIT utility buttons for students
+    if (!isAdminView()) {
+      [
+        // Listening
+        "downloadListeningBtn",
+        "copyListeningBtn",
+        "submitListeningBtn",
+
+        // Reading
+        "downloadBtn",
+        "copyBtn",
+        "submitBtn",
+
+        // Writing (keep final submit visible, so DO NOT hide endExamBtn)
+        "downloadWritingBtn",
+        "copyWritingBtn",
+      ].forEach((id) => $(id)?.classList.add("hidden"));
+    }
+
+    // Hide global exam navigation actions for students
+    const nav = $("examNav");
+    if (nav && !isAdminView()) {
+      nav.classList.add("student-locked");
+      ["navToHomeBtn", "navToListeningBtn", "navToReadingBtn", "navToWritingBtn", "resetExamBtn"].forEach((id) => {
+        const b = $(id);
+        if (b) b.classList.add("hidden");
+      });
+    }
+
+    // Hide “new attempt / clear browser” from home for students
+    if (!isAdminView()) {
+      $("homeNewAttemptBtn")?.classList.add("hidden");
+      $("cardResetBtn")?.classList.add("hidden");
+    }
   }
-}
 
-// Completely hide exam UI (so student cannot see questions after final submit)
-function hideAllExamViews() {
-  const ids = ["homeSection","listeningSection","readingControls","container","writingSection","examNav"];
-  ids.forEach((id) => $(id)?.classList.add("hidden"));
-}
+  function hideAllExamViews() {
+    const ids = ["homeSection", "listeningSection", "readingControls", "container", "writingSection", "examNav"];
+    ids.forEach((id) => $(id)?.classList.add("hidden"));
+  }
 
-function showSubmittedOverlay(text) {
-  hideAllExamViews();
-  try {
-    window.IELTS?.Modal?.showModal?.(
-      "Submitted",
-      text || "Your exam has been submitted. Please wait for your teacher.",
-      { mode: "locked" }
-    );
-  } catch {}
-}
-window.IELTS.UI = {
-  $,
-  showOnly,
-  setExamNavStatus,
-  setExamStarted,
-  updateHomeStatusLine,
-  formatTime,
-  wordCount,
-  isValidFullName,
-  clearReadingLockStyles,
-  lockWholeExamAfterFinalSubmit,
-  resetExamAttempt,
+  function showSubmittedOverlay(text) {
+    hideAllExamViews();
+    try {
+      window.IELTS?.Modal?.showModal?.("Submitted", text || "Your exam has been submitted. Please wait for your teacher.", {
+        mode: "locked",
+      });
+    } catch {}
+  }
 
-  // NEW:
-  isAdminView,
-  applyStudentLockdownUI,
-  hideAllExamViews,
-  showSubmittedOverlay,
-};
+  window.IELTS.UI = {
+    $,
+    showOnly,
+    setExamNavStatus,
+    setExamStarted,
+    updateHomeStatusLine,
+    formatTime,
+    wordCount,
+    isValidFullName,
+    clearReadingLockStyles,
+    lockWholeExamAfterFinalSubmit,
+    resetExamAttempt,
+    isAdminView,
+    applyStudentLockdownUI,
+    hideAllExamViews,
+    showSubmittedOverlay,
+  };
 })();

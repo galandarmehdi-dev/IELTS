@@ -121,7 +121,10 @@
     writing?.classList.add("view-only");
   }
 
-function resetExamAttempt() {
+function resetExamAttempt(force)
+{
+  // force=true allows reset after admin passcode validation in app.js
+
   // Students cannot reset
   const isAdmin =
     (window.IELTS &&
@@ -130,7 +133,7 @@ function resetExamAttempt() {
       window.IELTS.Access.isAdmin() === true) ||
     false;
 
-  if (!isAdmin) return;
+  if (!isAdmin && !force) return;
 
   // Clear everything related to this exam attempt
   try {
@@ -164,20 +167,8 @@ function resetExamAttempt() {
 }
 
 function applyStudentLockdownUI() {
-  const isAdmin =
-    (window.IELTS &&
-      window.IELTS.Access &&
-      typeof window.IELTS.Access.isAdmin === "function" &&
-      window.IELTS.Access.isAdmin() === true) ||
-    false;
-
-  // Ensure <body data-view-mode> is always correct (CSS relies on it)
-  try {
-    document.body.dataset.viewMode = isAdmin ? "admin" : "student";
-  } catch {}
-
-  // Hide Copy/Download utility buttons for students
-  if (!isAdmin) {
+    // Hide Copy/Download utility buttons for students
+  if (!isAdminView()) {
     [
       // Listening
       "downloadListeningBtn",
@@ -191,71 +182,22 @@ function applyStudentLockdownUI() {
       "downloadWritingBtn",
       "copyWritingBtn",
     ].forEach((id) => $(id)?.classList.add("hidden"));
-
-    // Hide “new attempt / clear browser” from home for students
-    $("homeNewAttemptBtn")?.classList.add("hidden");
-    $("cardResetBtn")?.classList.add("hidden");
   }
-
   // Hide global exam navigation actions for students
   const nav = $("examNav");
-  if (nav && !isAdmin) {
+  if (nav && !isAdminView()) {
     nav.classList.add("student-locked");
-    ["navToHomeBtn", "navToListeningBtn", "navToReadingBtn", "navToWritingBtn", "resetExamBtn"].forEach((id) => {
+    // hide buttons if they exist
+    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
       const b = $(id);
       if (b) b.classList.add("hidden");
     });
   }
 
-  // Proctoring-style browser restrictions (students only)
-  if (!isAdmin && !window.__IELTS_LOCKDOWN_BOUND__) {
-    window.__IELTS_LOCKDOWN_BOUND__ = true;
-
-    // 1) Block right-click everywhere except inputs/textarea/contenteditable (so copy/paste works there)
-    document.addEventListener(
-      "contextmenu",
-      (e) => {
-        const t = e.target;
-        const ok =
-          t &&
-          (t.tagName === "INPUT" ||
-            t.tagName === "TEXTAREA" ||
-            t.isContentEditable === true);
-        if (!ok) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      },
-      true
-    );
-
-    // 2) Block Ctrl/Cmd+F (find), and a few common “escape” shortcuts
-    document.addEventListener(
-      "keydown",
-      (e) => {
-        const k = String(e.key || "").toLowerCase();
-        const meta = e.ctrlKey || e.metaKey;
-
-        // Allow copy/paste/cut always
-        if (meta && (k === "c" || k === "v" || k === "x")) return;
-
-        // Block Find
-        if (meta && k === "f") {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-
-        // Block Print / Save / View-source
-        if (meta && (k === "p" || k === "s" || k === "u")) {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      },
-      true
-    );
+  // Hide “new attempt / clear browser” from home for students
+  if (!isAdminView()) {
+    $("homeNewAttemptBtn")?.classList.add("hidden");
+    $("cardResetBtn")?.classList.add("hidden");
   }
 }
 

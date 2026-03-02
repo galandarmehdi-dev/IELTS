@@ -10,23 +10,35 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
+  function isAdminView() {
+    try {
+      return window.IELTS?.Access?.isAdmin?.() === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     // bind modal buttons once
     if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
-  window.IELTS.Modal.bindModalOnce();
-      // --- BOOT SAFETY: never show modal on first load ---
-try { Modal().hideModal(); } catch {}
-const m = document.getElementById("modal");
-if (m) m.classList.add("hidden");
-      // --- Disable auto "review/submitted" mode on load ---
-S().set(R().EXAM.keys.finalSubmitted, "false");
-S().remove(R().EXAM.keys.finalSubmission);
-} else {
-  console.error("Modal module not loaded properly.");
-}
+      window.IELTS.Modal.bindModalOnce();
 
+      // --- BOOT SAFETY: never show modal on first load ---
+      try { Modal().hideModal(); } catch {}
+      const m = document.getElementById("modal");
+      if (m) m.classList.add("hidden");
+    } else {
+      console.error("Modal module not loaded properly.");
+    }
+
+    // Init admin/session gate (if present) + apply UI lockdown for students
+    try { window.IELTS?.Access?.init?.(); } catch {}
+    try { UI()?.applyStudentLockdownUI?.(); } catch {}
+
+    const isAdmin = isAdminView();
     const $ = UI().$;
 
+    const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");
     const toW = $("navToWritingBtn");
@@ -34,32 +46,43 @@ S().remove(R().EXAM.keys.finalSubmission);
 
     // Final submitted?
     // If browser somehow has finalSubmitted=true but no payload, treat as NOT submitted
-const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
-if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
-  S().set(R().EXAM.keys.finalSubmitted, "false");
-}
-    const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-    if (finalDone) {
-      UI().setExamNavStatus("Status: Submitted (Review mode)");
-
-      const ls = $("listeningSection");
-      if (ls) ls.classList.add("view-only");
-
-      const rc = $("readingControls");
-      const cont = $("container");
-      if (rc) rc.classList.add("view-only");
-      if (cont) cont.classList.add("view-only");
-
-      const ws = $("writingSection");
-      if (ws) ws.classList.add("view-only");
-
-      UI().showOnly("writing");
-return;
+    const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
+    if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
+      S().set(R().EXAM.keys.finalSubmitted, "false");
     }
 
-    // NAV buttons
+    const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+    if (finalDone) {
+      // Student must not be able to go back and view questions after submit
+      if (typeof UI().showSubmittedOverlay === "function") {
+        UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+      } else {
+        // fallback: lock everything and show writing in view-only
+        UI().setExamNavStatus("Status: Submitted");
+        $("listeningSection")?.classList.add("view-only");
+        $("readingControls")?.classList.add("view-only");
+        $("container")?.classList.add("view-only");
+        $("writingSection")?.classList.add("view-only");
+        UI().showOnly("writing");
+      }
+      return;
+    }
+
+    // =========================
+    // ADMIN-ONLY NAV BUTTONS
+    // =========================
+    if (toHome) {
+      toHome.onclick = () => {
+        if (!isAdmin) return;
+        UI().showOnly("home");
+        UI().updateHomeStatusLine();
+        UI().setExamNavStatus("Status: Home");
+      };
+    }
+
     if (toL) {
       toL.onclick = () => {
+        if (!isAdmin) return; // students cannot manually navigate
         UI().setExamStarted(true);
         window.IELTS.Engines.Listening.initListeningSystem();
         UI().showOnly("listening");
@@ -69,6 +92,8 @@ return;
 
     if (toR) {
       toR.onclick = () => {
+        if (!isAdmin) return; // students cannot manually navigate
+
         const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
         if (!listeningDone) {
           UI().showOnly("listening");
@@ -86,6 +111,8 @@ return;
 
     if (toW) {
       toW.onclick = () => {
+        if (!isAdmin) return; // students cannot manually navigate
+
         const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
         const readingSubmitted = S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
 
@@ -106,6 +133,7 @@ return;
 
     if (resetBtn) {
       resetBtn.onclick = () => {
+        if (!isAdmin) return; // students cannot reset
         const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
         if (!ok) return;
         UI().setExamStarted(false);
@@ -113,7 +141,10 @@ return;
       };
     }
 
-    // Auto-resume based on progress
+    // =========================
+    // AUTO-RESUME (STUDENT FLOW)
+    // =========================
+    // If listening already submitted, resume Reading (students can refresh)
     const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
     if (listeningDone) {
       window.IELTS.Engines.Reading.startReadingSystem();
@@ -122,9 +153,9 @@ return;
       return;
     }
 
-    // Hash route support
+    // Hash route support (ADMIN ONLY)
     const route = Router().parseHashRoute();
-    if (route && route.view) {
+    if (isAdmin && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
         window.IELTS.Engines.Listening.initListeningSystem();
@@ -146,11 +177,17 @@ return;
         UI().setExamNavStatus("Status: Viewing Writing");
         return;
       }
+      if (route.view === "home") {
+        UI().showOnly("home");
+        UI().updateHomeStatusLine();
+        UI().setExamNavStatus("Status: Home");
+        return;
+      }
     }
 
     // Default to home
     UI().showOnly("home");
-    UI().updateHomeStatusLine("Status: Ready");
+    UI().updateHomeStatusLine();
 
     // Home buttons
     const startBtn = $("startIelts1Btn");
@@ -168,8 +205,12 @@ return;
       const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
 
       if (finalDone2) {
-        UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Submitted (Review mode)");
+        if (typeof UI().showSubmittedOverlay === "function") {
+          UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+        } else {
+          UI().showOnly("writing");
+          UI().setExamNavStatus("Status: Submitted");
+        }
         return;
       }
 
@@ -196,6 +237,7 @@ return;
     }
 
     function clearAttemptFromHome() {
+      if (!isAdmin) return; // students cannot start a new attempt
       const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
       if (!ok) return;
       UI().setExamStarted(false);

@@ -246,5 +246,5 @@
 }
 
 
-/* PATCH: hide long 'Test 1' promo block under home */
-#homeHowItWorks{display:none !important;}
+/* Hide the big "Test 1 / How it works" block under Home */
+#homeHowItWorks { display: none !important; }

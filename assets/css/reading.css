@@ -39,6 +39,9 @@
 }
 
 .controls{
+  position: sticky;
+  top: 58px; /* below exam-nav */
+  z-index: 119000;
   display:flex;
   align-items:center;
   gap:10px;
@@ -51,7 +54,7 @@
 
 .container{
   display:flex;
-  height: calc(100vh - 58px);
+  height: calc(100vh - 118px);
 }
 
 .passage{

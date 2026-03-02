@@ -6,7 +6,8 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  let MODAL_MODE = "confirm"; // confirm | final | locked | lockedAction
+  // confirm | final | locked | lockedAction
+  let MODAL_MODE = "confirm";
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -15,8 +16,18 @@
     return document.getElementById(id);
   }
 
+  function _setHidden(el, hidden) {
+    if (!el) return;
+    el.classList.toggle("hidden", !!hidden);
+  }
+
+  function forceHideModal() {
+    MODAL_LOCKED = false;
+    const modal = $("modal");
+    if (modal) modal.classList.add("hidden");
+  }
+
   function hideModal() {
-    // lockedAction and locked cannot be closed until action completes
     if (MODAL_LOCKED) return;
     const modal = $("modal");
     if (modal) modal.classList.add("hidden");
@@ -35,33 +46,39 @@
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    MODAL_LOCKED = (MODAL_MODE === "locked" || MODAL_MODE === "lockedAction");
+    MODAL_LOCKED = MODAL_MODE === "locked" || MODAL_MODE === "lockedAction";
 
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
-    // name required only in "final"
     const isFinal = MODAL_MODE === "final";
-    if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
+    _setHidden(nameWrap, !isFinal);
 
-    // buttons
+    // Buttons
+    const isLockedAction = MODAL_MODE === "lockedAction";
+
     if (cancel) {
       const showCancel = opts.showCancel === true;
-      // In lockedAction/locked we never show cancel.
-      cancel.classList.toggle("hidden", !(showCancel && MODAL_MODE === "confirm"));
+      // cancel is never shown for locked/lockedAction
+      _setHidden(cancel, !(showCancel && !MODAL_LOCKED));
       cancel.textContent = opts.cancelText || "Cancel";
-      cancel.disabled = (MODAL_MODE !== "confirm");
+      cancel.disabled = MODAL_LOCKED;
     }
 
     if (submit) {
-      const hideSubmit = (MODAL_MODE === "locked");
-      submit.classList.toggle("hidden", hideSubmit);
-      submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
+      // In locked mode: no submit button at all
+      // In lockedAction: submit button is REQUIRED and is the only exit
+      if (MODAL_MODE === "locked") {
+        _setHidden(submit, true);
+      } else {
+        _setHidden(submit, false);
+      }
+      submit.textContent =
+        opts.submitText || (isFinal ? "Submit" : isLockedAction ? "Continue" : "OK");
       submit.disabled = false;
     }
 
     if (nameInput && isFinal) {
-      // preload saved name if exists
       const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
       if (saved && !nameInput.value) nameInput.value = saved;
     }
@@ -80,15 +97,16 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        // lockedAction is locked but still has a button that must work
-        if (MODAL_LOCKED && MODAL_MODE !== "lockedAction") return;
+        // locked has no submit button, but keep the guard anyway
+        if (MODAL_MODE === "locked") return;
 
-        // CONFIRM MODE
-        if (MODAL_MODE === "confirm") {
+        // CONFIRM + LOCKEDACTION MODE
+        if (MODAL_MODE === "confirm" || MODAL_MODE === "lockedAction") {
           const fn = MODAL_ONCONFIRM;
           MODAL_ONCONFIRM = null;
           MODAL_ONCANCEL = null;
-          hideModal();
+          // lockedAction is allowed to close ONLY after clicking the button
+          forceHideModal();
           if (typeof fn === "function") fn();
           return;
         }
@@ -134,12 +152,5 @@
   }
 
   window.IELTS = window.IELTS || {};
-
-  function forceHideModal() {
-    MODAL_LOCKED = false;
-    const modal = $("modal");
-    if (modal) modal.classList.add("hidden");
-  }
-
   window.IELTS.Modal = { showModal, hideModal, forceHideModal, bindModalOnce };
 })();

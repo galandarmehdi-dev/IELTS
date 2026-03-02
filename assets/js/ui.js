@@ -1,4 +1,4 @@
-/* assets/js/ui.js (patched: fixed showOnly + clean submitted UX + attempt-based reset/new attempt) */
+/* assets/js/ui.js */
 (function () {
   "use strict";
 
@@ -7,14 +7,6 @@
 
   function $(id) {
     return document.getElementById(id);
-  }
-
-  function isAdminView() {
-    try {
-      return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch {
-      return false;
-    }
   }
 
   function setExamNavStatus(text) {
@@ -29,157 +21,216 @@
   }
 
   function showOnly(view) {
+    // Home
     const home = $("homeSection");
+
+    // Listening
     const listening = $("listeningSection");
+
+    // Reading (not wrapped in a section in your HTML)
     const readingControls = $("readingControls");
     const readingContainer = $("container");
+
+    // Writing
     const writing = $("writingSection");
 
+    // Modal should not be auto-hidden here (modal controls itself)
     const isHome = view === "home";
     const isListening = view === "listening";
     const isReading = view === "reading";
     const isWriting = view === "writing";
 
     if (home) home.classList.toggle("hidden", !isHome);
+
     if (listening) listening.classList.toggle("hidden", !isListening);
+
     if (readingControls) readingControls.classList.toggle("hidden", !isReading);
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
+
     if (writing) writing.classList.toggle("hidden", !isWriting);
 
+    // Exam nav hidden on home, visible elsewhere
     showExamNav(!isHome);
 
-    // Remember last view (attempt-scoped via Storage)
+    // Remember last view (optional, used by app.js auto-resume)
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
-    } catch {}
-
-    // Sync hash route if router is available
-    try {
-      const router = window.IELTS?.Router;
-      if (router?.setHashRoute) {
-        if (view === "home") {
-          if (location.hash) history.replaceState(null, "", location.pathname + location.search);
-        } else {
-          router.setHashRoute("ielts1", view);
-        }
-      }
     } catch {}
   }
 
   function setExamStarted(v) {
     try {
-      // ensure attempt exists when exam starts
-      if (v) S()?.ensureAttemptId?.();
       S().set(R().KEYS.EXAM_STARTED, v ? "true" : "false");
     } catch {}
   }
 
   function updateHomeStatusLine(text) {
-    const el = $("homeStatusLine");
-    if (!el) return;
-    el.textContent =
-      (typeof text === "string" && text.trim()) ? text : "Status: Ready";
-  }
+  const el = $("homeStatusLine");
+  if (!el) return;
+
+  // If text is missing, show a default instead of "undefined"
+  el.textContent = (typeof text === "string" && text.trim())
+    ? text
+    : "Status: Ready";
+}
 
   function formatTime(seconds) {
     const s = Math.max(0, Number(seconds) || 0);
     const mm = Math.floor(s / 60);
     const ss = s % 60;
-    return String(mm).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+    const m = String(mm).padStart(2, "0");
+    const se = String(ss).padStart(2, "0");
+    return `${m}:${se}`;
   }
 
   function wordCount(text) {
-    return String(text || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean).length;
+    const t = String(text || "").trim();
+    if (!t) return 0;
+    return t.split(/\s+/).filter(Boolean).length;
   }
 
+  // Simple “two words minimum” name check
   function isValidFullName(name) {
-    const s = String(name || "").trim();
-    if (!s) return false;
-    // at least 2 parts
-    const parts = s.split(/\s+/).filter(Boolean);
-    return parts.length >= 2 && parts.every((p) => p.length >= 2);
+    const n = String(name || "").trim().replace(/\s+/g, " ");
+    if (n.length < 3) return false;
+    const parts = n.split(" ");
+    if (parts.length < 2) return false;
+    // avoid single-letter parts like "A B"
+    if (parts.some((p) => p.length < 2)) return false;
+    return true;
   }
 
   function clearReadingLockStyles() {
-    document.body.classList.remove("reading-locked");
+    const c = $("container");
+    if (!c) return;
+    c.style.pointerEvents = "";
+    c.style.filter = "";
+    c.style.userSelect = "";
   }
 
   function lockWholeExamAfterFinalSubmit() {
-    // used by writing engine; keep but do not break homepage UX
-    try {
-      setExamNavStatus("Status: Submitted");
-    } catch {}
+    // Used after final submit: make everything view-only
+    const listening = $("listeningSection");
+    const readingControls = $("readingControls");
+    const readingContainer = $("container");
+    const writing = $("writingSection");
+
+    listening?.classList.add("view-only");
+    readingControls?.classList.add("view-only");
+    readingContainer?.classList.add("view-only");
+    writing?.classList.add("view-only");
   }
 
-  function resetExamAttempt() {
-    // Admin-only full reset (clears ALL attempts + legacy keys)
-    if (!isAdminView()) return;
-    try {
-      S()?.clearAllAttemptsAndLegacy?.();
-    } catch {}
-    try { location.hash = ""; } catch {}
-    location.reload();
-  }
+function resetExamAttempt() {
+  // Students cannot reset
+  const isAdmin =
+    (window.IELTS &&
+      window.IELTS.Access &&
+      typeof window.IELTS.Access.isAdmin === "function" &&
+      window.IELTS.Access.isAdmin() === true) ||
+    false;
 
-  function newAttempt() {
-    // Admin-only "New attempt" that does NOT wipe prior attempts
-    if (!isAdminView()) return;
-    try {
-      S()?.startNewAttempt?.();
-      // clear started/last view for the new attempt (attempt-scoped)
-      S()?.set(R().KEYS.EXAM_STARTED, "false");
-      S()?.set(R().KEYS.HOME_LAST_VIEW, "home");
-      S()?.set(R().EXAM.keys.finalSubmitted, "false");
-    } catch {}
-    try { location.hash = ""; } catch {}
-    // Do not reload; just show home cleanly
-    showOnly("home");
-    updateHomeStatusLine("Status: Ready (new attempt)");
-    setExamNavStatus("Status: Ready");
-  }
+  if (!isAdmin) return;
 
-  function applyStudentLockdownUI() {
-    // Hide admin-only buttons on home for students
-    if (!isAdminView()) {
-      $("homeNewAttemptBtn")?.classList.add("hidden");
-      $("cardResetBtn")?.classList.add("hidden");
-      $("resetExamBtn")?.classList.add("hidden");
-    }
-  }
+  // Clear everything related to this exam attempt
+  try {
+    // Remove by prefixes (your existing helper)
+    S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]);
+  } catch (e) {}
 
-  function showSubmittedOverlay(text) {
-    // NEW UX: do NOT hide everything globally.
-    // Student: show home with a clear message and disable Start.
-    // Admin: show home with "New attempt" available.
-    showOnly("home");
-    setExamNavStatus("Status: Submitted");
-    updateHomeStatusLine(text || "Status: Submitted");
+  try {
+    // Also remove known keys explicitly
+    S().remove(R().EXAM.keys.finalSubmission);
+    S().remove(R().EXAM.keys.finalSubmitted);
+    S().remove(R().KEYS.EXAM_STARTED);
+    S().remove(R().KEYS.HOME_LAST_VIEW);
+  } catch (e) {}
 
-    const startBtn = $("startIelts1Btn");
-    if (startBtn && !isAdminView()) {
-      startBtn.disabled = true;
-      startBtn.classList.add("disabled");
-    }
-  }
+  // Reset route + reload cleanly
+  try {
+    location.hash = "";
+  } catch (e) {}
+
+  location.reload();
+}
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.UI = {
-    $,
-    showOnly,
-    setExamNavStatus,
-    setExamStarted,
-    updateHomeStatusLine,
-    formatTime,
-    wordCount,
-    isValidFullName,
-    clearReadingLockStyles,
-    lockWholeExamAfterFinalSubmit,
-    resetExamAttempt,
-    newAttempt,
-    applyStudentLockdownUI,
-    showSubmittedOverlay,
-  };
+  function isAdminView() {
+  try {
+    return window.IELTS?.Access?.isAdmin?.() === true;
+  } catch {
+    return false;
+  }
+}
+
+function applyStudentLockdownUI() {
+    // Hide Copy/Download utility buttons for students
+  if (!isAdminView()) {
+    [
+      // Listening
+      "downloadListeningBtn",
+      "copyListeningBtn",
+
+      // Reading
+      "downloadBtn",
+      "copyBtn",
+
+      // Writing
+      "downloadWritingBtn",
+      "copyWritingBtn",
+    ].forEach((id) => $(id)?.classList.add("hidden"));
+  }
+  // Hide global exam navigation actions for students
+  const nav = $("examNav");
+  if (nav && !isAdminView()) {
+    nav.classList.add("student-locked");
+    // hide buttons if they exist
+    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
+      const b = $(id);
+      if (b) b.classList.add("hidden");
+    });
+  }
+
+  // Hide “new attempt / clear browser” from home for students
+  if (!isAdminView()) {
+    $("homeNewAttemptBtn")?.classList.add("hidden");
+    $("cardResetBtn")?.classList.add("hidden");
+  }
+}
+
+// Completely hide exam UI (so student cannot see questions after final submit)
+function hideAllExamViews() {
+  const ids = ["homeSection","listeningSection","readingControls","container","writingSection","examNav"];
+  ids.forEach((id) => $(id)?.classList.add("hidden"));
+}
+
+function showSubmittedOverlay(text) {
+  hideAllExamViews();
+  try {
+    window.IELTS?.Modal?.showModal?.(
+      "Submitted",
+      text || "Your exam has been submitted. Please wait for your teacher.",
+      { mode: "locked" }
+    );
+  } catch {}
+}
+window.IELTS.UI = {
+  $,
+  showOnly,
+  setExamNavStatus,
+  setExamStarted,
+  updateHomeStatusLine,
+  formatTime,
+  wordCount,
+  isValidFullName,
+  clearReadingLockStyles,
+  lockWholeExamAfterFinalSubmit,
+  resetExamAttempt,
+
+  // NEW:
+  isAdminView,
+  applyStudentLockdownUI,
+  hideAllExamViews,
+  showSubmittedOverlay,
+};
 })();

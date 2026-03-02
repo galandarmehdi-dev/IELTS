@@ -72,7 +72,7 @@
       }
     }
   } catch {}
-
+}
   function setExamStarted(v) {
     try {
       S().set(R().KEYS.EXAM_STARTED, v ? "true" : "false");

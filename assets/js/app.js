@@ -198,33 +198,61 @@
     const howBtn = $("homeHowItWorksBtn");
 
     function startOrContinueExam() {
-      UI().setExamStarted(true);
-      window.IELTS.Engines.Listening.initListeningSystem();
+  UI().setExamStarted(true);
 
-      const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-      const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
+  // make sure engines are ready
+  window.IELTS.Engines.Listening.initListeningSystem();
 
-      if (finalDone2) {
-        if (typeof UI().showSubmittedOverlay === "function") {
-          UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
-        } else {
-          UI().showOnly("writing");
-          UI().setExamNavStatus("Status: Submitted");
-        }
-        return;
-      }
+  const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+  const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
+  const readingDone2 = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
 
-      if (listeningDone2) {
-        window.IELTS.Engines.Reading.startReadingSystem();
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Reading in progress");
-        return;
-      }
-
-      UI().showOnly("listening");
-      UI().setExamNavStatus("Status: Listening in progress");
+  // If fully submitted, show locked overlay and do NOT route back into exam
+  if (finalDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "submitted");
     }
+    if (typeof UI().showSubmittedOverlay === "function") {
+      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+    } else {
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Submitted");
+    }
+    return;
+  }
 
+  // If listening submitted but reading not submitted -> go reading
+  if (listeningDone2 && !readingDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "reading");
+    } else {
+      window.IELTS.Engines.Reading.startReadingSystem();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress");
+    }
+    return;
+  }
+
+  // If reading submitted -> go writing
+  if (listeningDone2 && readingDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "writing");
+    } else {
+      window.IELTS.Engines.Writing.startWritingSystem?.();
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Writing in progress");
+    }
+    return;
+  }
+
+  // Otherwise -> start listening
+  if (window.IELTS?.Router?.setHashRoute) {
+    window.IELTS.Router.setHashRoute("ielts1", "listening");
+  } else {
+    UI().showOnly("listening");
+    UI().setExamNavStatus("Status: Listening in progress");
+  }
+}
     if (startBtn) startBtn.onclick = startOrContinueExam;
     if (startBtn2) startBtn2.onclick = startOrContinueExam;
     if (contBtn) contBtn.onclick = startOrContinueExam;

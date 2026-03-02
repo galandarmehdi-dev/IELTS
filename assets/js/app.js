@@ -36,56 +36,6 @@
     try { UI()?.applyStudentLockdownUI?.(); } catch {}
 
     const isAdmin = isAdminView();
-
-
-// =========================
-// STUDENT AUTO-TRANSITIONS (LOCKED GATES)
-// =========================
-// When listening auto-submits (audio ends), show a non-closeable gate to start Reading.
-document.addEventListener("listening:submitted", () => {
-  if (isAdmin) return; // admins can navigate freely
-  try {
-    Modal().showModal(
-      "Listening finished",
-      "Listening has been submitted. Click Start Reading to continue.",
-      {
-        mode: "lockedAction",
-        submitText: "Start Reading",
-        onConfirm: () => {
-          UI().setExamStarted(true);
-          window.IELTS.Engines.Reading.startReadingSystem();
-          UI().clearReadingLockStyles();
-          UI().showOnly("reading");
-          UI().setExamNavStatus("Status: Reading in progress");
-          try { Modal().forceHideModal(); } catch {}
-        },
-      }
-    );
-  } catch {}
-});
-
-// When reading ends (time end or submit), show a non-closeable gate to start Writing.
-document.addEventListener("reading:ended", (ev) => {
-  if (isAdmin) return;
-  try {
-    Modal().showModal(
-      "Reading finished",
-      "Reading has ended. Click Start Writing to continue.",
-      {
-        mode: "lockedAction",
-        submitText: "Start Writing",
-        onConfirm: () => {
-          UI().setExamStarted(true);
-          window.IELTS.Engines.Writing.startWritingSystem();
-          UI().showOnly("writing");
-          UI().setExamNavStatus("Status: Writing in progress");
-          try { Modal().forceHideModal(); } catch {}
-        },
-      }
-    );
-  } catch {}
-});
-
     const $ = UI().$;
 
     const toHome = $("navToHomeBtn");
@@ -303,8 +253,8 @@ document.addEventListener("reading:ended", (ev) => {
     UI().setExamNavStatus("Status: Listening in progress");
   }
 }
-    if (startBtn) startBtn.onclick = startOrContinueExam;
-    if (startBtn2) startBtn2.onclick = startOrContinueExam;
+    if (startBtn) startBtn.onclick = startNewAttemptFlow;
+    if (startBtn2) startBtn2.onclick = startNewAttemptFlow;
     if (contBtn) contBtn.onclick = startOrContinueExam;
 
     if (howBtn) {
@@ -314,7 +264,49 @@ document.addEventListener("reading:ended", (ev) => {
       };
     }
 
-    function clearAttemptFromHome() {
+    
+    // START buttons should always begin a FRESH attempt.
+    // If a previous attempt exists on this browser, require admin passcode to clear it.
+    function startNewAttemptFlow() {
+      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
+      const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+      const started = S().get(R().KEYS.EXAM_STARTED, "false") === "true";
+
+      const hasPriorAttempt = finalDone || listeningDone || readingDone || started;
+
+      if (hasPriorAttempt && !isAdmin) {
+        const pass = prompt("Previous attempt detected on this device.\nEnter ADMIN passcode to start a new attempt:");
+        if (!pass) return;
+
+        const correct = (R()?.ADMIN_PASSCODE || "");
+        if (!correct || pass !== correct) {
+          alert("Wrong passcode.");
+          return;
+        }
+        // Clear attempt (force=true bypasses admin-session requirement)
+        UI().setExamStarted(false);
+        UI().resetExamAttempt(true);
+      } else if (hasPriorAttempt && isAdmin) {
+        const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
+        if (!ok) return;
+        UI().setExamStarted(false);
+        UI().resetExamAttempt(true);
+      }
+
+      // Now start fresh Listening
+      UI().setExamStarted(true);
+      window.IELTS.Engines.Listening.initListeningSystem();
+
+      if (window.IELTS?.Router?.setHashRoute) {
+        window.IELTS.Router.setHashRoute("ielts1", "listening");
+      } else {
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Listening in progress");
+      }
+    }
+
+function clearAttemptFromHome() {
       if (!isAdmin) return; // students cannot start a new attempt
       const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
       if (!ok) return;

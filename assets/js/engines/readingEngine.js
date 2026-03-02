@@ -1088,8 +1088,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-      // Do NOT auto-start writing here. App.js will show a required gate.
-      document.dispatchEvent(new CustomEvent("reading:ended"));
+      document.dispatchEvent(new CustomEvent('reading:ended'));
     }
 
     function startTimer(answersRef) {
@@ -1145,7 +1144,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       $("submitBtn").addEventListener("click", async () => {
         if (hasSubmittedReading) return;
 
-        const ok = confirm("Submit Reading now?");
+        const ok = confirm("Submit Reading now and start Writing?");
         if (!ok) return;
 
         await submitReading("Student submitted reading early.", answersRef.current);

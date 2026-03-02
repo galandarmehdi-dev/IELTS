@@ -190,6 +190,45 @@
     UI().updateHomeStatusLine();
 
     // Home buttons
+
+// Unified navigation (hash + UI), so Start always actually starts even if router is enabled
+function go(view) {
+  try {
+    if (window.IELTS?.Router?.setHashRoute) window.IELTS.Router.setHashRoute("ielts1", view);
+  } catch {}
+  if (view === "home") {
+    UI().showOnly("home");
+    UI().setExamNavStatus("Status: Ready");
+    return;
+  }
+  if (view === "listening") {
+    UI().showOnly("listening");
+    UI().setExamNavStatus("Status: Listening in progress");
+    return;
+  }
+  if (view === "reading") {
+    window.IELTS.Engines.Reading.startReadingSystem();
+    UI().showOnly("reading");
+    UI().setExamNavStatus("Status: Reading in progress");
+    return;
+  }
+  if (view === "writing") {
+    window.IELTS.Engines.Writing.startWritingSystem?.();
+    UI().showOnly("writing");
+    UI().setExamNavStatus("Status: Writing in progress");
+    return;
+  }
+  if (view === "submitted") {
+    if (typeof UI().showSubmittedOverlay === "function") {
+      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+    } else {
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Submitted");
+    }
+  }
+}
+
+
     const startBtn = $("startIelts1Btn");
     const startBtn2 = $("cardStartIelts1Btn");
     const contBtn = $("homeContinueBtn");
@@ -209,52 +248,27 @@
 
   // If fully submitted, show locked overlay and do NOT route back into exam
   if (finalDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "submitted");
-    }
-    if (typeof UI().showSubmittedOverlay === "function") {
-      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
-    } else {
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Submitted");
-    }
+    go("submitted");
     return;
   }
 
   // If listening submitted but reading not submitted -> go reading
   if (listeningDone2 && !readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "reading");
-    } else {
-      window.IELTS.Engines.Reading.startReadingSystem();
-      UI().showOnly("reading");
-      UI().setExamNavStatus("Status: Reading in progress");
-    }
+    go("reading");
     return;
   }
 
   // If reading submitted -> go writing
   if (listeningDone2 && readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "writing");
-    } else {
-      window.IELTS.Engines.Writing.startWritingSystem?.();
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Writing in progress");
-    }
+    go("writing");
     return;
   }
 
   // Otherwise -> start listening
-  if (window.IELTS?.Router?.setHashRoute) {
-    window.IELTS.Router.setHashRoute("ielts1", "listening");
-  } else {
-    UI().showOnly("listening");
-    UI().setExamNavStatus("Status: Listening in progress");
-  }
+  go("listening");
 }
-    if (startBtn) startBtn.onclick = startNewAttemptFlow;
-    if (startBtn2) startBtn2.onclick = startNewAttemptFlow;
+    if (startBtn) startBtn.onclick = startOrContinueExam;
+    if (startBtn2) startBtn2.onclick = startOrContinueExam;
     if (contBtn) contBtn.onclick = startOrContinueExam;
 
     if (howBtn) {
@@ -264,49 +278,7 @@
       };
     }
 
-    
-    // START buttons should always begin a FRESH attempt.
-    // If a previous attempt exists on this browser, require admin passcode to clear it.
-    function startNewAttemptFlow() {
-      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-      const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
-      const started = S().get(R().KEYS.EXAM_STARTED, "false") === "true";
-
-      const hasPriorAttempt = finalDone || listeningDone || readingDone || started;
-
-      if (hasPriorAttempt && !isAdmin) {
-        const pass = prompt("Previous attempt detected on this device.\nEnter ADMIN passcode to start a new attempt:");
-        if (!pass) return;
-
-        const correct = (R()?.ADMIN_PASSCODE || "");
-        if (!correct || pass !== correct) {
-          alert("Wrong passcode.");
-          return;
-        }
-        // Clear attempt (force=true bypasses admin-session requirement)
-        UI().setExamStarted(false);
-        UI().resetExamAttempt(true);
-      } else if (hasPriorAttempt && isAdmin) {
-        const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
-        if (!ok) return;
-        UI().setExamStarted(false);
-        UI().resetExamAttempt(true);
-      }
-
-      // Now start fresh Listening
-      UI().setExamStarted(true);
-      window.IELTS.Engines.Listening.initListeningSystem();
-
-      if (window.IELTS?.Router?.setHashRoute) {
-        window.IELTS.Router.setHashRoute("ielts1", "listening");
-      } else {
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening in progress");
-      }
-    }
-
-function clearAttemptFromHome() {
+    function clearAttemptFromHome() {
       if (!isAdmin) return; // students cannot start a new attempt
       const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
       if (!ok) return;

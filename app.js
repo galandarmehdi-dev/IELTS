@@ -2891,29 +2891,50 @@ const howBtn = $("homeHowItWorksBtn");
 function startOrContinueExam() {
   setExamStarted(true);
 
-// Init listening system only now
-initListeningSystem();
+  const finalDone =
+    localStorage.getItem(EXAM.keys.finalSubmitted) === "true";
 
-  const finalDone = localStorage.getItem(EXAM.keys.finalSubmitted) === "true";
-  const listeningDone = localStorage.getItem("IELTS:LISTENING:submitted") === "true";
+  const listeningDone =
+    localStorage.getItem("IELTS:LISTENING:submitted") === "true";
 
+  const readingDone =
+    localStorage.getItem("ielts-reading-001:submitted") === "true";
+
+  // ---- Final submitted: review mode ----
   if (finalDone) {
+    try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch {}
     showOnly("writing");
     setExamNavStatus("Status: Submitted (Review mode)");
     return;
   }
 
-  if (listeningDone) {
+  // ---- Listening submitted but Reading not done: go Reading ----
+  if (listeningDone && !readingDone) {
+    try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch {}
     startReadingSystem();
     showOnly("reading");
     setExamNavStatus("Status: Reading in progress");
     return;
   }
 
+  // ---- Reading done: go Writing ----
+  if (listeningDone && readingDone) {
+    try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch {}
+    startWritingSystem();
+    showOnly("writing");
+    setExamNavStatus("Status: Writing in progress");
+    return;
+  }
+
+  // ---- Fresh attempt: go Listening (DO NOT init audio here) ----
+  try { window.IELTS?.Router?.setHashRoute?.("ielts1", "listening"); } catch {}
   showOnly("listening");
   setExamNavStatus("Status: Listening in progress");
-}
 
+  // IMPORTANT:
+  // Do NOT call initListeningSystem() here.
+  // Listening must start only when the student clicks START inside the Listening modal.
+}
 if (startBtn) startBtn.onclick = startOrContinueExam;
 if (startBtn2) startBtn2.onclick = startOrContinueExam;
 if (contBtn) contBtn.onclick = startOrContinueExam;

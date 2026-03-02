@@ -7,7 +7,7 @@
     "https://script.google.com/macros/s/AKfycbymOQ_8EAh0KkEUQ5wOIf7BvONW309z8GTZizqXX98tvla5oqKNzX6Lv8HFCRFHDGS16w/exec";
 
     // Admin-only controls (client-side gate)
-  const ADMIN_PASSCODE = "CHANGE_THIS_TO_YOUR_SECRET";
+  const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240; // admin stays enabled for 4 hours on this browser
   const EXAM = {
     id: "ielts-full-001",

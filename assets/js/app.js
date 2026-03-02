@@ -1,4 +1,4 @@
-/* assets/js/app.js */
+/* assets/js/app.js (patched: attempt-based flow + reliable start + clean submitted home + admin skip listening) */
 (function () {
   "use strict";
 
@@ -13,17 +13,99 @@
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch (e) {
+    } catch {
       return false;
     }
+  }
+
+  function ensureAttemptForExam_() {
+    try { S()?.ensureAttemptId?.(); } catch {}
+  }
+
+  // Reliable start/continue (works even if Router loads early/late)
+  function startOrContinueExam() {
+    const $ = UI().$;
+
+    // create/ensure attempt scope at the moment the user starts
+    ensureAttemptForExam_();
+    UI().setExamStarted(true);
+
+    // init listening system only now
+    try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
+
+    const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+    const listeningDone = S().get("IELTS:LISTENING:submitted", "false") === "true";
+    const readingDone = S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
+
+    if (finalDone) {
+      UI().showSubmittedOverlay("Status: Submitted. Please wait for your teacher.");
+      return;
+    }
+
+    // If listening is done, continue to reading unless reading already submitted
+    if (listeningDone && !readingDone) {
+      try { window.IELTS.Engines.Reading.startReadingSystem(); } catch {}
+      UI().clearReadingLockStyles();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress");
+      return;
+    }
+
+    // If reading is done, go to writing
+    if (listeningDone && readingDone) {
+      try { window.IELTS.Engines.Writing.startWritingSystem?.(); } catch {}
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Writing in progress");
+      return;
+    }
+
+    // Default: start listening
+    UI().showOnly("listening");
+    UI().setExamNavStatus("Status: Listening in progress");
+  }
+
+  function addAdminSkipListeningButton_() {
+    if (!isAdminView()) return;
+    const $ = UI().$;
+    const nav = $("examNav");
+    if (!nav) return;
+
+    // avoid duplicates
+    if ($("adminSkipListeningBtn")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "adminSkipListeningBtn";
+    btn.className = "pill ghost";
+    btn.type = "button";
+    btn.textContent = "Skip Listening (dev)";
+    btn.style.marginLeft = "8px";
+
+    btn.onclick = () => {
+      ensureAttemptForExam_();
+      try {
+        const aud = document.getElementById("listeningAudio");
+        if (aud && typeof aud.pause === "function") aud.pause();
+      } catch {}
+
+      // mark listening as submitted (attempt-scoped automatically by Storage)
+      S().set("IELTS:LISTENING:submitted", "true");
+
+      try { document.dispatchEvent(new CustomEvent("listening:submitted")); } catch {}
+
+      try { window.IELTS.Engines.Reading.startReadingSystem(); } catch {}
+      UI().clearReadingLockStyles();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress (dev)");
+    };
+
+    // place near existing nav buttons
+    nav.appendChild(btn);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     // bind modal buttons once
     if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();
-
-      // --- BOOT SAFETY: never show modal on first load ---
       try { Modal().hideModal(); } catch {}
       const m = document.getElementById("modal");
       if (m) m.classList.add("hidden");
@@ -38,19 +120,15 @@
     const isAdmin = isAdminView();
     const $ = UI().$;
 
-    // =========================
-    // STUDENT AUTO-FLOW GATES
-    // =========================
+    // Student auto-flow gates
     let listeningGateShown = false;
     let readingGateShown = false;
 
     document.addEventListener("listening:submitted", () => {
-      // Only for student flow (admins already have their own controls)
       if (isAdmin) return;
       if (listeningGateShown) return;
       listeningGateShown = true;
 
-      // Keep student on Listening view, but force a "Start Reading" gate.
       UI().showOnly("listening");
       UI().setExamNavStatus("Status: Listening finished");
 
@@ -75,7 +153,6 @@
       if (readingGateShown) return;
       readingGateShown = true;
 
-      // Force a "Start Writing" gate.
       UI().showOnly("reading");
       UI().setExamNavStatus("Status: Reading finished");
 
@@ -94,287 +171,42 @@
       );
     });
 
-    const toHome = $("navToHomeBtn");
-    const toL = $("navToListeningBtn");
-    const toR = $("navToReadingBtn");
-    const toW = $("navToWritingBtn");
-    const resetBtn = $("resetExamBtn");
+    // Home buttons
+    const startBtn = $("startIelts1Btn");
+    const startBtn2 = $("startBtn");   // if present on another UI
+    const contBtn = $("continueBtn");  // if present
+    if (startBtn) startBtn.onclick = startOrContinueExam;
+    if (startBtn2) startBtn2.onclick = startOrContinueExam;
+    if (contBtn) contBtn.onclick = startOrContinueExam;
 
-    // =========================
-    // DEV: SKIP LISTENING (ADMIN ONLY)
-    // =========================
-    // Adds a temporary button to avoid waiting for the audio to end while testing.
-    // This does NOT appear for students.
-    try {
-      if (isAdmin) {
-        const actions = document.querySelector("#examNav .exam-nav-actions");
-        if (actions && !document.getElementById("skipListeningBtn")) {
-          const b = document.createElement("button");
-          b.id = "skipListeningBtn";
-          b.type = "button";
-          b.className = "btn secondary";
-          b.textContent = "Skip Listening (dev)";
-          b.title = "Admin testing: mark listening as submitted and go to Reading";
-          actions.insertBefore(b, resetBtn || null);
-
-          b.onclick = () => {
-            const ok = confirm("Skip Listening for this attempt and open Reading now?");
-            if (!ok) return;
-
-            // stop audio if playing
-            const aud = document.getElementById("listeningAudio");
-            try { aud?.pause?.(); } catch {}
-
-            // mark listening as submitted and fire the normal event
-            try { S().set(R().TESTS.listeningKeys.submitted, "true"); } catch {}
-            try { document.dispatchEvent(new CustomEvent("listening:submitted")); } catch {}
-
-            // also jump directly to reading immediately (in case listeners are blocked)
-            try { window.IELTS.Engines.Reading.startReadingSystem(); } catch {}
-            UI().clearReadingLockStyles();
-            UI().showOnly("reading");
-            UI().setExamNavStatus("Status: Reading in progress");
-            try { window.IELTS?.Router?.setHashRoute && window.IELTS.Router.setHashRoute("ielts1", "reading"); } catch {}
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("Skip Listening button failed:", e);
+    const homeNewAttemptBtn = $("homeNewAttemptBtn");
+    if (homeNewAttemptBtn) {
+      homeNewAttemptBtn.onclick = () => {
+        UI().newAttempt?.();
+      };
     }
 
+    const resetBtn = $("resetExamBtn");
+    if (resetBtn) resetBtn.onclick = () => UI().resetExamAttempt?.();
 
-    // Final submitted?
-    // If browser somehow has finalSubmitted=true but no payload, treat as NOT submitted
+    // If finalSubmitted=true but no payload, treat as NOT submitted
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
     if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
       S().set(R().EXAM.keys.finalSubmitted, "false");
     }
 
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-    if (finalDone) {
-      // Student must not be able to go back and view questions after submit
-      if (typeof UI().showSubmittedOverlay === "function") {
-        UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
-      } else {
-        // fallback: lock everything and show writing in view-only
-        UI().setExamNavStatus("Status: Submitted");
-        $("listeningSection")?.classList.add("view-only");
-        $("readingControls")?.classList.add("view-only");
-        $("container")?.classList.add("view-only");
-        $("writingSection")?.classList.add("view-only");
-        UI().showOnly("writing");
-      }
+    if (finalDone && !isAdmin) {
+      UI().showSubmittedOverlay("Status: Submitted. Please wait for your teacher.");
       return;
     }
 
-    // =========================
-    // ADMIN-ONLY NAV BUTTONS
-    // =========================
-    if (toHome) {
-      toHome.onclick = () => {
-        if (!isAdmin) return;
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-      };
-    }
-
-    if (toL) {
-      toL.onclick = () => {
-        if (!isAdmin) return; // students cannot manually navigate
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Listening.initListeningSystem();
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Viewing Listening");
-      };
-    }
-
-    if (toR) {
-      toR.onclick = () => {
-        if (!isAdmin) return; // students cannot manually navigate
-
-        const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-        if (!listeningDone) {
-          // Admin testing: allow opening Reading without waiting.
-          const ok = confirm("Listening is not submitted yet. Open Reading anyway (admin testing)?");
-          if (!ok) {
-            UI().showOnly("listening");
-            return;
-          }
-        }
-
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Reading.startReadingSystem();
-        UI().clearReadingLockStyles();
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Viewing Reading");
-      };
-    }
-
-    if (toW) {
-      toW.onclick = () => {
-        if (!isAdmin) return; // students cannot manually navigate
-
-        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
-        const readingSubmitted = S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
-
-        if (!writingStarted && !readingSubmitted) {
-          Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
-          UI().showOnly("reading");
-          UI().setExamNavStatus("Status: Viewing Reading");
-          return;
-        }
-
-        UI().setExamStarted(true);
-        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
-        else UI().showOnly("writing");
-
-        UI().setExamNavStatus("Status: Viewing Writing");
-      };
-    }
-
-    if (resetBtn) {
-      resetBtn.onclick = () => {
-        if (!isAdmin) return; // students cannot reset
-        const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
-        if (!ok) return;
-        UI().setExamStarted(false);
-        UI().resetExamAttempt();
-      };
-    }
-
-    // =========================
-    // AUTO-RESUME (STUDENT FLOW)
-    // =========================
-    // If listening already submitted, resume Reading (students can refresh)
-    const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-    if (listeningDone) {
-      window.IELTS.Engines.Reading.startReadingSystem();
-      UI().showOnly("reading");
-      UI().setExamNavStatus("Status: Reading in progress");
-      return;
-    }
-
-    // Hash route support (ADMIN ONLY)
-    const route = Router().parseHashRoute();
-    if (isAdmin && route && route.view) {
-      if (route.view === "listening") {
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Listening.initListeningSystem();
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening in progress");
-        return;
-      }
-      if (route.view === "reading") {
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Reading.startReadingSystem();
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Viewing Reading");
-        return;
-      }
-      if (route.view === "writing") {
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Writing.startWritingSystem();
-        UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Viewing Writing");
-        return;
-      }
-      if (route.view === "home") {
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-        return;
-      }
-    }
-
-    // Default to home
+    // Default landing
     UI().showOnly("home");
-    UI().updateHomeStatusLine();
+    UI().setExamNavStatus("Status: Ready");
+    UI().updateHomeStatusLine("Status: Ready");
 
-    // Home buttons
-    const startBtn = $("startIelts1Btn");
-    const startBtn2 = $("cardStartIelts1Btn");
-    const contBtn = $("homeContinueBtn");
-    const resetHomeBtn = $("homeNewAttemptBtn");
-    const resetCardBtn = $("cardResetBtn");
-    const howBtn = $("homeHowItWorksBtn");
-
-    function startOrContinueExam() {
-  UI().setExamStarted(true);
-
-  // make sure engines are ready
-  window.IELTS.Engines.Listening.initListeningSystem();
-
-  const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-  const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-  const readingDone2 = S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
-
-  // If fully submitted, show locked overlay and do NOT route back into exam
-  if (finalDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "submitted");
-    }
-    if (typeof UI().showSubmittedOverlay === "function") {
-      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
-    } else {
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Submitted");
-    }
-    return;
-  }
-
-  // If listening submitted but reading not submitted -> go reading
-  if (listeningDone2 && !readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "reading");
-    } else {
-      window.IELTS.Engines.Reading.startReadingSystem();
-      UI().showOnly("reading");
-      UI().setExamNavStatus("Status: Reading in progress");
-    }
-    return;
-  }
-
-  // If reading submitted -> go writing
-  if (listeningDone2 && readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "writing");
-    } else {
-      window.IELTS.Engines.Writing.startWritingSystem?.();
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Writing in progress");
-    }
-    return;
-  }
-
-  // Otherwise -> start listening
-  if (window.IELTS?.Router?.setHashRoute) {
-    window.IELTS.Router.setHashRoute("ielts1", "listening");
-  } else {
-    UI().showOnly("listening");
-    UI().setExamNavStatus("Status: Listening in progress");
-  }
-}
-    if (startBtn) startBtn.onclick = startOrContinueExam;
-    if (startBtn2) startBtn2.onclick = startOrContinueExam;
-    if (contBtn) contBtn.onclick = startOrContinueExam;
-
-    if (howBtn) {
-      howBtn.onclick = () => {
-        const el = $("homeHowItWorks");
-        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      };
-    }
-
-    function clearAttemptFromHome() {
-      if (!isAdmin) return; // students cannot start a new attempt
-      const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
-      if (!ok) return;
-      UI().setExamStarted(false);
-      UI().resetExamAttempt();
-    }
-
-    if (resetHomeBtn) resetHomeBtn.onclick = clearAttemptFromHome;
-    if (resetCardBtn) resetCardBtn.onclick = clearAttemptFromHome;
+    // Admin: add dev helper
+    addAdminSkipListeningButton_();
   });
 })();

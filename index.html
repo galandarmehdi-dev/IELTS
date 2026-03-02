@@ -135,7 +135,7 @@
 </div>
 
   <!-- ================= LISTENING (LOCKS READING UNTIL SUBMITTED) ================ -->
-  <section id="listeningSection" class="listening-screen">
+  <section id="listeningSection" class="listening-screen hidden">
     <div class="listening-shell">
 
       <div class="listen-top">
@@ -534,13 +534,13 @@
   </section>
 
   <!-- ================= READING UI ================= -->
-  <div class="controls" id="readingControls">
+ <div class="controls hidden" id="readingControls">
     <div class="timer">Reading time left: <span id="timeLeft">60:00</span></div>
     <button class="btn secondary" id="focusBtn" title="Hide distractions" type="button">Focus mode</button>
     <button class="btn" id="submitBtn" type="button">Submit</button>
   </div>
 
-  <div class="container" id="container">
+  <div class="container hidden" id="container">
     <section class="passage" id="passage"></section>
     <section class="questions">
       <div class="qcard" id="qCard"></div>

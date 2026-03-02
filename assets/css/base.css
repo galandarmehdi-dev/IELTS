@@ -60,3 +60,19 @@ body[data-view-mode="student"] #navToWritingBtn,
 body[data-view-mode="student"] #resetExamBtn {
   display: none !important;
 }
+
+
+
+/* ===== PATCH v4: unified UI with admin nav ===== */
+body[data-admin="1"] #navToHomeBtn,
+body[data-admin="1"] #navToListeningBtn,
+body[data-admin="1"] #navToReadingBtn,
+body[data-admin="1"] #navToWritingBtn,
+body[data-admin="1"] #resetExamBtn {
+  display: inline-flex !important;
+}
+
+.is-disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}

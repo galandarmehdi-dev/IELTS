@@ -6,7 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  let MODAL_MODE = "confirm"; // confirm | final | locked
+  let MODAL_MODE = "confirm"; // confirm | final | locked | lockedAction
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -16,7 +16,8 @@
   }
 
   function hideModal() {
-    if (MODAL_LOCKED) return; // locked means cannot close
+    // lockedAction and locked cannot be closed until action completes
+    if (MODAL_LOCKED) return;
     const modal = $("modal");
     if (modal) modal.classList.add("hidden");
   }
@@ -34,7 +35,7 @@
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    MODAL_LOCKED = MODAL_MODE === "locked";
+    MODAL_LOCKED = (MODAL_MODE === "locked" || MODAL_MODE === "lockedAction");
 
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
@@ -46,13 +47,15 @@
     // buttons
     if (cancel) {
       const showCancel = opts.showCancel === true;
-      cancel.classList.toggle("hidden", !(showCancel && !MODAL_LOCKED));
+      // In lockedAction/locked we never show cancel.
+      cancel.classList.toggle("hidden", !(showCancel && MODAL_MODE === "confirm"));
       cancel.textContent = opts.cancelText || "Cancel";
-      cancel.disabled = MODAL_LOCKED;
+      cancel.disabled = (MODAL_MODE !== "confirm");
     }
 
     if (submit) {
-      submit.classList.toggle("hidden", MODAL_LOCKED); // in locked mode: no OK button at all
+      const hideSubmit = (MODAL_MODE === "locked");
+      submit.classList.toggle("hidden", hideSubmit);
       submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
       submit.disabled = false;
     }
@@ -77,7 +80,8 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        if (MODAL_LOCKED) return;
+        // lockedAction is locked but still has a button that must work
+        if (MODAL_LOCKED && MODAL_MODE !== "lockedAction") return;
 
         // CONFIRM MODE
         if (MODAL_MODE === "confirm") {
@@ -130,5 +134,12 @@
   }
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.Modal = { showModal, hideModal, bindModalOnce };
+
+  function forceHideModal() {
+    MODAL_LOCKED = false;
+    const modal = $("modal");
+    if (modal) modal.classList.add("hidden");
+  }
+
+  window.IELTS.Modal = { showModal, hideModal, forceHideModal, bindModalOnce };
 })();

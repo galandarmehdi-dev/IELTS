@@ -6,8 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  // confirm | final | locked | lockedAction
-  let MODAL_MODE = "confirm";
+  let MODAL_MODE = "confirm"; // confirm | final | locked
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -16,22 +15,20 @@
     return document.getElementById(id);
   }
 
-  function _setHidden(el, hidden) {
-    if (!el) return;
-    el.classList.toggle("hidden", !!hidden);
-  }
-
-  function forceHideModal() {
-    MODAL_LOCKED = false;
-    const modal = $("modal");
-    if (modal) modal.classList.add("hidden");
-  }
-
   function hideModal() {
-    if (MODAL_LOCKED) return;
+    if (MODAL_LOCKED && MODAL_MODE !== "lockedAction") return; // locked means cannot close
     const modal = $("modal");
     if (modal) modal.classList.add("hidden");
   }
+
+
+function forceHideModal() {
+  // Close even if lockedAction
+  const modal = $("modal");
+  MODAL_LOCKED = false;
+  MODAL_MODE = "confirm";
+  if (modal) modal.classList.add("hidden");
+}
 
   function showModal(title, text, opts = {}) {
     const modal = $("modal");
@@ -43,42 +40,39 @@
     const cancel = $("modalCancelBtn");
 
     MODAL_MODE = opts.mode || "confirm";
-    MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
+    MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : (typeof opts.onAction === "function" ? opts.onAction : null);
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    MODAL_LOCKED = MODAL_MODE === "locked" || MODAL_MODE === "lockedAction";
+    MODAL_LOCKED = (MODAL_MODE === "locked" || MODAL_MODE === "lockedAction");
 
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
+    // name required only in "final"
     const isFinal = MODAL_MODE === "final";
-    _setHidden(nameWrap, !isFinal);
+    if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
 
-    // Buttons
-    const isLockedAction = MODAL_MODE === "lockedAction";
-
+    
+const isLockedAction = MODAL_MODE === "lockedAction";
+if (submit) submit.textContent = isLockedAction ? (opts.actionText || "OK") : "OK";
+// in lockedAction, cancel is hidden and submit must remain visible
+// buttons
     if (cancel) {
       const showCancel = opts.showCancel === true;
-      // cancel is never shown for locked/lockedAction
-      _setHidden(cancel, !(showCancel && !MODAL_LOCKED));
+      cancel.classList.toggle("hidden", isLockedAction ? true : !(showCancel && !MODAL_LOCKED));
       cancel.textContent = opts.cancelText || "Cancel";
       cancel.disabled = MODAL_LOCKED;
     }
 
     if (submit) {
-      // In locked mode: no submit button at all
-      // In lockedAction: submit button is REQUIRED and is the only exit
-      if (MODAL_MODE === "locked") {
-        _setHidden(submit, true);
-      } else {
-        _setHidden(submit, false);
-      }
-      submit.textContent =
-        opts.submitText || (isFinal ? "Submit" : isLockedAction ? "Continue" : "OK");
+      submit.classList.toggle("hidden", (MODAL_MODE === "locked"));
+    // lockedAction keeps submit visible // in locked mode: no OK button at all
+      submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
       submit.disabled = false;
     }
 
     if (nameInput && isFinal) {
+      // preload saved name if exists
       const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
       if (saved && !nameInput.value) nameInput.value = saved;
     }
@@ -97,16 +91,24 @@
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
-        // locked has no submit button, but keep the guard anyway
-        if (MODAL_MODE === "locked") return;
+        if (MODAL_LOCKED && MODAL_MODE !== "lockedAction") return;
 
-        // CONFIRM + LOCKEDACTION MODE
-        if (MODAL_MODE === "confirm" || MODAL_MODE === "lockedAction") {
+// LOCKED ACTION MODE (non-closeable until action button)
+if (MODAL_MODE === "lockedAction") {
+  const fn = MODAL_ONCONFIRM;
+  MODAL_ONCONFIRM = null;
+  MODAL_ONCANCEL = null;
+  forceHideModal();
+  if (typeof fn === "function") fn();
+  return;
+}
+
+// CONFIRM MODE
+        if (MODAL_MODE === "confirm") {
           const fn = MODAL_ONCONFIRM;
           MODAL_ONCONFIRM = null;
           MODAL_ONCANCEL = null;
-          // lockedAction is allowed to close ONLY after clicking the button
-          forceHideModal();
+          hideModal();
           if (typeof fn === "function") fn();
           return;
         }
@@ -141,7 +143,7 @@
     if (cancel && !cancel.dataset.bound) {
       cancel.dataset.bound = "1";
       cancel.addEventListener("click", () => {
-        if (MODAL_LOCKED) return;
+        if (MODAL_LOCKED && MODAL_MODE !== "lockedAction") return;
         const fn = MODAL_ONCANCEL;
         MODAL_ONCONFIRM = null;
         MODAL_ONCANCEL = null;
@@ -152,5 +154,5 @@
   }
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.Modal = { showModal, hideModal, forceHideModal, bindModalOnce };
+  window.IELTS.Modal = { showModal, hideModal, bindModalOnce };
 })();

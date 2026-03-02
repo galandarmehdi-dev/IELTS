@@ -60,3 +60,4 @@ body[data-view-mode="student"] #navToWritingBtn,
 body[data-view-mode="student"] #resetExamBtn {
   display: none !important;
 }
+

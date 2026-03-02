@@ -48,15 +48,30 @@
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
 
     if (writing) writing.classList.toggle("hidden", !isWriting);
+  // Exam nav hidden on home, visible elsewhere
+  showExamNav(!isHome);
 
-    // Exam nav hidden on home, visible elsewhere
-    showExamNav(!isHome);
+  // Remember last view (optional, used by app.js auto-resume)
+  try {
+    S()?.set(R().KEYS.HOME_LAST_VIEW, view);
+  } catch {}
 
-    // Remember last view (optional, used by app.js auto-resume)
-    try {
-      S()?.set(R().KEYS.HOME_LAST_VIEW, view);
-    } catch {}
-  }
+  // ✅ ADD THIS BLOCK RIGHT HERE (still inside showOnly)
+  try {
+    const router = window.IELTS?.Router;
+
+    if (router?.setHashRoute) {
+      if (view === "home") {
+        // keep homepage clean (no hash)
+        if (location.hash) {
+          history.replaceState(null, "", location.pathname + location.search);
+        }
+      } else {
+        // exam routes like: #/ielts1/listening, #/ielts1/reading, #/ielts1/writing
+        router.setHashRoute("ielts1", view);
+      }
+    }
+  } catch {}
 
   function setExamStarted(v) {
     try {

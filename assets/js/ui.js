@@ -72,7 +72,6 @@
       }
     }
   } catch {}
-
   }
 
   function setExamStarted(v) {

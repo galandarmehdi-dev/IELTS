@@ -36,7 +36,7 @@
     try { UI()?.applyStudentLockdownUI?.(); } catch {}
 
     const isAdmin = isAdminView();
-    const $ = UI().$;
+    const $ = (id) => (UI() && typeof UI().$ === "function" ? UI().$(id) : document.getElementById(id));
 
     const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
@@ -197,69 +197,21 @@
     const resetCardBtn = $("cardResetBtn");
     const howBtn = $("homeHowItWorksBtn");
 
-    function createAttemptId_() {
-  return (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8)).toUpperCase();
-}
-
-function clearAttemptKeys_() {
-  // Clear attempt-related keys only (keep admin session + preferences)
-  const prefixes = [
-    "IELTS:EXAM:",
-    "IELTS:LISTENING:",
-    "IELTS:READING:",
-    "IELTS:WRITING:",
-    "IELTS:ANSWERS:",
-    "IELTS:STATE:",
-    "IELTS:HIGHLIGHT:",
-  ];
-  try { S().removeByPrefixes(prefixes); } catch {}
-}
-
-function goTo_(view) {
-  // Never depend on hash routing to render
-  UI().showOnly(view);
-
-  if (view === "listening") {
-    UI().setExamNavStatus("Status: Listening in progress");
-    try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
-  } else if (view === "reading") {
-    UI().setExamNavStatus("Status: Reading in progress");
-    try { window.IELTS.Engines.Reading.startReadingSystem(); } catch {}
-  } else if (view === "writing") {
-    UI().setExamNavStatus("Status: Writing in progress");
-    try { window.IELTS.Engines.Writing.startWritingSystem?.(); } catch {}
-  }
-
-  // Keep URL hash in sync for refresh, but never rely on it
-  try { window.IELTS?.Router?.setHashRoute?.("ielts1", view); } catch {}
-}
-
-function startFreshAttempt_() {
-  clearAttemptKeys_();
-  S().set("IELTS:EXAM:attemptId", createAttemptId_());
+    function startOrContinueExam() {
   UI().setExamStarted(true);
-  goTo_("listening");
-}
 
-function startOrContinueExam() {
-  const clickedId = (this && this.id) ? this.id : "";
-  const isContinue = clickedId === "homeContinueBtn";
-
-  if (!isContinue) {
-    // Classroom-safe: Start always begins a fresh attempt
-    startFreshAttempt_();
-    return;
-  }
-
-  // Continue resumes progress
-  UI().setExamStarted(true);
-  try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
+  // make sure engines are ready
+  window.IELTS.Engines.Listening.initListeningSystem();
 
   const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
   const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
   const readingDone2 = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
 
+  // If fully submitted, show locked overlay and do NOT route back into exam
   if (finalDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "submitted");
+    }
     if (typeof UI().showSubmittedOverlay === "function") {
       UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
     } else {
@@ -269,47 +221,43 @@ function startOrContinueExam() {
     return;
   }
 
-  if (listeningDone2 && !readingDone2) return goTo_("reading");
-  if (listeningDone2 && readingDone2) return goTo_("writing");
-  return goTo_("listening");
+  // If listening submitted but reading not submitted -> go reading
+  if (listeningDone2 && !readingDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "reading");
+    } else {
+      window.IELTS.Engines.Reading.startReadingSystem();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress");
+    }
+    return;
+  }
+
+  // If reading submitted -> go writing
+  if (listeningDone2 && readingDone2) {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute("ielts1", "writing");
+    } else {
+      window.IELTS.Engines.Writing.startWritingSystem?.();
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Writing in progress");
+    }
+    return;
+  }
+
+  // Otherwise -> start listening
+  if (window.IELTS?.Router?.setHashRoute) {
+    window.IELTS.Router.setHashRoute("ielts1", "listening");
+  } else {
+    UI().showOnly("listening");
+    UI().setExamNavStatus("Status: Listening in progress");
+  }
 }
     if (startBtn) startBtn.onclick = startOrContinueExam;
     if (startBtn2) startBtn2.onclick = startOrContinueExam;
     if (contBtn) contBtn.onclick = startOrContinueExam;
 
-    // ===== PATCH: Required gates between sections =====
-function showLockedGate_(title, message, actionText, onAction) {
-  try {
-    Modal().showModal(title, message, {
-      mode: "lockedAction",
-      actionText,
-      onAction,
-    });
-  } catch {
-    // absolute fallback: proceed
-    try { onAction && onAction(); } catch {}
-  }
-}
-
-document.addEventListener("listening:submitted", () => {
-  showLockedGate_(
-    "Listening finished",
-    "When you are ready, click START READING to continue.",
-    "START READING",
-    () => { goTo_("reading"); }
-  );
-});
-
-document.addEventListener("reading:ended", () => {
-  showLockedGate_(
-    "Reading finished",
-    "When you are ready, click START WRITING to continue.",
-    "START WRITING",
-    () => { goTo_("writing"); }
-  );
-});
-
-if (howBtn) {
+    if (howBtn) {
       howBtn.onclick = () => {
         const el = $("homeHowItWorks");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });

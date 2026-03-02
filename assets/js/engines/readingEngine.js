@@ -115,6 +115,9 @@ G. Newton was also obsessed with history and religious doctrines, and his writin
       },
     };
 
+    // Part 1 passage is embedded in HTML initially; capture it at runtime.
+    let PART1_PASSAGE_HTML = "";
+
     const PART2_PASSAGE_TEXT = `
 The Geography of Antarctica
 
@@ -1088,7 +1091,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-      document.dispatchEvent(new CustomEvent('reading:ended'));
+      window.IELTS.Engines.Writing.startWritingSystem();
     }
 
     function startTimer(answersRef) {

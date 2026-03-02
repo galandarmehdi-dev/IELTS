@@ -36,6 +36,56 @@
     try { UI()?.applyStudentLockdownUI?.(); } catch {}
 
     const isAdmin = isAdminView();
+
+
+// =========================
+// STUDENT AUTO-TRANSITIONS (LOCKED GATES)
+// =========================
+// When listening auto-submits (audio ends), show a non-closeable gate to start Reading.
+document.addEventListener("listening:submitted", () => {
+  if (isAdmin) return; // admins can navigate freely
+  try {
+    Modal().showModal(
+      "Listening finished",
+      "Listening has been submitted. Click Start Reading to continue.",
+      {
+        mode: "lockedAction",
+        submitText: "Start Reading",
+        onConfirm: () => {
+          UI().setExamStarted(true);
+          window.IELTS.Engines.Reading.startReadingSystem();
+          UI().clearReadingLockStyles();
+          UI().showOnly("reading");
+          UI().setExamNavStatus("Status: Reading in progress");
+          try { Modal().forceHideModal(); } catch {}
+        },
+      }
+    );
+  } catch {}
+});
+
+// When reading ends (time end or submit), show a non-closeable gate to start Writing.
+document.addEventListener("reading:ended", (ev) => {
+  if (isAdmin) return;
+  try {
+    Modal().showModal(
+      "Reading finished",
+      "Reading has ended. Click Start Writing to continue.",
+      {
+        mode: "lockedAction",
+        submitText: "Start Writing",
+        onConfirm: () => {
+          UI().setExamStarted(true);
+          window.IELTS.Engines.Writing.startWritingSystem();
+          UI().showOnly("writing");
+          UI().setExamNavStatus("Status: Writing in progress");
+          try { Modal().forceHideModal(); } catch {}
+        },
+      }
+    );
+  } catch {}
+});
+
     const $ = UI().$;
 
     const toHome = $("navToHomeBtn");

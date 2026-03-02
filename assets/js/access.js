@@ -4,6 +4,7 @@
 
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const UI = () => window.IELTS.UI;
 
   const KEY = "IELTS:ADMIN:session";
   const DEFAULT_TTL_MIN = 180; // 3 hours
@@ -21,9 +22,7 @@
   }
 
   function clearSession() {
-    try {
-      localStorage.removeItem(KEY);
-    } catch {}
+    try { localStorage.removeItem(KEY); } catch {}
   }
 
   function hasValidSession() {
@@ -34,6 +33,9 @@
   }
 
   function isAdminRequestedByUrl() {
+    // admin entry triggers (choose one):
+    // 1) ?admin=1
+    // 2) #/admin
     const qs = new URLSearchParams(location.search);
     if (qs.get("admin") === "1") return true;
 
@@ -63,15 +65,43 @@
   }
 
   function init() {
+    // If URL asks for admin, request passcode (unless session already valid)
     if (isAdminRequestedByUrl() && !hasValidSession()) {
       enterAdmin();
+
+    // Student lockdown: block right click except in inputs/textareas (allows copy/paste there)
+    document.addEventListener("contextmenu", (e) => {
+      if (isAdmin()) return;
+      const t = e.target;
+      const allowed =
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable === true);
+      if (!allowed) {
+        e.preventDefault();
+      }
+    }, true);
+
+    // Student lockdown: block Find (Ctrl/Cmd+F) and F3
+    document.addEventListener("keydown", (e) => {
+      if (isAdmin()) return;
+
+      const key = String(e.key || "").toLowerCase();
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if ((ctrlOrCmd && key === "f") || key === "f3") {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+
     }
 
-    // Unified UI: keep student lockdown styles for everyone.
-    // Admin difference is ONLY navigation/testing ability.
+    // Put a flag on <body> for CSS / UI usage
     try {
-      document.body.dataset.viewMode = "student";
-      document.body.dataset.admin = isAdmin() ? "1" : "0";
+      document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
     } catch {}
   }
 

@@ -10,112 +10,42 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
-  function isAdmin() {
+  function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
 
-  function startListeningView() {
-    UI().setExamStarted(true);
-    window.IELTS.Engines.Listening.initListeningSystem();
-    UI().showOnly("listening");
-    UI().setExamNavStatus("Status: Listening in progress");
-    try {
-      Router()?.setHashRoute?.("ielts1", "listening");
-    } catch {}
-  }
-
-  function startReadingView() {
-    UI().setExamStarted(true);
-    window.IELTS.Engines.Reading.startReadingSystem();
-    UI().clearReadingLockStyles?.();
-    UI().showOnly("reading");
-    UI().setExamNavStatus("Status: Reading in progress");
-    try {
-      Router()?.setHashRoute?.("ielts1", "reading");
-    } catch {}
-  }
-
-  function startWritingView() {
-    UI().setExamStarted(true);
-    window.IELTS.Engines.Writing.startWritingSystem();
-    UI().showOnly("writing");
-    UI().setExamNavStatus("Status: Writing in progress");
-    try {
-      Router()?.setHashRoute?.("ielts1", "writing");
-    } catch {}
-  }
-
-  function showGateToReading() {
-    // Only show gate if we're still in listening view and not already in reading/writing
-    const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-    if (!listeningDone) return;
-
-    // Make sure Listening screen isn't interactive anymore
-    UI().setExamNavStatus("Status: Listening completed");
-
-    Modal().showModal(
-      "Listening finished",
-      "Are you ready to start Reading?",
-      {
-        mode: "lockedAction",
-        submitText: "Start Reading",
-        onConfirm: () => {
-          startReadingView();
-        },
-      }
-    );
-  }
-
-  function showGateToWriting() {
-    Modal().showModal(
-      "Reading finished",
-      "Are you ready to start Writing?",
-      {
-        mode: "lockedAction",
-        submitText: "Start Writing",
-        onConfirm: () => {
-          startWritingView();
-        },
-      }
-    );
-  }
-
   document.addEventListener("DOMContentLoaded", () => {
     // bind modal buttons once
-    if (window.IELTS?.Modal?.bindModalOnce) {
+    if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();
-      try {
-        window.IELTS.Modal.forceHideModal?.();
-      } catch {}
+
+      // --- BOOT SAFETY: never show modal on first load ---
+      try { Modal().hideModal(); } catch {}
+      const m = document.getElementById("modal");
+      if (m) m.classList.add("hidden");
+    } else {
+      console.error("Modal module not loaded properly.");
     }
 
-    // init access/session
-    try {
-      window.IELTS?.Access?.init?.();
-    } catch {}
+    // Init admin/session gate (if present) + apply UI lockdown for students
+    try { window.IELTS?.Access?.init?.(); } catch {}
+    try { UI()?.applyStudentLockdownUI?.(); } catch {}
 
-    // apply UI lockdown rules (copy/download/right click/etc)
-    try {
-      UI()?.applyStudentLockdownUI?.();
-    } catch {}
-
+    const isAdmin = isAdminView();
     const $ = UI().$;
 
-    // --- Global events ---
-    document.addEventListener("listening:submitted", () => {
-      // Always gate into Reading (students + admin)
-      showGateToReading();
-    });
-
-    document.addEventListener("reading:ended", () => {
-      showGateToWriting();
-    });
+    const toHome = $("navToHomeBtn");
+    const toL = $("navToListeningBtn");
+    const toR = $("navToReadingBtn");
+    const toW = $("navToWritingBtn");
+    const resetBtn = $("resetExamBtn");
 
     // Final submitted?
+    // If browser somehow has finalSubmitted=true but no payload, treat as NOT submitted
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
     if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
       S().set(R().EXAM.keys.finalSubmitted, "false");
@@ -123,67 +53,87 @@
 
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
     if (finalDone) {
-      UI().showSubmittedOverlay?.("Your exam has been submitted. Please wait for your teacher.");
+      // Student must not be able to go back and view questions after submit
+      if (typeof UI().showSubmittedOverlay === "function") {
+        UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+      } else {
+        // fallback: lock everything and show writing in view-only
+        UI().setExamNavStatus("Status: Submitted");
+        $("listeningSection")?.classList.add("view-only");
+        $("readingControls")?.classList.add("view-only");
+        $("container")?.classList.add("view-only");
+        $("writingSection")?.classList.add("view-only");
+        UI().showOnly("writing");
+      }
       return;
     }
 
-    // --- Admin nav buttons (same UI, but admin can click) ---
-    const toHome = $("navToHomeBtn");
-    const toL = $("navToListeningBtn");
-    const toR = $("navToReadingBtn");
-    const toW = $("navToWritingBtn");
-    const resetBtn = $("resetExamBtn");
-
+    // =========================
+    // ADMIN-ONLY NAV BUTTONS
+    // =========================
     if (toHome) {
       toHome.onclick = () => {
-        if (!isAdmin()) return;
+        if (!isAdmin) return;
         UI().showOnly("home");
         UI().updateHomeStatusLine();
         UI().setExamNavStatus("Status: Home");
-        try { Router()?.setHashRoute?.("ielts1", "home"); } catch {}
       };
     }
 
     if (toL) {
       toL.onclick = () => {
-        if (!isAdmin()) return;
-        startListeningView();
+        if (!isAdmin) return; // students cannot manually navigate
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Listening.initListeningSystem();
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Viewing Listening");
       };
     }
 
     if (toR) {
       toR.onclick = () => {
-        if (!isAdmin()) return;
+        if (!isAdmin) return; // students cannot manually navigate
+
         const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
         if (!listeningDone) {
-          Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", {
-            mode: "confirm",
-          });
           UI().showOnly("listening");
+          Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
           return;
         }
-        startReadingView();
+
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Reading.startReadingSystem();
+        UI().clearReadingLockStyles();
+        UI().showOnly("reading");
+        UI().setExamNavStatus("Status: Viewing Reading");
       };
     }
 
     if (toW) {
       toW.onclick = () => {
-        if (!isAdmin()) return;
-        const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
-        if (!readingDone) {
-          Modal().showModal("Writing locked", "You must finish Reading before opening Writing.", {
-            mode: "confirm",
-          });
+        if (!isAdmin) return; // students cannot manually navigate
+
+        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
+        const readingSubmitted = S().get(`${R().TESTS.readingTestId}:submitted`, "false") === "true";
+
+        if (!writingStarted && !readingSubmitted) {
+          Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
           UI().showOnly("reading");
+          UI().setExamNavStatus("Status: Viewing Reading");
           return;
         }
-        startWritingView();
+
+        UI().setExamStarted(true);
+        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
+        else UI().showOnly("writing");
+
+        UI().setExamNavStatus("Status: Viewing Writing");
       };
     }
 
     if (resetBtn) {
       resetBtn.onclick = () => {
-        if (!isAdmin()) return;
+        if (!isAdmin) return; // students cannot reset
         const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
         if (!ok) return;
         UI().setExamStarted(false);
@@ -191,24 +141,51 @@
       };
     }
 
-    // --- Auto resume (same for everyone) ---
+    // =========================
+    // AUTO-RESUME (STUDENT FLOW)
+    // =========================
+    // If listening already submitted, resume Reading (students can refresh)
     const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-    const readingDone = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
-
-    if (listeningDone && !readingDone) {
-      // Don't auto start reading; show a required gate so students/admin click explicitly
-      UI().showOnly("listening");
-      showGateToReading();
+    if (listeningDone) {
+      window.IELTS.Engines.Reading.startReadingSystem();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress");
       return;
     }
 
-    if (listeningDone && readingDone) {
-      // resume writing
-      startWritingView();
-      return;
+    // Hash route support (ADMIN ONLY)
+    const route = Router().parseHashRoute();
+    if (isAdmin && route && route.view) {
+      if (route.view === "listening") {
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Listening.initListeningSystem();
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Listening in progress");
+        return;
+      }
+      if (route.view === "reading") {
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Reading.startReadingSystem();
+        UI().showOnly("reading");
+        UI().setExamNavStatus("Status: Viewing Reading");
+        return;
+      }
+      if (route.view === "writing") {
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Writing.startWritingSystem();
+        UI().showOnly("writing");
+        UI().setExamNavStatus("Status: Viewing Writing");
+        return;
+      }
+      if (route.view === "home") {
+        UI().showOnly("home");
+        UI().updateHomeStatusLine();
+        UI().setExamNavStatus("Status: Home");
+        return;
+      }
     }
 
-    // Default: home
+    // Default to home
     UI().showOnly("home");
     UI().updateHomeStatusLine();
 
@@ -220,16 +197,119 @@
     const resetCardBtn = $("cardResetBtn");
     const howBtn = $("homeHowItWorksBtn");
 
-    function startExam() {
-      // Always start Listening UI immediately; routing is secondary.
-      startListeningView();
+    function createAttemptId_() {
+  return (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8)).toUpperCase();
+}
+
+function clearAttemptKeys_() {
+  // Clear attempt-related keys only (keep admin session + preferences)
+  const prefixes = [
+    "IELTS:EXAM:",
+    "IELTS:LISTENING:",
+    "IELTS:READING:",
+    "IELTS:WRITING:",
+    "IELTS:ANSWERS:",
+    "IELTS:STATE:",
+    "IELTS:HIGHLIGHT:",
+  ];
+  try { S().removeByPrefixes(prefixes); } catch {}
+}
+
+function goTo_(view) {
+  // Never depend on hash routing to render
+  UI().showOnly(view);
+
+  if (view === "listening") {
+    UI().setExamNavStatus("Status: Listening in progress");
+    try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
+  } else if (view === "reading") {
+    UI().setExamNavStatus("Status: Reading in progress");
+    try { window.IELTS.Engines.Reading.startReadingSystem(); } catch {}
+  } else if (view === "writing") {
+    UI().setExamNavStatus("Status: Writing in progress");
+    try { window.IELTS.Engines.Writing.startWritingSystem?.(); } catch {}
+  }
+
+  // Keep URL hash in sync for refresh, but never rely on it
+  try { window.IELTS?.Router?.setHashRoute?.("ielts1", view); } catch {}
+}
+
+function startFreshAttempt_() {
+  clearAttemptKeys_();
+  S().set("IELTS:EXAM:attemptId", createAttemptId_());
+  UI().setExamStarted(true);
+  goTo_("listening");
+}
+
+function startOrContinueExam() {
+  const clickedId = (this && this.id) ? this.id : "";
+  const isContinue = clickedId === "homeContinueBtn";
+
+  if (!isContinue) {
+    // Classroom-safe: Start always begins a fresh attempt
+    startFreshAttempt_();
+    return;
+  }
+
+  // Continue resumes progress
+  UI().setExamStarted(true);
+  try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
+
+  const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+  const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
+  const readingDone2 = S().get(R().TESTS.readingKeys.submitted, "false") === "true";
+
+  if (finalDone2) {
+    if (typeof UI().showSubmittedOverlay === "function") {
+      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
+    } else {
+      UI().showOnly("writing");
+      UI().setExamNavStatus("Status: Submitted");
     }
+    return;
+  }
 
-    if (startBtn) startBtn.onclick = startExam;
-    if (startBtn2) startBtn2.onclick = startExam;
-    if (contBtn) contBtn.onclick = startExam;
+  if (listeningDone2 && !readingDone2) return goTo_("reading");
+  if (listeningDone2 && readingDone2) return goTo_("writing");
+  return goTo_("listening");
+}
+    if (startBtn) startBtn.onclick = startOrContinueExam;
+    if (startBtn2) startBtn2.onclick = startOrContinueExam;
+    if (contBtn) contBtn.onclick = startOrContinueExam;
 
-    if (howBtn) {
+    // ===== PATCH: Required gates between sections =====
+function showLockedGate_(title, message, actionText, onAction) {
+  try {
+    Modal().showModal(title, message, {
+      mode: "lockedAction",
+      actionText,
+      onAction,
+    });
+  } catch {
+    // absolute fallback: proceed
+    try { onAction && onAction(); } catch {}
+  }
+}
+
+document.addEventListener("listening:submitted", () => {
+  showLockedGate_(
+    "Listening finished",
+    "When you are ready, click START READING to continue.",
+    "START READING",
+    () => { goTo_("reading"); }
+  );
+});
+
+document.addEventListener("reading:ended", () => {
+  showLockedGate_(
+    "Reading finished",
+    "When you are ready, click START WRITING to continue.",
+    "START WRITING",
+    () => { goTo_("writing"); }
+  );
+});
+
+if (howBtn) {
       howBtn.onclick = () => {
         const el = $("homeHowItWorks");
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -237,7 +317,7 @@
     }
 
     function clearAttemptFromHome() {
-      if (!isAdmin()) return;
+      if (!isAdmin) return; // students cannot start a new attempt
       const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
       if (!ok) return;
       UI().setExamStarted(false);

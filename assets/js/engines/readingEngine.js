@@ -23,6 +23,7 @@
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;
 
     let hasSubmittedReading = S().get(storageKey("submitted"), "false") === "true";
+    let hasTransitionedToWriting = false;
 
     const PARTS = ["part1", "part2", "part3"];
     let activePart = "part1";
@@ -1084,6 +1085,12 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
     }
 
+    function transitionToWritingOnce() {
+      if (hasTransitionedToWriting) return;
+      hasTransitionedToWriting = true;
+      window.IELTS.Engines.Writing.startWritingSystem();
+    }
+
     function startTimer(answersRef) {
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
 
@@ -1109,7 +1116,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          document.dispatchEvent(new CustomEvent("reading:submitted", { detail: { reason: "time_end" } }));
+          transitionToWritingOnce();
         }
       }, 1000);
     }
@@ -1147,8 +1154,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           timerInterval = null;
         }
 
-        document.dispatchEvent(new CustomEvent("reading:submitted", { detail: { reason: "student_submit" } }));
-});
+        transitionToWritingOnce();
+      });
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);

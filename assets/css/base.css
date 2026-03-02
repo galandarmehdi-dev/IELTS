@@ -40,3 +40,23 @@ body{
   cursor:not-allowed;
 }
 .btn:active{ transform: translateY(1px); }
+/* ===== STUDENT MODE LOCKDOWN ===== */
+
+/* Hide answer export tools for students */
+body[data-view-mode="student"] #downloadListeningBtn,
+body[data-view-mode="student"] #copyListeningBtn,
+body[data-view-mode="student"] #downloadBtn,
+body[data-view-mode="student"] #copyBtn,
+body[data-view-mode="student"] #downloadWritingBtn,
+body[data-view-mode="student"] #copyWritingBtn {
+  display: none !important;
+}
+
+/* Hide navigation + reset for students (extra safety) */
+body[data-view-mode="student"] #navToHomeBtn,
+body[data-view-mode="student"] #navToListeningBtn,
+body[data-view-mode="student"] #navToReadingBtn,
+body[data-view-mode="student"] #navToWritingBtn,
+body[data-view-mode="student"] #resetExamBtn {
+  display: none !important;
+}

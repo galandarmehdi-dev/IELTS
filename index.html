@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="google" content="notranslate">
+  <meta name="googlebot" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IELTS Test</title>
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="assets/css/base.css" />
@@ -14,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/highlighting.css" />
 </head>
   
-<body>
+<body translate="no">
 <!-- ================= HOME ================= -->
 <section id="homeSection" class="home-screen" aria-label="Home">
   <header class="home-header">
@@ -36,7 +38,7 @@
       </div>
 
       <div class="home-top-actions">
-        <!-- <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button> -->
+        <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button>
         <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
       </div>
     </div>
@@ -83,7 +85,7 @@
     </div>
   </header>
 
-  <main class="home-main hidden" id="homeHowItWorks">
+  <main class="home-main" id="homeHowItWorks">
     <div class="home-grid">
       <div class="home-info">
         <div class="home-info-h">How it works</div>
@@ -634,11 +636,7 @@
 </div>
     </div>
   </div>
-<script>
-  window.addEventListener("error", (e) => {
-    console.log("SCRIPT ERROR:", e.message, "at", e.filename + ":" + e.lineno + ":" + e.colno);
-  });
-</script>
+
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/tests/registry.js"></script>
 <script src="assets/js/access.js"></script>
@@ -651,114 +649,6 @@
 <script src="assets/js/engines/readingEngine.js"></script>
 <script src="assets/js/engines/writingEngine.js"></script>
 
-<script src="assets/js/app.v5.js"></script>
-<script>
-/**
- * EMERGENCY BOOTSTRAP (guarantees Start works even if app.js fails)
- * Paste at the very end of index.html (right before </body>)
- */
-(function () {
-  "use strict";
-
-  const $ = (id) => document.getElementById(id);
-
-  function hasIELTS() {
-    return !!(window.IELTS && window.IELTS.UI && window.IELTS.Storage && window.IELTS.Engines);
-  }
-
-  function startListeningNow() {
-    if (!hasIELTS()) {
-      alert("Boot error: window.IELTS is not ready. Check Console for script loading errors.");
-      return;
-    }
-
-    // Fresh attempt id (helps admin/backend)
-    try {
-      const attemptId = Date.now() + "-" + Math.random().toString(16).slice(2);
-      window.IELTS.Storage.set(window.IELTS.Registry.EXAM.keys.attemptId || "IELTS:EXAM:attemptId", attemptId);
-    } catch (e) {}
-
-    // Start Listening immediately (no router dependency)
-    try { window.IELTS.UI.setExamStarted(true); } catch (e) {}
-    try { window.IELTS.Engines.Listening.initListeningSystem(); } catch (e) {}
-
-    window.IELTS.UI.showOnly("listening");
-    if (typeof window.IELTS.UI.setExamNavStatus === "function") {
-      window.IELTS.UI.setExamNavStatus("Status: Listening");
-    }
-  }
-
-  function goReadingNow() {
-    if (!hasIELTS()) return;
-    window.IELTS.UI.showOnly("reading");
-    if (typeof window.IELTS.Engines.Reading.startReading === "function") {
-      window.IELTS.Engines.Reading.startReading();
-    } else if (typeof window.IELTS.Engines.Reading.initReadingSystem === "function") {
-      window.IELTS.Engines.Reading.initReadingSystem();
-      if (typeof window.IELTS.Engines.Reading.startReading === "function") window.IELTS.Engines.Reading.startReading();
-    }
-    if (typeof window.IELTS.UI.setExamNavStatus === "function") {
-      window.IELTS.UI.setExamNavStatus("Status: Reading");
-    }
-  }
-
-  function showLockedActionGate(title, msg, btnText, onClick) {
-    // Preferred: your modal
-    if (window.IELTS && window.IELTS.Modal && typeof window.IELTS.Modal.showModal === "function") {
-      window.IELTS.Modal.showModal(title, msg, {
-        mode: "lockedAction",
-        okText: btnText,
-        onOk: onClick
-      });
-      return;
-    }
-
-    // Fallback: minimal blocking dialog
-    // (Not ideal, but prevents students getting stuck)
-    alert(title + "\n\n" + msg);
-    onClick();
-  }
-
-  function bindStartButtons() {
-    const b1 = $("startIelts1Btn");
-    const b2 = $("cardStartIelts1Btn");
-    const b3 = $("startListeningBtn"); // if you ever use it
-
-    [b1, b2, b3].forEach((b) => {
-      if (!b) return;
-      b.onclick = (e) => {
-        e.preventDefault();
-        startListeningNow();
-      };
-    });
-  }
-
-  // Listening finished -> gate -> Reading
-  document.addEventListener("listening:submitted", function () {
-    showLockedActionGate(
-      "Listening finished",
-      "When you are ready, click START READING to continue.",
-      "START READING",
-      goReadingNow
-    );
-  });
-
-  // If your listening engine fires a different event on audio end, include it too:
-  document.addEventListener("listening:ended", function () {
-    showLockedActionGate(
-      "Listening finished",
-      "When you are ready, click START READING to continue.",
-      "START READING",
-      goReadingNow
-    );
-  });
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bindStartButtons);
-  } else {
-    bindStartButtons();
-  }
-})();
-</script>
+<script src="assets/js/app.js"></script>
 </body>
 </html>

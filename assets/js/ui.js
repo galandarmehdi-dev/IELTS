@@ -121,10 +121,7 @@
     writing?.classList.add("view-only");
   }
 
-function resetExamAttempt(force)
-{
-  // force=true allows reset after admin passcode validation in app.js
-
+function resetExamAttempt() {
   // Students cannot reset
   const isAdmin =
     (window.IELTS &&
@@ -133,7 +130,7 @@ function resetExamAttempt(force)
       window.IELTS.Access.isAdmin() === true) ||
     false;
 
-  if (!isAdmin && !force) return;
+  if (!isAdmin) return;
 
   // Clear everything related to this exam attempt
   try {
@@ -167,41 +164,80 @@ function resetExamAttempt(force)
 }
 
 function applyStudentLockdownUI() {
-    // Hide Copy/Download utility buttons for students
-  if (!isAdminView()) {
-    [
-      // Listening
-      "downloadListeningBtn",
-      "copyListeningBtn",
+  // Unified UI: keep exam UI the same for everyone.
+  // Only difference: admin can navigate between sections for testing.
 
-      // Reading
-      "downloadBtn",
-      "copyBtn",
+  const admin = isAdminView();
 
-      // Writing
-      "downloadWritingBtn",
-      "copyWritingBtn",
-    ].forEach((id) => $(id)?.classList.add("hidden"));
-  }
-  // Hide global exam navigation actions for students
+  // Hide export tools for EVERYONE (prevents leaks during real exam)
+  [
+    "downloadListeningBtn","copyListeningBtn",
+    "downloadBtn","copyBtn",
+    "downloadWritingBtn","copyWritingBtn",
+  ].forEach((id) => $(id)?.classList.add("hidden"));
+
+  // Exam nav exists in all modes, but only admin can use the buttons.
   const nav = $("examNav");
-  if (nav && !isAdminView()) {
-    nav.classList.add("student-locked");
-    // hide buttons if they exist
-    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
-      const b = $(id);
-      if (b) b.classList.add("hidden");
-    });
-  }
+  if (nav) nav.classList.remove("student-locked");
 
-  // Hide “new attempt / clear browser” from home for students
-  if (!isAdminView()) {
-    $("homeNewAttemptBtn")?.classList.add("hidden");
-    $("cardResetBtn")?.classList.add("hidden");
+  ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
+    const b = $(id);
+    if (!b) return;
+    if (admin) {
+      b.disabled = false;
+      b.classList.remove("is-disabled");
+      b.title = "";
+    } else {
+      b.disabled = true;
+      b.classList.add("is-disabled");
+      b.title = "Locked";
+    }
+  });
+
+  // Home clear/reset buttons are admin-only; keep them visible but disabled for students
+  ["homeNewAttemptBtn","cardResetBtn"].forEach((id) => {
+    const b = $(id);
+    if (!b) return;
+    if (admin) {
+      b.disabled = false;
+      b.classList.remove("is-disabled");
+      b.title = "";
+    } else {
+      b.disabled = true;
+      b.classList.add("is-disabled");
+      b.title = "Locked";
+    }
+  });
+
+  // ===== Restrictions requested =====
+  // Block right-click everywhere except inputs/textarea/contenteditable (so paste works there)
+  if (!document.body.dataset.__ctxLock) {
+    document.body.dataset.__ctxLock = "1";
+    document.addEventListener("contextmenu", (e) => {
+      const el = e.target;
+      const tag = (el && el.tagName ? el.tagName.toLowerCase() : "");
+      const editable =
+        tag === "input" ||
+        tag === "textarea" ||
+        (el && el.isContentEditable === true);
+      if (editable) return; // allow copy/paste menu
+      e.preventDefault();
+    }, true);
+
+    // Block Ctrl/Cmd+F (find)
+    document.addEventListener("keydown", (e) => {
+      const k = String(e.key || "").toLowerCase();
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+      if (ctrlOrCmd && k === "f") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, true);
   }
 }
 
-// Completely hide exam UI (so student cannot see questions after final submit)
+ // Completely hide exam UI (so student cannot see questions after final submit)
+ (so student cannot see questions after final submit)
 function hideAllExamViews() {
   const ids = ["homeSection","listeningSection","readingControls","container","writingSection","examNav"];
   ids.forEach((id) => $(id)?.classList.add("hidden"));

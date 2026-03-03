@@ -6,9 +6,11 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  function startReadingSystem() {
-    const isAdmin = (window.IELTS?.Access?.isAdmin?.() === true) || (UI && typeof UI().isAdminView === 'function' && UI().isAdminView() === true) || false;
+  function isAdminView() {
+    try { return window.IELTS?.Access?.isAdmin?.() === true; } catch { return false; }
+  }
 
+  function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
     window.__IELTS_READING_INIT__ = true;
 
@@ -1023,8 +1025,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       renderQuestionsForActivePart(fresh);
 
       if (hasSubmittedReading) lockReadingUI();
-        try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
-}
+    }
 
     function renderPassageForActivePart() {
   const passageEl = $("passage");
@@ -1119,8 +1120,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
-          // Writing will start only after student clicks Start Writing.
+          document.dispatchEvent(new CustomEvent("reading:submitted"));
         }
       }, 1000);
     }
@@ -1134,7 +1134,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     // INIT
     injectStyles();
 
-    PART1_PASSAGE_HTML = $("passage")?.innerHTML || "";
 
     const answersRef = { current: loadState().answers };
 
@@ -1145,8 +1144,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     if (hasSubmittedReading) lockReadingUI();
 
     if ($("submitBtn")) {
-      if (!isAdmin) {
-        $("submitBtn").classList.add("hidden"); // students cannot submit early
+      if (!isAdminView()) {
+        $("submitBtn").classList.add("hidden");
       } else {
         $("submitBtn").addEventListener("click", async () => {
           if (hasSubmittedReading) return;
@@ -1161,7 +1160,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
             timerInterval = null;
           }
 
-          try { document.dispatchEvent(new CustomEvent('reading:submitted')); } catch {}
+          document.dispatchEvent(new CustomEvent("reading:submitted"));
         });
       }
     }

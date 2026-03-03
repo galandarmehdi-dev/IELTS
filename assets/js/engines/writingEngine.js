@@ -63,25 +63,23 @@
       const payload = {
         task1: wt1 ? wt1.value : "",
         task2: wt2 ? wt2.value : "",
-      }
-
-    // Debounced autosave for typing (reduces localStorage writes while keeping UX responsive)
-    let __saveDebounceTimer = null;
-    function saveWritingDebounced() {
-      if (hasSubmitted) return;
-      if (__saveDebounceTimer) clearTimeout(__saveDebounceTimer);
-      __saveDebounceTimer = setTimeout(() => {
-        __saveDebounceTimer = null;
-        try { saveWriting(); } catch (e) {}
-      }, 450);
-    }
-;
+      };
       S().setJSON(W.keys.answers, payload);
       S().set(W.keys.remaining, String(remainingSeconds));
       setAutosave("Autosave: saved");
       updateCounts();
     }
 
+
+    // Debounced save (reduces localStorage writes while typing)
+    let __saveT = null;
+    function saveWritingDebounced() {
+      if (__saveT) clearTimeout(__saveT);
+      __saveT = setTimeout(() => {
+        __saveT = null;
+        saveWriting();
+      }, 450);
+    }
     function getStudentFullName() {
       return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }

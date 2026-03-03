@@ -147,26 +147,46 @@
 
       UI().lockWholeExamAfterFinalSubmit();
 
-      // Send to admin if endpoint set
+      // Send to admin if endpoint set (reliable queue + retry + resend-on-reload)
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
-          await fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(finalPayload),
-          });
+          // Queue locally first, then try sendBeacon/fetch with retries.
+          const sendResult = await window.IELTS?.Submitter?.enqueueAndSend?.(endpoint, finalPayload, { kind: "final" });
 
-          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+          // If Submitter isn't available for some reason, fall back to a best-effort keepalive fetch.
+          if (!sendResult) {
+            await fetch(endpoint, {
+              method: "POST",
+              mode: "no-cors",
+              keepalive: true,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(finalPayload),
+            });
+          }
+
+          Modal().showModal(
+            "Exam submitted",
+            "Submitted. If the connection is unstable, the system will retry automatically in the background.",
+            { mode: "confirm" }
+          );
           return;
         } catch {
-          Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
+          Modal().showModal(
+            "Submitted (offline)",
+            "Your exam is saved on this device. We couldn't reach the server right now. Please keep this tab open for a moment, or refresh later to retry automatically.",
+            { mode: "confirm" }
+          );
           return;
         }
       }
 
-      Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
+      Modal().showModal(
+        "Submitted (local only)",
+        "ADMIN_ENDPOINT is not set. The exam is saved locally.",
+        { mode: "confirm" }
+      );
+
     }
 
     // expose for modal final submit button

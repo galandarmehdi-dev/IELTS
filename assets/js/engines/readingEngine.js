@@ -6,10 +6,6 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  function isAdminView() {
-    try { return window.IELTS?.Access?.isAdmin?.() === true; } catch { return false; }
-  }
-
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
     window.__IELTS_READING_INIT__ = true;
@@ -1089,10 +1085,14 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
     }
 
-    function transitionToWritingOnce() {
+    function notifyReadingSubmittedOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-      window.IELTS.Engines.Writing.startWritingSystem();
+      try {
+        document.dispatchEvent(new CustomEvent("reading:submitted"));
+      } catch (e) {
+        // ignore
+      }
     }
 
     function startTimer(answersRef) {
@@ -1120,7 +1120,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          document.dispatchEvent(new CustomEvent("reading:submitted"));
+          notifyReadingSubmittedOnce();
         }
       }, 1000);
     }
@@ -1134,6 +1134,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     // INIT
     injectStyles();
 
+    PART1_PASSAGE_HTML = $("passage")?.innerHTML || "";
 
     const answersRef = { current: loadState().answers };
 
@@ -1144,25 +1145,21 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     if (hasSubmittedReading) lockReadingUI();
 
     if ($("submitBtn")) {
-      if (!isAdminView()) {
-        $("submitBtn").classList.add("hidden");
-      } else {
-        $("submitBtn").addEventListener("click", async () => {
-          if (hasSubmittedReading) return;
+      $("submitBtn").addEventListener("click", async () => {
+        if (hasSubmittedReading) return;
 
-          const ok = confirm("Submit Reading now?");
-          if (!ok) return;
+        const ok = confirm("Submit Reading now?");
+        if (!ok) return;
 
-          await submitReading("Admin submitted reading early.", answersRef.current);
+        await submitReading("Student submitted reading early.", answersRef.current);
 
-          if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-          }
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
 
-          document.dispatchEvent(new CustomEvent("reading:submitted"));
-        });
-      }
+        notifyReadingSubmittedOnce();
+      });
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);

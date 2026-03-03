@@ -216,7 +216,11 @@
       try { UI().clearReadingLockStyles?.(); } catch {}
 
       // Ensure engines re-bind cleanly
-      try { window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
+      try { // FORCE fresh engines each time START is pressed
+window.__IELTS_LISTENING_INIT__ = false;
+window.__IELTS_READING_INIT__ = false;
+window.__IELTS_WRITING_INIT__ = false;
+window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
 
       // Route into Listening
       if (window.IELTS?.Router?.setHashRoute) {

@@ -15,7 +15,7 @@
 
     // SETTINGS
     const TEST_ID = R().TESTS.readingTestId;
-    const DURATION_MINUTES = 1;
+    const DURATION_MINUTES = 60;
 
     // TIMER/STATE
     let remainingSeconds = DURATION_MINUTES * 60;
@@ -1090,23 +1090,12 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
 
-      // Prefer showing the non-closeable "Start Writing" gate right here (works even in admin testing).
+      // Single source of truth: app.js owns the "Start Writing" gate UI.
+      // We only emit an event so the orchestrator can decide what to do.
       try {
-        const writingStartedKey = R().TESTS?.writingKeys?.started;
-        const writingStarted = writingStartedKey ? S().get(writingStartedKey, "false") === "true" : false;
-        if (!writingStarted && Modal && typeof Modal().showModal === "function") {
-          Modal().showModal(
-            "Time is over",
-            "Your Reading has been submitted. Click Start Writing to continue.",
-            {
-              mode: "gate",
-              locked: true,
-              submitText: "Start Writing",
-              onConfirm: () => {
-                try { window.IELTS.Engines.Writing.startWritingSystem(); } catch (e) {}
-                try { UI().showOnly("writing"); } catch (e) {}
-                try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
-              },
+        document.dispatchEvent(new CustomEvent("reading:submitted"));
+      } catch (e) {}
+    },
             }
           );
           return;
@@ -1184,14 +1173,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
-
-    window.addEventListener("beforeunload", (e) => {
-      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-      if (!finalDone) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    });
 
     startTimer(answersRef);
   }

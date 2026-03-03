@@ -117,6 +117,25 @@
     // -----------------------------
     let showingGate = false;
 
+    // Start an engine even if scripts load slightly later than app.js (split build safety)
+    function startEngineWhenReady(engineName, fnName, { tries = 25, intervalMs = 120 } = {}) {
+      let n = 0;
+      const tick = () => {
+        n += 1;
+        const fn = window.IELTS?.Engines?.[engineName]?.[fnName];
+        if (typeof fn === "function") {
+          try { fn(); } catch (e) {}
+          return true;
+        }
+        return false;
+      };
+      if (tick()) return;
+      const id = setInterval(() => {
+        if (tick() || n >= tries) clearInterval(id);
+      }, intervalMs);
+    }
+
+
     function showListeningGate() {
       if (isAdmin || showingGate) return;
       const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
@@ -142,7 +161,7 @@
               safe(() => UI().showOnly("reading"));
               safe(() => UI().setExamNavStatus("Status: Reading in progress"));
               // Start (or resume) Reading timer/render. Guard inside engine prevents double init.
-              safe(() => window.IELTS.Engines.Reading.startReadingSystem());
+              safe(() => startEngineWhenReady("Reading", "startReadingSystem"));
 
             },
           }
@@ -170,7 +189,7 @@
             submitText: "Start Writing",
             onConfirm: () => {
               showingGate = false;
-              safe(() => window.IELTS.Engines.Writing.startWritingSystem());
+              safe(() => startEngineWhenReady("Writing", "startWritingSystem"));
               safe(() => UI().showOnly("writing"));
               safe(() => UI().setExamNavStatus("Status: Writing in progress"));
               safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"));

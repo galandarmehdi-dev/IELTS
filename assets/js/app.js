@@ -82,7 +82,7 @@
     function clearAllStudentAttemptKeys() {
       // Keep admin session, wipe everything else that belongs to attempts.
       try {
-        const keep = new Set(["IELTS:ADMIN:session"]);
+        const keep = new Set(["IELTS:ADMIN:session", "IELTS:TEST:session"]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -350,6 +350,12 @@
     const contBtn = $("homeContinueBtn");
 
     function startFreshExam() {
+      // Student test password gate
+      if (!isAdmin) {
+        const ok = safe(() => window.IELTS?.Access?.ensureTestAccess?.());
+        if (ok !== true) return;
+      }
+
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 

@@ -1085,14 +1085,13 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
     }
 
-    function notifyReadingSubmittedOnce() {
+    function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
+      // Do NOT auto-start writing. Let app.js show the non-closeable gate modal.
       try {
         document.dispatchEvent(new CustomEvent("reading:submitted"));
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
     function startTimer(answersRef) {
@@ -1120,7 +1119,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
-          notifyReadingSubmittedOnce();
+          transitionToWritingOnce();
         }
       }, 1000);
     }
@@ -1133,9 +1132,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     // INIT
     injectStyles();
-
-    PART1_PASSAGE_HTML = $("passage")?.innerHTML || "";
-
     const answersRef = { current: loadState().answers };
 
     buildPartTabs();
@@ -1148,7 +1144,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       $("submitBtn").addEventListener("click", async () => {
         if (hasSubmittedReading) return;
 
-        const ok = confirm("Submit Reading now?");
+        const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");
         if (!ok) return;
 
         await submitReading("Student submitted reading early.", answersRef.current);
@@ -1158,7 +1154,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           timerInterval = null;
         }
 
-        notifyReadingSubmittedOnce();
+        transitionToWritingOnce();
       });
     }
 

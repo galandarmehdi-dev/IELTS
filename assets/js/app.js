@@ -136,10 +136,14 @@
             submitText: "Start Reading",
             onConfirm: () => {
               showingGate = false;
-              safe(() => window.IELTS.Engines.Reading.startReadingSystem());
+              safe(() => UI().setExamStarted(true));
+              // Prefer routing first so the Reading view is active, then start the engine.
+              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"));
               safe(() => UI().showOnly("reading"));
               safe(() => UI().setExamNavStatus("Status: Reading in progress"));
-              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"));
+              // Start (or resume) Reading timer/render. Guard inside engine prevents double init.
+              safe(() => window.IELTS.Engines.Reading.startReadingSystem());
+
             },
           }
         )

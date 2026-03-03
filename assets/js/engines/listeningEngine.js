@@ -115,8 +115,6 @@
       S().setJSON(L_KEYS.lastSubmission, payload);
       S().set(L_KEYS.submitted, "true");
 
-      try { document.dispatchEvent(new CustomEvent('listening:submitted')); } catch {}
-
       const s = sec();
       if (s) {
         s.classList.add("view-only");
@@ -328,7 +326,8 @@
 
   if (submitted) {
     const s = sec();
-    if (s) s.classList.add("hidden");
+    if (s) s.classList.add("view-only");
+    if (s) s.classList.remove("hidden");
     lockReading(false);
     document.dispatchEvent(new CustomEvent("listening:submitted"));
     return;

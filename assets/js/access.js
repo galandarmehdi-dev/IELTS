@@ -7,6 +7,10 @@
   const UI = () => window.IELTS.UI;
 
   const KEY = "IELTS:ADMIN:session";
+  const TEST_KEY = "IELTS:TEST:session";
+  const DEFAULT_TEST_TTL_MIN = 720; // 12 hours
+  const DEFAULT_TEST_PASSCODE = "IELTS2026"; // change this
+
   const DEFAULT_TTL_MIN = 180; // 3 hours
 
   function nowMs() {
@@ -31,6 +35,48 @@
     if (!sess.expiresAtMs) return false;
     return nowMs() < Number(sess.expiresAtMs);
   }
+
+  function getTestSession() {
+    return S()?.getJSON(TEST_KEY, null);
+  }
+
+  function setTestSession(obj) {
+    S()?.setJSON(TEST_KEY, obj);
+  }
+
+  function clearTestSession() {
+    try { localStorage.removeItem(TEST_KEY); } catch {}
+  }
+
+  function hasValidTestSession() {
+    const sess = getTestSession();
+    if (!sess || sess.enabled !== true) return false;
+    if (!sess.expiresAtMs) return false;
+    return nowMs() < Number(sess.expiresAtMs);
+  }
+
+  function enterTestPassword() {
+    const pass = prompt("Test password:");
+    if (!pass) return false;
+
+    const correct = (R()?.TEST_PASSCODE || DEFAULT_TEST_PASSCODE || "");
+    if (!correct || pass !== correct) {
+      alert("Wrong password.");
+      return false;
+    }
+
+    const ttlMin = Number(R()?.TEST_SESSION_TTL_MIN || DEFAULT_TEST_TTL_MIN);
+    setTestSession({ enabled: true, expiresAtMs: nowMs() + ttlMin * 60 * 1000 });
+    return true;
+  }
+
+  // Ensure students cannot open tests without the password.
+  function ensureTestAccess() {
+    if (isAdmin()) return true;
+    if (hasValidTestSession()) return true;
+    return enterTestPassword();
+  }
+
 
   function isAdminRequestedByUrl() {
     // admin entry triggers (choose one):
@@ -120,5 +166,8 @@
     init,
     isAdmin,
     clearSession,
+    ensureTestAccess,
+    hasValidTestSession,
+    clearTestSession,
   };
 })();

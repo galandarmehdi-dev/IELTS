@@ -26,6 +26,36 @@
     }
   }
 
+
+  // Start engine method when split bundles load out-of-order.
+  // Retries for a short period, and logs failures instead of silently swallowing them.
+  function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
+    const startAt = Date.now();
+    return new Promise((resolve, reject) => {
+      const tick = () => {
+        const fn = window.IELTS?.Engines?.[engineName]?.[methodName];
+        if (typeof fn === "function") {
+          try {
+            fn();
+            resolve(true);
+          } catch (e) {
+            console.error(`[IELTS] Failed to start ${engineName}.${methodName}`, e);
+            reject(e);
+          }
+          return;
+        }
+        if (Date.now() - startAt >= maxMs) {
+          const err = new Error(`Engine not ready: ${engineName}.${methodName}`);
+          console.error("[IELTS]", err);
+          reject(err);
+          return;
+        }
+        setTimeout(tick, intervalMs);
+      };
+      tick();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
@@ -42,40 +72,6 @@
 
     const isAdmin = isAdminView();
     const $ = UI().$;
-
-    // Single beforeunload guard (engines should NOT bind their own to avoid duplicates)
-    if (!window.IELTS.__BEFOREUNLOAD_BOUND) {
-      window.IELTS.__BEFOREUNLOAD_BOUND = true;
-      window.addEventListener("beforeunload", (e) => {
-        try {
-          // Admin view can navigate freely
-          if (isAdminView()) return;
-
-          const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-          if (finalDone) return;
-
-          const listeningStartedKey = R().TESTS?.listeningKeys?.started;
-          const listeningSubmittedKey = R().TESTS?.listeningKeys?.submitted;
-          const writingStartedKey = R().TESTS?.writingKeys?.started;
-          const writingSubmittedKey = R().TESTS?.writingKeys?.submitted;
-
-          const anyInProgress =
-            (listeningStartedKey && S().get(listeningStartedKey, "false") === "true") ||
-            (listeningSubmittedKey && S().get(listeningSubmittedKey, "false") === "true") ||
-            (S().get(readingSubmittedKey(), "false") === "true") ||
-            (writingStartedKey && S().get(writingStartedKey, "false") === "true") ||
-            (writingSubmittedKey && S().get(writingSubmittedKey, "false") === "true");
-
-          if (anyInProgress) {
-            e.preventDefault();
-            e.returnValue = "";
-          }
-        } catch (err) {
-          // Fail safe: never block navigation due to an unexpected error
-        }
-      });
-    }
-
 
     // Key helpers
     const readingSubmittedKey = () => `${R().TESTS.readingTestId}:submitted`;
@@ -117,25 +113,6 @@
     // -----------------------------
     let showingGate = false;
 
-    // Start an engine even if scripts load slightly later than app.js (split build safety)
-    function startEngineWhenReady(engineName, fnName, { tries = 25, intervalMs = 120 } = {}) {
-      let n = 0;
-      const tick = () => {
-        n += 1;
-        const fn = window.IELTS?.Engines?.[engineName]?.[fnName];
-        if (typeof fn === "function") {
-          try { fn(); } catch (e) {}
-          return true;
-        }
-        return false;
-      };
-      if (tick()) return;
-      const id = setInterval(() => {
-        if (tick() || n >= tries) clearInterval(id);
-      }, intervalMs);
-    }
-
-
     function showListeningGate() {
       if (isAdmin || showingGate) return;
       const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
@@ -152,17 +129,25 @@
           "Your Listening has been submitted. Click Start Reading to continue.",
           {
             mode: "gate",
-            submitText: "Start Reading",
-            onConfirm: () => {
+                        submitText: "Start Reading",
+            onConfirm: async () => {
               showingGate = false;
-              safe(() => UI().setExamStarted(true));
-              // Prefer routing first so the Reading view is active, then start the engine.
-              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"));
-              safe(() => UI().showOnly("reading"));
-              safe(() => UI().setExamNavStatus("Status: Reading in progress"));
-              // Start (or resume) Reading timer/render. Guard inside engine prevents double init.
-              safe(() => startEngineWhenReady("Reading", "startReadingSystem"));
 
+              // Move to Reading view first, then start the engine (more reliable).
+              try { UI().setExamStarted(true); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
+              try { UI().showOnly("reading"); } catch (e) {}
+              try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
+
+              // Start engine (retry briefly if split bundle not ready yet)
+              try {
+                await startEngineWhenReady("Reading", "startReadingSystem");
+              } catch (e) {
+                // Visible fallback: keep user on Reading screen even if engine failed.
+                try {
+                  window.alert("Reading failed to start. Please refresh the page and try again.");
+                } catch (_) {}
+              }
             },
           }
         )
@@ -186,13 +171,20 @@
           "Your Reading has been submitted. Click Start Writing to continue.",
           {
             mode: "gate",
-            submitText: "Start Writing",
-            onConfirm: () => {
+                        submitText: "Start Writing",
+            onConfirm: async () => {
               showingGate = false;
-              safe(() => startEngineWhenReady("Writing", "startWritingSystem"));
-              safe(() => UI().showOnly("writing"));
-              safe(() => UI().setExamNavStatus("Status: Writing in progress"));
-              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"));
+
+              try { UI().setExamStarted(true); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
+              try { UI().showOnly("writing"); } catch (e) {}
+              try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
+
+              try {
+                await startEngineWhenReady("Writing", "startWritingSystem");
+              } catch (e) {
+                try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
+              }
             },
           }
         )
@@ -206,25 +198,7 @@
     // Storage-based fallback polling (in case an event is missed)
     let lastListen = S().get(R().TESTS.listeningKeys.submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
-    // Initial gate checks (refresh-safe)
-    showListeningGate();
-    showReadingGate();
-
-    // Lightweight fallback poll: only for a short window after load to catch edge cases
-    let __gatePollTicks = 0;
-    const __gatePollMaxTicks = 25; // ~20s at 800ms
-    const __gatePollId = setInterval(() => {
-      __gatePollTicks += 1;
-
-      try {
-        const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
-        if (finalDone || writingStarted || __gatePollTicks >= __gatePollMaxTicks) {
-          clearInterval(__gatePollId);
-          return;
-        }
-      } catch (e) {}
-
+    setInterval(() => {
       if (isAdmin) return;
       const curListen = S().get(R().TESTS.listeningKeys.submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
@@ -238,6 +212,10 @@
         lastRead = curRead;
         if (curRead === "true") showReadingGate();
       }
+
+      // Also keep checking in case state was already true (refresh)
+      showListeningGate();
+      showReadingGate();
     }, 800);
 
     // Attach a direct audio ended fallback for listening

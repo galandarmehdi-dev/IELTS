@@ -1083,20 +1083,18 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
       lockReadingUI();
 
-      // Trigger Reading → Writing gate (both "Submit" and "Time over")
-
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
+
+      // Whether submission was manual (button/admin) or automatic (timer),
+      // always trigger the Reading → Writing transition at most once.
+      transitionToWritingOnce();
     }
 
     function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-
-      // Single source of truth: app.js owns the gate UI (Reading → Writing).
-      // We only emit the event so the app can show the popup and start writing reliably.
-      try {
-        document.dispatchEvent(new CustomEvent("reading:submitted"));
-      } catch (e) {}
+      // App-level orchestrator shows the gate and starts Writing.
+      try { document.dispatchEvent(new CustomEvent("reading:submitted")); } catch (e) {}
     }
 
     function startTimer(answersRef) {
@@ -1122,7 +1120,9 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           timerInterval = null;
 
           answersRef.current = loadState().answers;
+
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
+          transitionToWritingOnce();
         }
       }, 1000);
     }

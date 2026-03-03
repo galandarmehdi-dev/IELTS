@@ -52,17 +52,12 @@
     }
 
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-    if (finalDone && !isAdmin) {
-      // A previous attempt exists on this browser. Do not lock the UI; allow a fresh start.
-      try { UI().showOnly("home"); } catch {}
-      try { UI().updateHomeStatusLine("Status: Previous attempt detected — click START to begin a new attempt."); } catch {}
-      try { UI().setExamNavStatus("Status: Home"); } catch {}
-      // continue boot normally (no return)
-    } else if (finalDone && isAdmin) {
-      // Admin can still view the submitted state if needed
+    if (finalDone) {
+      // Student must not be able to go back and view questions after submit
       if (typeof UI().showSubmittedOverlay === "function") {
         UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
       } else {
+        // fallback: lock everything and show writing in view-only
         UI().setExamNavStatus("Status: Submitted");
         $("listeningSection")?.classList.add("view-only");
         $("readingControls")?.classList.add("view-only");
@@ -147,11 +142,17 @@
     }
 
     // =========================
+    // AUTO-RESUME (STUDENT FLOW)
     // =========================
-    // AUTO-RESUME
-    // =========================
-    // Students: always start from Home (fresh attempt is triggered by START).
-    // Admin: hash routes still supported below.
+    // If listening already submitted, resume Reading (students can refresh)
+    const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
+    if (listeningDone) {
+      window.IELTS.Engines.Reading.startReadingSystem();
+      UI().showOnly("reading");
+      UI().setExamNavStatus("Status: Reading in progress");
+      return;
+    }
+
     // Hash route support (ADMIN ONLY)
     const route = Router().parseHashRoute();
     if (isAdmin && route && route.view) {
@@ -196,42 +197,49 @@
     const resetCardBtn = $("cardResetBtn");
     const howBtn = $("homeHowItWorksBtn");
 
-    function startOrContinueExam() {
-      // ALWAYS start a fresh attempt (no resume).
-      // Clear attempt keys for STUDENTS too (but keep admin session).
+    
+    function clearAllStudentAttemptKeys() {
       try {
-        const keepKey = "IELTS:ADMIN:session";
-        // remove IELTS:* except admin session
-        for (let j = localStorage.length - 1; j >= 0; j--) {
-          const k = localStorage.key(j);
+        const keep = new Set(["IELTS:ADMIN:session"]);
+        const prefixes = [
+          "IELTS:",
+          "ielts-reading-",
+          "ielts-writing-",
+          "ielts-full-"
+        ];
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
           if (!k) continue;
-          if (k === keepKey) continue;
-          if (k.startsWith("IELTS:") || k.startsWith("ielts-reading-") || k.startsWith("ielts-writing-") || k.startsWith("ielts-full-")) {
-            localStorage.removeItem(k);
-          }
+          if (keep.has(k)) continue;
+          if (prefixes.some(p => k.startsWith(p))) toRemove.push(k);
         }
+        toRemove.forEach(k => localStorage.removeItem(k));
       } catch {}
-
-      try { UI().setExamStarted(true); } catch {}
-      try { UI().clearReadingLockStyles?.(); } catch {}
-
-      // Ensure engines re-bind cleanly
-      try { // FORCE fresh engines each time START is pressed
-window.__IELTS_LISTENING_INIT__ = false;
-window.__IELTS_READING_INIT__ = false;
-window.__IELTS_WRITING_INIT__ = false;
-window.IELTS.Engines.Listening.initListeningSystem(); } catch {}
-
-      // Route into Listening
-      if (window.IELTS?.Router?.setHashRoute) {
-        window.IELTS.Router.setHashRoute("ielts1", "listening");
-      }
-      UI().showOnly("listening");
-      UI().setExamNavStatus("Status: Listening in progress");
     }
-    if (startBtn) startBtn.onclick = startOrContinueExam;
-    if (startBtn2) startBtn2.onclick = startOrContinueExam;
-    if (contBtn) contBtn.onclick = startOrContinueExam;
+
+    function startFreshExam() {
+      // Always start a NEW attempt (students + admin)
+      clearAllStudentAttemptKeys();
+
+      // Ensure modal is closed
+      try { Modal().hideModal(); } catch {}
+
+      // Start Listening
+      try {
+        UI().setExamStarted(true);
+        window.IELTS.Engines.Listening.initListeningSystem();
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Listening in progress");
+        if (window.IELTS?.Router?.setHashRoute) window.IELTS.Router.setHashRoute("ielts1", "listening");
+      } catch (e) {
+        console.error("Failed to start Listening:", e);
+      }
+    }
+
+    if (startBtn) startBtn.onclick = startFreshExam;
+    if (startBtn2) startBtn2.onclick = startFreshExam;
+    if (contBtn) contBtn.onclick = startFreshExam;
 
     if (howBtn) {
       howBtn.onclick = () => {

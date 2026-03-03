@@ -1089,23 +1089,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-
-      // Single source of truth: app.js owns the "Start Writing" gate UI.
-      // We only emit an event so the orchestrator can decide what to do.
-      try {
-        document.dispatchEvent(new CustomEvent("reading:submitted"));
-      } catch (e) {}
-    },
-            }
-          );
-          return;
-        }
-      } catch (e) {}
-
-      // Fallback: let app.js handle the gate
-      try {
-        document.dispatchEvent(new CustomEvent("reading:submitted"));
-      } catch (e) {}
+      // App-level orchestrator shows the gate and starts Writing.
+      try { document.dispatchEvent(new CustomEvent("reading:submitted")); } catch (e) {}
     }
 
     function startTimer(answersRef) {

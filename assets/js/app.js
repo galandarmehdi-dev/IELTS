@@ -27,6 +27,134 @@
   }
 
 
+
+  // =========================================================
+  // Submission reliability helper (queue + retry + resend-on-reload)
+  // =========================================================
+  (function ensureSubmitter() {
+    const PENDING_KEY = "IELTS:PENDING_SUBMISSIONS";
+    const MAX_QUEUE = 50;
+
+    function nowIso() {
+      try { return new Date().toISOString(); } catch { return String(Date.now()); }
+    }
+
+    function getQueue() {
+      const q = S()?.getJSON?.(PENDING_KEY, []);
+      return Array.isArray(q) ? q : [];
+    }
+
+    function setQueue(q) {
+      S()?.setJSON?.(PENDING_KEY, Array.isArray(q) ? q.slice(0, MAX_QUEUE) : []);
+    }
+
+    function removeById(id) {
+      const q = getQueue().filter((it) => it && it.id !== id);
+      setQueue(q);
+    }
+
+    async function trySendItem(item) {
+      const endpoint = item?.endpoint;
+      const payload = item?.payload;
+
+      if (!endpoint || !payload) return { ok: false, reason: "missing-data" };
+
+      // 1) Best-effort background send (very reliable on page unload)
+      try {
+        if (navigator.sendBeacon) {
+          const blob = new Blob([JSON.stringify(payload)], { type: "application/json" });
+          const ok = navigator.sendBeacon(endpoint, blob);
+          if (ok) return { ok: true, method: "beacon" };
+        }
+      } catch {}
+
+      // 2) Fallback to fetch keepalive (still best-effort with no-cors)
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          mode: "no-cors",
+          keepalive: true,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        // With no-cors we can't confirm response; if fetch resolves, treat as sent.
+        return { ok: true, method: "fetch" };
+      } catch (e) {
+        return { ok: false, reason: "fetch-failed", error: String(e?.message || e) };
+      }
+    }
+
+    async function sendWithRetry(item, { maxAttempts = 4 } = {}) {
+      let attempt = Number(item?.attempt || 0);
+      while (attempt < maxAttempts) {
+        attempt += 1;
+        item.attempt = attempt;
+        item.lastAttemptAt = nowIso();
+
+        // persist attempt update
+        const q = getQueue();
+        const idx = q.findIndex((x) => x && x.id === item.id);
+        if (idx >= 0) {
+          q[idx] = item;
+          setQueue(q);
+        }
+
+        const res = await trySendItem(item);
+        if (res.ok) {
+          removeById(item.id);
+          return { ok: true, ...res };
+        }
+
+        // backoff: 1s, 3s, 8s, 20s
+        const delays = [1000, 3000, 8000, 20000];
+        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      return { ok: false, reason: "max-attempts" };
+    }
+
+    async function enqueueAndSend(endpoint, payload, meta = {}) {
+      if (!endpoint) return { ok: false, reason: "no-endpoint" };
+
+      const item = {
+        id: "sub_" + Math.random().toString(36).slice(2) + "_" + Date.now(),
+        endpoint,
+        payload,
+        kind: meta.kind || "submission",
+        createdAt: nowIso(),
+        attempt: 0,
+      };
+
+      const q = getQueue();
+      q.unshift(item);
+      setQueue(q);
+
+      // fire-and-forget retries; also return the result of the retry loop
+      return await sendWithRetry(item);
+    }
+
+    async function flushPending() {
+      const q = getQueue();
+      if (!q.length) return { ok: true, flushed: 0 };
+
+      // Try in order; stop early if there are many to avoid blocking the UI
+      let flushed = 0;
+      for (const item of q.slice(0, 10)) {
+        const res = await sendWithRetry(item, { maxAttempts: 2 });
+        if (res.ok) flushed += 1;
+      }
+      return { ok: true, flushed };
+    }
+
+    window.IELTS = window.IELTS || {};
+    window.IELTS.Submitter = {
+      enqueueAndSend,
+      flushPending,
+      _debugGetQueue: getQueue,
+    };
+  })();
+
+
   // Start engine method when split bundles load out-of-order.
   // Retries for a short period, and logs failures instead of silently swallowing them.
   function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
@@ -57,6 +185,9 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+
+    // Best-effort resend of any pending submissions from a previous attempt
+    try { window.IELTS?.Submitter?.flushPending?.(); } catch {}
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();
@@ -82,7 +213,7 @@
     function clearAllStudentAttemptKeys() {
       // Keep admin session, wipe everything else that belongs to attempts.
       try {
-        const keep = new Set(["IELTS:ADMIN:session", "IELTS:TEST:session"]);
+        const keep = new Set(["IELTS:ADMIN:session"]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -350,12 +481,11 @@
     const contBtn = $("homeContinueBtn");
 
     function startFreshExam() {
-      // Student test password gate
-      if (!isAdmin) {
-        const ok = safe(() => window.IELTS?.Access?.ensureTestAccess?.());
-        if (ok !== true) return;
+      // Student test gate (password required to start the test)
+      if (!isAdminView()) {
+        const ok = safe(() => window.IELTS?.Access?.requireTestPasscode?.());
+        if (ok === false) return;
       }
-
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 

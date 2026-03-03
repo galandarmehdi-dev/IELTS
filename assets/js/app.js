@@ -1,3 +1,4 @@
+/* assets/js/app.js */
 (function () {
   "use strict";
 
@@ -33,59 +34,10 @@
     // Init admin/session gate (if present) + apply UI lockdown for students
     try { window.IELTS?.Access?.init?.(); } catch {}
     try { UI()?.applyStudentLockdownUI?.(); } catch {}
-    // Student flow gates (Listening → Reading, Reading → Writing)
-    document.addEventListener("listening:submitted", () => {
-      if (isAdminView()) return;
-
-   const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      if (readingDone) return;
-
-      try {
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening finished");
-        Modal().showModal("Listening finished", "Your Listening has been submitted. Click Start Reading to continue.", {
-          mode: "gate",
-          locked: true,
-          submitText: "Start Reading",
-          onConfirm: () => {
-            window.IELTS.Engines.Reading.startReadingSystem();
-            UI().showOnly("reading");
-            UI().setExamNavStatus("Status: Reading in progress");
-          },
-        });
-      } catch {}
-    });
-
-    document.addEventListener("reading:submitted", () => {
-      if (isAdminView()) return;
-
-      const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
-      if (writingStarted) return;
-
-      try {
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Reading finished");
-        Modal().showModal("Reading finished", "Your Reading has been submitted. Click Start Writing to continue.", {
-          mode: "gate",
-          locked: true,
-          submitText: "Start Writing",
-          onConfirm: () => {
-            window.IELTS.Engines.Writing.startWritingSystem();
-            UI().showOnly("writing");
-            UI().setExamNavStatus("Status: Writing in progress");
-          },
-        });
-      } catch {}
-    });
-
-
 
     const isAdmin = isAdminView();
     const $ = UI().$;
-// --- Reading uses dynamic keys: `${readingTestId}:submitted`
-const readingKey = (suffix) => `${R().TESTS.readingTestId}:${suffix}`;
-const readingSubmittedKey = () => readingKey("submitted");
-    
+
     const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");
@@ -192,56 +144,12 @@ const readingSubmittedKey = () => readingKey("submitted");
     // =========================
     // AUTO-RESUME (STUDENT FLOW)
     // =========================
+    // If listening already submitted, resume Reading (students can refresh)
     const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-    const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-    const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
-
-    // If Listening finished but Reading not started/submitted -> show a non-closeable gate
-    if (listeningDone && !readingDone) {
-      // Keep student on listening view; they must click Start Reading
-      UI().showOnly("listening");
-      UI().setExamNavStatus("Status: Listening finished");
-
-      try {
-        Modal().showModal("Listening finished", "Your Listening has been submitted. Click Start Reading to continue.", {
-          mode: "gate",
-          locked: true,
-          submitText: "Start Reading",
-          onConfirm: () => {
-            window.IELTS.Engines.Reading.startReadingSystem();
-            UI().showOnly("reading");
-            UI().setExamNavStatus("Status: Reading in progress");
-          },
-        });
-      } catch {}
-      return;
-    }
-
-    // If Reading finished but Writing not started -> show a non-closeable gate
-    if (listeningDone && readingDone && !writingStarted) {
+    if (listeningDone) {
+      window.IELTS.Engines.Reading.startReadingSystem();
       UI().showOnly("reading");
-      UI().setExamNavStatus("Status: Reading finished");
-
-      try {
-        Modal().showModal("Reading finished", "Your Reading has been submitted. Click Start Writing to continue.", {
-          mode: "gate",
-          locked: true,
-          submitText: "Start Writing",
-          onConfirm: () => {
-            window.IELTS.Engines.Writing.startWritingSystem();
-            UI().showOnly("writing");
-            UI().setExamNavStatus("Status: Writing in progress");
-          },
-        });
-      } catch {}
-      return;
-    }
-
-    // If Writing already started, resume it
-    if (writingStarted) {
-      window.IELTS.Engines.Writing.startWritingSystem();
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Writing in progress");
+      UI().setExamNavStatus("Status: Reading in progress");
       return;
     }
 
@@ -290,60 +198,34 @@ const readingSubmittedKey = () => readingKey("submitted");
     const howBtn = $("homeHowItWorksBtn");
 
     function startOrContinueExam() {
+  // ALWAYS start a fresh attempt (no resume)
+  try { UI().resetExamAttempt(); } catch (e) {}
+  try { UI().clearReadingLockStyles?.(); } catch (e) {}
+
+  // reset one-time init guards so engines re-bind cleanly
+  try {
+    delete window.__IELTS_LISTENING_INIT__;
+    delete window.__IELTS_READING_INIT__;
+    delete window.__IELTS_WRITING_INIT__;
+    delete window.__IELTS_READING_LOCK_INIT__;
+  } catch (e) {}
+
+  // ensure flags are clean
+  try { S().set(R().EXAM.keys.finalSubmitted, "false"); } catch (e) {}
+
   UI().setExamStarted(true);
 
-  // make sure engines are ready
-  window.IELTS.Engines.Listening.initListeningSystem();
-
-  const finalDone2 = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-  const listeningDone2 = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
-  const readingDone2 = S().get(readingSubmittedKey(), "false") === "true";
-
-  // If fully submitted, show locked overlay and do NOT route back into exam
-  if (finalDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "submitted");
-    }
-    if (typeof UI().showSubmittedOverlay === "function") {
-      UI().showSubmittedOverlay("Your exam has been submitted. Please wait for your teacher.");
-    } else {
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Submitted");
-    }
-    return;
+  // start listening immediately
+  if (window.IELTS?.Engines?.Listening?.initListeningSystem) {
+    window.IELTS.Engines.Listening.initListeningSystem();
   }
 
-  // If listening submitted but reading not submitted -> go reading
-  if (listeningDone2 && !readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "reading");
-    } else {
-      window.IELTS.Engines.Reading.startReadingSystem();
-      UI().showOnly("reading");
-      UI().setExamNavStatus("Status: Reading in progress");
-    }
-    return;
-  }
-
-  // If reading submitted -> go writing
-  if (listeningDone2 && readingDone2) {
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute("ielts1", "writing");
-    } else {
-      window.IELTS.Engines.Writing.startWritingSystem?.();
-      UI().showOnly("writing");
-      UI().setExamNavStatus("Status: Writing in progress");
-    }
-    return;
-  }
-
-  // Otherwise -> start listening
   if (window.IELTS?.Router?.setHashRoute) {
     window.IELTS.Router.setHashRoute("ielts1", "listening");
-  } else {
-    UI().showOnly("listening");
-    UI().setExamNavStatus("Status: Listening in progress");
   }
+
+  UI().showOnly("listening");
+  UI().setExamNavStatus("Status: Listening in progress");
 }
     if (startBtn) startBtn.onclick = startOrContinueExam;
     if (startBtn2) startBtn2.onclick = startOrContinueExam;

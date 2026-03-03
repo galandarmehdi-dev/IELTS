@@ -6,8 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  // confirm | gate | admincode | final | locked
-  let MODAL_MODE = "confirm";
+  let MODAL_MODE = "confirm"; // confirm | final | gate | locked
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -16,15 +15,10 @@
     return document.getElementById(id);
   }
 
-  function hideModal(force = false) {
-    if (MODAL_LOCKED && !force) return; // locked means cannot close
+  function hideModal() {
+    if (MODAL_MODE === "locked") return; // locked means cannot close
     const modal = $("modal");
     if (modal) modal.classList.add("hidden");
-    // clear handlers after close
-    MODAL_ONCONFIRM = null;
-    MODAL_ONCANCEL = null;
-    MODAL_MODE = "confirm";
-    MODAL_LOCKED = false;
   }
 
   function showModal(title, text, opts = {}) {
@@ -40,50 +34,40 @@
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
-    // "locked" blocks any closing.
-    // For "gate" / "admincode" we want non-closeable, but still with a submit button.
-    MODAL_LOCKED =
-      opts.locked === true ||
-      MODAL_MODE === "locked" ||
-      MODAL_MODE === "gate" ||
-      MODAL_MODE === "admincode";
+    MODAL_LOCKED = (MODAL_MODE === "locked" || MODAL_MODE === "gate");
 
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
-    const isFinal = MODAL_MODE === "final";
-    const isGate = MODAL_MODE === "gate";
-    const isAdminCode = MODAL_MODE === "admincode";
-
     // name required only in "final"
+    const isFinal = MODAL_MODE === "final";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
 
     // buttons
     if (cancel) {
-      const showCancel = opts.showCancel === true;
-      // never show cancel in gate/admincode/locked
-      const allowCancel = showCancel && !isGate && !isAdminCode && MODAL_MODE !== "locked";
-      cancel.classList.toggle("hidden", !allowCancel);
+      const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm");
+      cancel.classList.toggle("hidden", !showCancel);
       cancel.textContent = opts.cancelText || "Cancel";
-      cancel.disabled = MODAL_MODE === "locked";
+      cancel.disabled = false;
     }
 
     if (submit) {
-      // submit is hidden only in true "locked" mode
-      submit.classList.toggle("hidden", MODAL_MODE === "locked");
-      submit.textContent =
-        opts.submitText || (isFinal ? "Submit" : isGate ? "Continue" : isAdminCode ? "Unlock" : "OK");
+      submit.classList.toggle("hidden", (MODAL_MODE === "locked")); // gate keeps button visible
+      submit.textContent = opts.submitText || (isFinal ? "Submit" : "OK");
       submit.disabled = false;
     }
 
     if (nameInput && isFinal) {
+      // preload saved name if exists
       const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
       if (saved && !nameInput.value) nameInput.value = saved;
     }
 
     if (modal) modal.classList.remove("hidden");
 
-    if (isFinal) setTimeout(() => nameInput?.focus?.(), 0);
+    if (isFinal) {
+      setTimeout(() => nameInput?.focus?.(), 0);
+    }
   }
 
   function bindModalOnce() {
@@ -95,10 +79,25 @@
       submit.addEventListener("click", async () => {
         if (MODAL_MODE === "locked") return;
 
-        // CONFIRM / GATE / ADMINCODE: run callback and force close even if locked
-        if (MODAL_MODE === "confirm" || MODAL_MODE === "gate" || MODAL_MODE === "admincode") {
+        // CONFIRM MODE
+        if (MODAL_MODE === "confirm") {
           const fn = MODAL_ONCONFIRM;
-          hideModal(true);
+          MODAL_ONCONFIRM = null;
+          MODAL_ONCANCEL = null;
+          hideModal();
+          if (typeof fn === "function") fn();
+          return;
+        }
+
+        
+        // GATE MODE (non-closeable until clicking the button)
+        if (MODAL_MODE === "gate") {
+          const fn = MODAL_ONCONFIRM;
+          MODAL_ONCONFIRM = null;
+          MODAL_ONCANCEL = null;
+          // temporarily unlock to close
+          MODAL_LOCKED = false;
+          hideModal();
           if (typeof fn === "function") fn();
           return;
         }
@@ -110,7 +109,6 @@
         if (!UI().isValidFullName(fullName)) {
           showModal("Name required", "Please type your Name and Surname to submit the exam.", {
             mode: "final",
-            locked: true,
           });
           setTimeout(() => nameInput?.focus?.(), 0);
           return;
@@ -125,16 +123,20 @@
           return;
         }
 
-        showModal("Error", "Submit function is not ready. Please refresh and try again.", { mode: "confirm" });
+        showModal("Error", "Submit function is not ready. Please refresh and try again.", {
+          mode: "confirm",
+        });
       });
     }
 
     if (cancel && !cancel.dataset.bound) {
       cancel.dataset.bound = "1";
       cancel.addEventListener("click", () => {
-        if (MODAL_LOCKED) return;
+        if (MODAL_MODE === "locked") return;
         const fn = MODAL_ONCANCEL;
-        hideModal(true);
+        MODAL_ONCONFIRM = null;
+        MODAL_ONCANCEL = null;
+        hideModal();
         if (typeof fn === "function") fn();
       });
     }

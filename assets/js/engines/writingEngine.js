@@ -63,7 +63,19 @@
       const payload = {
         task1: wt1 ? wt1.value : "",
         task2: wt2 ? wt2.value : "",
-      };
+      }
+
+    // Debounced autosave for typing (reduces localStorage writes while keeping UX responsive)
+    let __saveDebounceTimer = null;
+    function saveWritingDebounced() {
+      if (hasSubmitted) return;
+      if (__saveDebounceTimer) clearTimeout(__saveDebounceTimer);
+      __saveDebounceTimer = setTimeout(() => {
+        __saveDebounceTimer = null;
+        try { saveWriting(); } catch (e) {}
+      }, 450);
+    }
+;
       S().setJSON(W.keys.answers, payload);
       S().set(W.keys.remaining, String(remainingSeconds));
       setAutosave("Autosave: saved");
@@ -148,7 +160,7 @@
             body: JSON.stringify(finalPayload),
           });
 
-          Modal().showModal("Exam submitted", "Submitted and sent to Google Sheets.", { mode: "confirm" });
+          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
           return;
         } catch {
           Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
@@ -184,7 +196,7 @@
     writingSection.addEventListener("input", (e) => {
       const t = e.target;
       if (!t) return;
-      if (t === wt1 || t === wt2) saveWriting();
+      if (t === wt1 || t === wt2) saveWritingDebounced();
     });
 
     const endBtn = $("endExamBtn");
@@ -216,14 +228,6 @@
     } else {
       startTimer();
     }
-
-    window.addEventListener("beforeunload", (e) => {
-      const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-      if (!finalDone) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    });
   }
 
   window.IELTS = window.IELTS || {};

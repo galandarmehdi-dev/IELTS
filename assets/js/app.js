@@ -43,6 +43,40 @@
     const isAdmin = isAdminView();
     const $ = UI().$;
 
+    // Single beforeunload guard (engines should NOT bind their own to avoid duplicates)
+    if (!window.IELTS.__BEFOREUNLOAD_BOUND) {
+      window.IELTS.__BEFOREUNLOAD_BOUND = true;
+      window.addEventListener("beforeunload", (e) => {
+        try {
+          // Admin view can navigate freely
+          if (isAdminView()) return;
+
+          const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+          if (finalDone) return;
+
+          const listeningStartedKey = R().TESTS?.listeningKeys?.started;
+          const listeningSubmittedKey = R().TESTS?.listeningKeys?.submitted;
+          const writingStartedKey = R().TESTS?.writingKeys?.started;
+          const writingSubmittedKey = R().TESTS?.writingKeys?.submitted;
+
+          const anyInProgress =
+            (listeningStartedKey && S().get(listeningStartedKey, "false") === "true") ||
+            (listeningSubmittedKey && S().get(listeningSubmittedKey, "false") === "true") ||
+            (S().get(readingSubmittedKey(), "false") === "true") ||
+            (writingStartedKey && S().get(writingStartedKey, "false") === "true") ||
+            (writingSubmittedKey && S().get(writingSubmittedKey, "false") === "true");
+
+          if (anyInProgress) {
+            e.preventDefault();
+            e.returnValue = "";
+          }
+        } catch (err) {
+          // Fail safe: never block navigation due to an unexpected error
+        }
+      });
+    }
+
+
     // Key helpers
     const readingSubmittedKey = () => `${R().TESTS.readingTestId}:submitted`;
 
@@ -99,7 +133,6 @@
           "Your Listening has been submitted. Click Start Reading to continue.",
           {
             mode: "gate",
-            locked: true,
             submitText: "Start Reading",
             onConfirm: () => {
               showingGate = false;
@@ -130,7 +163,6 @@
           "Your Reading has been submitted. Click Start Writing to continue.",
           {
             mode: "gate",
-            locked: true,
             submitText: "Start Writing",
             onConfirm: () => {
               showingGate = false;
@@ -151,7 +183,25 @@
     // Storage-based fallback polling (in case an event is missed)
     let lastListen = S().get(R().TESTS.listeningKeys.submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
-    setInterval(() => {
+    // Initial gate checks (refresh-safe)
+    showListeningGate();
+    showReadingGate();
+
+    // Lightweight fallback poll: only for a short window after load to catch edge cases
+    let __gatePollTicks = 0;
+    const __gatePollMaxTicks = 25; // ~20s at 800ms
+    const __gatePollId = setInterval(() => {
+      __gatePollTicks += 1;
+
+      try {
+        const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
+        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
+        if (finalDone || writingStarted || __gatePollTicks >= __gatePollMaxTicks) {
+          clearInterval(__gatePollId);
+          return;
+        }
+      } catch (e) {}
+
       if (isAdmin) return;
       const curListen = S().get(R().TESTS.listeningKeys.submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
@@ -165,10 +215,6 @@
         lastRead = curRead;
         if (curRead === "true") showReadingGate();
       }
-
-      // Also keep checking in case state was already true (refresh)
-      showListeningGate();
-      showReadingGate();
     }, 800);
 
     // Attach a direct audio ended fallback for listening

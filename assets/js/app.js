@@ -26,6 +26,36 @@
     }
   }
 
+
+  // Start engine method when split bundles load out-of-order.
+  // Retries for a short period, and logs failures instead of silently swallowing them.
+  function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
+    const startAt = Date.now();
+    return new Promise((resolve, reject) => {
+      const tick = () => {
+        const fn = window.IELTS?.Engines?.[engineName]?.[methodName];
+        if (typeof fn === "function") {
+          try {
+            fn();
+            resolve(true);
+          } catch (e) {
+            console.error(`[IELTS] Failed to start ${engineName}.${methodName}`, e);
+            reject(e);
+          }
+          return;
+        }
+        if (Date.now() - startAt >= maxMs) {
+          const err = new Error(`Engine not ready: ${engineName}.${methodName}`);
+          console.error("[IELTS]", err);
+          reject(err);
+          return;
+        }
+        setTimeout(tick, intervalMs);
+      };
+      tick();
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
@@ -82,32 +112,6 @@
     // Reliable gates (Listening→Reading, Reading→Writing)
     // -----------------------------
     let showingGate = false;
-    function startEngineWhenReady(engineName, startFnName, { timeoutMs = 3500 } = {}) {
-      const startedAt = Date.now();
-
-      function tryStart() {
-        const eng = window.IELTS?.Engines?.[engineName];
-        const fn = eng && typeof eng[startFnName] === "function" ? eng[startFnName] : null;
-        if (fn) {
-          try { fn(); } catch (e) {}
-          return true;
-        }
-        return false;
-      }
-
-      if (tryStart()) return;
-
-      const t = const fallbackStartedAt = Date.now();
-    const fallbackTimer = setInterval(() => {
-        if (tryStart() || Date.now() - startedAt >= timeoutMs) {
-          clearInterval(t);
-          if (Date.now() - startedAt >= timeoutMs) {
-            alert(engineName + " engine is not ready. Please hard refresh (Cmd/Ctrl+Shift+R) and try again.");
-          }
-        }
-      }, 100);
-    }
-
 
     function showListeningGate() {
       if (isAdmin || showingGate) return;
@@ -125,13 +129,25 @@
           "Your Listening has been submitted. Click Start Reading to continue.",
           {
             mode: "gate",
-            submitText: "Start Reading",
-            onConfirm: () => {
+                        submitText: "Start Reading",
+            onConfirm: async () => {
               showingGate = false;
-              safe(() => window.IELTS.Engines.Reading.startReadingSystem());
-              safe(() => UI().showOnly("reading"));
-              safe(() => UI().setExamNavStatus("Status: Reading in progress"));
-              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"));
+
+              // Move to Reading view first, then start the engine (more reliable).
+              try { UI().setExamStarted(true); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
+              try { UI().showOnly("reading"); } catch (e) {}
+              try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
+
+              // Start engine (retry briefly if split bundle not ready yet)
+              try {
+                await startEngineWhenReady("Reading", "startReadingSystem");
+              } catch (e) {
+                // Visible fallback: keep user on Reading screen even if engine failed.
+                try {
+                  window.alert("Reading failed to start. Please refresh the page and try again.");
+                } catch (_) {}
+              }
             },
           }
         )
@@ -155,13 +171,20 @@
           "Your Reading has been submitted. Click Start Writing to continue.",
           {
             mode: "gate",
-            submitText: "Start Writing",
-            onConfirm: () => {
+                        submitText: "Start Writing",
+            onConfirm: async () => {
               showingGate = false;
-              safe(() => window.IELTS.Engines.Writing.startWritingSystem());
-              safe(() => UI().showOnly("writing"));
-              safe(() => UI().setExamNavStatus("Status: Writing in progress"));
-              safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"));
+
+              try { UI().setExamStarted(true); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
+              try { UI().showOnly("writing"); } catch (e) {}
+              try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
+
+              try {
+                await startEngineWhenReady("Writing", "startWritingSystem");
+              } catch (e) {
+                try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
+              }
             },
           }
         )
@@ -193,12 +216,7 @@
       // Also keep checking in case state was already true (refresh)
       showListeningGate();
       showReadingGate();
-
-      // Stop fallback polling after ~20s (events are the primary path)
-      if (Date.now() - fallbackStartedAt > 20000) {
-        clearInterval(fallbackTimer);
-      }
-    }, 1000);
+    }, 800);
 
     // Attach a direct audio ended fallback for listening
     const aud = document.getElementById("listeningAudio");
@@ -355,17 +373,6 @@
     if (startBtn) startBtn.onclick = startFreshExam;
     if (startBtn2) startBtn2.onclick = startFreshExam;
     if (contBtn) contBtn.onclick = startFreshExam;
-
-    // Centralized leave-warning for students (avoid duplicates across engines)
-    if (!isAdmin) {
-      window.addEventListener("beforeunload", (e) => {
-        const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-        if (!finalDone) {
-          e.preventDefault();
-          e.returnValue = "";
-        }
-      });
-    }
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

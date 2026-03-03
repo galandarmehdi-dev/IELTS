@@ -1084,6 +1084,10 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       lockReadingUI();
 
       if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
+
+      // Whether submission was manual (button/admin) or automatic (timer),
+      // always trigger the Reading → Writing transition at most once.
+      transitionToWritingOnce();
     }
 
     function transitionToWritingOnce() {

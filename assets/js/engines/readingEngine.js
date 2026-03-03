@@ -5,6 +5,7 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const Modal = () => window.IELTS.Modal;
 
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
@@ -1088,7 +1089,31 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function transitionToWritingOnce() {
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
-      // Do NOT auto-start writing. Let app.js show the non-closeable gate modal.
+
+      // Prefer showing the non-closeable "Start Writing" gate right here (works even in admin testing).
+      try {
+        const writingStartedKey = R().TESTS?.writingKeys?.started;
+        const writingStarted = writingStartedKey ? S().get(writingStartedKey, "false") === "true" : false;
+        if (!writingStarted && Modal && typeof Modal().showModal === "function") {
+          Modal().showModal(
+            "Time is over",
+            "Your Reading has been submitted. Click Start Writing to continue.",
+            {
+              mode: "gate",
+              locked: true,
+              submitText: "Start Writing",
+              onConfirm: () => {
+                try { window.IELTS.Engines.Writing.startWritingSystem(); } catch (e) {}
+                try { UI().showOnly("writing"); } catch (e) {}
+                try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
+              },
+            }
+          );
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback: let app.js handle the gate
       try {
         document.dispatchEvent(new CustomEvent("reading:submitted"));
       } catch (e) {}

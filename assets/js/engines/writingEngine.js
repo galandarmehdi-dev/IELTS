@@ -135,7 +135,6 @@
 
       const finalPayload = {
         examId: R().EXAM.id,
-        attemptId: S().getAttemptId(),
         submittedAt: new Date().toISOString(),
         studentFullName: fullName,
         listening,
@@ -147,27 +146,22 @@
       S().set(R().EXAM.keys.finalSubmitted, "true");
 
       UI().lockWholeExamAfterFinalSubmit();
-      try { UI().setExamNavTimer(""); } catch (e) {}
 
-      // Send to admin reliably (queue + retries)
+      // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
-          // enqueue + try immediately; worker will retry every ~15s
-          S().enqueueAdminSubmission(endpoint, finalPayload);
-          try { await S().trySendOneFromQueue(UI()); } catch (e) {}
-          Modal().showModal(
-            "Exam submitted",
-            "Submitted. Saved locally and queued to send to Google Sheets. Keep this tab open until Queue is 0 (shown in the top bar).",
-            { mode: "confirm" }
-          );
+          await fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(finalPayload),
+          });
+
+          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
           return;
-        } catch (e) {
-          Modal().showModal(
-            "Submitted (local only)",
-            "Saved locally, but could not enqueue for sending. Please contact the invigilator.",
-            { mode: "confirm" }
-          );
+        } catch {
+          Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
           return;
         }
       }
@@ -180,16 +174,14 @@
 
     function startTimer() {
       if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
-      try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
+        try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
+      try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
 
       timer = setInterval(() => {
         if (hasSubmitted) return;
 
         remainingSeconds = Math.max(0, remainingSeconds - 1);
         if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
-      try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
 
         if (remainingSeconds % 5 === 0) saveWriting();
 
@@ -233,8 +225,6 @@
     if (hasSubmitted) {
       writingSection.classList.add("view-only");
       if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
-      try { UI().setExamNavTimer(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
     } else {
       startTimer();
     }

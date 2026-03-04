@@ -7,7 +7,12 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
-  const Router = () => window.IELTS.Router;
+  
+  // Student test password (front-end gate)
+  window.IELTS = window.IELTS || {};
+  window.IELTS.Registry = window.IELTS.Registry || {};
+  window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
+const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {
@@ -92,6 +97,9 @@
           if (prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
         }
         toRemove.forEach((k) => localStorage.removeItem(k));
+      
+        // Also clear password unlock (so Start Exam always asks)
+        try { sessionStorage.removeItem('IELTS:TEST:unlocked'); } catch {}
       } catch {}
     }
 
@@ -106,7 +114,6 @@
     if (finalDone && !isAdmin) {
       // Student: auto-clear so Start Exam always works
       clearAllStudentAttemptKeys();
-      try { S().newAttemptId(); } catch (e) {}
     }
 
     // -----------------------------
@@ -244,11 +251,6 @@
         if (!isAdmin) return;
         UI().showOnly("home");
         UI().updateHomeStatusLine();
-
-    // Start admin submission queue worker (retries every ~15s)
-    try {
-      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
-    } catch (e) {}
         UI().setExamNavStatus("Status: Home");
       };
     }
@@ -337,11 +339,6 @@
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();
-
-    // Start admin submission queue worker (retries every ~15s)
-    try {
-      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
-    } catch (e) {}
         UI().setExamNavStatus("Status: Home");
         return;
       }
@@ -353,11 +350,6 @@
     UI().showOnly("home");
     UI().updateHomeStatusLine();
 
-    // Start admin submission queue worker (retries every ~15s)
-    try {
-      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
-    } catch (e) {}
-
     // -----------------------------
     // Home buttons: START ALWAYS = NEW ATTEMPT
     // -----------------------------
@@ -365,70 +357,44 @@
     const startBtn2 = $("cardStartIelts1Btn");
     const contBtn = $("homeContinueBtn");
 
-    const TEST_PASSWORD_PLAIN = "ILEZT123";
-    let PASSWORD_UNLOCKED = false;
+    
+    // -----------------------------
+    // Student password gate (does NOT affect admin view)
+    // -----------------------------
+    const TEST_UNLOCK_KEY = "IELTS:TEST:unlocked";
 
-    function bestEffortFullscreen() {
-      try {
-        if (document.fullscreenElement) return;
-        document.documentElement.requestFullscreen?.().catch(() => {});
-      } catch (e) {}
+    function hasTestUnlock() {
+      try { return sessionStorage.getItem(TEST_UNLOCK_KEY) === "1"; } catch (e) { return false; }
+    }
+    function setTestUnlock() {
+      try { sessionStorage.setItem(TEST_UNLOCK_KEY, "1"); } catch (e) {}
     }
 
-    function bindTabSwitchWarningOnce() {
-      if (window.__IELTS_TABWARN_BOUND__) return;
-      window.__IELTS_TABWARN_BOUND__ = true;
-      let warned = false;
-      document.addEventListener("visibilitychange", () => {
-        if (warned) return;
-        if (document.visibilityState === "hidden") {
-          warned = true;
-          try {
-            Modal().showModal(
-              "Warning",
-              "Do not switch tabs during the exam. Repeated switching may invalidate your attempt.",
-              { mode: "confirm" }
-            );
-          } catch (e) {}
-        }
-      });
-    }
-
-    function startExamWithPassword() {
-      if (isAdmin) {
-        PASSWORD_UNLOCKED = true;
-        startFreshExam();
-        return;
-      }
-      if (PASSWORD_UNLOCKED) {
-        startFreshExam();
-        return;
-      }
-
-      Modal().showModal(
-        "Enter Test Password",
-        "Please enter the password provided by the invigilator.",
+    function requireTestPassword(onOk) {
+      if (isAdmin) { onOk(); return; }
+// show password modal
+      window.IELTS?.Modal?.showModal?.(
+        "Enter password",
+        "This test is password-protected. Please enter the password to start.",
         {
           mode: "password",
-          onConfirm: (value) => {
-            if (String(value || "") === TEST_PASSWORD_PLAIN) {
-              PASSWORD_UNLOCKED = true;
-              startFreshExam();
-            } else {
-              try { window.alert("Incorrect password"); } catch (e) {}
-            }
+          submitText: "Unlock",
+          onConfirm: () => {
+            setTestUnlock();
+            onOk();
           },
         }
       );
     }
 
-    function startFreshExam() {
+
+function startFreshExam() {
       clearAllStudentAttemptKeys();
-      try { S().newAttemptId(); } catch (e) {}
+      // Force password on every new start (no per-tab caching)
+      try { sessionStorage.removeItem('IELTS:TEST:unlocked'); } catch {}
       safe(() => Modal().hideModal());
 
       safe(() => UI().setExamStarted(true));
-      if (!isAdmin) { bestEffortFullscreen(); bindTabSwitchWarningOnce(); }
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());
       safe(() => UI().showOnly("listening"));
       safe(() => UI().setExamNavStatus("Status: Listening in progress"));
@@ -445,9 +411,9 @@
       }
     }
 
-    if (startBtn) startBtn.onclick = startExamWithPassword;
-    if (startBtn2) startBtn2.onclick = startExamWithPassword;
-    if (contBtn) contBtn.onclick = startExamWithPassword;
+    if (startBtn) startBtn.onclick = () => requireTestPassword(startFreshExam);
+    if (startBtn2) startBtn2.onclick = () => requireTestPassword(startFreshExam);
+    if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

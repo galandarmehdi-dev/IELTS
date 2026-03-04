@@ -34,3 +34,7 @@
   font-size: 14px;
 }
 #modal.hidden { display: none !important; }
+
+
+/* Password mode shares modal-name styles */
+#modalPassWrap .modal-name-input{ letter-spacing: 0.6px; }

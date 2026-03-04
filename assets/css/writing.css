@@ -43,7 +43,7 @@
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-.writing-timer{ font-weight:800; }
+.writing-timer{ display:none !important; }
 
 .writing-name{
   display:flex;

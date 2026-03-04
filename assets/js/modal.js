@@ -27,6 +27,8 @@
     const p = $("modalText");
     const nameWrap = $("modalNameWrap");
     const nameInput = $("modalFullName");
+    const passWrap = $("modalPassWrap");
+    const passInput = $("modalPasscode");
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
 
@@ -41,9 +43,10 @@
 
     // name required only in "final"
     const isFinal = MODAL_MODE === "final";
+    const isPassword = MODAL_MODE === "password";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
-
-    // buttons
+    if (passWrap) passWrap.classList.toggle("hidden", !isPassword);
+// buttons
     if (cancel) {
       const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm");
       cancel.classList.toggle("hidden", !showCancel);
@@ -67,8 +70,12 @@
 
     if (isFinal) {
       setTimeout(() => nameInput?.focus?.(), 0);
+    } else if (isPassword) {
+      // clear + focus
+      if (passInput) passInput.value = "";
+      setTimeout(() => passInput?.focus?.(), 0);
     }
-  }
+}
 
   function bindModalOnce() {
     const submit = $("modalSubmitBtn");
@@ -78,6 +85,30 @@
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
         if (MODAL_MODE === "locked") return;
+
+        // PASSWORD MODE
+        if (MODAL_MODE === "password") {
+          const passInput = $("modalPasscode");
+          const pass = (passInput?.value || "").trim();
+          const fn = MODAL_ONCONFIRM;
+          // keep handlers; do not clear until success
+          try {
+            const ok = await (typeof fn === "function" ? fn(pass) : false);
+            if (ok) {
+              MODAL_ONCONFIRM = null;
+              MODAL_ONCANCEL = null;
+              hideModal();
+              return;
+            }
+          } catch {}
+
+          // show error and reset
+          const t = $("modalText");
+          if (t) t.textContent = "Incorrect password. Please try again.";
+          if (passInput) passInput.value = "";
+          setTimeout(() => passInput?.focus?.(), 0);
+          return;
+        }
 
         // CONFIRM MODE
         if (MODAL_MODE === "confirm") {

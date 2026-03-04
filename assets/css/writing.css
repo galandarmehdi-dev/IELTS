@@ -22,7 +22,7 @@
 }
 .writing-top{
   position: sticky;
-  top: 52px;
+  top: 60px;
   z-index: 1000;
   background:#fff;
   border-bottom:1px solid #e6e6e6;
@@ -43,7 +43,7 @@
   flex-wrap:wrap;
   justify-content:flex-end;
 }
-.writing-timer{ display:none !important; }
+.writing-timer{ font-weight:800; }
 
 .writing-name{
   display:flex;

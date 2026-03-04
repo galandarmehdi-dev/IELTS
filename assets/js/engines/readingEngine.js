@@ -18,7 +18,7 @@
     const DURATION_MINUTES = 1;
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 60;
+    let remainingSeconds = DURATION_MINUTES * 1;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;

@@ -33,7 +33,8 @@
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
 
-    MODAL_MODE = opts.mode || "confirm";
+    // Normalize mode to avoid case/typo issues (e.g., "PASSWORD" vs "password").
+    MODAL_MODE = String(opts.mode || "confirm").toLowerCase();
     MODAL_ONCONFIRM = typeof opts.onConfirm === "function" ? opts.onConfirm : null;
     MODAL_ONCANCEL = typeof opts.onCancel === "function" ? opts.onCancel : null;
 
@@ -44,7 +45,8 @@
 
     // name required only in "final"
     const isFinal = MODAL_MODE === "final";
-    const isPassword = MODAL_MODE === "password";
+    // Also allow forcing password UI via opts.password === true
+    const isPassword = (MODAL_MODE === "password") || (opts && opts.password === true);
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
     if (passWrap) passWrap.classList.toggle("hidden", !isPassword);
     if (passError) { passError.textContent = ""; passError.classList.add("hidden"); }

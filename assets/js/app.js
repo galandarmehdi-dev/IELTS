@@ -123,6 +123,10 @@ const Router = () => window.IELTS.Router;
       const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
+      // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
+      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
+      if (lastView === "reading" || lastView === "writing") return;
+
 
       showingGate = true;
       safe(() => UI().showOnly("listening"));
@@ -165,6 +169,10 @@ const Router = () => window.IELTS.Router;
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
+      // If the user already moved to Writing, do not pull them back to Reading.
+      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
+      if (lastView === "writing") return;
+
 
       showingGate = true;
       safe(() => UI().showOnly("reading"));

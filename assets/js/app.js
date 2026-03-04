@@ -95,155 +95,6 @@
       } catch {}
     }
 
-    // -----------------------------
-    // Attempt ID (helps when ~50 students submit at once)
-    // -----------------------------
-    const ATTEMPT_ID_KEY = "IELTS:ATTEMPT_ID";
-    function generateAttemptId() {
-      // short, unique enough for classroom usage
-      const r = Math.random().toString(16).slice(2, 8);
-      return `A-${Date.now()}-${r}`;
-    }
-    function ensureAttemptId(forceNew = false) {
-      try {
-        if (forceNew) S().remove(ATTEMPT_ID_KEY);
-        let id = S().get(ATTEMPT_ID_KEY, "");
-        if (!id) {
-          id = generateAttemptId();
-          S().set(ATTEMPT_ID_KEY, id);
-        }
-        // show short id in the nav (last 8 chars is enough)
-        try { UI().setExamNavAttempt?.(String(id).slice(-8)); } catch {}
-        return id;
-      } catch {
-        return "";
-      }
-    }
-
-    // -----------------------------
-    // Submission retry queue (no-cors can fail silently)
-    // -----------------------------
-    const SUBMISSION_QUEUE_KEY = "IELTS:SUBMISSION_QUEUE";
-    let queueRunning = false;
-
-    function getQueue() {
-      return S().getJSON(SUBMISSION_QUEUE_KEY, []) || [];
-    }
-
-    function setQueue(arr) {
-      S().setJSON(SUBMISSION_QUEUE_KEY, Array.isArray(arr) ? arr : []);
-    }
-
-    function enqueueSubmission(payload) {
-      try {
-        const attemptId = ensureAttemptId(false);
-        const item = {
-          attemptId,
-          enqueuedAt: new Date().toISOString(),
-          payload,
-        };
-        const q = getQueue();
-        q.push(item);
-        setQueue(q);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    async function trySendOnce(item) {
-      const endpoint = R()?.ADMIN_ENDPOINT;
-      if (!endpoint) return { ok: false, reason: "no-endpoint" };
-      if (!navigator.onLine) return { ok: false, reason: "offline" };
-      try {
-        await fetch(endpoint, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item.payload),
-        });
-        // no-cors => opaque response, but a resolved fetch is the best signal we have
-        return { ok: true };
-      } catch (e) {
-        return { ok: false, reason: "fetch-error" };
-      }
-    }
-
-    async function processQueueOnce() {
-      if (queueRunning) return;
-      queueRunning = true;
-      try {
-        let q = getQueue();
-        if (!q.length) return;
-
-        // Try a few per tick to avoid long blocks
-        const maxPerRun = 3;
-        let sent = 0;
-        const keep = [];
-        for (let i = 0; i < q.length; i++) {
-          const item = q[i];
-          if (sent >= maxPerRun) {
-            keep.push(item);
-            continue;
-          }
-          const res = await trySendOnce(item);
-          if (res.ok) {
-            sent++;
-          } else {
-            keep.push(item);
-          }
-        }
-        setQueue(keep);
-      } finally {
-        queueRunning = false;
-        updateNetworkIndicator();
-      }
-    }
-
-    function updateNetworkIndicator() {
-      try {
-        const qn = (getQueue() || []).length;
-        const status = navigator.onLine ? "Online" : "Offline";
-        const suffix = qn ? ` • Queue: ${qn}` : "";
-        UI().setExamNavNetwork?.(`${status}${suffix}`);
-      } catch {}
-    }
-
-    // Expose minimal API for engines (writingEngine uses this)
-    window.IELTS = window.IELTS || {};
-    window.IELTS.Submissions = {
-      ensureAttemptId,
-      enqueueSubmission,
-      processQueueOnce,
-      getQueueCount: () => (getQueue() || []).length,
-    };
-
-    // Keep network indicator fresh
-    updateNetworkIndicator();
-    window.addEventListener("online", () => { updateNetworkIndicator(); processQueueOnce(); });
-    window.addEventListener("offline", updateNetworkIndicator);
-    setInterval(processQueueOnce, 15000);
-
-    // -----------------------------
-    // Optional exam discipline helpers (student view only)
-    // -----------------------------
-    let warnedTabSwitch = false;
-    document.addEventListener("visibilitychange", () => {
-      if (isAdmin) return;
-      const started = S().get(R().KEYS.EXAM_STARTED, "false") === "true";
-      if (!started) return;
-      if (!document.hidden && !warnedTabSwitch) {
-        warnedTabSwitch = true;
-        try {
-          Modal().showModal(
-            "Warning",
-            "Do not switch tabs during the exam.",
-            { mode: "confirm" }
-          );
-        } catch {}
-      }
-    });
-
     // If student lands on "submitted" overlay, do NOT trap them forever.
     // They should be able to start a new attempt.
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
@@ -255,6 +106,7 @@
     if (finalDone && !isAdmin) {
       // Student: auto-clear so Start Exam always works
       clearAllStudentAttemptKeys();
+      try { S().newAttemptId(); } catch (e) {}
     }
 
     // -----------------------------
@@ -392,6 +244,11 @@
         if (!isAdmin) return;
         UI().showOnly("home");
         UI().updateHomeStatusLine();
+
+    // Start admin submission queue worker (retries every ~15s)
+    try {
+      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
+    } catch (e) {}
         UI().setExamNavStatus("Status: Home");
       };
     }
@@ -480,6 +337,11 @@
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();
+
+    // Start admin submission queue worker (retries every ~15s)
+    try {
+      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
+    } catch (e) {}
         UI().setExamNavStatus("Status: Home");
         return;
       }
@@ -491,6 +353,11 @@
     UI().showOnly("home");
     UI().updateHomeStatusLine();
 
+    // Start admin submission queue worker (retries every ~15s)
+    try {
+      S().startAdminQueueWorker(() => R().ADMIN_ENDPOINT, UI());
+    } catch (e) {}
+
     // -----------------------------
     // Home buttons: START ALWAYS = NEW ATTEMPT
     // -----------------------------
@@ -498,28 +365,73 @@
     const startBtn2 = $("cardStartIelts1Btn");
     const contBtn = $("homeContinueBtn");
 
-    function startFreshExam() {
-      clearAllStudentAttemptKeys();
-      // Always generate a new attempt id for each fresh start
-      try { window.IELTS?.Submissions?.ensureAttemptId?.(true); } catch {}
-      safe(() => Modal().hideModal());
+    const TEST_PASSWORD_PLAIN = "ILEZT123";
+    let PASSWORD_UNLOCKED = false;
 
-      // Try fullscreen (best effort; will be ignored if browser blocks)
-      if (!isAdmin) {
-        try {
-          const el = document.documentElement;
-          if (el && typeof el.requestFullscreen === "function" && !document.fullscreenElement) {
-            el.requestFullscreen().catch(() => {});
-          }
-        } catch {}
+    function bestEffortFullscreen() {
+      try {
+        if (document.fullscreenElement) return;
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } catch (e) {}
+    }
+
+    function bindTabSwitchWarningOnce() {
+      if (window.__IELTS_TABWARN_BOUND__) return;
+      window.__IELTS_TABWARN_BOUND__ = true;
+      let warned = false;
+      document.addEventListener("visibilitychange", () => {
+        if (warned) return;
+        if (document.visibilityState === "hidden") {
+          warned = true;
+          try {
+            Modal().showModal(
+              "Warning",
+              "Do not switch tabs during the exam. Repeated switching may invalidate your attempt.",
+              { mode: "confirm" }
+            );
+          } catch (e) {}
+        }
+      });
+    }
+
+    function startExamWithPassword() {
+      if (isAdmin) {
+        PASSWORD_UNLOCKED = true;
+        startFreshExam();
+        return;
+      }
+      if (PASSWORD_UNLOCKED) {
+        startFreshExam();
+        return;
       }
 
+      Modal().showModal(
+        "Enter Test Password",
+        "Please enter the password provided by the invigilator.",
+        {
+          mode: "password",
+          onConfirm: (value) => {
+            if (String(value || "") === TEST_PASSWORD_PLAIN) {
+              PASSWORD_UNLOCKED = true;
+              startFreshExam();
+            } else {
+              try { window.alert("Incorrect password"); } catch (e) {}
+            }
+          },
+        }
+      );
+    }
+
+    function startFreshExam() {
+      clearAllStudentAttemptKeys();
+      try { S().newAttemptId(); } catch (e) {}
+      safe(() => Modal().hideModal());
+
       safe(() => UI().setExamStarted(true));
+      if (!isAdmin) { bestEffortFullscreen(); bindTabSwitchWarningOnce(); }
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());
       safe(() => UI().showOnly("listening"));
       safe(() => UI().setExamNavStatus("Status: Listening in progress"));
-      // Show timer slot (listening doesn't have a visible countdown here)
-      safe(() => UI().setExamNavTimer?.(""));
       safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "listening"));
 
       // if audio already bound, ensure fallback ended listener exists
@@ -533,9 +445,9 @@
       }
     }
 
-    if (startBtn) startBtn.onclick = startFreshExam;
-    if (startBtn2) startBtn2.onclick = startFreshExam;
-    if (contBtn) contBtn.onclick = startFreshExam;
+    if (startBtn) startBtn.onclick = startExamWithPassword;
+    if (startBtn2) startBtn2.onclick = startExamWithPassword;
+    if (contBtn) contBtn.onclick = startExamWithPassword;
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

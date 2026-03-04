@@ -9,51 +9,6 @@
   const KEY = "IELTS:ADMIN:session";
   const DEFAULT_TTL_MIN = 180; // 3 hours
 
-  // Student test password gate (separate from admin)
-  const TEST_KEY = "IELTS:TEST:session";
-  const DEFAULT_TEST_TTL_MIN = 12 * 60; // 12 hours
-
-  function getTestSession() {
-    return S()?.getJSON?.(TEST_KEY, null);
-  }
-
-  function setTestSession(obj) {
-    S()?.setJSON?.(TEST_KEY, obj);
-  }
-
-  function clearTestSession() {
-    S()?.remove?.(TEST_KEY);
-  }
-
-  function hasValidTestSession() {
-    const s = getTestSession();
-    const exp = Number(s?.expiresAtMs || 0);
-    return !!s?.enabled && exp > nowMs();
-  }
-
-  function requireTestPasscode() {
-    // Admin view shouldn't be blocked by the student gate
-    if (isAdmin()) return true;
-
-    if (hasValidTestSession()) return true;
-
-    const correct = String(R()?.TEST_PASSCODE || R()?.TEST_PASSWORD || "1234");
-    if (!correct) return true; // if not configured, don't block
-
-    const pass = prompt("Test password:");
-    if (!pass) return false;
-
-    if (String(pass) !== correct) {
-      alert("Wrong password.");
-      return false;
-    }
-
-    const ttlMin = Number(R()?.TEST_SESSION_TTL_MIN || DEFAULT_TEST_TTL_MIN);
-    setTestSession({ enabled: true, expiresAtMs: nowMs() + ttlMin * 60 * 1000 });
-    return true;
-  }
-
-
   function nowMs() {
     return Date.now();
   }
@@ -165,7 +120,5 @@
     init,
     isAdmin,
     clearSession,
-    requireTestPasscode,
-    clearTestSession,
   };
 })();

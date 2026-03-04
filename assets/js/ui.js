@@ -14,12 +14,30 @@
     if (el) el.textContent = text;
   }
 
-
+  // Optional: show timer text in the top bar (next to status)
   function setExamNavTimer(text) {
     const el = $("examNavTimer");
     if (!el) return;
     const t = (typeof text === "string") ? text.trim() : "";
     el.textContent = t || "";
+    el.classList.toggle("hidden", !t);
+  }
+
+  // Optional: show online/offline + queue count
+  function setExamNavNetwork(text) {
+    const el = $("examNavNetwork");
+    if (!el) return;
+    const t = (typeof text === "string") ? text.trim() : "";
+    el.textContent = t || "";
+    el.classList.toggle("hidden", !t);
+  }
+
+  // Optional: show attempt id (short)
+  function setExamNavAttempt(text) {
+    const el = $("examNavAttempt");
+    if (!el) return;
+    const t = (typeof text === "string") ? text.trim() : "";
+    el.textContent = t ? `Attempt: ${t}` : "";
     el.classList.toggle("hidden", !t);
   }
 
@@ -228,6 +246,8 @@ window.IELTS.UI = {
   showOnly,
   setExamNavStatus,
   setExamNavTimer,
+  setExamNavNetwork,
+  setExamNavAttempt,
   setExamStarted,
   updateHomeStatusLine,
   formatTime,

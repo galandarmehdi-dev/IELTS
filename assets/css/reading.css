@@ -22,6 +22,16 @@
   color: var(--muted);
   font-size: 13px;
 }
+
+.exam-nav-timer{
+  font-weight:800;
+  font-size:13px;
+  padding:4px 10px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fafafa;
+}
+
 .exam-nav-actions{
   display:flex;
   gap:10px;

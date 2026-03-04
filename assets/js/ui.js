@@ -14,28 +14,13 @@
     if (el) el.textContent = text;
   }
 
+
   function setExamNavTimer(text) {
     const el = $("examNavTimer");
     if (!el) return;
-    if (!text) {
-      el.textContent = "";
-      el.classList.add("hidden");
-      return;
-    }
-    el.classList.remove("hidden");
-    el.textContent = text;
-  }
-
-  function setExamNavNet(text) {
-    const el = $("examNavNet");
-    if (!el) return;
-    if (!text) {
-      el.textContent = "";
-      el.classList.add("hidden");
-      return;
-    }
-    el.classList.remove("hidden");
-    el.textContent = text;
+    const t = (typeof text === "string") ? text.trim() : "";
+    el.textContent = t || "";
+    el.classList.toggle("hidden", !t);
   }
 
   function showExamNav(show) {
@@ -242,8 +227,7 @@ window.IELTS.UI = {
   $,
   showOnly,
   setExamNavStatus,
-    setExamNavTimer,
-    setExamNavNet,
+  setExamNavTimer,
   setExamStarted,
   updateHomeStatusLine,
   formatTime,

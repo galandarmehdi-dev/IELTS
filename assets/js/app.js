@@ -10,6 +10,9 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
+
+  const TEST_PASSWORD = "ILEZT123";
+  const TEST_UNLOCK_KEY = "IELTS:TEST:UNLOCKED";
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -55,8 +58,44 @@
       tick();
     });
   }
+  async function ensureTestUnlocked() {
+    // Admin view can bypass (already protected by admin passcode)
+    const isAdmin = (window.IELTS?.Access?.isAdmin?.() === true) || false;
+    if (isAdmin) return true;
 
-  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      if (sessionStorage.getItem(TEST_UNLOCK_KEY) === "true") return true;
+    } catch {}
+
+    // Force a password gate before any test content can be opened
+    return await new Promise((resolve) => {
+      try {
+        window.IELTS?.Modal?.showModal?.(
+          "Enter test password",
+          "This test is locked. Please enter the password to open the exam.",
+          {
+            mode: "password",
+            submitText: "Unlock",
+            onConfirm: (pass) => {
+              const ok = String(pass || "") === TEST_PASSWORD;
+              if (ok) {
+                try { sessionStorage.setItem(TEST_UNLOCK_KEY, "true"); } catch {}
+                resolve(true);
+                return true;
+              }
+              return false;
+            },
+          }
+        );
+      } catch {
+        // If modal isn't available for any reason, do not unlock
+        resolve(false);
+      }
+    });
+  }
+
+
+  document.addEventListener("DOMContentLoaded", async () => {
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();

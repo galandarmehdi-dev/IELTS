@@ -174,8 +174,9 @@
 
     function startTimer() {
       if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
-      try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
+        UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
+          UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
+      UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
 
       timer = setInterval(() => {
         if (hasSubmitted) return;

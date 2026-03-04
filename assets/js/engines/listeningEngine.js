@@ -7,6 +7,14 @@
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
 
+  function isAdminView() {
+    try {
+      return window.IELTS?.Access?.isAdmin?.() === true;
+    } catch {
+      return false;
+    }
+  }
+
   function initListeningSystem() {
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
@@ -232,14 +240,49 @@
 
     function enableStrictAudio(aud) {
       if (!aud) return;
-      strictActive = true;
 
-      aud.controls = false;
+      const isAdmin = isAdminView();
+
+      // Students: strict, no pause/seek. Admin: allow full controls (seek forward/back).
+      strictActive = !isAdmin;
+
+      aud.controls = isAdmin;
       aud.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
       aud.disablePictureInPicture = true;
 
       lastGoodTime = aud.currentTime || 0;
 
+      // Always: autosave periodically + detect end of audio.
+      aud.addEventListener("timeupdate", () => {
+        if (submitted) return;
+        const t = aud.currentTime || 0;
+
+        // Student anti-seek protection
+        if (strictActive) {
+          if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
+            try { aud.currentTime = lastGoodTime; } catch {}
+            return;
+          }
+        }
+
+        lastGoodTime = t;
+
+        if (Math.floor(t) % 5 === 0) saveListeningAnswers();
+      });
+
+      aud.addEventListener("ended", () => {
+        if (submitted) return;
+        startTransferTime();
+      });
+
+      if (!strictActive) {
+        // Admin: allow pause/seek/keyboard freely.
+        return;
+      }
+
+      // -----------------------
+      // Student-only restrictions
+      // -----------------------
       aud.addEventListener("pause", () => {
         if (!strictActive || submitted) return;
         if (aud.ended) return;
@@ -252,24 +295,6 @@
         if (now < ignoreSeekUntil) return;
         ignoreSeekUntil = now + 200;
         try { aud.currentTime = lastGoodTime; } catch {}
-      });
-
-      aud.addEventListener("timeupdate", () => {
-        if (!strictActive || submitted) return;
-        const t = aud.currentTime || 0;
-
-        if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
-          try { aud.currentTime = lastGoodTime; } catch {}
-          return;
-        }
-        lastGoodTime = t;
-
-        if (Math.floor(t) % 5 === 0) saveListeningAnswers();
-      });
-
-      aud.addEventListener("ended", () => {
-        if (submitted) return;
-        startTransferTime();
       });
 
       window.addEventListener(

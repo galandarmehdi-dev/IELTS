@@ -18,7 +18,7 @@
     const DURATION_MINUTES = 1;
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 1;
+    let remainingSeconds = DURATION_MINUTES * 60;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;
@@ -1137,6 +1137,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     function startTimer(answersRef) {
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
+        try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
+      try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch (e) {}
 
       if (hasSubmittedReading) {
         if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted (locked).";

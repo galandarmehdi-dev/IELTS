@@ -1065,6 +1065,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function collectPayload(answers, reason) {
       return {
         type: "reading",
+        attemptId: S().get("IELTS:ATTEMPT_ID", ""),
         testId: TEST_ID,
         submittedAt: new Date().toISOString(),
         reason,
@@ -1137,6 +1138,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     function startTimer(answersRef) {
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
+      try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch {}
 
       if (hasSubmittedReading) {
         if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted (locked).";
@@ -1150,6 +1152,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         remainingSeconds = Math.max(0, remainingSeconds - 1);
 
         if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
+        try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch {}
 
         if (!hasSubmittedReading && remainingSeconds % 5 === 0) {
           saveAnswers(answersRef.current);

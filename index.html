@@ -125,6 +125,7 @@
   <div class="exam-nav-left">
     <b>IELTS Test</b>
     <span class="exam-nav-status" id="examNavStatus">Status: In progress</span>
+      <span class="exam-nav-timer hidden" id="examNavTimer">Time left: 00:00</span>
   </div>
 
   <div class="exam-nav-actions">
@@ -630,6 +631,10 @@
   <label class="small" for="modalFullName">Name and Surname</label>
   <input id="modalFullName" class="modal-name-input" type="text" placeholder="e.g., Sakina Aliyeva" />
 </div>
+      <div class="modal-name hidden" id="modalPassWrap">
+        <label class="small" for="modalPasscode">Password</label>
+        <input id="modalPasscode" class="modal-name-input" type="password" autocomplete="off" inputmode="text" placeholder="Enter password" />
+      </div>
       <div class="modal-actions">
   <button class="btn secondary hidden" id="modalCancelBtn" type="button">Cancel</button>
   <button class="btn" id="modalSubmitBtn" type="button">OK</button>

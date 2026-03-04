@@ -6,7 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  let MODAL_MODE = "confirm"; // confirm | final | gate | locked
+  let MODAL_MODE = "confirm"; // confirm | final | gate | locked | password
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
@@ -29,6 +29,7 @@
     const nameInput = $("modalFullName");
     const passWrap = $("modalPassWrap");
     const passInput = $("modalPasscode");
+    const passError = $("modalPassError");
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
 
@@ -46,7 +47,10 @@
     const isPassword = MODAL_MODE === "password";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
     if (passWrap) passWrap.classList.toggle("hidden", !isPassword);
-// buttons
+    if (passError) { passError.textContent = ""; passError.classList.add("hidden"); }
+    if (passInput && isPassword) { passInput.value = ""; }
+
+    // buttons
     if (cancel) {
       const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm");
       cancel.classList.toggle("hidden", !showCancel);
@@ -70,12 +74,8 @@
 
     if (isFinal) {
       setTimeout(() => nameInput?.focus?.(), 0);
-    } else if (isPassword) {
-      // clear + focus
-      if (passInput) passInput.value = "";
-      setTimeout(() => passInput?.focus?.(), 0);
     }
-}
+  }
 
   function bindModalOnce() {
     const submit = $("modalSubmitBtn");
@@ -85,30 +85,6 @@
       submit.dataset.bound = "1";
       submit.addEventListener("click", async () => {
         if (MODAL_MODE === "locked") return;
-
-        // PASSWORD MODE
-        if (MODAL_MODE === "password") {
-          const passInput = $("modalPasscode");
-          const pass = (passInput?.value || "").trim();
-          const fn = MODAL_ONCONFIRM;
-          // keep handlers; do not clear until success
-          try {
-            const ok = await (typeof fn === "function" ? fn(pass) : false);
-            if (ok) {
-              MODAL_ONCONFIRM = null;
-              MODAL_ONCANCEL = null;
-              hideModal();
-              return;
-            }
-          } catch {}
-
-          // show error and reset
-          const t = $("modalText");
-          if (t) t.textContent = "Incorrect password. Please try again.";
-          if (passInput) passInput.value = "";
-          setTimeout(() => passInput?.focus?.(), 0);
-          return;
-        }
 
         // CONFIRM MODE
         if (MODAL_MODE === "confirm") {
@@ -133,8 +109,47 @@
           return;
         }
 
+        
+        // PASSWORD MODE (test unlock)
+        if (MODAL_MODE === "password") {
+          const passInput = $("modalPasscode");
+          const passError = $("modalPassError");
+          const typed = String(passInput?.value || "");
+          const expected = String(window.IELTS?.Registry?.TEST_PASSWORD || "").trim();
+
+          if (!expected) {
+            // if not configured, allow through (fail-open)
+            const fn = MODAL_ONCONFIRM;
+            MODAL_ONCONFIRM = null;
+            MODAL_ONCANCEL = null;
+            hideModal();
+            if (typeof fn === "function") fn();
+            return;
+          }
+
+          if (typed.trim() !== expected) {
+            if (passError) {
+              passError.textContent = "Wrong password. Please try again.";
+              passError.classList.remove("hidden");
+            }
+            passInput?.focus?.();
+            passInput?.select?.();
+            return;
+          }
+
+          const fn = MODAL_ONCONFIRM;
+          MODAL_ONCONFIRM = null;
+          MODAL_ONCANCEL = null;
+          hideModal();
+          if (typeof fn === "function") fn();
+          return;
+        }
+
         // FINAL MODE (name required)
         const nameInput = $("modalFullName");
+    const passWrap = $("modalPassWrap");
+    const passInput = $("modalPasscode");
+    const passError = $("modalPassError");
         const fullName = (nameInput?.value || "").trim().replace(/\s+/g, " ");
 
         if (!UI().isValidFullName(fullName)) {

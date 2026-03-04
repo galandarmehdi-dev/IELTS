@@ -92,6 +92,7 @@
     function collectListeningPayload(reason) {
       return {
         type: "listening",
+        attemptId: S().get("IELTS:ATTEMPT_ID", ""),
         submittedAt: new Date().toISOString(),
         reason,
         answers: getListeningAnswers(),

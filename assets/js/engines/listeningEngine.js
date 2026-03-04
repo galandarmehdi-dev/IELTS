@@ -30,6 +30,11 @@
 
     let submitted = S().get(L_KEYS.submitted, "false") === "true";
     let started = S().get(L_KEYS.started, "false") === "true";
+
+    // 2-minute review/transfer time after audio ends (computer-delivered IELTS style)
+    let transferActive = false;
+    let transferEndsAt = 0;
+    let transferInterval = null;
     let strictActive = false;
 
     let currentPageIndex = Math.max(0, Math.min(3, parseInt(S().get(L_KEYS.pageIndex, "0"), 10) || 0));
@@ -99,8 +104,63 @@
       };
     }
 
+    
+    function stopTransferTime() {
+      transferActive = false;
+      transferEndsAt = 0;
+      if (transferInterval) {
+        try { clearInterval(transferInterval); } catch (_) {}
+      }
+      transferInterval = null;
+      try { UI().setExamNavTimer(""); } catch (_) {}
+    }
+
+    function startTransferTime() {
+      if (submitted || transferActive) return;
+
+      transferActive = true;
+      transferEndsAt = Date.now() + 2 * 60 * 1000;
+
+      // Show warning once, then let students keep editing answers during the countdown
+      try {
+        Modal().showModal(
+          "2 minutes to check answers",
+          "The audio has ended. You have 2 minutes to check your answers. The Listening section will be submitted automatically when the timer reaches 00:00.",
+          {
+            mode: "confirm",
+            submitText: "Continue",
+            onConfirm: () => {
+              // Just close and continue editing.
+            },
+          }
+        );
+      } catch (_) {}
+
+      // Status + pinned timer in the nav bar
+      try { UI().setExamNavStatus("Status: Listening — check answers"); } catch (_) {}
+
+      const tick = () => {
+        const msLeft = Math.max(0, transferEndsAt - Date.now());
+        const totalSec = Math.ceil(msLeft / 1000);
+        const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
+        const ss = String(totalSec % 60).padStart(2, "0");
+        try { UI().setExamNavTimer(`${mm}:${ss}`); } catch (_) {}
+
+        if (msLeft <= 0) {
+          stopTransferTime();
+          finishListening("Audio ended (2-minute review time over).");
+        }
+      };
+
+      tick();
+      transferInterval = setInterval(tick, 250);
+    }
+
     function finishListening(reason) {
       if (submitted) return;
+
+      // If transfer time was running, stop it now.
+      stopTransferTime();
 
       const aud = audio();
       if (aud) {
@@ -209,7 +269,7 @@
 
       aud.addEventListener("ended", () => {
         if (submitted) return;
-        finishListening("Audio ended (auto-submitted).");
+        startTransferTime();
       });
 
       window.addEventListener(

@@ -14,6 +14,15 @@
     if (el) el.textContent = text;
   }
 
+
+  function setExamNavTimer(text) {
+    const el = $("examNavTimer");
+    if (!el) return;
+    const t = (typeof text === "string") ? text.trim() : "";
+    el.textContent = t || "";
+    el.classList.toggle("hidden", !t);
+  }
+
   function showExamNav(show) {
     const nav = $("examNav");
     if (!nav) return;
@@ -218,6 +227,7 @@ window.IELTS.UI = {
   $,
   showOnly,
   setExamNavStatus,
+  setExamNavTimer,
   setExamStarted,
   updateHomeStatusLine,
   formatTime,

@@ -7,12 +7,7 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
-  
-  // Student test password (front-end gate)
-  window.IELTS = window.IELTS || {};
-  window.IELTS.Registry = window.IELTS.Registry || {};
-  window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
-const Router = () => window.IELTS.Router;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {
@@ -99,6 +94,155 @@ const Router = () => window.IELTS.Router;
         toRemove.forEach((k) => localStorage.removeItem(k));
       } catch {}
     }
+
+    // -----------------------------
+    // Attempt ID (helps when ~50 students submit at once)
+    // -----------------------------
+    const ATTEMPT_ID_KEY = "IELTS:ATTEMPT_ID";
+    function generateAttemptId() {
+      // short, unique enough for classroom usage
+      const r = Math.random().toString(16).slice(2, 8);
+      return `A-${Date.now()}-${r}`;
+    }
+    function ensureAttemptId(forceNew = false) {
+      try {
+        if (forceNew) S().remove(ATTEMPT_ID_KEY);
+        let id = S().get(ATTEMPT_ID_KEY, "");
+        if (!id) {
+          id = generateAttemptId();
+          S().set(ATTEMPT_ID_KEY, id);
+        }
+        // show short id in the nav (last 8 chars is enough)
+        try { UI().setExamNavAttempt?.(String(id).slice(-8)); } catch {}
+        return id;
+      } catch {
+        return "";
+      }
+    }
+
+    // -----------------------------
+    // Submission retry queue (no-cors can fail silently)
+    // -----------------------------
+    const SUBMISSION_QUEUE_KEY = "IELTS:SUBMISSION_QUEUE";
+    let queueRunning = false;
+
+    function getQueue() {
+      return S().getJSON(SUBMISSION_QUEUE_KEY, []) || [];
+    }
+
+    function setQueue(arr) {
+      S().setJSON(SUBMISSION_QUEUE_KEY, Array.isArray(arr) ? arr : []);
+    }
+
+    function enqueueSubmission(payload) {
+      try {
+        const attemptId = ensureAttemptId(false);
+        const item = {
+          attemptId,
+          enqueuedAt: new Date().toISOString(),
+          payload,
+        };
+        const q = getQueue();
+        q.push(item);
+        setQueue(q);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    async function trySendOnce(item) {
+      const endpoint = R()?.ADMIN_ENDPOINT;
+      if (!endpoint) return { ok: false, reason: "no-endpoint" };
+      if (!navigator.onLine) return { ok: false, reason: "offline" };
+      try {
+        await fetch(endpoint, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item.payload),
+        });
+        // no-cors => opaque response, but a resolved fetch is the best signal we have
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, reason: "fetch-error" };
+      }
+    }
+
+    async function processQueueOnce() {
+      if (queueRunning) return;
+      queueRunning = true;
+      try {
+        let q = getQueue();
+        if (!q.length) return;
+
+        // Try a few per tick to avoid long blocks
+        const maxPerRun = 3;
+        let sent = 0;
+        const keep = [];
+        for (let i = 0; i < q.length; i++) {
+          const item = q[i];
+          if (sent >= maxPerRun) {
+            keep.push(item);
+            continue;
+          }
+          const res = await trySendOnce(item);
+          if (res.ok) {
+            sent++;
+          } else {
+            keep.push(item);
+          }
+        }
+        setQueue(keep);
+      } finally {
+        queueRunning = false;
+        updateNetworkIndicator();
+      }
+    }
+
+    function updateNetworkIndicator() {
+      try {
+        const qn = (getQueue() || []).length;
+        const status = navigator.onLine ? "Online" : "Offline";
+        const suffix = qn ? ` • Queue: ${qn}` : "";
+        UI().setExamNavNetwork?.(`${status}${suffix}`);
+      } catch {}
+    }
+
+    // Expose minimal API for engines (writingEngine uses this)
+    window.IELTS = window.IELTS || {};
+    window.IELTS.Submissions = {
+      ensureAttemptId,
+      enqueueSubmission,
+      processQueueOnce,
+      getQueueCount: () => (getQueue() || []).length,
+    };
+
+    // Keep network indicator fresh
+    updateNetworkIndicator();
+    window.addEventListener("online", () => { updateNetworkIndicator(); processQueueOnce(); });
+    window.addEventListener("offline", updateNetworkIndicator);
+    setInterval(processQueueOnce, 15000);
+
+    // -----------------------------
+    // Optional exam discipline helpers (student view only)
+    // -----------------------------
+    let warnedTabSwitch = false;
+    document.addEventListener("visibilitychange", () => {
+      if (isAdmin) return;
+      const started = S().get(R().KEYS.EXAM_STARTED, "false") === "true";
+      if (!started) return;
+      if (!document.hidden && !warnedTabSwitch) {
+        warnedTabSwitch = true;
+        try {
+          Modal().showModal(
+            "Warning",
+            "Do not switch tabs during the exam.",
+            { mode: "confirm" }
+          );
+        } catch {}
+      }
+    });
 
     // If student lands on "submitted" overlay, do NOT trap them forever.
     // They should be able to start a new attempt.
@@ -354,46 +498,28 @@ const Router = () => window.IELTS.Router;
     const startBtn2 = $("cardStartIelts1Btn");
     const contBtn = $("homeContinueBtn");
 
-    
-    // -----------------------------
-    // Student password gate (does NOT affect admin view)
-    // -----------------------------
-    const TEST_UNLOCK_KEY = "IELTS:TEST:unlocked";
-
-    function hasTestUnlock() {
-      try { return sessionStorage.getItem(TEST_UNLOCK_KEY) === "1"; } catch (e) { return false; }
-    }
-    function setTestUnlock() {
-      try { sessionStorage.setItem(TEST_UNLOCK_KEY, "1"); } catch (e) {}
-    }
-
-    function requireTestPassword(onOk) {
-      if (isAdmin || hasTestUnlock()) { onOk(); return; }
-
-      // show password modal
-      window.IELTS?.Modal?.showModal?.(
-        "Enter password",
-        "This test is password-protected. Please enter the password to start.",
-        {
-          mode: "password",
-          submitText: "Unlock",
-          onConfirm: () => {
-            setTestUnlock();
-            onOk();
-          },
-        }
-      );
-    }
-
-
-function startFreshExam() {
+    function startFreshExam() {
       clearAllStudentAttemptKeys();
+      // Always generate a new attempt id for each fresh start
+      try { window.IELTS?.Submissions?.ensureAttemptId?.(true); } catch {}
       safe(() => Modal().hideModal());
+
+      // Try fullscreen (best effort; will be ignored if browser blocks)
+      if (!isAdmin) {
+        try {
+          const el = document.documentElement;
+          if (el && typeof el.requestFullscreen === "function" && !document.fullscreenElement) {
+            el.requestFullscreen().catch(() => {});
+          }
+        } catch {}
+      }
 
       safe(() => UI().setExamStarted(true));
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());
       safe(() => UI().showOnly("listening"));
       safe(() => UI().setExamNavStatus("Status: Listening in progress"));
+      // Show timer slot (listening doesn't have a visible countdown here)
+      safe(() => UI().setExamNavTimer?.(""));
       safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "listening"));
 
       // if audio already bound, ensure fallback ended listener exists
@@ -407,9 +533,9 @@ function startFreshExam() {
       }
     }
 
-    if (startBtn) startBtn.onclick = () => requireTestPassword(startFreshExam);
-    if (startBtn2) startBtn2.onclick = () => requireTestPassword(startFreshExam);
-    if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
+    if (startBtn) startBtn.onclick = startFreshExam;
+    if (startBtn2) startBtn2.onclick = startFreshExam;
+    if (contBtn) contBtn.onclick = startFreshExam;
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

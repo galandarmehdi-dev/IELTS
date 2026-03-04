@@ -173,16 +173,19 @@
     window.__IELTS_SUBMIT_FINAL__ = submitFinalExam;
 
     function startTimer() {
-      if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
-          UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
-      UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
+      const paint = () => {
+        const t = UI().formatTime(remainingSeconds);
+        if (timeEl) timeEl.textContent = t;
+        UI().setExamNavTimer?.(`Time left: ${t}`);
+      };
+
+      paint();
 
       timer = setInterval(() => {
         if (hasSubmitted) return;
 
         remainingSeconds = Math.max(0, remainingSeconds - 1);
-        if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
+        paint();
 
         if (remainingSeconds % 5 === 0) saveWriting();
 
@@ -193,6 +196,7 @@
         }
       }, 1000);
     }
+
 
     writingSection.addEventListener("input", (e) => {
       const t = e.target;
@@ -225,7 +229,9 @@
 
     if (hasSubmitted) {
       writingSection.classList.add("view-only");
-      if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
+      const t = UI().formatTime(remainingSeconds);
+      if (timeEl) timeEl.textContent = t;
+      UI().setExamNavTimer?.(`Time left: ${t}`);
     } else {
       startTimer();
     }

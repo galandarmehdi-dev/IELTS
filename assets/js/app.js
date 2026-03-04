@@ -7,12 +7,14 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
-  const Router = () => window.IELTS.Router;
+  
+  // Student test password (front-end gate)
+  window.IELTS = window.IELTS || {};
+  window.IELTS.Registry = window.IELTS.Registry || {};
+  window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
+const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
-
-  const TEST_PASSWORD = "ILEZT123";
-  const TEST_UNLOCK_KEY = "IELTS:TEST:UNLOCKED";
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -58,44 +60,8 @@
       tick();
     });
   }
-  async function ensureTestUnlocked() {
-    // Admin view can bypass (already protected by admin passcode)
-    const isAdmin = (window.IELTS?.Access?.isAdmin?.() === true) || false;
-    if (isAdmin) return true;
 
-    try {
-      if (sessionStorage.getItem(TEST_UNLOCK_KEY) === "true") return true;
-    } catch {}
-
-    // Force a password gate before any test content can be opened
-    return await new Promise((resolve) => {
-      try {
-        window.IELTS?.Modal?.showModal?.(
-          "Enter test password",
-          "This test is locked. Please enter the password to open the exam.",
-          {
-            mode: "password",
-            submitText: "Unlock",
-            onConfirm: (pass) => {
-              const ok = String(pass || "") === TEST_PASSWORD;
-              if (ok) {
-                try { sessionStorage.setItem(TEST_UNLOCK_KEY, "true"); } catch {}
-                resolve(true);
-                return true;
-              }
-              return false;
-            },
-          }
-        );
-      } catch {
-        // If modal isn't available for any reason, do not unlock
-        resolve(false);
-      }
-    });
-  }
-
-
-  document.addEventListener("DOMContentLoaded", async () => {
+  document.addEventListener("DOMContentLoaded", () => {
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();
@@ -388,7 +354,39 @@
     const startBtn2 = $("cardStartIelts1Btn");
     const contBtn = $("homeContinueBtn");
 
-    function startFreshExam() {
+    
+    // -----------------------------
+    // Student password gate (does NOT affect admin view)
+    // -----------------------------
+    const TEST_UNLOCK_KEY = "IELTS:TEST:unlocked";
+
+    function hasTestUnlock() {
+      try { return sessionStorage.getItem(TEST_UNLOCK_KEY) === "1"; } catch (e) { return false; }
+    }
+    function setTestUnlock() {
+      try { sessionStorage.setItem(TEST_UNLOCK_KEY, "1"); } catch (e) {}
+    }
+
+    function requireTestPassword(onOk) {
+      if (isAdmin || hasTestUnlock()) { onOk(); return; }
+
+      // show password modal
+      window.IELTS?.Modal?.showModal?.(
+        "Enter password",
+        "This test is password-protected. Please enter the password to start.",
+        {
+          mode: "password",
+          submitText: "Unlock",
+          onConfirm: () => {
+            setTestUnlock();
+            onOk();
+          },
+        }
+      );
+    }
+
+
+function startFreshExam() {
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 
@@ -409,9 +407,9 @@
       }
     }
 
-    if (startBtn) startBtn.onclick = startFreshExam;
-    if (startBtn2) startBtn2.onclick = startFreshExam;
-    if (contBtn) contBtn.onclick = startFreshExam;
+    if (startBtn) startBtn.onclick = () => requireTestPassword(startFreshExam);
+    if (startBtn2) startBtn2.onclick = () => requireTestPassword(startFreshExam);
+    if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

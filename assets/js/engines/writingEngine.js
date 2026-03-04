@@ -135,6 +135,7 @@
 
       const finalPayload = {
         examId: R().EXAM.id,
+        attemptId: S().get("IELTS:ATTEMPT_ID", ""),
         submittedAt: new Date().toISOString(),
         studentFullName: fullName,
         listening,
@@ -147,20 +148,27 @@
 
       UI().lockWholeExamAfterFinalSubmit();
 
-      // Send to admin if endpoint set
+      // Send to admin if endpoint set (with retry queue)
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
-          await fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(finalPayload),
-          });
+          // Always enqueue first, then attempt immediate send.
+          try { window.IELTS?.Submissions?.enqueueSubmission?.(finalPayload); } catch {}
+          try { await window.IELTS?.Submissions?.processQueueOnce?.(); } catch {}
 
-          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+          const qn = (window.IELTS?.Submissions?.getQueueCount?.() || 0);
+          if (qn === 0) {
+            Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+          } else {
+            Modal().showModal(
+              "Submitted (queued)",
+              "Saved locally. Network/server may be slow; the system will keep retrying until it sends.",
+              { mode: "confirm" }
+            );
+          }
           return;
         } catch {
+          // If something went wrong with queue setup, keep your old behavior: local only
           Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
           return;
         }
@@ -174,15 +182,14 @@
 
     function startTimer() {
       if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
-        UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
-          UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
-      UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`);
+      try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch {}
 
       timer = setInterval(() => {
         if (hasSubmitted) return;
 
         remainingSeconds = Math.max(0, remainingSeconds - 1);
         if (timeEl) timeEl.textContent = UI().formatTime(remainingSeconds);
+        try { UI().setExamNavTimer?.(`Time left: ${UI().formatTime(remainingSeconds)}`); } catch {}
 
         if (remainingSeconds % 5 === 0) saveWriting();
 

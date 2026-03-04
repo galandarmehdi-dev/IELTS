@@ -23,10 +23,23 @@
     el.classList.toggle("hidden", !t);
   }
 
-  function showExamNav(show) {
+  function updateExamNavHeightVar() {
+  try {
+    const nav = $("examNav");
+    if (!nav || nav.classList.contains("hidden")) {
+      document.documentElement.style.setProperty("--exam-nav-h", "0px");
+      return;
+    }
+    const h = Math.max(0, nav.offsetHeight || 0);
+    document.documentElement.style.setProperty("--exam-nav-h", `${h}px`);
+  } catch {}
+}
+
+function showExamNav(show) {
     const nav = $("examNav");
     if (!nav) return;
     nav.classList.toggle("hidden", !show);
+    updateExamNavHeightVar();
   }
 
   function showOnly(view) {
@@ -223,6 +236,21 @@ function showSubmittedOverlay(text) {
     );
   } catch {}
 }
+
+// Keep sticky offsets correct if the top nav changes height (e.g., buttons wrap on small screens)
+try {
+  let __navResizeT = null;
+  window.addEventListener("resize", () => {
+    if (__navResizeT) clearTimeout(__navResizeT);
+    __navResizeT = setTimeout(() => {
+      __navResizeT = null;
+      updateExamNavHeightVar();
+    }, 120);
+  });
+  // initial compute
+  setTimeout(updateExamNavHeightVar, 0);
+} catch {}
+
 window.IELTS.UI = {
   $,
   showOnly,

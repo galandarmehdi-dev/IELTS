@@ -24,14 +24,24 @@
 }
 
 .exam-nav-timer{
-  font-weight:800;
-  font-size:13px;
-  padding:4px 10px;
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:#fafafa;
+  font-weight: 700;
+  font-size: 13px;
 }
 
+.exam-nav-network{
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.exam-nav-attempt{
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
 .exam-nav-actions{
   display:flex;
   gap:10px;

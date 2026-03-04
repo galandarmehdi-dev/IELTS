@@ -1021,11 +1021,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const fresh = loadState().answers;
       renderQuestionsForActivePart(fresh);
 
-      if (hasSubmittedReading) {
-      lockReadingUI();
-      // If the page is refreshed after Reading was submitted, show the Writing gate.
-      transitionToWritingOnce();
-    }
+      if (hasSubmittedReading) lockReadingUI();
     }
 
     function renderPassageForActivePart() {
@@ -1095,45 +1091,11 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function transitionToWritingOnce() {
-  if (hasTransitionedToWriting) return;
-  hasTransitionedToWriting = true;
-
-  // Keep legacy event for any external orchestrator (safe no-op if unused)
-  try { document.dispatchEvent(new CustomEvent("reading:submitted")); } catch (e) {}
-
-  // If Writing already started or submitted, do not gate again.
-  let writingStartedOrSubmitted = false;
-  try {
-    const WK = R()?.TESTS?.writingKeys;
-    if (WK) {
-      writingStartedOrSubmitted =
-        S().get(WK.started, "false") === "true" ||
-        S().get(WK.submitted, "false") === "true";
+      if (hasTransitionedToWriting) return;
+      hasTransitionedToWriting = true;
+      // App-level orchestrator shows the gate and starts Writing.
+      try { document.dispatchEvent(new CustomEvent("reading:submitted")); } catch (e) {}
     }
-  } catch (e) {}
-
-  if (writingStartedOrSubmitted) return;
-
-  // Show a non-closeable gate modal, then start Writing when user clicks.
-  try {
-    Modal().showModal(
-      "Reading submitted",
-      "Reading has ended. Click START WRITING to continue.",
-      {
-        mode: "gate",
-        submitText: "Start Writing",
-        onConfirm: () => {
-          try { window.IELTS?.Engines?.Writing?.startWritingSystem?.(); } catch (e) {}
-          try { UI().showOnly("writing"); } catch (e) {}
-          try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
-
-          // Prefer hash route (if router exists), but keep a safe fallback above
-          try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
-        },
-      }
-    );
-  } catch (e) {}
-}
 
     function startTimer(answersRef) {
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
@@ -1141,8 +1103,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (hasSubmittedReading) {
         if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted (locked).";
         lockReadingUI();
-        // Ensure user can proceed to Writing even after a refresh.
-        transitionToWritingOnce();
         return;
       }
 
@@ -1181,11 +1141,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
 
-    if (hasSubmittedReading) {
-      lockReadingUI();
-      // If the page is refreshed after Reading was submitted, show the Writing gate.
-      transitionToWritingOnce();
-    }
+    if (hasSubmittedReading) lockReadingUI();
 
     if ($("submitBtn")) {
       $("submitBtn").addEventListener("click", async () => {

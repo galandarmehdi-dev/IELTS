@@ -68,46 +68,36 @@
     // If URL asks for admin, request passcode (unless session already valid)
     if (isAdminRequestedByUrl() && !hasValidSession()) {
       enterAdmin();
-    }
-
-    // Extra safety: discourage browser/Google translate overlays inside the test UI.
-    // (Not bulletproof, but helps with Chrome auto-translate + extensions.)
-    try {
-      document.documentElement.setAttribute("translate", "no");
-      document.documentElement.classList.add("notranslate");
-      document.body?.setAttribute?.("translate", "no");
-      document.body?.classList?.add?.("notranslate");
-    } catch {}
 
     // Student lockdown: block right click except in inputs/textareas (allows copy/paste there)
-    document.addEventListener(
-      "contextmenu",
-      (e) => {
-        if (isAdmin()) return;
-        const t = e.target;
-        const allowed =
-          t &&
-          (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable === true);
-        if (!allowed) e.preventDefault();
-      },
-      true
-    );
+    document.addEventListener("contextmenu", (e) => {
+      if (isAdmin()) return;
+      const t = e.target;
+      const allowed =
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable === true);
+      if (!allowed) {
+        e.preventDefault();
+      }
+    }, true);
 
-    // Student lockdown: block Find (Ctrl/Cmd+F), Next/Prev Find (Ctrl/Cmd+G), and F3
-    document.addEventListener(
-      "keydown",
-      (e) => {
-        if (isAdmin()) return;
-        const key = String(e.key || "").toLowerCase();
-        const ctrlOrCmd = e.ctrlKey || e.metaKey;
-        if ((ctrlOrCmd && (key === "f" || key === "g")) || key === "f3") {
-          e.preventDefault();
-          e.stopPropagation();
-          return false;
-        }
-      },
-      true
-    );
+    // Student lockdown: block Find (Ctrl/Cmd+F) and F3
+    document.addEventListener("keydown", (e) => {
+      if (isAdmin()) return;
+
+      const key = String(e.key || "").toLowerCase();
+      const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if ((ctrlOrCmd && key === "f") || key === "f3") {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+
+    }
 
     // Put a flag on <body> for CSS / UI usage
     try {

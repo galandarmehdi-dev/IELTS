@@ -356,35 +356,27 @@ const Router = () => window.IELTS.Router;
 
     
     // -----------------------------
-    // Student password gate (does NOT affect admin view)
     // -----------------------------
-    const TEST_UNLOCK_KEY = "IELTS:TEST:unlocked";
+// Student password gate (does NOT affect admin view)
+// -----------------------------
+function requireTestPassword(onOk) {
+  if (isAdmin) { onOk(); return; }
 
-    function hasTestUnlock() {
-      try { return sessionStorage.getItem(TEST_UNLOCK_KEY) === "1"; } catch (e) { return false; }
+  // Always ask in student view (no "remember" unlock),
+  // so every click on Start Exam requires the password.
+  window.IELTS?.Modal?.showModal?.(
+    "Enter password",
+    "This test is password-protected. Please enter the password to start.",
+    {
+      mode: "password",
+      submitText: "Start exam",
+      onConfirm: () => {
+        onOk();
+      },
     }
-    function setTestUnlock() {
-      try { sessionStorage.setItem(TEST_UNLOCK_KEY, "1"); } catch (e) {}
-    }
+  );
+}
 
-    function requireTestPassword(onOk) {
-      if (isAdmin || hasTestUnlock()) { onOk(); return; }
-
-      // show password modal
-      window.IELTS?.Modal?.showModal?.(
-        "Enter password",
-        "This test is password-protected. Please enter the password to start.",
-        {
-          mode: "password",
-          password: true,
-          submitText: "Unlock",
-          onConfirm: () => {
-            setTestUnlock();
-            onOk();
-          },
-        }
-      );
-    }
 
 
 function startFreshExam() {

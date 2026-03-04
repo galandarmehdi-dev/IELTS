@@ -97,9 +97,6 @@ const Router = () => window.IELTS.Router;
           if (prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
         }
         toRemove.forEach((k) => localStorage.removeItem(k));
-      
-        // Also clear password unlock (so Start Exam always asks)
-        try { sessionStorage.removeItem('IELTS:TEST:unlocked'); } catch {}
       } catch {}
     }
 
@@ -371,13 +368,15 @@ const Router = () => window.IELTS.Router;
     }
 
     function requireTestPassword(onOk) {
-      if (isAdmin) { onOk(); return; }
-// show password modal
+      if (isAdmin || hasTestUnlock()) { onOk(); return; }
+
+      // show password modal
       window.IELTS?.Modal?.showModal?.(
         "Enter password",
         "This test is password-protected. Please enter the password to start.",
         {
           mode: "password",
+          password: true,
           submitText: "Unlock",
           onConfirm: () => {
             setTestUnlock();
@@ -390,8 +389,6 @@ const Router = () => window.IELTS.Router;
 
 function startFreshExam() {
       clearAllStudentAttemptKeys();
-      // Force password on every new start (no per-tab caching)
-      try { sessionStorage.removeItem('IELTS:TEST:unlocked'); } catch {}
       safe(() => Modal().hideModal());
 
       safe(() => UI().setExamStarted(true));

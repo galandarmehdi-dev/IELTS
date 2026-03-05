@@ -78,12 +78,8 @@ const Router = () => window.IELTS.Router;
     const isAdmin = isAdminView();
     const $ = UI().$;
 
-    // Active test helper (supports Test 1 + Test 2)
-    const activeTestId = () => (Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1"));
-    const testCfg = () => (R().TESTS?.get ? R().TESTS.get(activeTestId()) : { readingTestId: R().TESTS.readingTestId, listeningKeys: R().TESTS.listeningKeys, writingKeys: R().TESTS.writingKeys });
-
     // Key helpers
-    const readingSubmittedKey = () => `${testCfg().readingTestId}:submitted`;
+    const readingSubmittedKey = () => `${R().TESTS.readingTestId}:submitted`;
 
     // -----------------------------
     // Always-new attempt behavior
@@ -124,13 +120,9 @@ const Router = () => window.IELTS.Router;
 
     function showListeningGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
-      // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
-      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
-      if (lastView === "reading" || lastView === "writing") return;
-
 
       showingGate = true;
       safe(() => UI().showOnly("listening"));
@@ -169,14 +161,10 @@ const Router = () => window.IELTS.Router;
 
     function showReadingGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
+      const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
-      // If the user already moved to Writing, do not pull them back to Reading.
-      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
-      if (lastView === "writing") return;
-
 
       showingGate = true;
       safe(() => UI().showOnly("reading"));
@@ -213,11 +201,11 @@ const Router = () => window.IELTS.Router;
     document.addEventListener("reading:submitted", showReadingGate);
 
     // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get(testCfg().listeningKeys.submitted, "false");
+    let lastListen = S().get(R().TESTS.listeningKeys.submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdmin) return;
-      const curListen = S().get(testCfg().listeningKeys.submitted, "false");
+      const curListen = S().get(R().TESTS.listeningKeys.submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
       // If changed to true, run gates
@@ -277,7 +265,7 @@ const Router = () => window.IELTS.Router;
     if (toR) {
       toR.onclick = () => {
         if (!isAdmin) return;
-        const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+        const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
         if (!listeningDone) {
           UI().showOnly("listening");
           Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
@@ -294,7 +282,7 @@ const Router = () => window.IELTS.Router;
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
-        const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
+        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
         const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
         if (!writingStarted && !readingSubmitted) {
           Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });

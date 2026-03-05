@@ -26,7 +26,7 @@
     window.__IELTS_LISTENING_INIT__ = true;
 
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = (R().TESTS?.byId && R().TESTS.byId[activeTestId]) || (R().TESTS?.byId && R().TESTS.byId[R().TESTS.defaultTestId]) || R().TESTS || {};
+    const cfg = R().TESTS.get(activeTestId);
     const L_KEYS = cfg.listeningKeys;
 
     const $ = UI().$;

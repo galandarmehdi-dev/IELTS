@@ -1189,6 +1189,9 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     if ($("submitBtn")) {
       $("submitBtn").addEventListener("click", async () => {
+        // Admin-only: students should NOT see/use the submit button
+        const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
+        if (!isAdmin) return;
         if (hasSubmittedReading) return;
 
         const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");

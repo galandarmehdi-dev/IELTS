@@ -5,13 +5,17 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
+    const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
+    const cfg = R().TESTS.get(activeTestId);
+
     const W = {
-      TEST_ID: R().TESTS.writingTestId,
+      TEST_ID: cfg.writingTestId,
       DURATION_MINUTES: 60,
-      keys: R().TESTS.writingKeys,
+      keys: cfg.writingKeys,
     };
 
     const $ = UI().$;

@@ -10,7 +10,7 @@
   function startWritingSystem() {
     const W = {
       TEST_ID: R().TESTS.writingTestId,
-      DURATION_MINUTES: 60,
+      DURATION_MINUTES: 1,
       keys: R().TESTS.writingKeys,
     };
 
@@ -20,7 +20,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 60;
+    let remainingSeconds = W.DURATION_MINUTES * 1;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));

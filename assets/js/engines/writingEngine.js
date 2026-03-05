@@ -8,37 +8,11 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
-    const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
-
     const W = {
-      TEST_ID: (R().getTestConfig?.(ACTIVE_TEST_ID)?.writingTestId) || R().TESTS.writingTestId,
-      DURATION_MINUTES: 1,
-      keys: (R().keysFor?.(ACTIVE_TEST_ID)?.writing) || R().TESTS.writingKeys,
+      TEST_ID: R().TESTS.writingTestId,
+      DURATION_MINUTES: 60,
+      keys: R().TESTS.writingKeys,
     };
-
-    // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
-    const LEG = R().LEGACY?.writingKeys;
-    try {
-      if (LEG && W.keys && S()) {
-        const pairs = [
-          ["started", "started"],
-          ["submitted", "submitted"],
-          ["remaining", "remaining"],
-          ["answers", "answers"],
-          ["lastSubmission", "lastSubmission"],
-          ["studentName", "studentName"],
-        ];
-        pairs.forEach(([kNew, kOld]) => {
-          const newKey = W.keys[kNew];
-          const oldKey = LEG[kOld];
-          if (!newKey || !oldKey) return;
-          const hasNew = S().get(newKey, null) !== null;
-          const hasOld = S().get(oldKey, null) !== null;
-          if (!hasNew && hasOld) S().set(newKey, S().get(oldKey));
-        });
-      }
-    } catch (e) {}
-
 
     const $ = UI().$;
     const writingSection = $("writingSection");
@@ -172,6 +146,15 @@
       S().set(R().EXAM.keys.finalSubmitted, "true");
 
       UI().lockWholeExamAfterFinalSubmit();
+
+      // Ensure the UI transitions to the Submitted screen immediately (timer-based submit won't reload app.js)
+      try {
+        UI().showOnly?.("submitted");
+        UI().setExamNavStatus?.("Status: Exam submitted");
+      } catch (e) {
+        // no-op: keep submission safe even if UI helpers are unavailable
+      }
+
 
       // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;

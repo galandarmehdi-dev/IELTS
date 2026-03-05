@@ -207,6 +207,9 @@
     const endBtn = $("endExamBtn");
     if (endBtn) {
       endBtn.onclick = () => {
+        // Admin-only: students must not end/submit early via button
+        const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
+        if (!isAdmin) return;
         Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
           mode: "final", // name required
           showCancel: true,

@@ -5,6 +5,7 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {
@@ -19,7 +20,9 @@
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
 
-    const L_KEYS = R().TESTS.listeningKeys;
+    const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
+    const cfg = R().TESTS.get(activeTestId);
+    const L_KEYS = cfg.listeningKeys;
 
     const $ = UI().$;
     const sec = () => $("listeningSection");

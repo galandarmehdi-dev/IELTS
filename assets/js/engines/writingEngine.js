@@ -24,7 +24,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 1;
+    let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
@@ -134,11 +134,12 @@
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
-      const listening = S().getJSON(R().TESTS.listeningKeys.lastSubmission, null);
-      const reading = S().getJSON(`${R().TESTS.readingTestId}:lastSubmission`, null);
+      const listening = S().getJSON(cfg.listeningKeys.lastSubmission, null);
+      const reading = S().getJSON(`${cfg.readingTestId}:lastSubmission`, null);
 
       const finalPayload = {
         examId: R().EXAM.id,
+         testId: cfg.id,
         submittedAt: new Date().toISOString(),
         studentFullName: fullName,
         listening,
@@ -210,6 +211,12 @@
 
     const endBtn = $("endExamBtn");
     if (endBtn) {
+      if (!isAdmin) {
+        endBtn.classList.add("hidden");
+        // students submit only via timer end
+        endBtn.onclick = null;
+        return;
+      }
       endBtn.onclick = () => {
         Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
           mode: "final", // name required

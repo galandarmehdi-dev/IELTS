@@ -12,7 +12,7 @@
 
     const W = {
       TEST_ID: (R().getTestConfig?.(ACTIVE_TEST_ID)?.writingTestId) || R().TESTS.writingTestId,
-      DURATION_MINUTES: 60,
+      DURATION_MINUTES: 1,
       keys: (R().keysFor?.(ACTIVE_TEST_ID)?.writing) || R().TESTS.writingKeys,
     };
 

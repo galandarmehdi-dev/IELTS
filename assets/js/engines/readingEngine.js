@@ -14,7 +14,8 @@
     const $ = UI().$;
 
     // SETTINGS
-    const TEST_ID = R().TESTS.readingTestId;
+    const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
+    const TEST_ID = (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
     const DURATION_MINUTES = 60;
 
     // TIMER/STATE

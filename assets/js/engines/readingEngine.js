@@ -9,20 +9,20 @@
   const Modal = () => window.IELTS.Modal;
 
   function startReadingSystem() {
-    if (window.__IELTS_READING_INIT__) return;
-    // Don't lock init until we've successfully started (prevents 'invisible reading' if a dependency throws)
+    if (window.__IELTS_READING_INIT__ === true || window.__IELTS_READING_INIT__ === "starting") return;
+    // Mark as starting so a mid-init error does not permanently lock Reading in a half-started state.
+    window.__IELTS_READING_INIT__ = "starting";
     try {
       const $ = UI().$;
-      window.__IELTS_READING_INIT__ = true;
 
     // SETTINGS
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = (R().TESTS?.byId && R().TESTS.byId[activeTestId]) || (R().TESTS?.byId && R().TESTS.byId[R().TESTS.defaultTestId]) || R().TESTS || {};
+    const cfg = R().TESTS.get(activeTestId);
     const TEST_ID = cfg.readingTestId;
-    const DURATION_MINUTES = 1;
+    const DURATION_MINUTES = 60;
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 1;
+    let remainingSeconds = DURATION_MINUTES * 60;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;
@@ -1215,6 +1215,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
     startTimer(answersRef);
+
+      window.__IELTS_READING_INIT__ = true;
     } catch (e) {
       console.error('[IELTS] Reading engine failed to start', e);
       window.__IELTS_READING_INIT__ = false;

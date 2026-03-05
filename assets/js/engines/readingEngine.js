@@ -17,12 +17,12 @@
 
     // SETTINGS
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = R().TESTS.get(activeTestId);
+    const cfg = (R().TESTS?.byId && R().TESTS.byId[activeTestId]) || (R().TESTS?.byId && R().TESTS.byId[R().TESTS.defaultTestId]) || R().TESTS || {};
     const TEST_ID = cfg.readingTestId;
     const DURATION_MINUTES = 60;
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 60;
+    let remainingSeconds = DURATION_MINUTES * 1;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;

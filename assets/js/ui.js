@@ -200,6 +200,10 @@ function applyStudentLockdownUI() {
       // Writing
       "downloadWritingBtn",
       "copyWritingBtn",
+
+      // Flow controls (must be admin-only)
+      "submitBtn",
+      "endExamBtn",
     ].forEach((id) => $(id)?.classList.add("hidden"));
   }
   // Hide global exam navigation actions for students

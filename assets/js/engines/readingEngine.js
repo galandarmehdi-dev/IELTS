@@ -19,7 +19,7 @@
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
     const cfg = (R().TESTS?.byId && R().TESTS.byId[activeTestId]) || (R().TESTS?.byId && R().TESTS.byId[R().TESTS.defaultTestId]) || R().TESTS || {};
     const TEST_ID = cfg.readingTestId;
-    const DURATION_MINUTES = 60;
+    const DURATION_MINUTES = 1;
 
     // TIMER/STATE
     let remainingSeconds = DURATION_MINUTES * 1;

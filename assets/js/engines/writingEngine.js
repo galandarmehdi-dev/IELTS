@@ -8,19 +8,10 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
-    // Multi-test safe: use active testId when available, fall back to legacy single-test keys
-    const activeTestId =
-      (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
-      S().get("IELTS:EXAM:activeTestId", "ielts1");
-
-    const K =
-      (typeof R().keysFor === "function" && R().keysFor(activeTestId)) ||
-      R().TESTS; // legacy fallback (single test)
-
     const W = {
-      TEST_ID: K.writingTestId || R().TESTS.writingTestId,
+      TEST_ID: R().TESTS.writingTestId,
       DURATION_MINUTES: 60,
-      keys: K.writingKeys || R().TESTS.writingKeys,
+      keys: R().TESTS.writingKeys,
     };
 
     const $ = UI().$;
@@ -43,7 +34,7 @@
     const wt1Count = $("wt1Count");
     const wt2Count = $("wt2Count");
     const autosaveEl = $("writingAutosave");
-    const timeEl = $("writingTimeLeft");
+    let timeEl = $("writingTimeLeft");
 
     function setAutosave(text) {
       if (!autosaveEl) return;
@@ -139,8 +130,8 @@
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
-      const listening = S().getJSON((K.listeningKeys || R().TESTS.listeningKeys).lastSubmission, null);
-      const reading = S().getJSON(`${K.readingTestId || R().TESTS.readingTestId}:lastSubmission`, null);
+      const listening = S().getJSON(R().TESTS.listeningKeys.lastSubmission, null);
+      const reading = S().getJSON(`${R().TESTS.readingTestId}:lastSubmission`, null);
 
       const finalPayload = {
         examId: R().EXAM.id,
@@ -185,7 +176,7 @@
       const paint = () => {
         const t = UI().formatTime(remainingSeconds);
         if (timeEl) timeEl.textContent = t;
-        UI().setExamNavTimer?.(`Time left: ${t}`);
+        setNavTimer(`Time left: ${t}`);
       };
 
       paint();
@@ -243,7 +234,7 @@
       writingSection.classList.add("view-only");
       const t = UI().formatTime(remainingSeconds);
       if (timeEl) timeEl.textContent = t;
-      UI().setExamNavTimer?.(`Time left: ${t}`);
+      setNavTimer(`Time left: ${t}`);
     } else {
       startTimer();
     }

@@ -19,5 +19,10 @@
   }
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.Router = { setHashRoute, parseHashRoute };
+  function getActiveTestId(defaultId) {
+    const r = parseHashRoute();
+    return (r && r.testId) ? r.testId : (defaultId || (window.IELTS?.Registry?.TESTS?.defaultTestId) || "ielts1");
+  }
+
+  window.IELTS.Router = { setHashRoute, parseHashRoute, getActiveTestId };
 })();

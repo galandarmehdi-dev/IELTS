@@ -8,6 +8,11 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
+  // TEMPORARY TESTING SWITCH
+  // Set to false to restore real exam behavior (students cannot pause/seek).
+  // Later you can replace this with a password/admin toggle.
+  const ALLOW_STUDENT_AUDIO_SEEK = true;
+
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -245,17 +250,12 @@
       if (!aud) return;
 
       const isAdmin = isAdminView();
-      const allowSeekForStudent = (
-        localStorage.getItem('IELTS:DEBUG:ALLOW_SEEK') === 'true' ||
-        window.IELTS?.Registry?.ALLOW_STUDENT_AUDIO_SEEK === true
-      );
 
-      // Students: strict, no pause/seek (real exam).
-      // Temporary testing: set localStorage IELTS:DEBUG:ALLOW_SEEK=true to allow students to scrub the audio timeline.
-      // Admin: always allow full controls.
-      strictActive = !(isAdmin || allowSeekForStudent);
+      // Students: strict, no pause/seek (REAL EXAM).
+      // TEMP TESTING: allow students to use controls/seek so you can test without waiting.
+      strictActive = !isAdmin && !ALLOW_STUDENT_AUDIO_SEEK;
 
-      aud.controls = (isAdmin || allowSeekForStudent);
+      aud.controls = isAdmin || ALLOW_STUDENT_AUDIO_SEEK;
       aud.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
       aud.disablePictureInPicture = true;
 

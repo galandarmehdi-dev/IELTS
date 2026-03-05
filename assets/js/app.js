@@ -30,6 +30,14 @@ const Router = () => window.IELTS.Router;
       return undefined;
     }
   }
+  // Active test helpers (multi-test safe defaults)
+  function getActiveTestId() {
+    return (R()?.getActiveTestId?.() || R()?.TESTS?.defaultTestId || "ielts1");
+  }
+  function setActiveTestId(id) {
+    try { R()?.setActiveTestId?.(id); } catch {}
+  }
+
 
 
   // Start engine method when split bundles load out-of-order.
@@ -192,7 +200,7 @@ const Router = () => window.IELTS.Router;
               showingGate = false;
 
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
               try { UI().showOnly("writing"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 
@@ -322,6 +330,7 @@ const Router = () => window.IELTS.Router;
     // Hash route support (ADMIN ONLY)
     // -----------------------------
     const route = Router().parseHashRoute();
+    if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
     if (isAdmin && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
@@ -363,6 +372,8 @@ const Router = () => window.IELTS.Router;
     // -----------------------------
     const startBtn = $("startIelts1Btn");
     const startBtn2 = $("cardStartIelts1Btn");
+    const startBtnT2 = $("startIelts2Btn");
+    const startBtnT2b = $("cardStartIelts2Btn");
     const contBtn = $("homeContinueBtn");
 
     
@@ -411,8 +422,10 @@ function startFreshExam() {
       }
     }
 
-    if (startBtn) startBtn.onclick = () => requireTestPassword(startFreshExam);
-    if (startBtn2) startBtn2.onclick = () => requireTestPassword(startFreshExam);
+    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); });
+    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); });
+    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); });
+    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); });
     if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)

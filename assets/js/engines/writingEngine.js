@@ -8,10 +8,19 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
+    // Multi-test safe: use active testId when available, fall back to legacy single-test keys
+    const activeTestId =
+      (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
+      S().get("IELTS:EXAM:activeTestId", "ielts1");
+
+    const K =
+      (typeof R().keysFor === "function" && R().keysFor(activeTestId)) ||
+      R().TESTS; // legacy fallback (single test)
+
     const W = {
-      TEST_ID: R().TESTS.writingTestId,
-      DURATION_MINUTES: 1,
-      keys: R().TESTS.writingKeys,
+      TEST_ID: K.writingTestId || R().TESTS.writingTestId,
+      DURATION_MINUTES: 60,
+      keys: K.writingKeys || R().TESTS.writingKeys,
     };
 
     const $ = UI().$;
@@ -130,8 +139,8 @@
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
-      const listening = S().getJSON(R().TESTS.listeningKeys.lastSubmission, null);
-      const reading = S().getJSON(`${R().TESTS.readingTestId}:lastSubmission`, null);
+      const listening = S().getJSON((K.listeningKeys || R().TESTS.listeningKeys).lastSubmission, null);
+      const reading = S().getJSON(`${K.readingTestId || R().TESTS.readingTestId}:lastSubmission`, null);
 
       const finalPayload = {
         examId: R().EXAM.id,
@@ -146,15 +155,6 @@
       S().set(R().EXAM.keys.finalSubmitted, "true");
 
       UI().lockWholeExamAfterFinalSubmit();
-
-      // Ensure the UI transitions to the Submitted screen immediately (timer-based submit won't reload app.js)
-      try {
-        UI().showOnly?.("submitted");
-        UI().setExamNavStatus?.("Status: Exam submitted");
-      } catch (e) {
-        // no-op: keep submission safe even if UI helpers are unavailable
-      }
-
 
       // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;

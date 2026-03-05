@@ -14,7 +14,7 @@
 
     const W = {
       TEST_ID: cfg.writingTestId,
-      DURATION_MINUTES: 60,
+      DURATION_MINUTES: 1,
       keys: cfg.writingKeys,
     };
 

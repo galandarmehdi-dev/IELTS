@@ -49,7 +49,9 @@ body[data-view-mode="student"] #copyListeningBtn,
 body[data-view-mode="student"] #downloadBtn,
 body[data-view-mode="student"] #copyBtn,
 body[data-view-mode="student"] #downloadWritingBtn,
-body[data-view-mode="student"] #copyWritingBtn {
+body[data-view-mode="student"] #copyWritingBtn,
+body[data-view-mode="student"] #submitBtn,
+body[data-view-mode="student"] #endExamBtn {
   display: none !important;
 }
 

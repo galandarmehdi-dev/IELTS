@@ -9,6 +9,9 @@
     // Admin-only controls (client-side gate)
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240; // admin stays enabled for 4 hours on this browser
+  // TEMP: allow students to scrub Listening audio for testing (set to false to disable)
+  const TEMP_STUDENT_AUDIO_SCRUB = true;
+
   const EXAM = {
     id: "ielts-full-001",
     keys: {
@@ -44,5 +47,5 @@
   };
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.Registry = { ADMIN_ENDPOINT, ADMIN_PASSCODE, ADMIN_SESSION_TTL_MIN, EXAM, KEYS, TESTS };
+  window.IELTS.Registry = { ADMIN_ENDPOINT, ADMIN_PASSCODE, ADMIN_SESSION_TTL_MIN, EXAM, KEYS, TESTS, TEMP_STUDENT_AUDIO_SCRUB };
 })();

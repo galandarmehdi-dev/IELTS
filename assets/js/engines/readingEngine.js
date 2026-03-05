@@ -15,7 +15,7 @@
 
     // SETTINGS
     const TEST_ID = R().TESTS.readingTestId;
-    const DURATION_MINUTES = 1;
+    const DURATION_MINUTES = 60;
 
     // TIMER/STATE
     let remainingSeconds = DURATION_MINUTES * 60;

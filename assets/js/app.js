@@ -123,6 +123,10 @@ const Router = () => window.IELTS.Router;
       const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
+      // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
+      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
+      if (lastView === "reading" || lastView === "writing") return;
+
 
       showingGate = true;
       safe(() => UI().showOnly("listening"));
@@ -136,15 +140,16 @@ const Router = () => window.IELTS.Router;
             mode: "gate",
                         submitText: "Start Reading",
             onConfirm: async () => {
-              showingGate = false;
+              // Mark that the user has moved on immediately to prevent any “gate loop” pulling them back.
+              try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (e) {}
 
+              // Keep the gate locked until we have attempted to start Reading.
+              // (If listening:submitted fires again for any reason, showListeningGate will ignore it.)
               // Move to Reading view first, then start the engine (more reliable).
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
 
-              // Start engine (retry briefly if split bundle not ready yet)
               try {
                 await startEngineWhenReady("Reading", "startReadingSystem");
               } catch (e) {
@@ -152,6 +157,8 @@ const Router = () => window.IELTS.Router;
                 try {
                   window.alert("Reading failed to start. Please refresh the page and try again.");
                 } catch (_) {}
+              } finally {
+                showingGate = false;
               }
             },
           }
@@ -165,6 +172,10 @@ const Router = () => window.IELTS.Router;
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
+      // If the user already moved to Writing, do not pull them back to Reading.
+      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
+      if (lastView === "writing") return;
+
 
       showingGate = true;
       safe(() => UI().showOnly("reading"));

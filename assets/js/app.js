@@ -320,9 +320,13 @@ const Router = () => window.IELTS.Router;
     }
 
     // -----------------------------
-    // Hash route support (ADMIN ONLY)
+    // Hash route support
+    // - Admin: can jump anywhere.
+    // - Student: can resume only allowed views (prevents being stuck on /reading with no timer).
     // -----------------------------
     const route = Router().parseHashRoute();
+
+    // Admin: full access
     if (isAdmin && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
@@ -345,6 +349,67 @@ const Router = () => window.IELTS.Router;
         UI().setExamNavStatus("Status: Viewing Writing");
         return;
       }
+      if (route.view === "home") {
+        UI().showOnly("home");
+        UI().updateHomeStatusLine();
+        UI().setExamNavStatus("Status: Home");
+        return;
+      }
+    }
+
+    // Student: resume allowed view safely
+    if (!isAdmin && route && route.view) {
+      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const readingDone = S().get(readingSubmittedKey(), "false") === "true";
+
+      if (route.view === "listening") {
+        UI().setExamStarted(true);
+        // init listening system (won't re-init if already started)
+        safe(() => window.IELTS.Engines.Listening.initListeningSystem());
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Listening in progress");
+        return;
+      }
+
+      if (route.view === "reading") {
+        // Only allow Reading if Listening was submitted
+        if (!listeningDone) {
+          UI().showOnly("listening");
+          UI().setExamNavStatus("Status: Listening in progress");
+          safe(() => Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" }));
+          return;
+        }
+        UI().setExamStarted(true);
+        // Start reading engine so timer begins (prevents 'stuck in reading')
+        safe(() => window.IELTS.Engines.Reading.startReadingSystem());
+        UI().showOnly("reading");
+        UI().setExamNavStatus("Status: Reading in progress");
+        return;
+      }
+
+      if (route.view === "writing") {
+        // Only allow Writing if Reading was submitted
+        if (!listeningDone) {
+          UI().showOnly("listening");
+          UI().setExamNavStatus("Status: Listening in progress");
+          safe(() => Modal().showModal("Writing locked", "You must finish Listening before opening Writing.", { mode: "confirm" }));
+          return;
+        }
+        if (!readingDone) {
+          UI().showOnly("reading");
+          UI().setExamNavStatus("Status: Reading in progress");
+          safe(() => Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" }));
+          // Make sure reading engine is running if they refreshed here
+          safe(() => window.IELTS.Engines.Reading.startReadingSystem());
+          return;
+        }
+        UI().setExamStarted(true);
+        safe(() => window.IELTS.Engines.Writing.startWritingSystem());
+        UI().showOnly("writing");
+        UI().setExamNavStatus("Status: Writing in progress");
+        return;
+      }
+
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();

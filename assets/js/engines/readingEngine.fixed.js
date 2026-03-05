@@ -5,21 +5,17 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
-  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
-    // Don't lock init until we've successfully started (prevents 'invisible reading' if a dependency throws)
-    try {
-      const $ = UI().$;
-      window.__IELTS_READING_INIT__ = true;
+    window.__IELTS_READING_INIT__ = true;
+
+    const $ = UI().$;
 
     // SETTINGS
-    const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = R().TESTS.get(activeTestId);
-    const TEST_ID = cfg.readingTestId;
-    const DURATION_MINUTES = 60;
+    const TEST_ID = R().TESTS.readingTestId;
+    const DURATION_MINUTES = 1;
 
     // TIMER/STATE
     let remainingSeconds = DURATION_MINUTES * 60;
@@ -1192,11 +1188,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     if ($("submitBtn")) {
-      if (!isAdmin) {
-        $("submitBtn").classList.add("hidden");
-      }
       $("submitBtn").addEventListener("click", async () => {
-        if (!isAdmin) return;
         if (hasSubmittedReading) return;
 
         const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");
@@ -1214,11 +1206,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
+
     startTimer(answersRef);
-    } catch (e) {
-      console.error('[IELTS] Reading engine failed to start', e);
-      window.__IELTS_READING_INIT__ = false;
-    }
   }
 
   window.IELTS = window.IELTS || {};

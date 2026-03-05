@@ -9,13 +9,11 @@
   const Modal = () => window.IELTS.Modal;
 
   function startReadingSystem() {
-    // Robust init guard:
-    // - "starting" prevents double-start
-    // - do NOT permanently set true until we've successfully reached timer start
-    if (window.__IELTS_READING_INIT__ === true || window.__IELTS_READING_INIT__ === "starting") return;
-    window.__IELTS_READING_INIT__ = "starting";
+    if (window.__IELTS_READING_INIT__) return;
+    // Don't lock init until we've successfully started (prevents 'invisible reading' if a dependency throws)
     try {
       const $ = UI().$;
+      window.__IELTS_READING_INIT__ = true;
 
     // SETTINGS
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
@@ -1216,9 +1214,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
-
-    // Mark init as successful only right before starting timer.
-    window.__IELTS_READING_INIT__ = true;
     startTimer(answersRef);
     } catch (e) {
       console.error('[IELTS] Reading engine failed to start', e);

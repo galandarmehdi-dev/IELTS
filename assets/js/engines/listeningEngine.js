@@ -5,9 +5,8 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
-  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
-
+ 
   // TEMPORARY TESTING SWITCH
   // Set to false to restore real exam behavior (students cannot pause/seek).
   // Later you can replace this with a password/admin toggle.
@@ -25,9 +24,7 @@
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
 
-    const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = R().TESTS.get(activeTestId);
-    const L_KEYS = cfg.listeningKeys;
+    const L_KEYS = R().TESTS.listeningKeys;
 
     const $ = UI().$;
     const sec = () => $("listeningSection");
@@ -248,50 +245,14 @@
 
     function enableStrictAudio(aud) {
       if (!aud) return;
+      strictActive = true;
 
-      const isAdmin = isAdminView();
-
-      // Students: strict, no pause/seek (REAL EXAM).
-      // TEMP TESTING: allow students to use controls/seek so you can test without waiting.
-      strictActive = !isAdmin && !ALLOW_STUDENT_AUDIO_SEEK;
-
-      aud.controls = isAdmin || ALLOW_STUDENT_AUDIO_SEEK;
+      aud.controls = false;
       aud.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
       aud.disablePictureInPicture = true;
 
       lastGoodTime = aud.currentTime || 0;
 
-      // Always: autosave periodically + detect end of audio.
-      aud.addEventListener("timeupdate", () => {
-        if (submitted) return;
-        const t = aud.currentTime || 0;
-
-        // Student anti-seek protection
-        if (strictActive) {
-          if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
-            try { aud.currentTime = lastGoodTime; } catch {}
-            return;
-          }
-        }
-
-        lastGoodTime = t;
-
-        if (Math.floor(t) % 5 === 0) saveListeningAnswers();
-      });
-
-      aud.addEventListener("ended", () => {
-        if (submitted) return;
-        startTransferTime();
-      });
-
-      if (!strictActive) {
-        // Admin: allow pause/seek/keyboard freely.
-        return;
-      }
-
-      // -----------------------
-      // Student-only restrictions
-      // -----------------------
       aud.addEventListener("pause", () => {
         if (!strictActive || submitted) return;
         if (aud.ended) return;
@@ -304,6 +265,24 @@
         if (now < ignoreSeekUntil) return;
         ignoreSeekUntil = now + 200;
         try { aud.currentTime = lastGoodTime; } catch {}
+      });
+
+      aud.addEventListener("timeupdate", () => {
+        if (!strictActive || submitted) return;
+        const t = aud.currentTime || 0;
+
+        if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
+          try { aud.currentTime = lastGoodTime; } catch {}
+          return;
+        }
+        lastGoodTime = t;
+
+        if (Math.floor(t) % 5 === 0) saveListeningAnswers();
+      });
+
+      aud.addEventListener("ended", () => {
+        if (submitted) return;
+        startTransferTime();
       });
 
       window.addEventListener(

@@ -12,7 +12,7 @@
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = window.IELTS.Registry || {};
   window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
-  const Router = () => window.IELTS.Router;
+const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {
@@ -79,28 +79,11 @@
     const $ = UI().$;
 
     // Active test helper (supports Test 1 + Test 2)
-    const activeTestId = () =>
-      (Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) ||
-        R().TESTS?.defaultTestId ||
-        "ielts1");
+    const activeTestId = () => (Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1"));
+    const testCfg = () => (R().TESTS?.get ? R().TESTS.get(activeTestId()) : { readingTestId: R().TESTS.readingTestId, listeningKeys: R().TESTS.listeningKeys, writingKeys: R().TESTS.writingKeys });
 
-    // Registry supports either:
-    // - New shape: R().TESTS.byId[testId]
-    // - Old shape: R().TESTS = { readingTestId, listeningKeys, writingKeys, ... }
-    const testCfg = () => {
-      const tests = R().TESTS || {};
-      if (tests.byId) {
-        return tests.byId[activeTestId()] || tests.byId[tests.defaultTestId] || {};
-      }
-      return tests;
-    };
-
-    // Safe key helpers (never throw)
-    const listeningKeys = () => testCfg().listeningKeys || {};
-    const writingKeys = () => testCfg().writingKeys || {};
-    const readingTestId = () => testCfg().readingTestId || "ielts-reading-unknown";
-
-    const readingSubmittedKey = () => `${readingTestId()}:submitted`;
+    // Key helpers
+    const readingSubmittedKey = () => `${testCfg().readingTestId}:submitted`;
 
     // -----------------------------
     // Always-new attempt behavior
@@ -141,7 +124,7 @@
 
     function showListeningGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
+      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
       // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
@@ -165,13 +148,13 @@
 
               // Move to Reading view first, then start the engine (more reliable).
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "reading"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
 
               // Start engine (retry briefly if split bundle not ready yet)
               try {
-                await startEngineWhenReady("Reading", "startReadingSystem");
+                await startEngineWhenReady("Reading", "startReadingSystem", { maxMs: 15000 });
               } catch (e) {
                 // Visible fallback: keep user on Reading screen even if engine failed.
                 try {
@@ -186,9 +169,9 @@
 
     function showReadingGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
+      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get(writingKeys().started, "false") === "true";
+      const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
       // If the user already moved to Writing, do not pull them back to Reading.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
@@ -210,12 +193,12 @@
               showingGate = false;
 
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "writing"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
               try { UI().showOnly("writing"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 
               try {
-                await startEngineWhenReady("Writing", "startWritingSystem");
+                await startEngineWhenReady("Writing", "startWritingSystem", { maxMs: 15000 });
               } catch (e) {
                 try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
               }
@@ -230,11 +213,11 @@
     document.addEventListener("reading:submitted", showReadingGate);
 
     // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get(listeningKeys().submitted, "false");
+    let lastListen = S().get(testCfg().listeningKeys.submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdmin) return;
-      const curListen = S().get(listeningKeys().submitted, "false");
+      const curListen = S().get(testCfg().listeningKeys.submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
       // If changed to true, run gates
@@ -294,7 +277,7 @@
     if (toR) {
       toR.onclick = () => {
         if (!isAdmin) return;
-        const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
+        const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
         if (!listeningDone) {
           UI().showOnly("listening");
           Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
@@ -311,7 +294,7 @@
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
-        const writingStarted = S().get(writingKeys().started, "false") === "true";
+        const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
         const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
         if (!writingStarted && !readingSubmitted) {
           Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
@@ -337,13 +320,9 @@
     }
 
     // -----------------------------
-    // Hash route support
-    // - Admin: can jump anywhere.
-    // - Student: can resume only allowed views (prevents being stuck on /reading with no timer).
+    // Hash route support (ADMIN ONLY)
     // -----------------------------
     const route = Router().parseHashRoute();
-
-    // Admin: full access
     if (isAdmin && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
@@ -366,67 +345,6 @@
         UI().setExamNavStatus("Status: Viewing Writing");
         return;
       }
-      if (route.view === "home") {
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-        return;
-      }
-    }
-
-    // Student: resume allowed view safely
-    if (!isAdmin && route && route.view) {
-      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
-      const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-
-      if (route.view === "listening") {
-        UI().setExamStarted(true);
-        // init listening system (won't re-init if already started)
-        safe(() => window.IELTS.Engines.Listening.initListeningSystem());
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening in progress");
-        return;
-      }
-
-      if (route.view === "reading") {
-        // Only allow Reading if Listening was submitted
-        if (!listeningDone) {
-          UI().showOnly("listening");
-          UI().setExamNavStatus("Status: Listening in progress");
-          safe(() => Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" }));
-          return;
-        }
-        UI().setExamStarted(true);
-        // Start reading engine so timer begins (prevents 'stuck in reading')
-        safe(() => window.IELTS.Engines.Reading.startReadingSystem());
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Reading in progress");
-        return;
-      }
-
-      if (route.view === "writing") {
-        // Only allow Writing if Reading was submitted
-        if (!listeningDone) {
-          UI().showOnly("listening");
-          UI().setExamNavStatus("Status: Listening in progress");
-          safe(() => Modal().showModal("Writing locked", "You must finish Listening before opening Writing.", { mode: "confirm" }));
-          return;
-        }
-        if (!readingDone) {
-          UI().showOnly("reading");
-          UI().setExamNavStatus("Status: Reading in progress");
-          safe(() => Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" }));
-          // Make sure reading engine is running if they refreshed here
-          safe(() => window.IELTS.Engines.Reading.startReadingSystem());
-          return;
-        }
-        UI().setExamStarted(true);
-        safe(() => window.IELTS.Engines.Writing.startWritingSystem());
-        UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Writing in progress");
-        return;
-      }
-
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();

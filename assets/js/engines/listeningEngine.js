@@ -19,7 +19,31 @@
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
 
-    const L_KEYS = R().TESTS.listeningKeys;
+    const testId = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
+    const L_KEYS = (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
+
+    // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
+    const LEG = R().LEGACY?.listeningKeys;
+    try {
+      if (LEG && L_KEYS && S()) {
+        const pairs = [
+          ["submitted", "submitted"],
+          ["started", "started"],
+          ["answers", "answers"],
+          ["lastSubmission", "lastSubmission"],
+          ["pageIndex", "pageIndex"],
+        ];
+        pairs.forEach(([kNew, kOld]) => {
+          const newKey = L_KEYS[kNew];
+          const oldKey = LEG[kOld];
+          if (!newKey || !oldKey) return;
+          const hasNew = S().get(newKey, null) !== null;
+          const hasOld = S().get(oldKey, null) !== null;
+          if (!hasNew && hasOld) S().set(newKey, S().get(oldKey));
+        });
+      }
+    } catch (e) {}
+
 
     const $ = UI().$;
     const sec = () => $("listeningSection");

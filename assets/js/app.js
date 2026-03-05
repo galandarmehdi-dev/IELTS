@@ -87,7 +87,7 @@ const Router = () => window.IELTS.Router;
     const $ = UI().$;
 
     // Key helpers
-    const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };
+    const readingSubmittedKey = () => `${R().TESTS.readingTestId}:submitted`;
 
     // -----------------------------
     // Always-new attempt behavior
@@ -95,7 +95,7 @@ const Router = () => window.IELTS.Router;
     function clearAllStudentAttemptKeys() {
       // Keep admin session, wipe everything else that belongs to attempts.
       try {
-        const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId"]);
+        const keep = new Set(["IELTS:ADMIN:session"]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
@@ -128,7 +128,7 @@ const Router = () => window.IELTS.Router;
 
     function showListeningGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
+      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
       // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
@@ -176,9 +176,9 @@ const Router = () => window.IELTS.Router;
 
     function showReadingGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
+      const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
+      const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
       // If the user already moved to Writing, do not pull them back to Reading.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
@@ -220,11 +220,11 @@ const Router = () => window.IELTS.Router;
     document.addEventListener("reading:submitted", showReadingGate);
 
     // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
+    let lastListen = S().get(R().TESTS.listeningKeys.submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdmin) return;
-      const curListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
+      const curListen = S().get(R().TESTS.listeningKeys.submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
       // If changed to true, run gates
@@ -284,7 +284,7 @@ const Router = () => window.IELTS.Router;
     if (toR) {
       toR.onclick = () => {
         if (!isAdmin) return;
-        const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
+        const listeningDone = S().get(R().TESTS.listeningKeys.submitted, "false") === "true";
         if (!listeningDone) {
           UI().showOnly("listening");
           Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
@@ -301,7 +301,7 @@ const Router = () => window.IELTS.Router;
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
-        const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
+        const writingStarted = S().get(R().TESTS.writingKeys.started, "false") === "true";
         const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
         if (!writingStarted && !readingSubmitted) {
           Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
@@ -409,7 +409,7 @@ function startFreshExam() {
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());
       safe(() => UI().showOnly("listening"));
       safe(() => UI().setExamNavStatus("Status: Listening in progress"));
-      safe(() => window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"));
+      safe(() => window.IELTS?.Router?.setHashRoute?.("ielts1", "listening"));
 
       // if audio already bound, ensure fallback ended listener exists
       const a = document.getElementById("listeningAudio");
@@ -422,10 +422,10 @@ function startFreshExam() {
       }
     }
 
-    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
-    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
+    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); });
+    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); });
+    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); });
+    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); });
     if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)

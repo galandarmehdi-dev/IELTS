@@ -12,7 +12,7 @@
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = window.IELTS.Registry || {};
   window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
-const Router = () => window.IELTS.Router;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {
@@ -79,11 +79,28 @@ const Router = () => window.IELTS.Router;
     const $ = UI().$;
 
     // Active test helper (supports Test 1 + Test 2)
-    const activeTestId = () => (Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1"));
-    const testCfg = () => (R().TESTS?.get ? R().TESTS.get(activeTestId()) : { readingTestId: R().TESTS.readingTestId, listeningKeys: R().TESTS.listeningKeys, writingKeys: R().TESTS.writingKeys });
+    const activeTestId = () =>
+      (Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) ||
+        R().TESTS?.defaultTestId ||
+        "ielts1");
 
-    // Key helpers
-    const readingSubmittedKey = () => `${testCfg().readingTestId}:submitted`;
+    // Registry supports either:
+    // - New shape: R().TESTS.byId[testId]
+    // - Old shape: R().TESTS = { readingTestId, listeningKeys, writingKeys, ... }
+    const testCfg = () => {
+      const tests = R().TESTS || {};
+      if (tests.byId) {
+        return tests.byId[activeTestId()] || tests.byId[tests.defaultTestId] || {};
+      }
+      return tests;
+    };
+
+    // Safe key helpers (never throw)
+    const listeningKeys = () => testCfg().listeningKeys || {};
+    const writingKeys = () => testCfg().writingKeys || {};
+    const readingTestId = () => testCfg().readingTestId || "ielts-reading-unknown";
+
+    const readingSubmittedKey = () => `${readingTestId()}:submitted`;
 
     // -----------------------------
     // Always-new attempt behavior
@@ -124,7 +141,7 @@ const Router = () => window.IELTS.Router;
 
     function showListeningGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
       // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
@@ -148,7 +165,7 @@ const Router = () => window.IELTS.Router;
 
               // Move to Reading view first, then start the engine (more reliable).
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "reading"); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
 
@@ -169,9 +186,9 @@ const Router = () => window.IELTS.Router;
 
     function showReadingGate() {
       if (isAdmin || showingGate) return;
-      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
+      const writingStarted = S().get(writingKeys().started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
       // If the user already moved to Writing, do not pull them back to Reading.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
@@ -193,7 +210,7 @@ const Router = () => window.IELTS.Router;
               showingGate = false;
 
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "writing"); } catch (e) {}
               try { UI().showOnly("writing"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 
@@ -213,11 +230,11 @@ const Router = () => window.IELTS.Router;
     document.addEventListener("reading:submitted", showReadingGate);
 
     // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get(testCfg().listeningKeys.submitted, "false");
+    let lastListen = S().get(listeningKeys().submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdmin) return;
-      const curListen = S().get(testCfg().listeningKeys.submitted, "false");
+      const curListen = S().get(listeningKeys().submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
       // If changed to true, run gates
@@ -277,7 +294,7 @@ const Router = () => window.IELTS.Router;
     if (toR) {
       toR.onclick = () => {
         if (!isAdmin) return;
-        const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+        const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
         if (!listeningDone) {
           UI().showOnly("listening");
           Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
@@ -294,7 +311,7 @@ const Router = () => window.IELTS.Router;
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
-        const writingStarted = S().get(testCfg().writingKeys.started, "false") === "true";
+        const writingStarted = S().get(writingKeys().started, "false") === "true";
         const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
         if (!writingStarted && !readingSubmitted) {
           Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
@@ -359,7 +376,7 @@ const Router = () => window.IELTS.Router;
 
     // Student: resume allowed view safely
     if (!isAdmin && route && route.view) {
-      const listeningDone = S().get(testCfg().listeningKeys.submitted, "false") === "true";
+      const listeningDone = S().get(listeningKeys().submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
 
       if (route.view === "listening") {

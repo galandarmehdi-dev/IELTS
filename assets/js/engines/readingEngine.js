@@ -14,7 +14,9 @@
     const $ = UI().$;
 
     // SETTINGS
-    const TEST_ID = R().TESTS.readingTestId;
+    const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
+    const cfg = R().TESTS.get(activeTestId);
+    const TEST_ID = cfg.readingTestId;
     const DURATION_MINUTES = 1;
 
     // TIMER/STATE

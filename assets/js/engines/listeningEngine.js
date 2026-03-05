@@ -245,24 +245,17 @@
       if (!aud) return;
 
       const isAdmin = isAdminView();
+      const allowSeekForStudent = (
+        localStorage.getItem('IELTS:DEBUG:ALLOW_SEEK') === 'true' ||
+        window.IELTS?.Registry?.ALLOW_STUDENT_AUDIO_SEEK === true
+      );
 
-      // TEMP DEBUG: allow students to seek during testing.
-      // Enable by setting either:
-      // 1) window.IELTS.Registry.ALLOW_STUDENT_AUDIO_SEEK = true
-      // 2) localStorage.setItem('IELTS:DEBUG:ALLOW_SEEK','true')
-      const allowStudentSeek = (() => {
-        try {
-          if (window.IELTS?.Registry?.ALLOW_STUDENT_AUDIO_SEEK === true) return true;
-          return (S().get("IELTS:DEBUG:ALLOW_SEEK", "false") === "true");
-        } catch {
-          return false;
-        }
-      })();
+      // Students: strict, no pause/seek (real exam).
+      // Temporary testing: set localStorage IELTS:DEBUG:ALLOW_SEEK=true to allow students to scrub the audio timeline.
+      // Admin: always allow full controls.
+      strictActive = !(isAdmin || allowSeekForStudent);
 
-      // Students: strict, no pause/seek. Admin: allow full controls (seek forward/back).
-      strictActive = !isAdmin && !allowStudentSeek;
-
-      aud.controls = isAdmin || allowStudentSeek;
+      aud.controls = (isAdmin || allowSeekForStudent);
       aud.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
       aud.disablePictureInPicture = true;
 

@@ -34,7 +34,7 @@ const Router = () => window.IELTS.Router;
 
   // Start engine method when split bundles load out-of-order.
   // Retries for a short period, and logs failures instead of silently swallowing them.
-  function startEngineWhenReady(engineName, methodName, { maxMs = 15000, intervalMs = 100 } = {}) {
+  function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
     const startAt = Date.now();
     return new Promise((resolve, reject) => {
       const tick = () => {
@@ -148,7 +148,7 @@ const Router = () => window.IELTS.Router;
 
               // Move to Reading view first, then start the engine (more reliable).
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "reading"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "reading"); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
 
@@ -193,7 +193,7 @@ const Router = () => window.IELTS.Router;
               showingGate = false;
 
               try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.(activeTestId(), "writing"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
               try { UI().showOnly("writing"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 

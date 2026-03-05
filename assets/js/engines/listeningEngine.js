@@ -246,10 +246,23 @@
 
       const isAdmin = isAdminView();
 
-      // Students: strict, no pause/seek. Admin: allow full controls (seek forward/back).
-      strictActive = !isAdmin;
+      // TEMP DEBUG: allow students to seek during testing.
+      // Enable by setting either:
+      // 1) window.IELTS.Registry.ALLOW_STUDENT_AUDIO_SEEK = true
+      // 2) localStorage.setItem('IELTS:DEBUG:ALLOW_SEEK','true')
+      const allowStudentSeek = (() => {
+        try {
+          if (window.IELTS?.Registry?.ALLOW_STUDENT_AUDIO_SEEK === true) return true;
+          return (S().get("IELTS:DEBUG:ALLOW_SEEK", "false") === "true");
+        } catch {
+          return false;
+        }
+      })();
 
-      aud.controls = isAdmin;
+      // Students: strict, no pause/seek. Admin: allow full controls (seek forward/back).
+      strictActive = !isAdmin && !allowStudentSeek;
+
+      aud.controls = isAdmin || allowStudentSeek;
       aud.setAttribute("controlsList", "nodownload noplaybackrate noremoteplayback");
       aud.disablePictureInPicture = true;
 

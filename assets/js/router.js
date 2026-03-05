@@ -3,7 +3,7 @@
   "use strict";
 
   function setHashRoute(testId, view) {
-    const safeTest = encodeURIComponent(testId || "ielts1");
+    const safeTest = encodeURIComponent(testId || (window.IELTS?.Registry?.getActiveTestId?.() || window.IELTS?.Registry?.TESTS?.defaultTestId || "ielts1"));
     const safeView = encodeURIComponent(view || "home");
     const newHash = `#/` + safeTest + `/` + safeView;
     if (location.hash !== newHash) location.hash = newHash;

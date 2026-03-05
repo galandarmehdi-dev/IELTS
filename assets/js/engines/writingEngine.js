@@ -10,11 +10,11 @@
 
   function startWritingSystem() {
     const activeTestId = Router()?.getActiveTestId?.(R().TESTS?.defaultTestId) || (R().TESTS?.defaultTestId || "ielts1");
-    const cfg = (R().TESTS?.byId && R().TESTS.byId[activeTestId]) || (R().TESTS?.byId && R().TESTS.byId[R().TESTS.defaultTestId]) || R().TESTS || {};
+    const cfg = R().TESTS.get(activeTestId);
 
     const W = {
       TEST_ID: cfg.writingTestId,
-      DURATION_MINUTES: 1,
+      DURATION_MINUTES: 60,
       keys: cfg.writingKeys,
     };
 
@@ -24,7 +24,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 1;
+    let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));

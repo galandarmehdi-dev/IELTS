@@ -36,6 +36,32 @@
     const autosaveEl = $("writingAutosave");
     let timeEl = $("writingTimeLeft");
 
+    // Self-healing timer element: if the HTML timer node is missing, create it in the sticky header.
+    function ensureTimeEl() {
+      if (timeEl && timeEl.isConnected) return timeEl;
+      // Try to locate a suitable container (preferred: .writing-meta inside the sticky header)
+      const top = writingSection.querySelector(".writing-top") || writingSection.querySelector(".writing-shell .writing-top");
+      const meta = writingSection.querySelector(".writing-meta") || (top ? top.querySelector(".writing-meta") : null);
+
+      const host = meta || top || writingSection;
+      if (!host) return null;
+
+      // If a timer span exists (even without id), reuse it
+      let existing = host.querySelector("#writingTimeLeft");
+      if (!existing) {
+        existing = document.createElement("span");
+        existing.id = "writingTimeLeft";
+        existing.className = "writing-timer";
+        existing.textContent = "00:00";
+        // If meta exists, put timer first so it's always visible
+        if (host === meta) host.prepend(existing);
+        else host.appendChild(existing);
+      }
+
+      timeEl = existing;
+      return timeEl;
+    }
+
     function setAutosave(text) {
       if (!autosaveEl) return;
       autosaveEl.textContent = text;
@@ -174,9 +200,10 @@
 
     function startTimer() {
       const paint = () => {
+        ensureTimeEl();
         const t = UI().formatTime(remainingSeconds);
         if (timeEl) timeEl.textContent = t;
-        setNavTimer(`Time left: ${t}`);
+        UI().setExamNavTimer?.(`Time left: ${t}`);
       };
 
       paint();
@@ -232,9 +259,10 @@
 
     if (hasSubmitted) {
       writingSection.classList.add("view-only");
+      ensureTimeEl();
       const t = UI().formatTime(remainingSeconds);
       if (timeEl) timeEl.textContent = t;
-      setNavTimer(`Time left: ${t}`);
+      UI().setExamNavTimer?.(`Time left: ${t}`);
     } else {
       startTimer();
     }

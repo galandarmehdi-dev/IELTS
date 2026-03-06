@@ -204,7 +204,7 @@
 
     // Writing timer must appear only in the pinned top exam bar
     UI().setExamNavStatus?.("Status: Writing in progress");
-    UI().setExamNavTimer?.(`Time left: ${t}`);
+    UI().setExamNavTimer?.(t);
   };
 
   paint();
@@ -262,7 +262,7 @@
   writingSection.classList.add("view-only");
   const t = UI().formatTime(remainingSeconds);
   UI().setExamNavStatus?.("Status: Writing in progress");
-  UI().setExamNavTimer?.(`Time left: ${t}`);
+  UI().setExamNavTimer?.(t);
 } else {
   startTimer();
 }

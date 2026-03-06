@@ -5,7 +5,7 @@
   // Your Google Apps Script endpoint (kept)
   const ADMIN_ENDPOINT =
     "https://script.google.com/macros/s/AKfycbw59JBOlHSGv1H_VczEpFyc5LsefYryR-eU7fkNBG9eglkeh-6BeCJZl3cPWxoq-O11Zw/exec";
-
+ 
   // Admin-only controls (client-side gate)
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240; // admin stays enabled for 4 hours on this browser

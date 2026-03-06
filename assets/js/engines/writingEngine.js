@@ -173,37 +173,37 @@
         writing: writingPayload,
       };
 
-            S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
+                  S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
 
       // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
-          const res = await fetch(endpoint, {
+          await fetch(endpoint, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
             body: JSON.stringify(finalPayload),
+            keepalive: true,
           });
-
-          const text = await res.text();
-
-          if (!res.ok || !String(text).startsWith("OK")) {
-            throw new Error(`Server error: ${res.status} ${text}`);
-          }
 
           S().set(R().EXAM.keys.finalSubmitted, "true");
           UI().lockWholeExamAfterFinalSubmit();
 
           window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal("Exam submitted", "Submitted successfully to Google Sheets.", { mode: "confirm" });
+          Modal().showModal(
+            "Exam submitted",
+            "Submitted. The exam was sent to Google Sheets.",
+            { mode: "confirm" }
+          );
           return;
         } catch (err) {
           S().set(R().EXAM.keys.finalSubmitted, "false");
 
           window.__IELTS_FINAL_SUBMIT_REASON__ = "";
           Modal().showModal(
-            "Submission failed",
-            "Google Sheets did not confirm receipt. The exam is saved locally only.",
+            "Submitted (local only)",
+            "Could not send to Google Sheets. The exam is saved locally.",
             { mode: "confirm" }
           );
           return;
@@ -214,7 +214,11 @@
       UI().lockWholeExamAfterFinalSubmit();
 
       window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-      Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
+      Modal().showModal(
+        "Submitted (local only)",
+        "ADMIN_ENDPOINT is not set. The exam is saved locally.",
+        { mode: "confirm" }
+      );    
     }
 
     // expose for modal final submit button

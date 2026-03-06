@@ -8,19 +8,26 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
-    // Multi-test safe: use active testId when available, fall back to legacy single-test keys
+    // Multi-test safe: resolve config + keys separately so writing timer/storage always exists.
     const activeTestId =
       (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
-      S().get("IELTS:EXAM:activeTestId", "ielts1");
+      S().get("IELTS:EXAM:activeTestId", R().TESTS?.defaultTestId || "ielts1");
 
-    const K =
-      (typeof R().keysFor === "function" && R().keysFor(activeTestId)) ||
-      R().TESTS; // legacy fallback (single test)
+    const cfg =
+      (typeof R().getTestConfig === "function" && R().getTestConfig(activeTestId)) ||
+      R().TESTS?.byId?.[activeTestId] ||
+      R().TESTS?.byId?.[R().TESTS?.defaultTestId] ||
+      {};
+
+    const namespacedKeys = (typeof R().keysFor === "function" && R().keysFor(activeTestId)) || {};
+    const legacyKeys = R().LEGACY?.writingKeys || R().TESTS?.writingKeys || {};
 
     const W = {
-      TEST_ID: K.writingTestId || R().TESTS.writingTestId,
+      TEST_ID: cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001",
       DURATION_MINUTES: 60,
-      keys: K.writingKeys || R().TESTS.writingKeys,
+      keys: namespacedKeys.writing || legacyKeys,
+      readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",
+      listeningKeys: namespacedKeys.listening || R().LEGACY?.listeningKeys || R().TESTS?.listeningKeys || {},
     };
 
     const $ = UI().$;
@@ -28,7 +35,6 @@
     if (!writingSection) return;
 
     UI().showOnly("writing");
-    UI().setExamNavStatus?.("Status: Writing in progress");
 
     let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
@@ -140,8 +146,8 @@
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
-      const listening = S().getJSON((K.listeningKeys || R().TESTS.listeningKeys).lastSubmission, null);
-      const reading = S().getJSON(`${K.readingTestId || R().TESTS.readingTestId}:lastSubmission`, null);
+      const listening = S().getJSON(W.listeningKeys.lastSubmission, null);
+      const reading = S().getJSON(`${W.readingTestId}:lastSubmission`, null);
 
       const finalPayload = {
         examId: R().EXAM.id,

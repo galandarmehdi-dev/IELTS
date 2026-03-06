@@ -8,32 +8,35 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
+    // Multi-test safe: use active testId when available, fall back to legacy single-test keys
+    const activeTestId =
+      (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
+      S().get("IELTS:EXAM:activeTestId", "ielts1");
+
+    const K =
+      (typeof R().keysFor === "function" && R().keysFor(activeTestId)) ||
+      R().TESTS; // legacy fallback (single test)
+
     const W = {
-      TEST_ID: R().TESTS.writingTestId,
-      DURATION_MINUTES: 1,
-      keys: R().TESTS.writingKeys,
+      TEST_ID: K.writingTestId || R().TESTS.writingTestId,
+      DURATION_MINUTES: 60,
+      keys: K.writingKeys || R().TESTS.writingKeys,
     };
 
     const $ = UI().$;
     const writingSection = $("writingSection");
     if (!writingSection) return;
 
-    // Always switch to Writing view first so the pinned exam bar is visible.
     UI().showOnly("writing");
+    UI().setExamNavStatus?.("Status: Writing in progress");
 
-    let remainingSeconds = W.DURATION_MINUTES * 1;
+    let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
-    if (savedRemaining !== null && savedRemaining !== undefined && !Number.isNaN(Number(savedRemaining))) {
+    if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
     }
 
     let hasSubmitted = S().get(W.keys.submitted, "false") === "true";
-
-    // Prevent duplicate timers if Writing is started again by route/app logic.
-    if (window.__IELTS_WRITING_TIMER__) {
-      try { clearInterval(window.__IELTS_WRITING_TIMER__); } catch {}
-      window.__IELTS_WRITING_TIMER__ = null;
-    }
     let timer = null;
 
     const wt1 = $("writingTask1");
@@ -41,6 +44,7 @@
     const wt1Count = $("wt1Count");
     const wt2Count = $("wt2Count");
     const autosaveEl = $("writingAutosave");
+    const timeEl = $("writingTimeLeft");
 
     function setAutosave(text) {
       if (!autosaveEl) return;
@@ -76,6 +80,8 @@
       updateCounts();
     }
 
+
+    // Debounced save (reduces localStorage writes while typing)
     let __saveT = null;
     function saveWritingDebounced() {
       if (__saveT) clearTimeout(__saveT);
@@ -84,7 +90,6 @@
         saveWriting();
       }, 450);
     }
-
     function getStudentFullName() {
       return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }
@@ -115,8 +120,10 @@
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
-      const fullName = getStudentFullName();
+      let fullName = getStudentFullName();
+
       if (!UI().isValidFullName(fullName)) {
+        // Force modal final mode (name required) instead of looping alerts
         Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
           mode: "final",
         });
@@ -125,23 +132,16 @@
 
       hasSubmitted = true;
       S().set(W.keys.submitted, "true");
-
-      if (timer) {
-        clearInterval(timer);
-        timer = null;
-      }
-      if (window.__IELTS_WRITING_TIMER__) {
-        try { clearInterval(window.__IELTS_WRITING_TIMER__); } catch {}
-        window.__IELTS_WRITING_TIMER__ = null;
-      }
+      if (timer) clearInterval(timer);
 
       saveWriting();
 
       const writingPayload = collectWritingPayload(reason);
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
-      const listening = S().getJSON(R().TESTS.listeningKeys.lastSubmission, null);
-      const reading = S().getJSON(`${R().TESTS.readingTestId}:lastSubmission`, null);
+      // Build FINAL payload (Listening + Reading + Writing)
+      const listening = S().getJSON((K.listeningKeys || R().TESTS.listeningKeys).lastSubmission, null);
+      const reading = S().getJSON(`${K.readingTestId || R().TESTS.readingTestId}:lastSubmission`, null);
 
       const finalPayload = {
         examId: R().EXAM.id,
@@ -156,8 +156,8 @@
       S().set(R().EXAM.keys.finalSubmitted, "true");
 
       UI().lockWholeExamAfterFinalSubmit();
-      paintTimer();
 
+      // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
@@ -179,63 +179,34 @@
       Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
     }
 
+    // expose for modal final submit button
     window.__IELTS_SUBMIT_FINAL__ = submitFinalExam;
 
-    function paintTimer() {
-      const t = UI().formatTime(remainingSeconds);
-
-      // Keep the top pinned exam bar visible and paint the timer directly,
-      // so Writing behaves reliably even if helper/UI state is stale.
-      const examNav = document.getElementById("examNav");
-      const statusEl = document.getElementById("examNavStatus");
-      const timerEl = document.getElementById("examNavTimer");
-
-      if (examNav) {
-        examNav.classList.remove("hidden");
-      }
-      if (statusEl) {
-        statusEl.textContent = "Status: Writing in progress";
-      }
-      if (timerEl) {
-        timerEl.textContent = t;
-        timerEl.classList.remove("hidden");
-        timerEl.style.display = "";
-      }
-
-      // Keep existing UI helpers too.
-      try { UI().setExamNavStatus?.("Status: Writing in progress"); } catch {}
-      try { UI().setExamNavTimer?.(t); } catch {}
-    }
-
     function startTimer() {
-      paintTimer();
+      const paint = () => {
+        const t = UI().formatTime(remainingSeconds);
+        if (timeEl) timeEl.textContent = t;
+        UI().setExamNavTimer?.(`Time left: ${t}`);
+      };
 
-      if (hasSubmitted) {
-        if (autosaveEl) autosaveEl.textContent = "Writing submitted (locked).";
-        writingSection.classList.add("view-only");
-        return;
-      }
+      paint();
 
       timer = setInterval(() => {
         if (hasSubmitted) return;
 
         remainingSeconds = Math.max(0, remainingSeconds - 1);
-        paintTimer();
+        paint();
 
-        if (remainingSeconds % 5 === 0) {
-          saveWriting();
-        }
+        if (remainingSeconds % 5 === 0) saveWriting();
 
         if (remainingSeconds === 0) {
           clearInterval(timer);
           timer = null;
-          window.__IELTS_WRITING_TIMER__ = null;
           submitFinalExam("Writing time is up. Auto-submitted.");
         }
       }, 1000);
-
-      window.__IELTS_WRITING_TIMER__ = timer;
     }
+
 
     writingSection.addEventListener("input", (e) => {
       const t = e.target;
@@ -246,14 +217,17 @@
     const endBtn = $("endExamBtn");
     if (endBtn) {
       endBtn.onclick = () => {
+        // Admin-only: students must not end/submit early via button
         const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
         if (!isAdmin) return;
         Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
-          mode: "final",
+          mode: "final", // name required
           showCancel: true,
           submitText: "Submit",
           cancelText: "Cancel",
           onConfirm: async () => {
+            // modal final submit button will call __IELTS_SUBMIT_FINAL__
+            // but in case name already exists we can force submit here:
             const fullName = getStudentFullName();
             if (UI().isValidFullName(fullName)) {
               await submitFinalExam("Student ended the exam.");
@@ -265,7 +239,15 @@
 
     loadWriting();
     S().set(W.keys.started, "true");
-    startTimer();
+
+    if (hasSubmitted) {
+      writingSection.classList.add("view-only");
+      const t = UI().formatTime(remainingSeconds);
+      if (timeEl) timeEl.textContent = t;
+      UI().setExamNavTimer?.(`Time left: ${t}`);
+    } else {
+      startTimer();
+    }
   }
 
   window.IELTS = window.IELTS || {};

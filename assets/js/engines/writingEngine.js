@@ -175,37 +175,38 @@
 
                   S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
 
-      // Send to admin if endpoint set
-      const endpoint = R().ADMIN_ENDPOINT;
-      if (endpoint) {
-        try {
-          await fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain;charset=utf-8" },
-            body: JSON.stringify(finalPayload),
-            keepalive: true,
-          });
+      S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
 
-          S().set(R().EXAM.keys.finalSubmitted, "true");
-          UI().lockWholeExamAfterFinalSubmit();
+// Send to admin if endpoint set
+const endpoint = R().ADMIN_ENDPOINT;
+if (endpoint) {
+  try {
+    await fetch(endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(finalPayload),
+      keepalive: true,
+    });
 
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal(
-            "Exam submitted",
-            "Submitted. The exam was sent to Google Sheets.",
-            { mode: "confirm" }
-          );
-          return;
-        } catch (err) {
-          S().set(R().EXAM.keys.finalSubmitted, "false");
+    S().set(R().EXAM.keys.finalSubmitted, "true");
+    UI().lockWholeExamAfterFinalSubmit();
 
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal(
-            "Submitted (local only)",
-            "Could not send to Google Sheets. The exam is saved locally.",
-            { mode: "confirm" }
-          );
+    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+    Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+    return;
+  } catch {
+    S().set(R().EXAM.keys.finalSubmitted, "false");
+
+    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+    Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
+    return;
+  }
+}
+
+S().set(R().EXAM.keys.finalSubmitted, "false");
+window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
           return;
         }
       }

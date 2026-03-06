@@ -19,6 +19,7 @@
     if (!writingSection) return;
 
     UI().showOnly("writing");
+    UI().setExamNavStatus?.("Status: Writing in progress");
 
     let remainingSeconds = W.DURATION_MINUTES * 1;
     const savedRemaining = S().get(W.keys.remaining, null);
@@ -34,33 +35,6 @@
     const wt1Count = $("wt1Count");
     const wt2Count = $("wt2Count");
     const autosaveEl = $("writingAutosave");
-    const timeEl = null; // Writing timer is shown only in the pinned exam nav bar
-
-    // Self-healing timer element: if the HTML timer node is missing, create it in the sticky header.
-    function ensureTimeEl() {
-      if (timeEl && timeEl.isConnected) return timeEl;
-      // Try to locate a suitable container (preferred: .writing-meta inside the sticky header)
-      const top = writingSection.querySelector(".writing-top") || writingSection.querySelector(".writing-shell .writing-top");
-      const meta = writingSection.querySelector(".writing-meta") || (top ? top.querySelector(".writing-meta") : null);
-
-      const host = meta || top || writingSection;
-      if (!host) return null;
-
-      // If a timer span exists (even without id), reuse it
-      let existing = host.querySelector("#writingTimeLeft");
-      if (!existing) {
-        existing = document.createElement("span");
-        existing.id = "writingTimeLeft";
-        existing.className = "writing-timer";
-        existing.textContent = "00:00";
-        // If meta exists, put timer first so it's always visible
-        if (host === meta) host.prepend(existing);
-        else host.appendChild(existing);
-      }
-
-      timeEl = existing;
-      return timeEl;
-    }
 
     function setAutosave(text) {
       if (!autosaveEl) return;
@@ -96,8 +70,6 @@
       updateCounts();
     }
 
-
-    // Debounced save (reduces localStorage writes while typing)
     let __saveT = null;
     function saveWritingDebounced() {
       if (__saveT) clearTimeout(__saveT);
@@ -106,6 +78,7 @@
         saveWriting();
       }, 450);
     }
+
     function getStudentFullName() {
       return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }
@@ -136,10 +109,9 @@
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
-      let fullName = getStudentFullName();
+      const fullName = getStudentFullName();
 
       if (!UI().isValidFullName(fullName)) {
-        // Force modal final mode (name required) instead of looping alerts
         Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
           mode: "final",
         });
@@ -148,14 +120,16 @@
 
       hasSubmitted = true;
       S().set(W.keys.submitted, "true");
-      if (timer) clearInterval(timer);
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
 
       saveWriting();
 
       const writingPayload = collectWritingPayload(reason);
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
-      // Build FINAL payload (Listening + Reading + Writing)
       const listening = S().getJSON(R().TESTS.listeningKeys.lastSubmission, null);
       const reading = S().getJSON(`${R().TESTS.readingTestId}:lastSubmission`, null);
 
@@ -173,7 +147,6 @@
 
       UI().lockWholeExamAfterFinalSubmit();
 
-      // Send to admin if endpoint set
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
@@ -195,36 +168,40 @@
       Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
     }
 
-    // expose for modal final submit button
     window.__IELTS_SUBMIT_FINAL__ = submitFinalExam;
 
-    function startTimer() {
-  const paint = () => {
-    const t = UI().formatTime(remainingSeconds);
-
-    // Writing timer must appear only in the pinned top exam bar
-    UI().setExamNavStatus?.("Status: Writing in progress");
-    UI().setExamNavTimer?.(t);
-  };
-
-  paint();
-
-  timer = setInterval(() => {
-    if (hasSubmitted) return;
-
-    remainingSeconds = Math.max(0, remainingSeconds - 1);
-    paint();
-
-    if (remainingSeconds % 5 === 0) saveWriting();
-
-    if (remainingSeconds === 0) {
-      clearInterval(timer);
-      timer = null;
-      submitFinalExam("Writing time is up. Auto-submitted.");
+    function paintTimer() {
+      const t = UI().formatTime(remainingSeconds);
+      UI().setExamNavStatus?.("Status: Writing in progress");
+      UI().setExamNavTimer?.(t);
     }
-  }, 1000);
-}
 
+    function startTimer() {
+      paintTimer();
+
+      if (hasSubmitted) {
+        if (autosaveEl) autosaveEl.textContent = "Writing submitted (locked).";
+        writingSection.classList.add("view-only");
+        return;
+      }
+
+      timer = setInterval(() => {
+        if (hasSubmitted) return;
+
+        remainingSeconds = Math.max(0, remainingSeconds - 1);
+        paintTimer();
+
+        if (remainingSeconds % 5 === 0) {
+          saveWriting();
+        }
+
+        if (remainingSeconds === 0) {
+          clearInterval(timer);
+          timer = null;
+          submitFinalExam("Writing time is up. Auto-submitted.");
+        }
+      }, 1000);
+    }
 
     writingSection.addEventListener("input", (e) => {
       const t = e.target;
@@ -235,17 +212,14 @@
     const endBtn = $("endExamBtn");
     if (endBtn) {
       endBtn.onclick = () => {
-        // Admin-only: students must not end/submit early via button
         const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
         if (!isAdmin) return;
         Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
-          mode: "final", // name required
+          mode: "final",
           showCancel: true,
           submitText: "Submit",
           cancelText: "Cancel",
           onConfirm: async () => {
-            // modal final submit button will call __IELTS_SUBMIT_FINAL__
-            // but in case name already exists we can force submit here:
             const fullName = getStudentFullName();
             if (UI().isValidFullName(fullName)) {
               await submitFinalExam("Student ended the exam.");
@@ -257,15 +231,7 @@
 
     loadWriting();
     S().set(W.keys.started, "true");
-
-    if (hasSubmitted) {
-  writingSection.classList.add("view-only");
-  const t = UI().formatTime(remainingSeconds);
-  UI().setExamNavStatus?.("Status: Writing in progress");
-  UI().setExamNavTimer?.(t);
-} else {
-  startTimer();
-}
+    startTimer();
   }
 
   window.IELTS = window.IELTS || {};

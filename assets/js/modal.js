@@ -52,7 +52,7 @@
 
     // buttons
     if (cancel) {
-      const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm");
+      const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm" || MODAL_MODE === "final");
       cancel.classList.toggle("hidden", !showCancel);
       cancel.textContent = opts.cancelText || "Cancel";
       cancel.disabled = false;
@@ -65,9 +65,16 @@
     }
 
     if (nameInput && isFinal) {
-      // preload saved name if exists
-      const saved = (S().get(R().TESTS.writingKeys.studentName, "") || "").trim();
-      if (saved && !nameInput.value) nameInput.value = saved;
+      // preload saved name from the active test's writing namespace (fallback to legacy key)
+      const activeTestId =
+        (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
+        S().get(R().KEYS?.ACTIVE_TEST_ID, R().TESTS?.defaultTestId || "ielts1");
+      const writingKeys =
+        (typeof R().keysFor === "function" && R().keysFor(activeTestId)?.writing) ||
+        R().LEGACY?.writingKeys ||
+        {};
+      const saved = (S().get(writingKeys.studentName, "") || "").trim();
+      if (saved) nameInput.value = saved;
     }
 
     if (modal) modal.classList.remove("hidden");
@@ -160,12 +167,23 @@
           return;
         }
 
-        S().set(R().TESTS.writingKeys.studentName, fullName);
+        const activeTestId =
+          (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
+          S().get(R().KEYS?.ACTIVE_TEST_ID, R().TESTS?.defaultTestId || "ielts1");
+        const writingKeys =
+          (typeof R().keysFor === "function" && R().keysFor(activeTestId)?.writing) ||
+          R().LEGACY?.writingKeys ||
+          {};
+
+        if (writingKeys.studentName) {
+          S().set(writingKeys.studentName, fullName);
+        }
 
         if (typeof window.__IELTS_SUBMIT_FINAL__ === "function") {
           submit.disabled = true;
           submit.textContent = "Submitting...";
-          await window.__IELTS_SUBMIT_FINAL__("Student submitted exam.");
+          const reason = String(window.__IELTS_FINAL_SUBMIT_REASON__ || "Student submitted exam.");
+          await window.__IELTS_SUBMIT_FINAL__(reason);
           return;
         }
 

@@ -24,7 +24,7 @@
 
     const W = {
       TEST_ID: cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001",
-      DURATION_MINUTES: 1,
+      DURATION_MINUTES: 60,
       keys: namespacedKeys.writing || legacyKeys,
       readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",
       listeningKeys: namespacedKeys.listening || R().LEGACY?.listeningKeys || R().TESTS?.listeningKeys || {},
@@ -36,7 +36,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 1;
+    let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
@@ -173,53 +173,34 @@
         writing: writingPayload,
       };
 
-                  S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
-
       S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
+      S().set(R().EXAM.keys.finalSubmitted, "true");
 
-// Send to admin if endpoint set
-const endpoint = R().ADMIN_ENDPOINT;
-if (endpoint) {
-  try {
-    await fetch(endpoint, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(finalPayload),
-      keepalive: true,
-    });
+      UI().lockWholeExamAfterFinalSubmit();
 
-    S().set(R().EXAM.keys.finalSubmitted, "true");
-    UI().lockWholeExamAfterFinalSubmit();
+      // Send to admin if endpoint set
+      const endpoint = R().ADMIN_ENDPOINT;
+      if (endpoint) {
+        try {
+          await fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(finalPayload),
+          });
 
-    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
-    return;
-  } catch {
-    S().set(R().EXAM.keys.finalSubmitted, "false");
-
-    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
-    return;
-  }
-}
-
-S().set(R().EXAM.keys.finalSubmitted, "false");
-window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+          return;
+        } catch {
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+          Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
           return;
         }
       }
 
-      S().set(R().EXAM.keys.finalSubmitted, "false");
-      UI().lockWholeExamAfterFinalSubmit();
-
       window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-      Modal().showModal(
-        "Submitted (local only)",
-        "ADMIN_ENDPOINT is not set. The exam is saved locally.",
-        { mode: "confirm" }
-      );    
+      Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
     }
 
     // expose for modal final submit button

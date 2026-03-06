@@ -36,7 +36,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 1;
+    let remainingSeconds = W.DURATION_MINUTES * 60;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
@@ -97,20 +97,25 @@
       }, 450);
     }
     function getStudentFullName() {
-      const candidates = [
-        S().get(W.keys.studentName, ""),
-        S().get(R().TESTS?.writingKeys?.studentName, ""),
-        document.getElementById("modalFullName")?.value || "",
-      ];
-      for (const value of candidates) {
-        const clean = String(value || "").trim().replace(/\s+/g, " ");
-        if (clean) return clean;
-      }
-      return "";
+      return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }
 
-    function collectWritingPayload(reason, fullNameOverride) {
-      const fullName = (fullNameOverride || getStudentFullName() || "").trim().replace(/\s+/g, " ");
+    function openFinalSubmitModal(reason, opts = {}) {
+      window.__IELTS_FINAL_SUBMIT_REASON__ = String(reason || "Student submitted exam.");
+      Modal().showModal(
+        opts.title || "Name required",
+        opts.text || "Please type your Name and Surname to submit the exam.",
+        {
+          mode: "final",
+          showCancel: opts.showCancel === true,
+          submitText: opts.submitText || "Submit",
+          cancelText: opts.cancelText || "Cancel",
+        }
+      );
+    }
+
+    function collectWritingPayload(reason) {
+      const fullName = getStudentFullName();
       const answers = S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
         task1: wt1?.value || "",
         task2: wt2?.value || "",
@@ -132,36 +137,18 @@
       };
     }
 
-    async function submitFinalExam(reason, opts = {}) {
+    async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
-      const forceSubmit = opts.forceSubmit === true;
-      const requireName = opts.requireName !== false;
       let fullName = getStudentFullName();
 
       if (!UI().isValidFullName(fullName)) {
-        if (forceSubmit || !requireName) {
-          fullName = fullName || "Unknown Student";
-          try {
-            S().set(W.keys.studentName, fullName);
-            if (R().TESTS?.writingKeys?.studentName) {
-              S().set(R().TESTS.writingKeys.studentName, fullName);
-            }
-          } catch {}
-        } else {
-          // Force modal final mode (name required) instead of looping alerts
-          Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
-            mode: "final",
-          });
-          return;
-        }
-      } else {
-        try {
-          S().set(W.keys.studentName, fullName);
-          if (R().TESTS?.writingKeys?.studentName) {
-            S().set(R().TESTS.writingKeys.studentName, fullName);
-          }
-        } catch {}
+        // Force modal final mode (name required) and preserve the original submit reason.
+        openFinalSubmitModal(reason, {
+          title: "Name required",
+          text: "Please type your Name and Surname to submit the exam.",
+        });
+        return;
       }
 
       hasSubmitted = true;
@@ -170,7 +157,7 @@
 
       saveWriting();
 
-      const writingPayload = collectWritingPayload(reason, fullName);
+      const writingPayload = collectWritingPayload(reason);
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
@@ -202,14 +189,17 @@
             body: JSON.stringify(finalPayload),
           });
 
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
           Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
           return;
         } catch {
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
           Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
           return;
         }
       }
 
+      window.__IELTS_FINAL_SUBMIT_REASON__ = "";
       Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
     }
 
@@ -236,7 +226,7 @@
         if (remainingSeconds === 0) {
           clearInterval(timer);
           timer = null;
-          submitFinalExam("Writing time is up. Auto-submitted.", { forceSubmit: true, requireName: false });
+          submitFinalExam("Writing time is up. Auto-submitted.");
         }
       }, 1000);
     }
@@ -254,14 +244,12 @@
         // Admin-only: students must not end/submit early via button
         const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
         if (!isAdmin) return;
-        Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
-          mode: "confirm",
+        openFinalSubmitModal("Admin ended the exam.", {
+          title: "End exam",
+          text: "Are you sure you want to end the exam and submit?",
           showCancel: true,
           submitText: "Submit",
           cancelText: "Cancel",
-          onConfirm: async () => {
-            await submitFinalExam("Admin ended the exam.", { forceSubmit: true, requireName: false });
-          },
         });
       };
     }

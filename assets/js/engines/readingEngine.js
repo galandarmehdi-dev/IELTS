@@ -440,39 +440,9 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     function saveAnswers(answers) {
       if (hasSubmittedReading) return;
-      const snapshot = { ...(answers || {}) };
-      if (typeof answersRef !== "undefined" && answersRef) answersRef.current = snapshot;
-      S().setJSON(storageKey("answers"), snapshot);
+      S().setJSON(storageKey("answers"), answers);
       S().set(storageKey("remainingSeconds"), String(remainingSeconds));
       if ($("autosaveStatus")) $("autosaveStatus").textContent = `Autosave: saved at ${new Date().toLocaleTimeString()}`;
-    }
-
-    function collectCurrentAnswersFromDOM(base = {}) {
-      const out = { ...(base || {}) };
-
-      document.querySelectorAll('#qCard input[type="text"], #qCard textarea').forEach((el) => {
-        const qbox = el.closest('.sentenceRow, .mcqItem, .qrow, .optionsBox')?.querySelector('.qbox');
-        const q = qbox?.textContent?.trim();
-        if (!q) return;
-        out[q] = (el.value || '').trim().replace(/\s+/g, ' ');
-      });
-
-      document.querySelectorAll('#qCard select').forEach((el) => {
-        const qbox = el.closest('.qrow, .optionsBox')?.querySelector('.qbox');
-        const qLabel = el.closest('.optionsBox, .panel')?.querySelector('b');
-        const q = qbox?.textContent?.trim() || qLabel?.textContent?.replace('.', '').trim();
-        if (!q) return;
-        out[q] = el.value || '';
-      });
-
-      document.querySelectorAll('#qCard input[type="radio"]:checked').forEach((el) => {
-        const name = String(el.name || '');
-        const m = name.match(/^q_(\d+)$/);
-        if (!m) return;
-        out[m[1]] = el.value || '';
-      });
-
-      return out;
     }
 
     function loadState() {
@@ -1044,18 +1014,12 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
 
-      if (!hasSubmittedReading) {
-        const latest = collectCurrentAnswersFromDOM(answersRef.current);
-        saveAnswers(latest);
-      }
-
       activePart = partId;
       refreshTabUI();
 
       renderPassageForActivePart();
 
       const fresh = loadState().answers;
-      answersRef.current = fresh;
       renderQuestionsForActivePart(fresh);
 
       if (hasSubmittedReading) {
@@ -1196,8 +1160,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           clearInterval(timerInterval);
           timerInterval = null;
 
-          answersRef.current = collectCurrentAnswersFromDOM(loadState().answers);
-          saveAnswers(answersRef.current);
+          answersRef.current = loadState().answers;
 
           if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
           transitionToWritingOnce();
@@ -1235,9 +1198,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");
         if (!ok) return;
 
-        const latest = collectCurrentAnswersFromDOM(answersRef.current);
-        answersRef.current = latest;
-        await submitReading("Student submitted reading early.", latest);
+        await submitReading("Student submitted reading early.", answersRef.current);
 
         if (timerInterval) {
           clearInterval(timerInterval);

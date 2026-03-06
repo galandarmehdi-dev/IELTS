@@ -97,11 +97,20 @@
       }, 450);
     }
     function getStudentFullName() {
-      return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
+      const candidates = [
+        S().get(W.keys.studentName, ""),
+        S().get(R().TESTS?.writingKeys?.studentName, ""),
+        document.getElementById("modalFullName")?.value || "",
+      ];
+      for (const value of candidates) {
+        const clean = String(value || "").trim().replace(/\s+/g, " ");
+        if (clean) return clean;
+      }
+      return "";
     }
 
-    function collectWritingPayload(reason) {
-      const fullName = getStudentFullName();
+    function collectWritingPayload(reason, fullNameOverride) {
+      const fullName = (fullNameOverride || getStudentFullName() || "").trim().replace(/\s+/g, " ");
       const answers = S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
         task1: wt1?.value || "",
         task2: wt2?.value || "",
@@ -123,17 +132,36 @@
       };
     }
 
-    async function submitFinalExam(reason) {
+    async function submitFinalExam(reason, opts = {}) {
       if (hasSubmitted) return;
 
+      const forceSubmit = opts.forceSubmit === true;
+      const requireName = opts.requireName !== false;
       let fullName = getStudentFullName();
 
       if (!UI().isValidFullName(fullName)) {
-        // Force modal final mode (name required) instead of looping alerts
-        Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
-          mode: "final",
-        });
-        return;
+        if (forceSubmit || !requireName) {
+          fullName = fullName || "Unknown Student";
+          try {
+            S().set(W.keys.studentName, fullName);
+            if (R().TESTS?.writingKeys?.studentName) {
+              S().set(R().TESTS.writingKeys.studentName, fullName);
+            }
+          } catch {}
+        } else {
+          // Force modal final mode (name required) instead of looping alerts
+          Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
+            mode: "final",
+          });
+          return;
+        }
+      } else {
+        try {
+          S().set(W.keys.studentName, fullName);
+          if (R().TESTS?.writingKeys?.studentName) {
+            S().set(R().TESTS.writingKeys.studentName, fullName);
+          }
+        } catch {}
       }
 
       hasSubmitted = true;
@@ -142,7 +170,7 @@
 
       saveWriting();
 
-      const writingPayload = collectWritingPayload(reason);
+      const writingPayload = collectWritingPayload(reason, fullName);
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
       // Build FINAL payload (Listening + Reading + Writing)
@@ -208,7 +236,7 @@
         if (remainingSeconds === 0) {
           clearInterval(timer);
           timer = null;
-          submitFinalExam("Writing time is up. Auto-submitted.");
+          submitFinalExam("Writing time is up. Auto-submitted.", { forceSubmit: true, requireName: false });
         }
       }, 1000);
     }
@@ -227,17 +255,12 @@
         const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
         if (!isAdmin) return;
         Modal().showModal("End exam", "Are you sure you want to end the exam and submit?", {
-          mode: "final", // name required
+          mode: "confirm",
           showCancel: true,
           submitText: "Submit",
           cancelText: "Cancel",
           onConfirm: async () => {
-            // modal final submit button will call __IELTS_SUBMIT_FINAL__
-            // but in case name already exists we can force submit here:
-            const fullName = getStudentFullName();
-            if (UI().isValidFullName(fullName)) {
-              await submitFinalExam("Student ended the exam.");
-            }
+            await submitFinalExam("Admin ended the exam.", { forceSubmit: true, requireName: false });
           },
         });
       };

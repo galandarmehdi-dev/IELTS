@@ -4,7 +4,7 @@
 
   // Your Google Apps Script endpoint (kept)
   const ADMIN_ENDPOINT =
-    "https://script.google.com/macros/s/AKfycbxjBSqG6AC6bnETDSXlQEXLLXk-WE3wBeZi2T8S9JX8VYBoi17oFn_JKWXfwXcmX9yn/exec";
+    "https://script.google.com/macros/s/AKfycbwrspMj3Jnc2tYP89rqZEctyz_vHP9jnUxg3UAz7nKmHOVxu3Na3HXkSVqEtNX9oHYNMA/exec";
    
   // Admin-only controls (client-side gate)
   const ADMIN_PASSCODE = "SMOKEY";

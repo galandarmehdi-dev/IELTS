@@ -18,16 +18,22 @@
     const writingSection = $("writingSection");
     if (!writingSection) return;
 
+    // Always switch to Writing view first so the pinned exam bar is visible.
     UI().showOnly("writing");
-    UI().setExamNavStatus?.("Status: Writing in progress");
 
     let remainingSeconds = W.DURATION_MINUTES * 1;
     const savedRemaining = S().get(W.keys.remaining, null);
-    if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
+    if (savedRemaining !== null && savedRemaining !== undefined && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
     }
 
     let hasSubmitted = S().get(W.keys.submitted, "false") === "true";
+
+    // Prevent duplicate timers if Writing is started again by route/app logic.
+    if (window.__IELTS_WRITING_TIMER__) {
+      try { clearInterval(window.__IELTS_WRITING_TIMER__); } catch {}
+      window.__IELTS_WRITING_TIMER__ = null;
+    }
     let timer = null;
 
     const wt1 = $("writingTask1");
@@ -110,7 +116,6 @@
       if (hasSubmitted) return;
 
       const fullName = getStudentFullName();
-
       if (!UI().isValidFullName(fullName)) {
         Modal().showModal("Name required", "Please type your Name and Surname to submit the exam.", {
           mode: "final",
@@ -120,9 +125,14 @@
 
       hasSubmitted = true;
       S().set(W.keys.submitted, "true");
+
       if (timer) {
         clearInterval(timer);
         timer = null;
+      }
+      if (window.__IELTS_WRITING_TIMER__) {
+        try { clearInterval(window.__IELTS_WRITING_TIMER__); } catch {}
+        window.__IELTS_WRITING_TIMER__ = null;
       }
 
       saveWriting();
@@ -146,6 +156,7 @@
       S().set(R().EXAM.keys.finalSubmitted, "true");
 
       UI().lockWholeExamAfterFinalSubmit();
+      paintTimer();
 
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
@@ -172,8 +183,28 @@
 
     function paintTimer() {
       const t = UI().formatTime(remainingSeconds);
-      UI().setExamNavStatus?.("Status: Writing in progress");
-      UI().setExamNavTimer?.(t);
+
+      // Keep the top pinned exam bar visible and paint the timer directly,
+      // so Writing behaves reliably even if helper/UI state is stale.
+      const examNav = document.getElementById("examNav");
+      const statusEl = document.getElementById("examNavStatus");
+      const timerEl = document.getElementById("examNavTimer");
+
+      if (examNav) {
+        examNav.classList.remove("hidden");
+      }
+      if (statusEl) {
+        statusEl.textContent = "Status: Writing in progress";
+      }
+      if (timerEl) {
+        timerEl.textContent = t;
+        timerEl.classList.remove("hidden");
+        timerEl.style.display = "";
+      }
+
+      // Keep existing UI helpers too.
+      try { UI().setExamNavStatus?.("Status: Writing in progress"); } catch {}
+      try { UI().setExamNavTimer?.(t); } catch {}
     }
 
     function startTimer() {
@@ -198,9 +229,12 @@
         if (remainingSeconds === 0) {
           clearInterval(timer);
           timer = null;
+          window.__IELTS_WRITING_TIMER__ = null;
           submitFinalExam("Writing time is up. Auto-submitted.");
         }
       }, 1000);
+
+      window.__IELTS_WRITING_TIMER__ = timer;
     }
 
     writingSection.addEventListener("input", (e) => {

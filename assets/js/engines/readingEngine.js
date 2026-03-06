@@ -16,10 +16,10 @@
     // SETTINGS
     const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
     const TEST_ID = (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
-    const DURATION_MINUTES = 1;
+    const DURATION_MINUTES = 60;
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 1;
+    let remainingSeconds = DURATION_MINUTES * 60;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;

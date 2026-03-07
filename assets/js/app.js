@@ -402,6 +402,8 @@ function requireTestPassword(onOk) {
 
 
 function startFreshExam() {
+      window.__IELTS_LISTENING_INIT__ = false;
+      window.__IELTS_READING_INIT__ = false;
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 

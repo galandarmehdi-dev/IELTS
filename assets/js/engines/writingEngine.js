@@ -52,6 +52,23 @@
     const autosaveEl = $("writingAutosave");
     const timeEl = $("writingTimeLeft");
 
+    function applyActiveWritingContent() {
+      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+      const writing = content.writing || {};
+      const cards = writingSection.querySelectorAll(".writing-card");
+      if (cards.length < 2) return;
+
+      const task1Inst = cards[0].querySelector(".writing-inst");
+      const task1GraphImg = cards[0].querySelector(".writing-graph img");
+      const task2Inst = cards[1].querySelector(".writing-inst");
+
+      if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
+      if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
+      if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
+    }
+
+    applyActiveWritingContent();
+
     function setAutosave(text) {
       if (!autosaveEl) return;
       autosaveEl.textContent = text;

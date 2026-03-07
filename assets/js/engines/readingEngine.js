@@ -160,7 +160,6 @@
       }
 
       if ($("submitBtn")) $("submitBtn").disabled = true;
-      if ($("focusBtn")) $("focusBtn").disabled = true;
     }
 
     // --- render blocks (same as your code) ---
@@ -985,7 +984,6 @@
       });
     }
 
-    if ($("focusBtn")) $("focusBtn").classList.add("hidden");
 
     startTimer(answersRef);
   }

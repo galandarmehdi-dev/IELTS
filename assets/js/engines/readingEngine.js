@@ -584,6 +584,81 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       return out;
     }
 
+
+    function collectPayload(answers, reason) {
+      return {
+        type: "reading",
+        testId: TEST_ID,
+        activeTestId: ACTIVE_TEST_ID,
+        submittedAt: new Date().toISOString(),
+        reason: String(reason || "Reading submitted."),
+        answers: { ...(answers || {}) },
+        activePart,
+        remainingSeconds,
+      };
+    }
+
+    async function submitReading(reason, answers) {
+      if (hasSubmittedReading) return;
+
+      hasSubmittedReading = true;
+
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      const latest = { ...(answers || {}) };
+      answersRef.current = latest;
+
+      S().set(storageKey("submitted"), "true");
+      S().set(storageKey("remainingSeconds"), String(remainingSeconds));
+      S().setJSON(storageKey("answers"), latest);
+      S().setJSON(storageKey("lastSubmission"), collectPayload(latest, reason));
+
+      if ($("autosaveStatus")) {
+        $("autosaveStatus").textContent = "Reading submitted.";
+      }
+
+      if ($("timeLeft")) {
+        $("timeLeft").textContent = UI().formatTime(remainingSeconds);
+      }
+
+      lockReadingUI();
+    }
+
+    function transitionToWritingOnce() {
+      if (hasTransitionedToWriting) return;
+      hasTransitionedToWriting = true;
+
+      const go = () => {
+        try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
+        try { window.IELTS?.Router?.setHashRoute?.(ACTIVE_TEST_ID, "writing"); } catch (e) {}
+        try { window.IELTS?.Engines?.Writing?.startWritingSystem?.(); } catch (e) { console.error(e); }
+      };
+
+      const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
+      if (isAdmin) {
+        go();
+        return;
+      }
+
+      if (Modal && typeof Modal().showModal === "function") {
+        Modal().showModal(
+          "Reading submitted",
+          "Reading has been submitted. Click below to start Writing.",
+          {
+            mode: "gate",
+            submitText: "Start Writing",
+            onConfirm: go,
+          }
+        );
+        return;
+      }
+
+      go();
+    }
+
     function loadState() {
       const answers = S().getJSON(storageKey("answers"), {}) || {};
       const savedRemaining = S().get(storageKey("remainingSeconds"), null);
@@ -1241,9 +1316,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function toggleFocus() {
-      document.body.classList.toggle("focus");
-      const isFocus = document.body.classList.contains("focus");
-      if ($("focusBtn")) $("focusBtn").textContent = isFocus ? "Exit focus" : "Focus mode";
+      return;
     }
 
     // INIT
@@ -1283,7 +1356,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       });
     }
 
-    if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
+    
 
     startTimer(answersRef);
   }

@@ -29,8 +29,6 @@
 
     const PARTS = ["part1", "part2", "part3"];
     let activePart = "part1";
-    const activeContent = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-    const dynamicReading = activeContent.reading && Array.isArray(activeContent.reading.parts) ? activeContent.reading : null;
 
     let PART1_PASSAGE_TEXT = `
 The Life of Sir Isaac Newton
@@ -531,12 +529,10 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       });
       panel.appendChild(ul);
 
-      if (cfg.example) {
-        const ex = document.createElement("div");
-        ex.className = "answer-example";
-        ex.innerHTML = `<b>Answer Example</b><br><b>${cfg.example.paragraph} - ${cfg.example.value}</b>`;
-        panel.appendChild(ex);
-      }
+      const ex = document.createElement("div");
+      ex.className = "answer-example";
+      ex.innerHTML = `<b>Answer Example</b><br><b>${cfg.example.paragraph} - ${cfg.example.value}</b>`;
+      panel.appendChild(ex);
 
       const rows = document.createElement("div");
       rows.className = "qrows";
@@ -1010,60 +1006,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       return panel;
     }
 
-
-    function renderMultiTextChoicesBlock(cfg, answers) {
-      const panel = renderPanel(cfg.title, cfg.instructions);
-
-      const box = document.createElement("div");
-      box.className = "optionsBox";
-      const grid = document.createElement("div");
-      grid.className = "optionsGrid";
-      (cfg.choices || []).forEach((choice) => {
-        const cell = document.createElement("div");
-        cell.className = "optCell";
-        cell.innerHTML = `<b>${choice.letter}</b> ${escapeHtml(choice.text)}`;
-        grid.appendChild(cell);
-      });
-      box.appendChild(grid);
-      panel.appendChild(box);
-
-      (cfg.items || []).forEach((item) => {
-        const row = document.createElement("div");
-        row.className = "sentenceRow";
-
-        const qbox = document.createElement("div");
-        qbox.className = "qbox";
-        qbox.textContent = String(item.q);
-
-        const right = document.createElement("div");
-        right.style.flex = "1";
-
-        const line = document.createElement("div");
-        line.className = "sentenceLine";
-        line.textContent = item.text;
-
-        const input = document.createElement("input");
-        input.className = "gapInput";
-        input.type = "text";
-        input.placeholder = "Type letter";
-        input.value = answers[item.q] ?? "";
-        input.disabled = hasSubmittedReading;
-        input.addEventListener("input", () => {
-          if (hasSubmittedReading) return;
-          answers[item.q] = input.value.trim().toUpperCase().replace(/\s+/g, " ");
-          saveAnswers(answers);
-        });
-
-        right.appendChild(line);
-        right.appendChild(input);
-        row.appendChild(qbox);
-        row.appendChild(right);
-        panel.appendChild(row);
-      });
-
-      return panel;
-    }
-
     function buildPartTabs() {
       const controls = $("readingControls") || document.querySelector(".controls");
       if (!controls) return;
@@ -1152,21 +1094,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (!card) return;
       card.innerHTML = "";
 
-      if (dynamicReading) {
-        const part = dynamicReading.parts.find((p) => p.id === activePart) || dynamicReading.parts[0];
-        (part?.blocks || []).forEach((block) => {
-          if (block.type === "headings") card.appendChild(renderHeadingsTask(block, answers));
-          if (block.type === "shortAnswer") card.appendChild(renderShortAnswerBlock(block, answers));
-          if (block.type === "sentenceGaps") card.appendChild(renderSentenceGapsBlock(block, answers));
-          if (block.type === "tfng") card.appendChild(renderTFNGBlock(block, answers));
-          if (block.type === "mcq") card.appendChild(renderMCQBlock(block, answers));
-          if (block.type === "endingsMatch") card.appendChild(renderEndingsMatchBlock(block, answers));
-          if (block.type === "summarySelect") card.appendChild(renderSummarySelectBlock(block, answers));
-          if (block.type === "multiTextChoices") card.appendChild(renderMultiTextChoicesBlock(block, answers));
-        });
-        return;
-      }
-
       if (activePart === "part1") card.appendChild(PART1.renderQuestions(answers));
       if (activePart === "part2") card.appendChild(PART2.renderQuestions(answers));
       if (activePart === "part3") card.appendChild(PART3.renderQuestions(answers));
@@ -1214,11 +1141,11 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
   // If Writing already started or submitted, do not gate again.
   let writingStartedOrSubmitted = false;
   try {
-    const activeKeys = (typeof R()?.keysFor === "function" && R().keysFor(ACTIVE_TEST_ID)?.writing) || null;
-    if (activeKeys) {
+    const WK = R()?.TESTS?.writingKeys;
+    if (WK) {
       writingStartedOrSubmitted =
-        S().get(activeKeys.started, "false") === "true" ||
-        S().get(activeKeys.submitted, "false") === "true";
+        S().get(WK.started, "false") === "true" ||
+        S().get(WK.submitted, "false") === "true";
     }
   } catch (e) {}
 
@@ -1238,7 +1165,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 
           // Prefer hash route (if router exists), but keep a safe fallback above
-          try { window.IELTS?.Router?.setHashRoute?.(ACTIVE_TEST_ID, "writing"); } catch (e) {}
+          try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
         },
       }
     );
@@ -1278,12 +1205,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       }, 1000);
     }
 
-    function toggleFocus() {
-      document.body.classList.toggle("focus");
-      const isFocus = document.body.classList.contains("focus");
-      if ($("focusBtn")) $("focusBtn").textContent = isFocus ? "Exit focus" : "Focus mode";
-    }
-
     // INIT
     injectStyles();
     const answersRef = { current: loadState().answers };
@@ -1321,7 +1242,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       });
     }
 
-    if ($("focusBtn")) $("focusBtn").addEventListener("click", toggleFocus);
+    if ($("focusBtn")) $("focusBtn").classList.add("hidden");
 
     startTimer(answersRef);
   }

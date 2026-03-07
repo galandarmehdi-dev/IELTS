@@ -161,6 +161,7 @@ const Router = () => window.IELTS.Router;
               try {
                 try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Reading", "startReadingSystem");
+                try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
               } catch (e) {
                 // Visible fallback: keep user on Reading screen even if engine failed.
                 try {
@@ -287,36 +288,25 @@ const Router = () => window.IELTS.Router;
     if (toR) {
       toR.onclick = () => {
         if (!isAdmin) return;
-        const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
-        if (!listeningDone) {
-          UI().showOnly("listening");
-          Modal().showModal("Reading locked", "You must finish Listening before opening Reading.", { mode: "confirm" });
-          return;
-        }
         UI().setExamStarted(true);
-        window.__IELTS_READING_INIT__ = false;
+        resetEngineInitFlags();
         window.IELTS.Engines.Reading.startReadingSystem();
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
         UI().setExamNavStatus("Status: Viewing Reading");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
       };
     }
 
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
-        const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
-        const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
-        if (!writingStarted && !readingSubmitted) {
-          Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
-          UI().showOnly("reading");
-          UI().setExamNavStatus("Status: Viewing Reading");
-          return;
-        }
         UI().setExamStarted(true);
-        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
-        else UI().showOnly("writing");
+        try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
+        window.IELTS.Engines.Writing.startWritingSystem();
+        UI().showOnly("writing");
         UI().setExamNavStatus("Status: Viewing Writing");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
       };
     }
 

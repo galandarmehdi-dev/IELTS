@@ -38,7 +38,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 60;
+    let remainingSeconds = W.DURATION_MINUTES * 1;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));

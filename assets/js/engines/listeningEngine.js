@@ -74,6 +74,29 @@
     let lastGoodTime = 0;
     let ignoreSeekUntil = 0;
 
+
+function applyActiveListeningContent() {
+  const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+  const listening = content.listening || {};
+  const body = $("listenBody");
+  const aud = audio();
+
+  if (body && typeof listening.html === "string" && listening.html.trim()) {
+    body.innerHTML = listening.html;
+  }
+
+  if (aud && typeof listening.audioSrc === "string" && listening.audioSrc.trim()) {
+    let source = aud.querySelector("source");
+    if (!source) {
+      source = document.createElement("source");
+      source.type = "audio/mpeg";
+      aud.appendChild(source);
+    }
+    source.src = listening.audioSrc.trim();
+    aud.load();
+  }
+}
+
     function setStatus(t) {
       const el = statusEl();
       if (el) el.textContent = t;
@@ -431,6 +454,8 @@
     }
 
     function setupListeningUI() {
+  applyActiveListeningContent();
+
   // Admin gate (students must NOT be able to submit early / control flow)
   const isAdmin =
     (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
@@ -474,11 +499,11 @@
           submitText: "Start Reading",
           cancelText: "Stay here",
           onConfirm: () => {
-            window.__IELTS_READING_INIT__ = false;
+            try { window.__IELTS_READING_INIT__ = false; } catch (_) {}
+            try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (_) {}
             window.IELTS.Engines.Reading.startReadingSystem();
             UI().showOnly("reading");
             UI().setExamNavStatus("Status: Reading in progress");
-            try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "reading"); } catch (_) {}
           },
           onCancel: () => {
             UI().showOnly("listening");

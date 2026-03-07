@@ -182,12 +182,16 @@
       const endpoint = R().ADMIN_ENDPOINT;
       if (endpoint) {
         try {
-          await fetch(endpoint, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(finalPayload),
-          });
+          const res = await fetch(endpoint, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(finalPayload),
+});
+
+const text = await res.text();
+if (!res.ok || !/^OK\b/i.test(text)) {
+  throw new Error(text || `HTTP ${res.status}`);
+}
 
           window.__IELTS_FINAL_SUBMIT_REASON__ = "";
           Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });

@@ -383,6 +383,115 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     // UI HELPERS
     // =========================
 
+
+
+    function getDynamicReadingParts() {
+      try {
+        const content = R()?.getActiveTestContent?.() || {};
+        const parts = content?.reading?.parts;
+        return Array.isArray(parts) && parts.length ? parts : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getFallbackPartConfig(partId) {
+      if (partId === "part1") return { id: "part1", passageText: PART1_PASSAGE_TEXT, renderQuestions: PART1.renderQuestions };
+      if (partId === "part2") return { id: "part2", passageText: PART2_PASSAGE_TEXT, renderQuestions: PART2.renderQuestions };
+      return { id: "part3", passageText: PART3_PASSAGE_TEXT, renderQuestions: PART3.renderQuestions };
+    }
+
+    function getActivePartConfig() {
+      const dynamicParts = getDynamicReadingParts();
+      if (dynamicParts) {
+        const found = dynamicParts.find((p) => String(p?.id || "") === String(activePart));
+        if (found) return found;
+      }
+      return getFallbackPartConfig(activePart);
+    }
+
+    function renderOptionalHeadingsExample(panel, cfg) {
+      if (!cfg || !cfg.example || !cfg.example.paragraph) return;
+      const ex = document.createElement("div");
+      ex.className = "answer-example";
+      ex.innerHTML = `<b>Answer Example</b><br><b>${escapeHtml(String(cfg.example.paragraph))} - ${escapeHtml(String(cfg.example.value || ""))}</b>`;
+      panel.appendChild(ex);
+    }
+
+    function renderMultiTextChoicesBlock(cfg, answers) {
+      const panel = renderPanel(cfg.title, cfg.instructions);
+
+      const box = document.createElement("div");
+      box.className = "optionsBox";
+      const grid = document.createElement("div");
+      grid.className = "optionsGrid";
+      (cfg.choices || []).forEach((choice) => {
+        const cell = document.createElement("div");
+        cell.className = "optCell";
+        cell.innerHTML = `<b>${escapeHtml(String(choice.letter || ""))}</b> ${escapeHtml(String(choice.text || ""))}`;
+        grid.appendChild(cell);
+      });
+      box.appendChild(grid);
+      panel.appendChild(box);
+
+      (cfg.items || []).forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "sentenceRow";
+
+        const qbox = document.createElement("div");
+        qbox.className = "qbox";
+        qbox.textContent = String(item.q);
+
+        const right = document.createElement("div");
+        right.style.flex = "1";
+
+        const line = document.createElement("div");
+        line.className = "sentenceLine";
+        line.textContent = item.text || "";
+
+        const input = document.createElement("input");
+        input.className = "gapInput";
+        input.type = "text";
+        input.placeholder = "Type one letter";
+        input.maxLength = 1;
+        input.value = answers[item.q] ?? "";
+        input.disabled = hasSubmittedReading;
+        input.addEventListener("input", () => {
+          if (hasSubmittedReading) return;
+          const v = String(input.value || "").trim().toUpperCase().replace(/[^A-Z]/g, "").slice(0, 1);
+          input.value = v;
+          answers[item.q] = v;
+          saveAnswers(answers);
+        });
+
+        right.appendChild(line);
+        right.appendChild(input);
+        row.appendChild(qbox);
+        row.appendChild(right);
+        panel.appendChild(row);
+      });
+
+      return panel;
+    }
+
+    function renderDynamicBlock(block, answers) {
+      const type = String(block?.type || "");
+      if (type === "headings") return renderHeadingsTask({ ...block, example: block.example || null }, answers);
+      if (type === "shortAnswer") return renderShortAnswerBlock(block, answers);
+      if (type === "sentenceGaps") return renderSentenceGapsBlock(block, answers);
+      if (type === "tfng") return renderTFNGBlock(block, answers);
+      if (type === "mcq") return renderMCQBlock(block, answers);
+      if (type === "endingsMatch") return renderEndingsMatchBlock(block, answers);
+      if (type === "summarySelect") return renderSummarySelectBlock(block, answers);
+      if (type === "multiTextChoices") return renderMultiTextChoicesBlock(block, answers);
+
+      const panel = renderPanel(block?.title || "Questions", block?.instructions || []);
+      const p = document.createElement("p");
+      p.textContent = "Unsupported question block.";
+      panel.appendChild(p);
+      return panel;
+    }
+
     function injectStyles() {
       if (document.getElementById("readingStylesInjected")) return;
       const style = document.createElement("style");
@@ -529,10 +638,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       });
       panel.appendChild(ul);
 
-      const ex = document.createElement("div");
-      ex.className = "answer-example";
-      ex.innerHTML = `<b>Answer Example</b><br><b>${cfg.example.paragraph} - ${cfg.example.value}</b>`;
-      panel.appendChild(ex);
+      renderOptionalHeadingsExample(panel, cfg);
 
       const rows = document.createElement("div");
       rows.className = "qrows";
@@ -1066,113 +1172,40 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function renderPassageForActivePart() {
-      const passageEl = $("passage");
-      if (!passageEl) return;
+  const passageEl = $("passage");
+  if (!passageEl) return;
 
-      const partCfg = getActivePartConfig();
-      const rawText = String(partCfg?.passageText || "").trim();
+  const partCfg = getActivePartConfig();
+  const text = String(partCfg?.passageText || "").trim();
 
-      if (!rawText) {
-        passageEl.innerHTML = `<div class="panel"><div class="task-title">Reading passage missing</div><div class="task-instructions">No passage text was found for ${escapeHtml(activePart)} of ${escapeHtml(ACTIVE_TEST_ID)}.</div></div>`;
-        return;
-      }
+  const html = text
+    .split("\n\n")
+    .map((para, i) => {
+      const p = para.trim();
+      if (!p) return "";
+      if (i === 0) return `<h2>${escapeHtml(p)}</h2>`;
+      return `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("");
 
-      const blocks = rawText
-        .split(/\n\s*\n/)
-        .map((para) => para.trim())
-        .filter(Boolean);
-
-      const html = blocks
-        .map((para, i) => {
-          if (i === 0) return `<h2>${escapeHtml(para)}</h2>`;
-          return `<p>${escapeHtml(para).replace(/\n/g, "<br>")}</p>`;
-        })
-        .join("");
-
-      passageEl.innerHTML = html;
-    }
+  passageEl.innerHTML = html;
+}
     function renderQuestionsForActivePart(answers) {
       const card = $("qCard");
       if (!card) return;
       card.innerHTML = "";
 
-      if (activePart === "part1") card.appendChild(PART1.renderQuestions(answers));
-      if (activePart === "part2") card.appendChild(PART2.renderQuestions(answers));
-      if (activePart === "part3") card.appendChild(PART3.renderQuestions(answers));
-    }
-
-    function collectPayload(answers, reason) {
-      return {
-        type: "reading",
-        testId: TEST_ID,
-        submittedAt: new Date().toISOString(),
-        reason,
-        durationMinutes: DURATION_MINUTES,
-        remainingSeconds,
-        activePart,
-        answers,
-      };
-    }
-
-    async function submitReading(reason, answers) {
-      if (hasSubmittedReading) return;
-
-      hasSubmittedReading = true;
-      S().set(storageKey("submitted"), "true");
-      S().set(storageKey("remainingSeconds"), String(remainingSeconds));
-
-      const payload = collectPayload(answers, reason);
-      S().setJSON(storageKey("lastSubmission"), payload);
-
-      lockReadingUI();
-
-      if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted.";
-
-      // Whether submission was manual (button/admin) or automatic (timer),
-      // always trigger the Reading → Writing transition at most once.
-      transitionToWritingOnce();
-    }
-
-    function transitionToWritingOnce() {
-  if (hasTransitionedToWriting) return;
-  hasTransitionedToWriting = true;
-
-  // Keep legacy event for any external orchestrator (safe no-op if unused)
-  try { document.dispatchEvent(new CustomEvent("reading:submitted")); } catch (e) {}
-
-  // If Writing already started or submitted, do not gate again.
-  let writingStartedOrSubmitted = false;
-  try {
-    const WK = R()?.TESTS?.writingKeys;
-    if (WK) {
-      writingStartedOrSubmitted =
-        S().get(WK.started, "false") === "true" ||
-        S().get(WK.submitted, "false") === "true";
-    }
-  } catch (e) {}
-
-  if (writingStartedOrSubmitted) return;
-
-  // Show a non-closeable gate modal, then start Writing when user clicks.
-  try {
-    Modal().showModal(
-      "Reading submitted",
-      "Reading has ended. Click START WRITING to continue.",
-      {
-        mode: "gate",
-        submitText: "Start Writing",
-        onConfirm: () => {
-          try { window.IELTS?.Engines?.Writing?.startWritingSystem?.(); } catch (e) {}
-          try { UI().showOnly("writing"); } catch (e) {}
-          try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
-
-          // Prefer hash route (if router exists), but keep a safe fallback above
-          try { window.IELTS?.Router?.setHashRoute?.("ielts1", "writing"); } catch (e) {}
-        },
+      const partCfg = getActivePartConfig();
+      if (partCfg && typeof partCfg.renderQuestions === "function") {
+        card.appendChild(partCfg.renderQuestions(answers));
+        return;
       }
-    );
-  } catch (e) {}
-}
+
+      const blocks = Array.isArray(partCfg?.blocks) ? partCfg.blocks : [];
+      blocks.forEach((block) => {
+        card.appendChild(renderDynamicBlock(block, answers));
+      });
+    }
 
     function startTimer(answersRef) {
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);

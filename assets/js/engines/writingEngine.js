@@ -182,22 +182,36 @@
 const endpoint = R().ADMIN_ENDPOINT;
 if (endpoint) {
   try {
-    const body = new URLSearchParams();
-    body.append("payload", JSON.stringify(finalPayload));
-
-    await fetch(endpoint, {
-      method: "POST",
-      mode: "no-cors",
-      body,
+    const body = new URLSearchParams({
+      payload: JSON.stringify(finalPayload)
     });
 
+    const res = await fetch(endpoint, {
+      method: "POST",
+      body
+    });
+
+    const text = await res.text();
+
+    if (!res.ok || !/^OK\b/i.test(text)) {
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+    Modal().showModal(
+      "Exam submitted",
+      "Submitted successfully to Google Sheets.",
+      { mode: "confirm" }
+    );
     return;
   } catch (err) {
     console.error("Final submit failed:", err);
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
+    Modal().showModal(
+      "Submitted (local only)",
+      "Could not send to Google Sheets. Saved locally on this browser.",
+      { mode: "confirm" }
+    );
     return;
   }
 }

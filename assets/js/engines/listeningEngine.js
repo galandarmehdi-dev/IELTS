@@ -74,6 +74,22 @@
     let lastGoodTime = 0;
     let ignoreSeekUntil = 0;
 
+
+    function applyActiveListeningContent() {
+      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+      const listening = content.listening || {};
+      const aud = audio();
+      const body = $("listenBody");
+      if (aud && listening.audioSrc) {
+        aud.src = listening.audioSrc;
+        const source = aud.querySelector("source");
+        if (source) source.src = listening.audioSrc;
+      }
+      if (body && listening.html) body.innerHTML = listening.html;
+    }
+
+    applyActiveListeningContent();
+
     function setStatus(t) {
       const el = statusEl();
       if (el) el.textContent = t;

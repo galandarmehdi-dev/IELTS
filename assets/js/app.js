@@ -161,7 +161,6 @@ const Router = () => window.IELTS.Router;
               try {
                 try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Reading", "startReadingSystem");
-                try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
               } catch (e) {
                 // Visible fallback: keep user on Reading screen even if engine failed.
                 try {
@@ -289,24 +288,29 @@ const Router = () => window.IELTS.Router;
       toR.onclick = () => {
         if (!isAdmin) return;
         UI().setExamStarted(true);
-        resetEngineInitFlags();
+        window.__IELTS_READING_INIT__ = false;
         window.IELTS.Engines.Reading.startReadingSystem();
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
         UI().setExamNavStatus("Status: Viewing Reading");
-        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
       };
     }
 
     if (toW) {
       toW.onclick = () => {
         if (!isAdmin) return;
+        const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
+        const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
+        if (!writingStarted && !readingSubmitted) {
+          Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
+          UI().showOnly("reading");
+          UI().setExamNavStatus("Status: Viewing Reading");
+          return;
+        }
         UI().setExamStarted(true);
-        try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
-        window.IELTS.Engines.Writing.startWritingSystem();
-        UI().showOnly("writing");
+        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
+        else UI().showOnly("writing");
         UI().setExamNavStatus("Status: Viewing Writing");
-        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
       };
     }
 

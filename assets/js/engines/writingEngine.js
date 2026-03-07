@@ -8,6 +8,8 @@
   const Modal = () => window.IELTS.Modal;
 
   function startWritingSystem() {
+    if (window.__IELTS_WRITING_INIT__) return;
+    window.__IELTS_WRITING_INIT__ = true;
     // Multi-test safe: resolve config + keys separately so writing timer/storage always exists.
     const activeTestId =
       (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
@@ -52,20 +54,21 @@
     const autosaveEl = $("writingAutosave");
     const timeEl = $("writingTimeLeft");
 
-    function applyActiveWritingContent() {
-      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-      const writing = content.writing || {};
-      const cards = writingSection.querySelectorAll(".writing-card");
-      if (cards.length < 2) return;
+function applyActiveWritingContent() {
+  const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+  const writing = content.writing || {};
+  const cards = writingSection.querySelectorAll(".writing-card");
+  if (cards.length < 2) return;
 
-      const task1Inst = cards[0].querySelector(".writing-inst");
-      const task1GraphImg = cards[0].querySelector(".writing-graph img");
-      const task2Inst = cards[1].querySelector(".writing-inst");
+  const task1Inst = cards[0].querySelector(".writing-inst");
+  const task1GraphImg = cards[0].querySelector(".writing-graph img");
+  const task2Inst = cards[1].querySelector(".writing-inst");
 
-      if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
-      if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
-      if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
-    }
+  if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
+  if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
+  if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
+}
+
 
     applyActiveWritingContent();
 

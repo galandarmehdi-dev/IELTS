@@ -74,22 +74,6 @@
     let lastGoodTime = 0;
     let ignoreSeekUntil = 0;
 
-
-    function applyActiveListeningContent() {
-      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-      const listening = content.listening || {};
-      const aud = audio();
-      const body = $("listenBody");
-      if (aud && listening.audioSrc) {
-        aud.src = listening.audioSrc;
-        const source = aud.querySelector("source");
-        if (source) source.src = listening.audioSrc;
-      }
-      if (body && listening.html) body.innerHTML = listening.html;
-    }
-
-    applyActiveListeningContent();
-
     function setStatus(t) {
       const el = statusEl();
       if (el) el.textContent = t;
@@ -284,7 +268,7 @@
       const isAdmin = isAdminView();
 
       // TEMP: allow students to scrub audio for testing (Registry.TEMP_STUDENT_AUDIO_SCRUB)
-      const allowStudentScrub = !!(R() && R().TEMP_STUDENT_AUDIO_SCRUB === true);
+      const allowStudentScrub = !!(R() && R().TEMP_STUDENT_AUDIO_SCRUB === false);
       const allowControls = isAdmin || allowStudentScrub;
 
       // Students: strict, no pause/seek. Admin (and temp testing mode): allow full controls (seek forward/back).
@@ -490,9 +474,11 @@
           submitText: "Start Reading",
           cancelText: "Stay here",
           onConfirm: () => {
+            window.__IELTS_READING_INIT__ = false;
             window.IELTS.Engines.Reading.startReadingSystem();
             UI().showOnly("reading");
             UI().setExamNavStatus("Status: Reading in progress");
+            try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "reading"); } catch (_) {}
           },
           onCancel: () => {
             UI().showOnly("listening");

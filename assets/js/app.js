@@ -159,6 +159,7 @@ const Router = () => window.IELTS.Router;
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
 
               try {
+                try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Reading", "startReadingSystem");
               } catch (e) {
                 // Visible fallback: keep user on Reading screen even if engine failed.
@@ -205,6 +206,7 @@ const Router = () => window.IELTS.Router;
               try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
 
               try {
+                try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Writing", "startWritingSystem");
               } catch (e) {
                 try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
@@ -275,6 +277,7 @@ const Router = () => window.IELTS.Router;
       toL.onclick = () => {
         if (!isAdmin) return;
         UI().setExamStarted(true);
+        resetEngineInitFlags();
         window.IELTS.Engines.Listening.initListeningSystem();
         UI().showOnly("listening");
         UI().setExamNavStatus("Status: Viewing Listening");
@@ -291,6 +294,7 @@ const Router = () => window.IELTS.Router;
           return;
         }
         UI().setExamStarted(true);
+        window.__IELTS_READING_INIT__ = false;
         window.IELTS.Engines.Reading.startReadingSystem();
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
@@ -341,6 +345,7 @@ const Router = () => window.IELTS.Router;
       }
       if (route.view === "reading") {
         UI().setExamStarted(true);
+        window.__IELTS_READING_INIT__ = false;
         window.IELTS.Engines.Reading.startReadingSystem();
         UI().showOnly("reading");
         UI().setExamNavStatus("Status: Viewing Reading");
@@ -348,6 +353,7 @@ const Router = () => window.IELTS.Router;
       }
       if (route.view === "writing") {
         UI().setExamStarted(true);
+        window.__IELTS_WRITING_INIT__ = false;
         window.IELTS.Engines.Writing.startWritingSystem();
         UI().showOnly("writing");
         UI().setExamNavStatus("Status: Viewing Writing");
@@ -401,15 +407,17 @@ function requireTestPassword(onOk) {
 
 
 
+
+    function resetEngineInitFlags() {
+      try { window.__IELTS_LISTENING_INIT__ = false; } catch {}
+      try { window.__IELTS_READING_INIT__ = false; } catch {}
+      try { window.__IELTS_WRITING_INIT__ = false; } catch {}
+    }
+
 function startFreshExam() {
+      resetEngineInitFlags();
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
-
-      // Force a clean engine boot so switching between Test 1 and Test 2 never reuses old content.
-      window.__IELTS_LISTENING_INIT__ = false;
-      window.__IELTS_READING_INIT__ = false;
-      window.__IELTS_WRITING_INIT__ = false;
-      try { document.body.classList.remove("focus"); } catch (_) {}
 
       safe(() => UI().setExamStarted(true));
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());

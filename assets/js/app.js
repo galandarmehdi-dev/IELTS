@@ -402,10 +402,14 @@ function requireTestPassword(onOk) {
 
 
 function startFreshExam() {
-      window.__IELTS_LISTENING_INIT__ = false;
-      window.__IELTS_READING_INIT__ = false;
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
+
+      // Force a clean engine boot so switching between Test 1 and Test 2 never reuses old content.
+      window.__IELTS_LISTENING_INIT__ = false;
+      window.__IELTS_READING_INIT__ = false;
+      window.__IELTS_WRITING_INIT__ = false;
+      try { document.body.classList.remove("focus"); } catch (_) {}
 
       safe(() => UI().setExamStarted(true));
       safe(() => window.IELTS.Engines.Listening.initListeningSystem());

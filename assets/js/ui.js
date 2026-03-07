@@ -197,6 +197,9 @@ function applyStudentLockdownUI() {
       "downloadBtn",
       "copyBtn",
 
+      // Listening flow controls (admin-only)
+      "submitListeningBtn",
+
       // Writing
       "downloadWritingBtn",
       "copyWritingBtn",

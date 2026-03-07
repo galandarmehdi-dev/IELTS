@@ -179,30 +179,28 @@
       UI().lockWholeExamAfterFinalSubmit();
 
       // Send to admin if endpoint set
-      const endpoint = R().ADMIN_ENDPOINT;
-      if (endpoint) {
-        try {
-          const res = await fetch(endpoint, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(finalPayload),
-});
+const endpoint = R().ADMIN_ENDPOINT;
+if (endpoint) {
+  try {
+    const body = new URLSearchParams();
+    body.append("payload", JSON.stringify(finalPayload));
 
-const text = await res.text();
-if (!res.ok || !/^OK\b/i.test(text)) {
-  throw new Error(text || `HTTP ${res.status}`);
+    await fetch(endpoint, {
+      method: "POST",
+      mode: "no-cors",
+      body,
+    });
+
+    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+    Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
+    return;
+  } catch (err) {
+    console.error("Final submit failed:", err);
+    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+    Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
+    return;
+  }
 }
-
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal("Exam submitted", "Submitted. (Request sent to Google Sheets.)", { mode: "confirm" });
-          return;
-        } catch {
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal("Submitted (local only)", "Could not send to admin endpoint. Saved locally.", { mode: "confirm" });
-          return;
-        }
-      }
-
       window.__IELTS_FINAL_SUBMIT_REASON__ = "";
       Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
     }

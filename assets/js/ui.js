@@ -56,11 +56,15 @@ function showExamNav(show) {
     // Writing
     const writing = $("writingSection");
 
+    // Admin results
+    const adminResults = $("adminResultsSection");
+
     // Modal should not be auto-hidden here (modal controls itself)
     const isHome = view === "home";
     const isListening = view === "listening";
     const isReading = view === "reading";
     const isWriting = view === "writing";
+    const isAdminResults = view === "adminResults";
 
     if (home) home.classList.toggle("hidden", !isHome);
 
@@ -70,9 +74,10 @@ function showExamNav(show) {
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
 
     if (writing) writing.classList.toggle("hidden", !isWriting);
+    if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
 
     // Exam nav hidden on home, visible elsewhere
-    showExamNav(!isHome);
+    showExamNav(!(isHome));
 
     // Remember last view (optional, used by app.js auto-resume)
     try {
@@ -214,7 +219,7 @@ function applyStudentLockdownUI() {
   if (nav && !isAdminView()) {
     nav.classList.add("student-locked");
     // hide buttons if they exist
-    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","resetExamBtn"].forEach((id) => {
+    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","navToResultsBtn","resetExamBtn"].forEach((id) => {
       const b = $(id);
       if (b) b.classList.add("hidden");
     });
@@ -224,6 +229,10 @@ function applyStudentLockdownUI() {
   if (!isAdminView()) {
     $("homeNewAttemptBtn")?.classList.add("hidden");
     $("cardResetBtn")?.classList.add("hidden");
+    $("homeAdminResultsBtn")?.classList.add("hidden");
+  } else {
+    $("homeAdminResultsBtn")?.classList.remove("hidden");
+    $("navToResultsBtn")?.classList.remove("hidden");
   }
 }
 

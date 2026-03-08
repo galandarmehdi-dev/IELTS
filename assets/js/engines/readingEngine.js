@@ -29,6 +29,67 @@
 
     const PARTS = ["part1", "part2", "part3"];
     let activePart = "part1";
+    const SPLIT_KEY = "IELTSPREF:readingSplitPct";
+
+    function applySplitPercent(value) {
+      const container = $("container");
+      const passage = $("passage");
+      const questions = $("readingQuestions") || document.querySelector(".questions");
+      if (!container || !passage || !questions) return;
+      const pct = Math.max(30, Math.min(70, Number(value) || 50));
+      passage.style.flexBasis = `${pct}%`;
+      questions.style.flexBasis = `${100 - pct}%`;
+      try { localStorage.setItem(SPLIT_KEY, String(pct)); } catch {}
+    }
+
+    function initReadingSplitter() {
+      const container = $("container");
+      const splitter = $("readingSplitter");
+      if (!container || !splitter || splitter.dataset.bound === "1") {
+        const saved = localStorage.getItem(SPLIT_KEY);
+        if (saved) applySplitPercent(saved);
+        return;
+      }
+      splitter.dataset.bound = "1";
+
+      const updateFromClientX = (clientX) => {
+        const rect = container.getBoundingClientRect();
+        if (!rect.width) return;
+        const pct = ((clientX - rect.left) / rect.width) * 100;
+        applySplitPercent(pct);
+      };
+
+      const stopDrag = () => {
+        splitter.classList.remove("dragging");
+        document.body.style.userSelect = "";
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", stopDrag);
+      };
+
+      const onMove = (e) => updateFromClientX(e.clientX);
+
+      splitter.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        splitter.classList.add("dragging");
+        document.body.style.userSelect = "none";
+        window.addEventListener("pointermove", onMove);
+        window.addEventListener("pointerup", stopDrag);
+      });
+
+      splitter.addEventListener("keydown", (e) => {
+        const saved = Number(localStorage.getItem(SPLIT_KEY) || 50);
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          applySplitPercent(saved - 2);
+        }
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          applySplitPercent(saved + 2);
+        }
+      });
+
+      applySplitPercent(localStorage.getItem(SPLIT_KEY) || 50);
+    }
 
     let PART1_PASSAGE_TEXT = `
 The Life of Sir Isaac Newton
@@ -1324,6 +1385,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     const answersRef = { current: loadState().answers };
 
     buildPartTabs();
+    initReadingSplitter();
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
 

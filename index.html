@@ -39,6 +39,7 @@
 
       <div class="home-top-actions">
         <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button>
+        <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
         <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
       </div>
     </div>
@@ -138,6 +139,116 @@
     </div>
   </footer>
 </section>
+
+<section id="adminResultsSection" class="admin-results-screen hidden" aria-label="Admin results">
+  <div class="admin-results-shell">
+    <div class="admin-results-header">
+      <div>
+        <div class="home-badge">Admin only</div>
+        <h1 class="admin-results-title">Student results dashboard</h1>
+        <p class="admin-results-subtitle">Search, filter, sort and inspect submitted IELTS results.</p>
+      </div>
+      <div class="admin-results-actions">
+        <button class="btn secondary" type="button" id="adminResultsRefreshBtn">Refresh</button>
+        <button class="btn secondary" type="button" id="adminResultsExportBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="admin-results-toolbar">
+      <label class="admin-field">
+        <span>Search</span>
+        <input type="text" id="adminResultsSearch" placeholder="Student name or reason">
+      </label>
+
+      <label class="admin-field">
+        <span>Test</span>
+        <select id="adminResultsExamFilter">
+          <option value="">All tests</option>
+        </select>
+      </label>
+
+      <label class="admin-field">
+        <span>Sort by</span>
+        <select id="adminResultsSort">
+          <option value="submittedAt_desc">Newest first</option>
+          <option value="submittedAt_asc">Oldest first</option>
+          <option value="studentFullName_asc">Name A–Z</option>
+          <option value="studentFullName_desc">Name Z–A</option>
+          <option value="objectiveTotal_desc">Highest total</option>
+          <option value="objectiveTotal_asc">Lowest total</option>
+          <option value="listeningTotal_desc">Listening high→low</option>
+          <option value="readingTotal_desc">Reading high→low</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="admin-results-summary">
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Submissions</div>
+        <div class="admin-stat-value" id="adminStatSubmissions">0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Listening</div>
+        <div class="admin-stat-value" id="adminStatListening">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Reading</div>
+        <div class="admin-stat-value" id="adminStatReading">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Latest submit</div>
+        <div class="admin-stat-value admin-stat-small" id="adminStatLatest">—</div>
+      </div>
+    </div>
+
+    <div class="admin-results-table-wrap">
+      <div class="admin-results-empty hidden" id="adminResultsEmpty">No results found.</div>
+      <table class="admin-results-table">
+        <thead>
+          <tr>
+            <th>Submitted</th>
+            <th>Name</th>
+            <th>Test</th>
+            <th>Listening</th>
+            <th>Reading</th>
+            <th>Total</th>
+            <th>Writing words</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="adminResultsTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="admin-result-detail hidden" id="adminResultDetail">
+      <div class="admin-result-detail-top">
+        <h2 id="adminDetailTitle">Result details</h2>
+        <button class="btn secondary" type="button" id="adminDetailCloseBtn">Close</button>
+      </div>
+      <div class="admin-detail-grid">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Submission</div>
+          <div id="adminDetailMeta"></div>
+        </div>
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Scores</div>
+          <div id="adminDetailScores"></div>
+        </div>
+      </div>
+      <div class="admin-detail-grid writing">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Writing Task 1</div>
+          <pre id="adminDetailTask1"></pre>
+        </div>
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Writing Task 2</div>
+          <pre id="adminDetailTask2"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
   <!-- ================= EXAM NAV (NEW) ================= -->
  <div class="exam-nav hidden" id="examNav">
   <div class="exam-nav-left">
@@ -150,6 +261,7 @@
 <button class="btn secondary" type="button" id="navToHomeBtn">Home</button>
     <button class="btn secondary" type="button" id="navToListeningBtn">Listening</button>
     <button class="btn secondary" type="button" id="navToReadingBtn">Reading</button>
+    <button class="btn secondary hidden" type="button" id="navToResultsBtn">Results</button>
     <button class="btn secondary" type="button" id="navToWritingBtn">Writing</button>
     <button class="btn" type="button" id="resetExamBtn">New attempt</button>
   </div>

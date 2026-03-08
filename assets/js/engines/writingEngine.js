@@ -184,14 +184,23 @@ function applyActiveWritingContent() {
       const listening = S().getJSON(W.listeningKeys.lastSubmission, null);
       const reading = S().getJSON(`${W.readingTestId}:lastSubmission`, null);
 
-      const finalPayload = {
-        examId: R().EXAM.id,
-        submittedAt: new Date().toISOString(),
-        studentFullName: fullName,
-        listening,
-        reading,
-        writing: writingPayload,
-      };
+      // Determine examId dynamically
+const activeTestId = R().getActiveTestId
+  ? R().getActiveTestId()
+  : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
+
+const testNumber = String(activeTestId).replace("ielts", "");
+const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
+
+// Build FINAL payload
+const finalPayload = {
+  examId: examId,
+  submittedAt: new Date().toISOString(),
+  studentFullName: fullName,
+  listening,
+  reading,
+  writing: writingPayload,
+};
 
       S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
       S().set(R().EXAM.keys.finalSubmitted, "true");

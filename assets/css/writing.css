@@ -124,3 +124,31 @@
 .writing-meta {
   display: none;
 }
+
+
+.writing-graph-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin: 10px 0 12px;
+  flex-wrap:wrap;
+}
+.writing-zoom-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.writing-graph{
+  overflow:auto;
+  border:1px solid #e6e6e6;
+  border-radius:14px;
+  background:#fafafa;
+  padding:10px;
+}
+.writing-graph img{
+  display:block;
+  width:100%;
+  max-width:none;
+  height:auto;
+}

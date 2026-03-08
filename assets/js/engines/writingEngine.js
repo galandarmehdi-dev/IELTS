@@ -53,6 +53,12 @@
     const wt2Count = $("wt2Count");
     const autosaveEl = $("writingAutosave");
     const timeEl = $("writingTimeLeft");
+    const graphViewport = $("writingGraphViewport");
+    const graphImg = $("writingTask1GraphImg") || writingSection.querySelector(".writing-graph img");
+    const zoomInBtn = $("writingZoomInBtn");
+    const zoomOutBtn = $("writingZoomOutBtn");
+    const zoomResetBtn = $("writingZoomResetBtn");
+    const ZOOM_KEY = "IELTSPREF:writingGraphZoom";
 
 function applyActiveWritingContent() {
   const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
@@ -69,8 +75,40 @@ function applyActiveWritingContent() {
   if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
 }
 
+    function setGraphZoom(value) {
+      if (!graphImg) return 1;
+      const zoom = Math.max(1, Math.min(3, Number(value) || 1));
+      graphImg.style.width = `${Math.round(zoom * 100)}%`;
+      if (zoomResetBtn) zoomResetBtn.textContent = `${Math.round(zoom * 100)}%`;
+      try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch {}
+      return zoom;
+    }
+
+    function initGraphZoomControls() {
+      const savedZoom = localStorage.getItem(ZOOM_KEY) || "1";
+      setGraphZoom(savedZoom);
+      if (!graphImg || !graphViewport || graphViewport.dataset.zoomBound === "1") return;
+      graphViewport.dataset.zoomBound = "1";
+
+      zoomInBtn?.addEventListener("click", () => {
+        const current = Number(localStorage.getItem(ZOOM_KEY) || graphImg.style.width.replace('%','') / 100 || 1);
+        setGraphZoom(current + 0.25);
+      });
+      zoomOutBtn?.addEventListener("click", () => {
+        const current = Number(localStorage.getItem(ZOOM_KEY) || graphImg.style.width.replace('%','') / 100 || 1);
+        setGraphZoom(current - 0.25);
+      });
+      zoomResetBtn?.addEventListener("click", () => setGraphZoom(1));
+      graphViewport.addEventListener("wheel", (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        const current = Number(localStorage.getItem(ZOOM_KEY) || graphImg.style.width.replace('%','') / 100 || 1);
+        setGraphZoom(current + (e.deltaY < 0 ? 0.1 : -0.1));
+      }, { passive: false });
+    }
 
     applyActiveWritingContent();
+    initGraphZoomControls();
 
     function setAutosave(text) {
       if (!autosaveEl) return;

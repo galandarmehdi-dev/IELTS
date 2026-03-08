@@ -63,3 +63,58 @@ body[data-view-mode="student"] #navToWritingBtn,
 body[data-view-mode="student"] #resetExamBtn {
   display: none !important;
 }
+
+
+:root{
+  --ielts-font-scale: 1;
+}
+
+body[data-font-scale="small"]{ --ielts-font-scale: .93; }
+body[data-font-scale="medium"]{ --ielts-font-scale: 1; }
+body[data-font-scale="large"]{ --ielts-font-scale: 1.12; }
+
+body #homeSection,
+body #listeningSection,
+body #readingControls,
+body #container,
+body #writingSection,
+body #modal,
+body #listenModal,
+body .exam-nav{
+  font-size: calc(16px * var(--ielts-font-scale));
+}
+
+body #homeSection input,
+body #homeSection select,
+body #homeSection textarea,
+body #listeningSection input,
+body #listeningSection select,
+body #listeningSection textarea,
+body #readingControls input,
+body #readingControls select,
+body #readingControls textarea,
+body #container input,
+body #container select,
+body #container textarea,
+body #writingSection input,
+body #writingSection select,
+body #writingSection textarea,
+body #modal input,
+body #modal select,
+body #modal textarea,
+body #listenModal input,
+body #listenModal select,
+body #listenModal textarea,
+body .exam-nav input,
+body .exam-nav select,
+body .exam-nav textarea,
+body #homeSection button,
+body #listeningSection button,
+body #readingControls button,
+body #container button,
+body #writingSection button,
+body #modal button,
+body #listenModal button,
+body .exam-nav button{
+  font-size: inherit;
+}

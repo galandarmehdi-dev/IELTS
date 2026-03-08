@@ -85,7 +85,7 @@ const Router = () => window.IELTS.Router;
 
     const isAdmin = isAdminView();
     const $ = UI().$;
-
+    
     const PREF_KEYS = {
       fontScale: "IELTSPREF:fontScale",
     };
@@ -111,6 +111,7 @@ const Router = () => window.IELTS.Router;
     }
 
     initFontPreference();
+
 
     // Key helpers
     const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };
@@ -351,6 +352,185 @@ const Router = () => window.IELTS.Router;
     }
 
     // -----------------------------
+    // Admin results dashboard
+    // -----------------------------
+    const adminState = { rows: [], filtered: [] };
+
+    function num(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function fmtDate(value) {
+      const d = new Date(value || "");
+      if (Number.isNaN(d.getTime())) return "—";
+      return d.toLocaleString();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    async function fetchAdminResults() {
+      const endpoint = String(R()?.ADMIN_ENDPOINT || "").trim();
+      if (!endpoint) throw new Error("Admin endpoint is missing.");
+
+      const url = new URL(endpoint);
+      url.searchParams.set("action", "results");
+      url.searchParams.set("adminPasscode", String(R()?.ADMIN_PASSCODE || ""));
+      url.searchParams.set("t", String(Date.now()));
+
+      const res = await fetch(url.toString(), { method: "GET" });
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch {}
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!data || data.ok !== true || !Array.isArray(data.results)) {
+        throw new Error((data && data.error) || "Could not load admin results.");
+      }
+      return data.results;
+    }
+
+    function fillExamFilter(rows) {
+      const sel = $("adminResultsExamFilter");
+      if (!sel) return;
+      const current = sel.value || "";
+      const exams = Array.from(new Set(rows.map((r) => String(r.examId || "").trim()).filter(Boolean))).sort();
+      sel.innerHTML = '<option value="">All tests</option>' + exams.map((examId) => `<option value="${escapeHtml(examId)}">${escapeHtml(examId)}</option>`).join("");
+      sel.value = exams.includes(current) ? current : "";
+    }
+
+    function renderSummary(rows) {
+      const count = rows.length;
+      const avgListening = count ? (rows.reduce((a, r) => a + num(r.listeningBand), 0) / count) : 0;
+      const avgReading = count ? (rows.reduce((a, r) => a + num(r.readingBand), 0) / count) : 0;
+      const latest = rows.slice().sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0];
+      if ($("adminStatSubmissions")) $("adminStatSubmissions").textContent = String(count);
+      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening.toFixed(1);
+      if ($("adminStatReading")) $("adminStatReading").textContent = avgReading.toFixed(1);
+      if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
+    }
+
+    function renderAdminTable(rows) {
+      adminState.filtered = rows.slice();
+      const tbody = $("adminResultsTbody");
+      const empty = $("adminResultsEmpty");
+      if (!tbody) return;
+      if (!rows.length) {
+        tbody.innerHTML = "";
+        empty?.classList.remove("hidden");
+        renderSummary([]);
+        return;
+      }
+      empty?.classList.add("hidden");
+      tbody.innerHTML = rows.map((row, idx) => `
+        <tr>
+          <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
+          <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
+          <td>${escapeHtml(row.examId || "—")}</td>
+          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))}</span></td>
+          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))}</span></td>
+          <td>${escapeHtml(String(num(row.objectiveTotal)))} / 80</td>
+          <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
+          <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
+        </tr>
+      `).join("");
+      renderSummary(rows);
+    }
+
+    function applyAdminFilters() {
+      const q = String($("adminResultsSearch")?.value || "").trim().toLowerCase();
+      const examFilter = String($("adminResultsExamFilter")?.value || "").trim();
+      const sortValue = String($("adminResultsSort")?.value || "submittedAt_desc");
+      let rows = adminState.rows.slice();
+
+      if (q) {
+        rows = rows.filter((row) => {
+          const hay = [row.studentFullName, row.reason, row.examId].map((x) => String(x || "").toLowerCase()).join(" ");
+          return hay.includes(q);
+        });
+      }
+      if (examFilter) rows = rows.filter((row) => String(row.examId || "") === examFilter);
+
+      const [field, dir] = sortValue.split("_");
+      rows.sort((a, b) => {
+        let av = a[field];
+        let bv = b[field];
+        if (field === "submittedAt") {
+          av = new Date(av || 0).getTime();
+          bv = new Date(bv || 0).getTime();
+        } else if (["objectiveTotal", "listeningTotal", "readingTotal"].includes(field)) {
+          av = num(av);
+          bv = num(bv);
+        } else {
+          av = String(av || "").toLowerCase();
+          bv = String(bv || "").toLowerCase();
+        }
+        if (av < bv) return dir === "desc" ? 1 : -1;
+        if (av > bv) return dir === "desc" ? -1 : 1;
+        return 0;
+      });
+
+      renderAdminTable(rows);
+    }
+
+    function renderAdminDetail(row) {
+      const detail = $("adminResultDetail");
+      if (!detail || !row) return;
+      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
+      $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
+      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>Total objective: <b>${escapeHtml(String(num(row.objectiveTotal)))} / 80</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
+      $("adminDetailTask1").textContent = row.writingTask1 || "";
+      $("adminDetailTask2").textContent = row.writingTask2 || "";
+      detail.classList.remove("hidden");
+    }
+
+    async function openAdminResultsView() {
+      if (!isAdmin) return;
+      UI().showOnly("adminResults");
+      UI().setExamNavStatus("Status: Admin results");
+      try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
+      const tbody = $("adminResultsTbody");
+      if (tbody) tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
+      try {
+        const rows = await fetchAdminResults();
+        adminState.rows = rows;
+        fillExamFilter(rows);
+        applyAdminFilters();
+      } catch (e) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
+        renderSummary([]);
+      }
+    }
+
+    function exportAdminRowsCsv() {
+      if (!isAdmin || !adminState.filtered.length) return;
+      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","objectiveTotal","task1Words","task2Words"];
+      const lines = [headers.join(",")].concat(
+        adminState.filtered.map((row) =>
+          headers
+            .map((key) => `"${String(row[key] ?? "").replace(/"/g, '""')}"`)
+            .join(",")
+        )
+      );
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "ielts-results.csv";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(a.href);
+        a.remove();
+      }, 0);
+    }
+
+    // -----------------------------
     // Hash route support (ADMIN ONLY)
     // -----------------------------
     const route = Router().parseHashRoute();
@@ -379,6 +559,10 @@ const Router = () => window.IELTS.Router;
         UI().setExamNavStatus("Status: Viewing Writing");
         return;
       }
+      if (route.view === "results") {
+        openAdminResultsView();
+        return;
+      }
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();
@@ -401,6 +585,10 @@ const Router = () => window.IELTS.Router;
     const startBtnT2 = $("startIelts2Btn");
     const startBtnT2b = $("cardStartIelts2Btn");
     const contBtn = $("homeContinueBtn");
+    const adminResultsBtn = $("homeAdminResultsBtn");
+    const navResultsBtn = $("navToResultsBtn");
+    const adminRefreshBtn = $("adminResultsRefreshBtn");
+    const adminExportBtn = $("adminResultsExportBtn");
 
     
     // -----------------------------
@@ -461,6 +649,21 @@ function startFreshExam() {
     if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
     if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
     if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
+    if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
+    if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
+    if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
+    if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
+    $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
+    $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
+    $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
+    $("adminDetailCloseBtn")?.addEventListener("click", () => $("adminResultDetail")?.classList.add("hidden"));
+    $("adminResultsTbody")?.addEventListener("click", (e) => {
+      const btn = e.target?.closest?.("[data-admin-view]");
+      if (!btn) return;
+      const idx = Number(btn.getAttribute("data-admin-view"));
+      const row = adminState.filtered[idx];
+      if (row) renderAdminDetail(row);
+    });
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {

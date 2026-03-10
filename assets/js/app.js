@@ -480,15 +480,69 @@ const Router = () => window.IELTS.Router;
     }
 
     function renderAdminDetail(row) {
-      const detail = $("adminResultDetail");
-      if (!detail || !row) return;
-      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
-      $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>Total objective: <b>${escapeHtml(String(num(row.objectiveTotal)))} / 80</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
-      $("adminDetailTask1").textContent = row.writingTask1 || "";
-      $("adminDetailTask2").textContent = row.writingTask2 || "";
-      detail.classList.remove("hidden");
-    }
+  const detail = $("adminResultDetail");
+  if (!detail || !row) return;
+
+  $("adminDetailTitle").textContent = row.studentFullName || "Result details";
+
+  $("adminDetailMeta").innerHTML =
+    `Test: <b>${escapeHtml(row.examId || "—")}</b><br>` +
+    `Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>` +
+    `Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
+
+  $("adminDetailScores").innerHTML =
+    `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> ` +
+    `(Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>` +
+    `Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> ` +
+    `(Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>` +
+    `Total objective: <b>${escapeHtml(String(num(row.objectiveTotal)))} / 80</b><br>` +
+    `Writing words: <b>${escapeHtml(String(num(row.task1Words)))}</b> / <b>${escapeHtml(String(num(row.task2Words)))}</b><br>` +
+    `Task 1 band: <b>${escapeHtml(String(row.task1Band || "—"))}</b><br>` +
+    `Task 2 band: <b>${escapeHtml(String(row.task2Band || "—"))}</b><br>` +
+    `Overall writing band: <b>${escapeHtml(String(row.finalWritingBand || "—"))}</b>`;
+
+  const task1EssayEl = $("adminDetailTask1");
+  const task2EssayEl = $("adminDetailTask2");
+
+  if (task1EssayEl) {
+    task1EssayEl.innerHTML =
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 1 Essay</div>` +
+        `<pre>${escapeHtml(row.writingTask1 || "")}</pre>` +
+      `</div>` +
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 1 Score Breakdown</div>` +
+        `<pre>${escapeHtml(row.task1Breakdown || "—")}</pre>` +
+      `</div>` +
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 1 Feedback</div>` +
+        `<pre>${escapeHtml(row.task1Feedback || "—")}</pre>` +
+      `</div>`;
+  }
+
+  if (task2EssayEl) {
+    task2EssayEl.innerHTML =
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 2 Essay</div>` +
+        `<pre>${escapeHtml(row.writingTask2 || "")}</pre>` +
+      `</div>` +
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 2 Score Breakdown</div>` +
+        `<pre>${escapeHtml(row.task2Breakdown || "—")}</pre>` +
+      `</div>` +
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Task 2 Feedback</div>` +
+        `<pre>${escapeHtml(row.task2Feedback || "—")}</pre>` +
+      `</div>` +
+      `<div class="admin-detail-block">` +
+        `<div class="admin-detail-label">Overall Writing Feedback</div>` +
+        `<pre>${escapeHtml(row.overallFeedback || "—")}</pre>` +
+      `</div>`;
+  }
+
+  detail.classList.remove("hidden");
+}
+    
 
     async function openAdminResultsView() {
       if (!isAdmin) return;

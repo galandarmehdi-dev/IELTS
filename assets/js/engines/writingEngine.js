@@ -172,29 +172,48 @@ function applyActiveWritingContent() {
       );
     }
 
-    function collectWritingPayload(reason) {
-      const fullName = getStudentFullName();
-      const answers = S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
-        task1: wt1?.value || "",
-        task2: wt2?.value || "",
-      };
+function collectWritingPayload(reason) {
+  const fullName = getStudentFullName();
+  const answers =
+    S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
+      task1: wt1?.value || "",
+      task2: wt2?.value || "",
+    };
 
-      return {
-        type: "writing",
-        testId: W.TEST_ID,
-        submittedAt: new Date().toISOString(),
-        reason,
-        studentFullName: fullName,
-        durationMinutes: W.DURATION_MINUTES,
-        remainingSeconds,
-        answers,
-        wordCount: {
-          task1: UI().wordCount(answers.task1),
-          task2: UI().wordCount(answers.task2),
-        },
-      };
-    }
+  const activeContent =
+    (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+  const writingContent = activeContent.writing || {};
 
+  const stripHtml = (html) => {
+    const div = document.createElement("div");
+    div.innerHTML = String(html || "");
+    return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+  };
+
+  return {
+    type: "writing",
+    testId: W.TEST_ID,
+    submittedAt: new Date().toISOString(),
+    reason,
+    studentFullName: fullName,
+    durationMinutes: W.DURATION_MINUTES,
+    remainingSeconds,
+
+    prompts: {
+      task1Html: writingContent.task1Html || "",
+      task1Text: stripHtml(writingContent.task1Html || ""),
+      task1ImageSrc: writingContent.task1ImageSrc || "",
+      task2Html: writingContent.task2Html || "",
+      task2Text: stripHtml(writingContent.task2Html || ""),
+    },
+
+    answers,
+    wordCount: {
+      task1: UI().wordCount(answers.task1),
+      task2: UI().wordCount(answers.task2),
+    },
+  };
+}
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 

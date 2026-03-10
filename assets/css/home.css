@@ -369,3 +369,27 @@
   .admin-detail-grid{ grid-template-columns: 1fr; }
   .admin-results-header{ flex-direction:column; }
 }
+
+.admin-detail-block{
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.admin-detail-block:first-child{
+  margin-top: 0;
+}
+
+.admin-detail-block .admin-detail-label{
+  margin-bottom: 8px;
+}
+
+.admin-detail-block pre{
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: Arial, sans-serif;
+  line-height: 1.55;
+}

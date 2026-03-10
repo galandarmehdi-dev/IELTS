@@ -435,8 +435,14 @@ const Router = () => window.IELTS.Router;
           <td>${escapeHtml(row.examId || "—")}</td>
           <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))}</span></td>
           <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))}</span></td>
-          <td>${escapeHtml(String(num(row.objectiveTotal)))} / 80</td>
-          <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
+          <td>
+  ${escapeHtml(String(num(row.objectiveTotal)))} / 80
+  <br><span class="small">Writing ${escapeHtml(String(row.finalWritingBand || "—"))}</span>
+</td>
+<td>
+  T1: ${escapeHtml(String(num(row.task1Words)))}
+  <br>T2: ${escapeHtml(String(num(row.task2Words)))}
+</td>
           <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
         </tr>
       `).join("");

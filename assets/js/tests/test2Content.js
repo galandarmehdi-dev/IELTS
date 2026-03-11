@@ -171,29 +171,139 @@
           </div>
         </div>
 
-        <div class="listen-page hidden" id="listenSec4">
+                <div class="listen-page hidden" id="listenSec4">
           <div class="listen-block">
             <div class="listen-h">SECTION 4 — Questions 31–40</div>
+
             <div class="listen-card">
               <div class="listen-card-title">Questions 31–40</div>
-              <div class="listen-inst">Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+              <div class="listen-inst">
+                Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.
+              </div>
               <div class="listen-card-title">Climate change</div>
+
               <div class="note-row"><b>HUMAN FACTORS</b></div>
-              <div class="note-row bullet">• Cutting down trees for <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+              <div class="note-row bullet">
+                • Cutting down trees for
+                <span class="qnum">31</span>
+                <input type="text" data-lq="31" class="l-input" autocomplete="off" spellcheck="false" />
+              </div>
               <div class="note-row bullet">• Industrial Revolution</div>
-              <div class="note-row bullet">• <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+              <div class="note-row bullet">
+                •
+                <span class="qnum">32</span>
+                <input type="text" data-lq="32" class="l-input" autocomplete="off" spellcheck="false" />
+              </div>
               <div class="note-row bullet">• Increase in population → deforestation</div>
+
               <div class="note-row"><b>KNOWN EFFECTS</b></div>
               <div class="note-row bullet">• Over previous 130 yrs: temp. ↑ by 0.6 °C</div>
-              <div class="note-row bullet">• Since Ind. Rev.: CO2 ↑ by 30% &amp; Methane ↑ by <span class="qnum">33</span> <input data-lq="33" class="l-input tiny"> (from mining, animals, rice paddies)</div>
-              <div class="note-row bullet">• N2O ↑ (from <span class="qnum">34</span> <input data-lq="34" class="l-input"> esp. fertiliser; waste management; car exhausts)</div>
-              <div class="note-row bullet">• Greenhouse Effect: gases form <span class="qnum">35</span> <input data-lq="35" class="l-input"> → heat trapped → Earth warms up</div>
+              <div class="note-row bullet">
+                • Since Ind. Rev.: CO2 ↑ by 30% &amp; Methane ↑ by
+                <span class="qnum">33</span>
+                <input type="text" data-lq="33" class="l-input tiny" autocomplete="off" spellcheck="false" />
+                (from mining, animals, rice paddies)
+              </div>
+              <div class="note-row bullet">
+                • N2O ↑ (from
+                <span class="qnum">34</span>
+                <input type="text" data-lq="34" class="l-input" autocomplete="off" spellcheck="false" />
+                esp. fertiliser; waste management; car exhausts)
+              </div>
+              <div class="note-row bullet">
+                • Greenhouse Effect: gases form
+                <span class="qnum">35</span>
+                <input type="text" data-lq="35" class="l-input" autocomplete="off" spellcheck="false" />
+                → heat trapped → Earth warms up
+              </div>
+
               <div class="note-row"><b>FUTURE EFFECTS</b></div>
+
               <div class="listen-table-wrap">
                 <table class="listen-table">
-                  <thead><tr><th>Sea level</th><th>Number of people at risk</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Sea level</th>
+                      <th>Number of people at risk</th>
+                    </tr>
+                  </thead>
                   <tbody>
-                    <tr><td>1998 levels</td><td><span class="qnum">36</span> <input data-lq="36" class="l-input tiny"></td></tr>
+                    <tr>
+                      <td>1998 levels</td>
+                      <td>
+                        <span class="qnum">36</span>
+                        <input type="text" data-lq="36" class="l-input tiny" autocomplete="off" spellcheck="false" />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>+50 cm</td>
+                      <td>92 million</td>
+                    </tr>
+                    <tr>
+                      <td>+1 metre</td>
+                      <td>
+                        <span class="qnum">37</span>
+                        <input type="text" data-lq="37" class="l-input tiny" autocomplete="off" spellcheck="false" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="note-row bullet">
+                2. Change in
+                <span class="qnum">38</span>
+                <input type="text" data-lq="38" class="l-input" autocomplete="off" spellcheck="false" />
+                → more arid areas → population movement to cities
+              </div>
+              <div class="note-row bullet">
+                3. Increase in pests and
+                <span class="qnum">39</span>
+                <input type="text" data-lq="39" class="l-input" autocomplete="off" spellcheck="false" />
+                e.g. malaria
+              </div>
+              <div class="note-row bullet">
+                4. Change in ecosystems: shift in
+                <span class="qnum">40</span>
+                <input type="text" data-lq="40" class="l-input" autocomplete="off" spellcheck="false" />
+                – some die, others multiply
+              </div>
+            </div>
+          </div>
+        </div>
+                    <tr><td>+50 cm</td><td>92 million</td></tr>
+                    <tr><td>+1 metre</td><td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note-row bullet">2. Change in <span class="qnum">38</span> <input data-lq="38" class="l-input"> → more arid areas → population movement to cities</div>
+              <div class="note-row bullet">3. Increase in pests and <span class="qnum">39</span> <input data-lq="39" class="l-input"> e.g. malaria</div>
+              <div class="note-row bullet">4. Change in ecosystems: shift in <span class="qnum">40</span> <input data-lq="40" class="l-input"> – some die, others multiply</div>
+            </div>
+          </div>
+        </div>
+                    <tr><td>+50 cm</td><td>92 million</td></tr>
+                    <tr><td>+1 metre</td><td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note-row bullet">2. Change in <span class="qnum">38</span> <input data-lq="38" class="l-input"> → more arid areas → population movement to cities</div>
+              <div class="note-row bullet">3. Increase in pests and <span class="qnum">39</span> <input data-lq="39" class="l-input"> e.g. malaria</div>
+              <div class="note-row bullet">4. Change in ecosystems: shift in <span class="qnum">40</span> <input data-lq="40" class="l-input"> – some die, others multiply</div>
+            </div>
+          </div>
+        </div>
+                    <tr><td>+50 cm</td><td>92 million</td></tr>
+                    <tr><td>+1 metre</td><td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note-row bullet">2. Change in <span class="qnum">38</span> <input data-lq="38" class="l-input"> → more arid areas → population movement to cities</div>
+              <div class="note-row bullet">3. Increase in pests and <span class="qnum">39</span> <input data-lq="39" class="l-input"> e.g. malaria</div>
+              <div class="note-row bullet">4. Change in ecosystems: shift in <span class="qnum">40</span> <input data-lq="40" class="l-input"> – some die, others multiply</div>
+            </div>
+          </div>
+        </div>
                     <tr><td>+50 cm</td><td>92 million</td></tr>
                     <tr><td>+1 metre</td><td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny"></td></tr>
                   </tbody>

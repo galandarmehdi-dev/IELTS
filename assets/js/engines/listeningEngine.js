@@ -111,15 +111,30 @@ function applyActiveListeningContent() {
       }
     }
 
+    function getListeningRoot() {
+      return $("listenBody") || sec() || document;
+    }
+
     function getListeningAnswers() {
       const out = {};
-      document.querySelectorAll("[data-lq]").forEach((el) => {
-        out[String(el.dataset.lq)] = (el.value || "").trim();
+      const root = getListeningRoot();
+
+      root.querySelectorAll("[data-lq]").forEach((el) => {
+        const key = String(el.dataset.lq || "").trim();
+        if (!key) return;
+
+        if (el.matches('input[type="checkbox"]')) {
+          out[key] = el.checked ? (el.value || "true") : "";
+          return;
+        }
+
+        out[key] = (el.value || "").trim();
       });
 
-      document.querySelectorAll("[data-lq-radio]").forEach((el) => {
-        const q = String(el.dataset.lqRadio);
-        if (el.checked) out[q] = el.value;
+      root.querySelectorAll("[data-lq-radio]").forEach((el) => {
+        const q = String(el.dataset.lqRadio || "").trim();
+        if (!q) return;
+        if (el.checked) out[q] = String(el.value || "").trim();
       });
 
       return out;
@@ -138,13 +153,22 @@ function applyActiveListeningContent() {
       const a = S().getJSON(L_KEYS.answers, null);
       if (!a) return;
 
-      document.querySelectorAll("[data-lq]").forEach((el) => {
-        const k = String(el.dataset.lq);
-        if (a[k] !== undefined) el.value = a[k];
+      const root = getListeningRoot();
+
+      root.querySelectorAll("[data-lq]").forEach((el) => {
+        const k = String(el.dataset.lq || "").trim();
+        if (!k || a[k] === undefined) return;
+
+        if (el.matches('input[type="checkbox"]')) {
+          el.checked = !!a[k] && String(a[k]).trim() !== "" && String(a[k]).toLowerCase() !== "false";
+          return;
+        }
+
+        el.value = a[k];
       });
 
-      document.querySelectorAll("[data-lq-radio]").forEach((el) => {
-        const k = String(el.dataset.lqRadio);
+      root.querySelectorAll("[data-lq-radio]").forEach((el) => {
+        const k = String(el.dataset.lqRadio || "").trim();
         if (a[k] !== undefined) el.checked = String(a[k]) === String(el.value);
       });
     }
@@ -257,6 +281,8 @@ function applyActiveListeningContent() {
     function goToPage(index) {
       const list = pages();
       if (!list.length) return;
+
+      if (!submitted) saveListeningAnswers();
 
       const clamped = Math.max(0, Math.min(list.length - 1, index));
       currentPageIndex = clamped;
@@ -397,12 +423,19 @@ function applyActiveListeningContent() {
 
       setStatus("Status: Not started");
 
-      s.addEventListener("input", (e) => {
-        const t = e.target;
-        if (t && (t.matches("input") || t.matches("select") || t.matches("textarea"))) {
-          saveListeningAnswers();
-        }
-      });
+      if (!s.dataset.listenBound) {
+        s.dataset.listenBound = "1";
+
+        const persistIfAnswerField = (e) => {
+          const t = e.target;
+          if (t && (t.matches("input") || t.matches("select") || t.matches("textarea"))) {
+            saveListeningAnswers();
+          }
+        };
+
+        s.addEventListener("input", persistIfAnswerField);
+        s.addEventListener("change", persistIfAnswerField);
+      }
     }
 
     async function startAudioFromUserGesture() {

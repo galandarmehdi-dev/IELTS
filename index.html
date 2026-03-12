@@ -185,8 +185,8 @@
           <option value="submittedAt_asc">Oldest first</option>
           <option value="studentFullName_asc">Name A–Z</option>
           <option value="studentFullName_desc">Name Z–A</option>
-          <option value="finalWritingBand_desc">Highest writing band</option>
-          <option value="finalWritingBand_asc">Lowest writing band</option>
+          <option value="finalWritingBand_desc">Writing high→low</option>
+          <option value="finalWritingBand_asc">Writing low→high</option>
           <option value="listeningTotal_desc">Listening high→low</option>
           <option value="readingTotal_desc">Reading high→low</option>
         </select>
@@ -222,7 +222,7 @@
             <th>Test</th>
             <th>Listening</th>
             <th>Reading</th>
-            <th>Writing</th>
+            <th>Overall Writing</th>
             <th>Writing words</th>
             <th>Action</th>
           </tr>
@@ -249,11 +249,25 @@
       <div class="admin-detail-grid writing">
         <div class="admin-detail-card">
           <div class="admin-detail-label">Writing Task 1</div>
+          <div id="adminDetailTask1Score" class="admin-detail-meta-block"></div>
+          <div class="admin-detail-subtitle">Essay</div>
           <pre id="adminDetailTask1"></pre>
+          <div class="admin-detail-subtitle">Feedback</div>
+          <pre id="adminDetailTask1Feedback"></pre>
         </div>
         <div class="admin-detail-card">
           <div class="admin-detail-label">Writing Task 2</div>
+          <div id="adminDetailTask2Score" class="admin-detail-meta-block"></div>
+          <div class="admin-detail-subtitle">Essay</div>
           <pre id="adminDetailTask2"></pre>
+          <div class="admin-detail-subtitle">Feedback</div>
+          <pre id="adminDetailTask2Feedback"></pre>
+        </div>
+      </div>
+      <div class="admin-detail-grid writing">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Overall Writing Feedback</div>
+          <div id="adminDetailOverallWriting" class="admin-detail-meta-block"></div>
         </div>
       </div>
     </div>

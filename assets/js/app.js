@@ -361,6 +361,14 @@ const Router = () => window.IELTS.Router;
       return Number.isFinite(n) ? n : 0;
     }
 
+    function hasNumber(value) {
+      return value !== "" && value !== null && value !== undefined && Number.isFinite(Number(value));
+    }
+
+    function fmtBand(value) {
+      return hasNumber(value) ? Number(value).toFixed(1) : "—";
+    }
+
     function fmtDate(value) {
       const d = new Date(value || "");
       if (Number.isNaN(d.getTime())) return "—";
@@ -374,6 +382,34 @@ const Router = () => window.IELTS.Router;
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+    }
+
+    function formatFeedbackHtml(value) {
+      const text = String(value || "").trim();
+      if (!text) return '<span class="small">No feedback</span>';
+      return escapeHtml(text).replace(/
+/g, "<br>");
+    }
+
+    function formatWritingScoreCell(row) {
+      const overall = fmtBand(row.finalWritingBand);
+      return `Overall Writing: <b>${escapeHtml(overall)}</b>`;
+    }
+
+    function formatTaskDetailHtml(taskLabel, band, breakdown, feedback, essayText, words) {
+      const essay = String(essayText || "").trim();
+      const wordCount = hasNumber(words) ? String(num(words)) : "—";
+      return `
+        <div class="admin-task-card">
+          <div class="admin-task-card-head">
+            <strong>${escapeHtml(taskLabel)}</strong>
+            <span class="small">Band ${escapeHtml(fmtBand(band))} · ${escapeHtml(wordCount)} words</span>
+          </div>
+          <div class="admin-task-block"><strong>Score breakdown</strong><br>${formatFeedbackHtml(breakdown)}</div>
+          <div class="admin-task-block"><strong>Feedback</strong><br>${formatFeedbackHtml(feedback)}</div>
+          <div class="admin-task-block"><strong>Essay</strong><br>${essay ? formatFeedbackHtml(essay) : '<span class="small">No essay text</span>'}</div>
+        </div>
+      `;
     }
 
     async function fetchAdminResults() {
@@ -433,9 +469,9 @@ const Router = () => window.IELTS.Router;
           <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
           <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
           <td>${escapeHtml(row.examId || "—")}</td>
-          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))}</span></td>
-          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))}</span></td>
-          <td>${escapeHtml(String(num(row.objectiveTotal)))} / 80</td>
+          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(fmtBand(row.listeningBand))}</span></td>
+          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(fmtBand(row.readingBand))}</span></td>
+          <td>${formatWritingScoreCell(row)}</td>
           <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
           <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
         </tr>
@@ -464,9 +500,9 @@ const Router = () => window.IELTS.Router;
         if (field === "submittedAt") {
           av = new Date(av || 0).getTime();
           bv = new Date(bv || 0).getTime();
-        } else if (["objectiveTotal", "listeningTotal", "readingTotal"].includes(field)) {
-          av = num(av);
-          bv = num(bv);
+        } else if (["finalWritingBand", "listeningTotal", "readingTotal", "task1Words", "task2Words"].includes(field)) {
+          av = hasNumber(av) ? Number(av) : -1;
+          bv = hasNumber(bv) ? Number(bv) : -1;
         } else {
           av = String(av || "").toLowerCase();
           bv = String(bv || "").toLowerCase();
@@ -484,9 +520,9 @@ const Router = () => window.IELTS.Router;
       if (!detail || !row) return;
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
       $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>Total objective: <b>${escapeHtml(String(num(row.objectiveTotal)))} / 80</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
-      $("adminDetailTask1").textContent = row.writingTask1 || "";
-      $("adminDetailTask2").textContent = row.writingTask2 || "";
+      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(fmtBand(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(fmtBand(row.readingBand))})<br>Overall Writing: <b>${escapeHtml(fmtBand(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
+      $("adminDetailTask1").innerHTML = formatTaskDetailHtml("Task 1", row.task1Band, row.task1Breakdown, row.task1Feedback, row.writingTask1, row.task1Words);
+      $("adminDetailTask2").innerHTML = formatTaskDetailHtml("Task 2", row.task2Band, row.task2Breakdown, row.task2Feedback, row.writingTask2, row.task2Words);
       detail.classList.remove("hidden");
     }
 

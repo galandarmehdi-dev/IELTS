@@ -22,7 +22,7 @@
     const testId = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
     const L_KEYS = (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
 
-    // Auto-migrate legacy single-test keys on this browser
+    // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
     const LEG = R().LEGACY?.listeningKeys;
     try {
       if (LEG && L_KEYS && S()) {
@@ -44,6 +44,7 @@
       }
     } catch (e) {}
 
+
     const $ = UI().$;
     const sec = () => $("listeningSection");
     const modal = () => $("listenModal");
@@ -58,12 +59,11 @@
 
     const pages = () => [$("listenSec1"), $("listenSec2"), $("listenSec3"), $("listenSec4")].filter(Boolean);
     const readingContainer = () => $("container");
-    const listeningRoot = () => sec();
 
     let submitted = S().get(L_KEYS.submitted, "false") === "true";
     let started = S().get(L_KEYS.started, "false") === "true";
 
-    // 2-minute review time after audio ends
+    // 2-minute review/transfer time after audio ends (computer-delivered IELTS style)
     let transferActive = false;
     let transferEndsAt = 0;
     let transferInterval = null;
@@ -73,30 +73,29 @@
 
     let lastGoodTime = 0;
     let ignoreSeekUntil = 0;
-    let autosaveTimer = null;
-    let listenersBound = false;
 
-    function applyActiveListeningContent() {
-      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-      const listening = content.listening || {};
-      const body = $("listenBody");
-      const aud = audio();
 
-      if (body && typeof listening.html === "string" && listening.html.trim()) {
-        body.innerHTML = listening.html;
-      }
+function applyActiveListeningContent() {
+  const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+  const listening = content.listening || {};
+  const body = $("listenBody");
+  const aud = audio();
 
-      if (aud && typeof listening.audioSrc === "string" && listening.audioSrc.trim()) {
-        let source = aud.querySelector("source");
-        if (!source) {
-          source = document.createElement("source");
-          source.type = "audio/mpeg";
-          aud.appendChild(source);
-        }
-        source.src = listening.audioSrc.trim();
-        aud.load();
-      }
+  if (body && typeof listening.html === "string" && listening.html.trim()) {
+    body.innerHTML = listening.html;
+  }
+
+  if (aud && typeof listening.audioSrc === "string" && listening.audioSrc.trim()) {
+    let source = aud.querySelector("source");
+    if (!source) {
+      source = document.createElement("source");
+      source.type = "audio/mpeg";
+      aud.appendChild(source);
     }
+    source.src = listening.audioSrc.trim();
+    aud.load();
+  }
+}
 
     function setStatus(t) {
       const el = statusEl();
@@ -112,90 +111,45 @@
       }
     }
 
-    function getScopedElements(selector) {
-      const root = listeningRoot();
-      return root ? Array.from(root.querySelectorAll(selector)) : [];
-    }
-
     function getListeningAnswers() {
       const out = {};
-
-      getScopedElements("[data-lq]").forEach((el) => {
-        const q = String(el.dataset.lq || "").trim();
-        if (!q) return;
-
-        if (el.type === "checkbox") {
-          out[q] = el.checked ? (el.value || "true") : "";
-        } else {
-          out[q] = String(el.value || "").trim();
-        }
+      document.querySelectorAll("[data-lq]").forEach((el) => {
+        out[String(el.dataset.lq)] = (el.value || "").trim();
       });
 
-      getScopedElements("[data-lq-radio]").forEach((el) => {
-        const q = String(el.dataset.lqRadio || "").trim();
-        if (!q) return;
-
-        if (!(q in out)) out[q] = "";
-        if (el.checked) out[q] = String(el.value || "").trim();
+      document.querySelectorAll("[data-lq-radio]").forEach((el) => {
+        const q = String(el.dataset.lqRadio);
+        if (el.checked) out[q] = el.value;
       });
 
       return out;
     }
 
-    function setAutosaveText(text) {
-      const a = $("listenAutosave");
-      if (a) a.textContent = text;
-    }
-
     function saveListeningAnswers() {
-      const answers = getListeningAnswers();
-      S().setJSON(L_KEYS.answers, answers);
-
-      setAutosaveText("Autosave: saved");
-
-      try {
-        if (autosaveTimer) clearTimeout(autosaveTimer);
-      } catch (_) {}
-
-      autosaveTimer = setTimeout(() => {
-        setAutosaveText("Autosave: ready");
+      S().setJSON(L_KEYS.answers, getListeningAnswers());
+      const a = $("listenAutosave");
+      if (a) a.textContent = "Autosave: saved";
+      setTimeout(() => {
+        if (a) a.textContent = "Autosave: ready";
       }, 800);
     }
 
-    function queueSaveListeningAnswers() {
-      try {
-        if (autosaveTimer) clearTimeout(autosaveTimer);
-      } catch (_) {}
-
-      autosaveTimer = setTimeout(() => {
-        saveListeningAnswers();
-      }, 0);
-    }
-
     function loadListeningAnswers() {
-      const answers = S().getJSON(L_KEYS.answers, null);
-      if (!answers || typeof answers !== "object") return;
+      const a = S().getJSON(L_KEYS.answers, null);
+      if (!a) return;
 
-      getScopedElements("[data-lq]").forEach((el) => {
-        const q = String(el.dataset.lq || "").trim();
-        if (!q) return;
-        if (Object.prototype.hasOwnProperty.call(answers, q)) {
-          el.value = answers[q] ?? "";
-        }
+      document.querySelectorAll("[data-lq]").forEach((el) => {
+        const k = String(el.dataset.lq);
+        if (a[k] !== undefined) el.value = a[k];
       });
 
-      getScopedElements("[data-lq-radio]").forEach((el) => {
-        const q = String(el.dataset.lqRadio || "").trim();
-        if (!q) return;
-        el.checked = Object.prototype.hasOwnProperty.call(answers, q)
-          ? String(answers[q]) === String(el.value)
-          : false;
+      document.querySelectorAll("[data-lq-radio]").forEach((el) => {
+        const k = String(el.dataset.lqRadio);
+        if (a[k] !== undefined) el.checked = String(a[k]) === String(el.value);
       });
     }
 
     function collectListeningPayload(reason) {
-      saveListeningAnswers();
-
       return {
         type: "listening",
         submittedAt: new Date().toISOString(),
@@ -205,18 +159,15 @@
       };
     }
 
+    
     function stopTransferTime() {
       transferActive = false;
       transferEndsAt = 0;
       if (transferInterval) {
-        try {
-          clearInterval(transferInterval);
-        } catch (_) {}
+        try { clearInterval(transferInterval); } catch (_) {}
       }
       transferInterval = null;
-      try {
-        UI().setExamNavTimer("");
-      } catch (_) {}
+      try { UI().setExamNavTimer(""); } catch (_) {}
     }
 
     function startTransferTime() {
@@ -225,6 +176,7 @@
       transferActive = true;
       transferEndsAt = Date.now() + 2 * 60 * 1000;
 
+      // Show warning once, then let students keep editing answers during the countdown
       try {
         Modal().showModal(
           "2 minutes to check answers",
@@ -232,24 +184,22 @@
           {
             mode: "confirm",
             submitText: "Continue",
-            onConfirm: () => {},
+            onConfirm: () => {
+              // Just close and continue editing.
+            },
           }
         );
       } catch (_) {}
 
-      try {
-        UI().setExamNavStatus("Status: Listening — check answers");
-      } catch (_) {}
+      // Status + pinned timer in the nav bar
+      try { UI().setExamNavStatus("Status: Listening — check answers"); } catch (_) {}
 
       const tick = () => {
         const msLeft = Math.max(0, transferEndsAt - Date.now());
         const totalSec = Math.ceil(msLeft / 1000);
         const mm = String(Math.floor(totalSec / 60)).padStart(2, "0");
         const ss = String(totalSec % 60).padStart(2, "0");
-
-        try {
-          UI().setExamNavTimer(`${mm}:${ss}`);
-        } catch (_) {}
+        try { UI().setExamNavTimer(`${mm}:${ss}`); } catch (_) {}
 
         if (msLeft <= 0) {
           stopTransferTime();
@@ -264,17 +214,17 @@
     function finishListening(reason) {
       if (submitted) return;
 
+      // If transfer time was running, stop it now.
       stopTransferTime();
 
       const aud = audio();
       if (aud) {
-        try {
-          aud.pause();
-        } catch {}
+        try { aud.pause(); } catch {}
       }
 
       submitted = true;
       strictActive = false;
+      saveListeningAnswers();
 
       const payload = collectListeningPayload(reason);
       S().setJSON(L_KEYS.lastSubmission, payload);
@@ -287,6 +237,7 @@
       }
 
       lockReading(false);
+
       document.dispatchEvent(new CustomEvent("listening:submitted"));
     }
 
@@ -307,8 +258,6 @@
       const list = pages();
       if (!list.length) return;
 
-      saveListeningAnswers();
-
       const clamped = Math.max(0, Math.min(list.length - 1, index));
       currentPageIndex = clamped;
       S().set(L_KEYS.pageIndex, String(clamped));
@@ -325,22 +274,11 @@
 
       const p = prevBtn();
       const n = nextBtn();
-      if (p) {
-        p.onclick = () => {
-          saveListeningAnswers();
-          goToPage(currentPageIndex - 1);
-        };
-      }
-      if (n) {
-        n.onclick = () => {
-          saveListeningAnswers();
-          goToPage(currentPageIndex + 1);
-        };
-      }
+      if (p) p.onclick = () => goToPage(currentPageIndex - 1);
+      if (n) n.onclick = () => goToPage(currentPageIndex + 1);
 
       tabButtons().forEach((btn) => {
         btn.onclick = () => {
-          saveListeningAnswers();
           const idx = parseInt(btn.dataset.listenTab, 10);
           if (!Number.isNaN(idx)) goToPage(idx);
         };
@@ -352,10 +290,11 @@
 
       const isAdmin = isAdminView();
 
-      // Keep this exactly as intended by your current setup
+      // TEMP: allow students to scrub audio for testing (Registry.TEMP_STUDENT_AUDIO_SCRUB)
       const allowStudentScrub = !!(R() && R().TEMP_STUDENT_AUDIO_SCRUB === false);
       const allowControls = isAdmin || allowStudentScrub;
 
+      // Students: strict, no pause/seek. Admin (and temp testing mode): allow full controls (seek forward/back).
       strictActive = !allowControls;
 
       aud.controls = allowControls;
@@ -364,35 +303,37 @@
 
       lastGoodTime = aud.currentTime || 0;
 
+      // Always: autosave periodically + detect end of audio.
       aud.addEventListener("timeupdate", () => {
         if (submitted) return;
-
         const t = aud.currentTime || 0;
 
+        // Student anti-seek protection
         if (strictActive) {
           if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
-            try {
-              aud.currentTime = lastGoodTime;
-            } catch {}
+            try { aud.currentTime = lastGoodTime; } catch {}
             return;
           }
         }
 
         lastGoodTime = t;
 
-        if (Math.floor(t) % 5 === 0) {
-          saveListeningAnswers();
-        }
+        if (Math.floor(t) % 5 === 0) saveListeningAnswers();
       });
 
       aud.addEventListener("ended", () => {
         if (submitted) return;
-        saveListeningAnswers();
         startTransferTime();
       });
 
-      if (!strictActive) return;
+      if (!strictActive) {
+        // Admin: allow pause/seek/keyboard freely.
+        return;
+      }
 
+      // -----------------------
+      // Student-only restrictions
+      // -----------------------
       aud.addEventListener("pause", () => {
         if (!strictActive || submitted) return;
         if (aud.ended) return;
@@ -404,9 +345,7 @@
         const now = Date.now();
         if (now < ignoreSeekUntil) return;
         ignoreSeekUntil = now + 200;
-        try {
-          aud.currentTime = lastGoodTime;
-        } catch {}
+        try { aud.currentTime = lastGoodTime; } catch {}
       });
 
       window.addEventListener(
@@ -415,15 +354,7 @@
           if (!strictActive || submitted) return;
 
           const t = e.target;
-          if (
-            t &&
-            (t.tagName === "INPUT" ||
-              t.tagName === "TEXTAREA" ||
-              t.tagName === "SELECT" ||
-              t.isContentEditable)
-          ) {
-            return;
-          }
+          if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
 
           const k = (e.key || "").toLowerCase();
           const blocked =
@@ -447,40 +378,6 @@
       );
     }
 
-    function bindAnswerListeners() {
-      if (listenersBound) return;
-      listenersBound = true;
-
-      const root = listeningRoot();
-      if (!root) return;
-
-      const saveHandler = (e) => {
-        const t = e.target;
-        if (!t) return;
-
-        if (
-          t.matches("[data-lq]") ||
-          t.matches("[data-lq-radio]") ||
-          t.matches("input") ||
-          t.matches("textarea") ||
-          t.matches("select")
-        ) {
-          queueSaveListeningAnswers();
-        }
-      };
-
-      root.addEventListener("input", saveHandler, true);
-      root.addEventListener("change", saveHandler, true);
-      root.addEventListener("keyup", saveHandler, true);
-      root.addEventListener("blur", saveHandler, true);
-
-      window.addEventListener("beforeunload", () => {
-        try {
-          saveListeningAnswers();
-        } catch (_) {}
-      });
-    }
-
     function showListening() {
       const s = sec();
       if (!s) return;
@@ -497,10 +394,15 @@
 
       loadListeningAnswers();
       setupNavHandlers();
-      bindAnswerListeners();
 
       setStatus("Status: Not started");
-      saveListeningAnswers();
+
+      s.addEventListener("input", (e) => {
+        const t = e.target;
+        if (t && (t.matches("input") || t.matches("select") || t.matches("textarea"))) {
+          saveListeningAnswers();
+        }
+      });
     }
 
     async function startAudioFromUserGesture() {
@@ -510,20 +412,13 @@
       if (!s || !aud) return;
       if (submitted) return;
 
-      saveListeningAnswers();
       setStatus("Status: Loading audio...");
 
-      try {
-        aud.pause();
-      } catch {}
-
+      try { aud.pause(); } catch {}
       aud.muted = false;
       aud.volume = 1;
 
-      try {
-        aud.currentTime = 0;
-      } catch {}
-
+      try { aud.currentTime = 0; } catch {}
       aud.load();
 
       try {
@@ -536,8 +431,6 @@
         if (m) m.style.display = "none";
 
         setupNavHandlers();
-        bindAnswerListeners();
-
         setStatus("Status: Playing (navigate Section 1–4 while audio continues)");
         enableStrictAudio(aud);
       } catch (err) {
@@ -561,83 +454,75 @@
     }
 
     function setupListeningUI() {
-      applyActiveListeningContent();
+  applyActiveListeningContent();
 
-      const isAdmin =
-        (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
-        (window.IELTS?.Access?.isAdmin?.() === true) ||
-        false;
+  // Admin gate (students must NOT be able to submit early / control flow)
+  const isAdmin =
+    (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
+    (window.IELTS?.Access?.isAdmin?.() === true) ||
+    false;
 
-      if (submitted) {
-        const s = sec();
-        if (s) s.classList.add("view-only");
-        if (s) s.classList.remove("hidden");
-        lockReading(false);
-        document.dispatchEvent(new CustomEvent("listening:submitted"));
-        return;
-      }
+  if (submitted) {
+    const s = sec();
+    if (s) s.classList.add("view-only");
+    if (s) s.classList.remove("hidden");
+    lockReading(false);
+    document.dispatchEvent(new CustomEvent("listening:submitted"));
+    return;
+  }
 
-      showListening();
+  showListening();
 
-      const sBtn = startBtn();
-      if (sBtn) sBtn.onclick = startAudioFromUserGesture;
+  const sBtn = startBtn();
+  if (sBtn) sBtn.onclick = startAudioFromUserGesture;
 
-      const submitNow = $("submitListeningBtn");
-      if (submitNow) {
-        if (!isAdmin) {
-          submitNow.classList.add("hidden");
-        } else {
-          submitNow.onclick = () => {
-            if (submitted) return;
+  const submitNow = $("submitListeningBtn");
+  if (submitNow) {
+    if (!isAdmin) {
+      // Students cannot submit early
+      submitNow.classList.add("hidden");
+    } else {
+      // Admin can submit early (for testing / supervision)
+      submitNow.onclick = () => {
+        if (submitted) return;
 
-            saveListeningAnswers();
+        const ok = confirm(
+          "Submit Listening now? You will NOT be able to change answers after submitting."
+        );
+        if (!ok) return;
 
-            const ok = confirm(
-              "Submit Listening now? You will NOT be able to change answers after submitting."
-            );
-            if (!ok) return;
+        finishListening("Admin submitted listening early.");
 
-            finishListening("Admin submitted listening early.");
-
-            Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
-              mode: "confirm",
-              showCancel: true,
-              submitText: "Start Reading",
-              cancelText: "Stay here",
-              onConfirm: () => {
-                try {
-                  window.__IELTS_READING_INIT__ = false;
-                } catch (_) {}
-                try {
-                  window.IELTS?.Router?.setHashRoute?.(
-                    (R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"),
-                    "reading"
-                  );
-                } catch (_) {}
-                window.IELTS.Engines.Reading.startReadingSystem();
-                UI().showOnly("reading");
-                UI().setExamNavStatus("Status: Reading in progress");
-              },
-              onCancel: () => {
-                UI().showOnly("listening");
-                UI().setExamNavStatus("Status: Listening submitted (review)");
-              },
-            });
-          };
-        }
-      }
-
-      const cBtn = cancelBtn();
-      if (cBtn) {
-        cBtn.onclick = () => {
-          saveListeningAnswers();
-          const m = modal();
-          if (m) m.style.display = "flex";
-          setStatus("Status: Not started");
-        };
-      }
+        Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
+          mode: "confirm",
+          showCancel: true,
+          submitText: "Start Reading",
+          cancelText: "Stay here",
+          onConfirm: () => {
+            try { window.__IELTS_READING_INIT__ = false; } catch (_) {}
+            try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (_) {}
+            window.IELTS.Engines.Reading.startReadingSystem();
+            UI().showOnly("reading");
+            UI().setExamNavStatus("Status: Reading in progress");
+          },
+          onCancel: () => {
+            UI().showOnly("listening");
+            UI().setExamNavStatus("Status: Listening submitted (review)");
+          },
+        });
+      };
     }
+  }
 
+  const cBtn = cancelBtn();
+  if (cBtn) {
+    cBtn.onclick = () => {
+      const m = modal();
+      if (m) m.style.display = "flex";
+      setStatus("Status: Not started");
+    };
+  }
+}
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", setupListeningUI);
     } else {

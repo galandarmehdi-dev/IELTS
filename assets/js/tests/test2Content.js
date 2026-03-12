@@ -8,232 +8,212 @@
 
   const test2 = {
     listening: {
-  audioSrc: "https://audio.ieltsmock.org/listening_tp_part2.mp3",
-  html: `
-    <div class="listen-page" id="listenSec1">
-      <div class="listen-block">
-        <div class="listen-h">SECTION 1 — Questions 1–10</div>
+      audioSrc: "https://audio.ieltsmock.org/listening_tp_part2.mp3",
+      html: `
+        <div class="listen-page" id="listenSec1">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 1 — Questions 1–10</div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 1–6</div>
-          <div class="listen-inst">Complete the form below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
-          <div class="listen-card-title">Application Form for use of Library Internet Service</div>
-          <div class="listen-example">
-            <div><b>Example</b></div>
-            <div>Existing cardholder? <b>Yes</b></div>
-          </div>
-          <div class="listen-notes">
-            <div class="note-row">Family name: Milton</div>
-            <div class="note-row"><span class="qnum">1</span> First names: <input data-lq="1" class="l-input"> Jayne</div>
-            <div class="note-row"><span class="qnum">2</span> Address: <input data-lq="2" class="l-input"></div>
-            <div class="note-row">35 Maximilian Way</div>
-            <div class="note-row">Whitfield</div>
-            <div class="note-row"><span class="qnum">3</span> Post Code: <input data-lq="3" class="l-input small"></div>
-            <div class="note-row">Occupation: Nurse</div>
-            <div class="note-row">(works the <span class="qnum">4</span> <input data-lq="4" class="l-input small">)</div>
-            <div class="note-row">Home phone: N/A</div>
-            <div class="note-row">Mobile: 0412 214 418</div>
-            <div class="note-row"><span class="qnum">5</span> Type of ID: <input data-lq="5" class="l-input"></div>
-            <div class="note-row">ID number: AZ 1985331</div>
-            <div class="note-row">Date of Birth: 25th <span class="qnum">6</span> <input data-lq="6" class="l-input small"></div>
-          </div>
-        </div>
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 1–6</div>
+              <div class="listen-inst">Complete the form below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+              <div class="listen-card-title">Application Form for use of Library Internet Service</div>
+              <div class="listen-example">
+                <div><b>Example</b></div>
+                <div>Existing cardholder? <b>Yes</b></div>
+              </div>
+              <div class="listen-notes">
+                <div class="note-row">Family name: Milton</div>
+                <div class="note-row"><span class="qnum">1</span> First names: <input data-lq="1" class="l-input"> Jayne</div>
+                <div class="note-row"><span class="qnum">2</span> Address: <input data-lq="2" class="l-input"></div>
+                <div class="note-row">35 Maximilian Way</div>
+                <div class="note-row">Whitfield</div>
+                <div class="note-row"><span class="qnum">3</span> Post Code: <input data-lq="3" class="l-input small"></div>
+                <div class="note-row">Occupation: Nurse</div>
+                <div class="note-row">(works the <span class="qnum">4</span> <input data-lq="4" class="l-input small">)</div>
+                <div class="note-row">Home phone: N/A</div>
+                <div class="note-row">Mobile: 0412 214 418</div>
+                <div class="note-row"><span class="qnum">5</span> Type of ID: <input data-lq="5" class="l-input"></div>
+                <div class="note-row">ID number: AZ 1985331</div>
+                <div class="note-row">Date of Birth: 25th <span class="qnum">6</span> <input data-lq="6" class="l-input small"></div>
+              </div>
+            </div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 7 and 8</div>
-          <div class="listen-inst">What will the woman use the internet for? Choose <b>TWO</b> letters, A–E. Type one letter in each box.</div>
-          <div class="endings-box">
-            <div><b>A</b> trade &amp; exchange</div>
-            <div><b>B</b> research</div>
-            <div><b>C</b> email</div>
-            <div><b>D</b> social networking</div>
-            <div><b>E</b> job vacancies</div>
-          </div>
-          <div class="note-row"><span class="qnum">7</span> First choice: <input data-lq="7" class="l-input tiny"></div>
-          <div class="note-row"><span class="qnum">8</span> Second choice: <input data-lq="8" class="l-input tiny"></div>
-        </div>
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 7 and 8</div>
+              <div class="listen-inst">What will the woman use the internet for? Choose <b>TWO</b> letters, A–E. Type one letter in each box.</div>
+              <div class="endings-box">
+                <div><b>A</b> trade &amp; exchange</div>
+                <div><b>B</b> research</div>
+                <div><b>C</b> email</div>
+                <div><b>D</b> social networking</div>
+                <div><b>E</b> job vacancies</div>
+              </div>
+              <div class="note-row"><span class="qnum">7</span> First choice: <input data-lq="7" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">8</span> Second choice: <input data-lq="8" class="l-input tiny"></div>
+            </div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 9 and 10</div>
-          <div class="listen-inst">Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
-          <div class="note-row"><span class="qnum">9</span> How much does it cost to register as an internet user? <input data-lq="9" class="l-input"></div>
-          <div class="note-row"><span class="qnum">10</span> What is the maximum amount of time allowed per single daily internet session? <input data-lq="10" class="l-input"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="listen-page hidden" id="listenSec2">
-      <div class="listen-block">
-        <div class="listen-h">SECTION 2 — Questions 11–20</div>
-
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 11–15</div>
-          <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">11</span> The guided bushwalk is suitable for</div>
-            <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) adults only</label>
-            <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) children over 12 and adults</label>
-            <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) children over 8 accompanied by a parent</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">12</span> On the bird observation outing, it is recommended that you have</div>
-            <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) waterproof footwear</label>
-            <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) a bird identification book</label>
-            <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) binoculars</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">13</span> For the trip to the sand dunes, a company will donate</div>
-            <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) water</label>
-            <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) tools</label>
-            <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) gloves</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">14</span> The bush tucker excursion will cost (per person)</div>
-            <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) $15</label>
-            <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) $12</label>
-            <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) $7</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">15</span> The deadline to register for the bush tucker outing is</div>
-            <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) 25 November</label>
-            <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) 15 November</label>
-            <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) 10 November</label>
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 9 and 10</div>
+              <div class="listen-inst">Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+              <div class="note-row"><span class="qnum">9</span> How much does it cost to register as an internet user? <input data-lq="9" class="l-input"></div>
+              <div class="note-row"><span class="qnum">10</span> What is the maximum amount of time allowed per single daily internet session? <input data-lq="10" class="l-input"></div>
+            </div>
           </div>
         </div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 16–20</div>
-          <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
-          <div class="listen-table-wrap">
-            <table class="listen-table">
-              <thead><tr><th>Activity</th><th>Leader</th><th>Date</th><th>Venue</th><th>Time</th></tr></thead>
-              <tbody>
-                <tr><td>Bush walk</td><td>Glenn Ford</td><td><span class="qnum">16</span> <input data-lq="16" class="l-input tiny"></td><td>Springvale</td><td><span class="qnum">17</span> <input data-lq="17" class="l-input tiny">–1pm</td></tr>
-                <tr><td>Bird watching</td><td>Joy Black, club <span class="qnum">18</span> <input data-lq="18" class="l-input tiny"></td><td>10 September</td><td>Camford</td><td>4.30–6.30pm</td></tr>
-                <tr><td>Sand dunes</td><td>Rex Rose</td><td>26 November</td><td><span class="qnum">19</span> <input data-lq="19" class="l-input tiny"></td><td>8.30–10.30am</td></tr>
-                <tr><td>Bush tucker</td><td>Jim Kerr, ranger</td><td>3 December</td><td>Carson Hills</td><td>10am–<span class="qnum">20</span> <input data-lq="20" class="l-input tiny"></td></tr>
-              </tbody>
-            </table>
+        <div class="listen-page hidden" id="listenSec2">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 2 — Questions 11–20</div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 11–15</div>
+              <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">11</span> The guided bushwalk is suitable for</div>
+                <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) adults only</label>
+                <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) children over 12 and adults</label>
+                <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) children over 8 accompanied by a parent</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">12</span> On the bird observation outing, it is recommended that you have</div>
+                <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) waterproof footwear</label>
+                <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) a bird identification book</label>
+                <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) binoculars</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">13</span> For the trip to the sand dunes, a company will donate</div>
+                <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) water</label>
+                <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) tools</label>
+                <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) gloves</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">14</span> The bush tucker excursion will cost (per person)</div>
+                <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) $15</label>
+                <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) $12</label>
+                <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) $7</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">15</span> The deadline to register for the bush tucker outing is</div>
+                <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) 25 November</label>
+                <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) 15 November</label>
+                <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) 10 November</label>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 16–20</div>
+              <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead><tr><th>Activity</th><th>Leader</th><th>Date</th><th>Venue</th><th>Time</th></tr></thead>
+                  <tbody>
+                    <tr><td>Bush walk</td><td>Glenn Ford</td><td><span class="qnum">16</span> <input data-lq="16" class="l-input tiny"></td><td>Springvale</td><td><span class="qnum">17</span> <input data-lq="17" class="l-input tiny">–1pm</td></tr>
+                    <tr><td>Bird watching</td><td>Joy Black, club <span class="qnum">18</span> <input data-lq="18" class="l-input tiny"></td><td>10 September</td><td>Camford</td><td>4.30–6.30pm</td></tr>
+                    <tr><td>Sand dunes</td><td>Rex Rose</td><td>26 November</td><td><span class="qnum">19</span> <input data-lq="19" class="l-input tiny"></td><td>8.30–10.30am</td></tr>
+                    <tr><td>Bush tucker</td><td>Jim Kerr, ranger</td><td>3 December</td><td>Carson Hills</td><td>10am–<span class="qnum">20</span> <input data-lq="20" class="l-input tiny"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="listen-page hidden" id="listenSec3">
-      <div class="listen-block">
-        <div class="listen-h">SECTION 3 — Questions 21–30</div>
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 21–25</div>
-          <div class="listen-inst">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
-          <div class="note-row"><span class="qnum">21</span> Students must follow <input data-lq="21" class="l-input"> to prevent accidents in the lab.</div>
-          <div class="note-row"><span class="qnum">22</span> The students have not been using <input data-lq="22" class="l-input"> while in the lab.</div>
-          <div class="note-row"><span class="qnum">23</span> Students cannot eat or drink until <input data-lq="23" class="l-input"> is finished and they have washed their hands.</div>
-          <div class="note-row"><span class="qnum">24</span> Tessa should tie her hair back to avoid danger when she is working with a <input data-lq="24" class="l-input"> or chemicals.</div>
-          <div class="note-row"><span class="qnum">25</span> Students must wear long sleeves and shoes made of <input data-lq="25" class="l-input"> in the lab.</div>
+        <div class="listen-page hidden" id="listenSec3">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 3 — Questions 21–30</div>
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 21–25</div>
+              <div class="listen-inst">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+              <div class="note-row"><span class="qnum">21</span> Students must follow <input data-lq="21" class="l-input"> to prevent accidents in the lab.</div>
+              <div class="note-row"><span class="qnum">22</span> The students have not been using <input data-lq="22" class="l-input"> while in the lab.</div>
+              <div class="note-row"><span class="qnum">23</span> Students cannot eat or drink until <input data-lq="23" class="l-input"> is finished and they have washed their hands.</div>
+              <div class="note-row"><span class="qnum">24</span> Tessa should tie her hair back to avoid danger when she is working with a <input data-lq="24" class="l-input"> or chemicals.</div>
+              <div class="note-row"><span class="qnum">25</span> Students must wear long sleeves and shoes made of <input data-lq="25" class="l-input"> in the lab.</div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 26–28</div>
+              <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">26</span> Which student is currently using an appropriate notebook?</div>
+                <label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) Vincent</label>
+                <label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) Tessa</label>
+                <label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) Neither student</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">27</span> The tutor says that writing observations in complete sentences</div>
+                <label class="mcq-opt"><input type="radio" name="q27" value="A" data-lq-radio="27"> A) is often not a good use of time</label>
+                <label class="mcq-opt"><input type="radio" name="q27" value="B" data-lq-radio="27"> B) makes them easier to interpret later</label>
+                <label class="mcq-opt"><input type="radio" name="q27" value="C" data-lq-radio="27"> C) means that others can understand them</label>
+              </div>
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">28</span> The students must write dates</div>
+                <label class="mcq-opt"><input type="radio" name="q28" value="A" data-lq-radio="28"> A) next to each drawing</label>
+                <label class="mcq-opt"><input type="radio" name="q28" value="B" data-lq-radio="28"> B) next to each written section</label>
+                <label class="mcq-opt"><input type="radio" name="q28" value="C" data-lq-radio="28"> C) next to each drawing and written section</label>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 29 and 30</div>
+              <div class="listen-inst">Which <b>TWO</b> things must be included in the conclusion to the experiment? Type one letter in each box.</div>
+              <div class="endings-box">
+                <div><b>A</b> the questions investigated</div>
+                <div><b>B</b> the solutions to the questions</div>
+                <div><b>C</b> the student’s own thoughts about the experiment</div>
+                <div><b>D</b> the length of time spent on the experiment</div>
+                <div><b>E</b> the student’s signature</div>
+              </div>
+              <div class="note-row"><span class="qnum">29</span> First choice: <input data-lq="29" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">30</span> Second choice: <input data-lq="30" class="l-input tiny"></div>
+            </div>
+          </div>
         </div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 26–28</div>
-          <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">26</span> Which student is currently using an appropriate notebook?</div>
-            <label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) Vincent</label>
-            <label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) Tessa</label>
-            <label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) Neither student</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">27</span> The tutor says that writing observations in complete sentences</div>
-            <label class="mcq-opt"><input type="radio" name="q27" value="A" data-lq-radio="27"> A) is often not a good use of time</label>
-            <label class="mcq-opt"><input type="radio" name="q27" value="B" data-lq-radio="27"> B) makes them easier to interpret later</label>
-            <label class="mcq-opt"><input type="radio" name="q27" value="C" data-lq-radio="27"> C) means that others can understand them</label>
-          </div>
-          <div class="mcq">
-            <div class="mcq-q"><span class="qnum">28</span> The students must write dates</div>
-            <label class="mcq-opt"><input type="radio" name="q28" value="A" data-lq-radio="28"> A) next to each drawing</label>
-            <label class="mcq-opt"><input type="radio" name="q28" value="B" data-lq-radio="28"> B) next to each written section</label>
-            <label class="mcq-opt"><input type="radio" name="q28" value="C" data-lq-radio="28"> C) next to each drawing and written section</label>
+        <div class="listen-page hidden" id="listenSec4">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 4 — Questions 31–40</div>
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 31–40</div>
+              <div class="listen-inst">Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+              <div class="listen-card-title">Climate change</div>
+              <div class="note-row"><b>HUMAN FACTORS</b></div>
+              <div class="note-row bullet">• Cutting down trees for <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+              <div class="note-row bullet">• Industrial Revolution</div>
+              <div class="note-row bullet">• <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+              <div class="note-row bullet">• Increase in population → deforestation</div>
+              <div class="note-row"><b>KNOWN EFFECTS</b></div>
+              <div class="note-row bullet">• Over previous 130 yrs: temp. ↑ by 0.6 °C</div>
+              <div class="note-row bullet">• Since Ind. Rev.: CO2 ↑ by 30% &amp; Methane ↑ by <span class="qnum">33</span> <input data-lq="33" class="l-input tiny"> (from mining, animals, rice paddies)</div>
+              <div class="note-row bullet">• N2O ↑ (from <span class="qnum">34</span> <input data-lq="34" class="l-input"> esp. fertiliser; waste management; car exhausts)</div>
+              <div class="note-row bullet">• Greenhouse Effect: gases form <span class="qnum">35</span> <input data-lq="35" class="l-input"> → heat trapped → Earth warms up</div>
+              <div class="note-row"><b>FUTURE EFFECTS</b></div>
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead><tr><th>Sea level</th><th>Number of people at risk</th></tr></thead>
+                  <tbody>
+                    <tr><td>1998 levels</td><td><span class="qnum">36</span> <input data-lq="36" class="l-input tiny"></td></tr>
+                    <tr><td>+50 cm</td><td>92 million</td></tr>
+                    <tr><td>+1 metre</td><td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny"></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="note-row bullet">2. Change in <span class="qnum">38</span> <input data-lq="38" class="l-input"> → more arid areas → population movement to cities</div>
+              <div class="note-row bullet">3. Increase in pests and <span class="qnum">39</span> <input data-lq="39" class="l-input"> e.g. malaria</div>
+              <div class="note-row bullet">4. Change in ecosystems: shift in <span class="qnum">40</span> <input data-lq="40" class="l-input"> – some die, others multiply</div>
+            </div>
           </div>
         </div>
 
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 29 and 30</div>
-          <div class="listen-inst">Which <b>TWO</b> things must be included in the conclusion to the experiment? Type one letter in each box.</div>
-          <div class="endings-box">
-            <div><b>A</b> the questions investigated</div>
-            <div><b>B</b> the solutions to the questions</div>
-            <div><b>C</b> the student’s own thoughts about the experiment</div>
-            <div><b>D</b> the length of time spent on the experiment</div>
-            <div><b>E</b> the student’s signature</div>
-          </div>
-          <div class="note-row"><span class="qnum">29</span> First choice: <input data-lq="29" class="l-input tiny"></div>
-          <div class="note-row"><span class="qnum">30</span> Second choice: <input data-lq="30" class="l-input tiny"></div>
+        <div class="listen-footer">
+          <div class="muted" id="listenAutosave">Autosave: ready</div>
+          <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+          <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+          <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
         </div>
-      </div>
-    </div>
-
-    <div class="listen-page hidden" id="listenSec4">
-      <div class="listen-block">
-        <div class="listen-h">SECTION 4 — Questions 31–40</div>
-
-        <div class="listen-card">
-          <div class="listen-card-title">Questions 31–40</div>
-          <div class="listen-inst">Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
-          <div class="listen-card-title">Climate change</div>
-
-          <div class="note-row"><b>HUMAN FACTORS</b></div>
-          <div class="note-row bullet">• Cutting down trees for <span class="qnum">31</span> <input data-lq="31" class="l-input" autocomplete="off" spellcheck="false"></div>
-          <div class="note-row bullet">• Industrial Revolution</div>
-          <div class="note-row bullet">• <span class="qnum">32</span> <input data-lq="32" class="l-input" autocomplete="off" spellcheck="false"></div>
-          <div class="note-row bullet">• Increase in population → deforestation</div>
-
-          <div class="note-row"><b>KNOWN EFFECTS</b></div>
-          <div class="note-row bullet">• Over previous 130 yrs: temp. ↑ by 0.6 °C</div>
-          <div class="note-row bullet">• Since Ind. Rev.: CO2 ↑ by 30% &amp; Methane ↑ by <span class="qnum">33</span> <input data-lq="33" class="l-input tiny" autocomplete="off" spellcheck="false"> (from mining, animals, rice paddies)</div>
-          <div class="note-row bullet">• N2O ↑ (from <span class="qnum">34</span> <input data-lq="34" class="l-input" autocomplete="off" spellcheck="false"> esp. fertiliser; waste management; car exhausts)</div>
-          <div class="note-row bullet">• Greenhouse Effect: gases form <span class="qnum">35</span> <input data-lq="35" class="l-input" autocomplete="off" spellcheck="false"> → heat trapped → Earth warms up</div>
-
-          <div class="note-row"><b>FUTURE EFFECTS</b></div>
-
-          <div class="listen-table-wrap">
-            <table class="listen-table">
-              <thead>
-                <tr>
-                  <th>Sea level</th>
-                  <th>Number of people at risk</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>1998 levels</td>
-                  <td><span class="qnum">36</span> <input data-lq="36" class="l-input tiny" autocomplete="off" spellcheck="false"></td>
-                </tr>
-                <tr>
-                  <td>+50 cm</td>
-                  <td>92 million</td>
-                </tr>
-                <tr>
-                  <td>+1 metre</td>
-                  <td><span class="qnum">37</span> <input data-lq="37" class="l-input tiny" autocomplete="off" spellcheck="false"></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="note-row bullet">2. Change in <span class="qnum">38</span> <input data-lq="38" class="l-input" autocomplete="off" spellcheck="false"> → more arid areas → population movement to cities</div>
-          <div class="note-row bullet">3. Increase in pests and <span class="qnum">39</span> <input data-lq="39" class="l-input" autocomplete="off" spellcheck="false"> e.g. malaria</div>
-          <div class="note-row bullet">4. Change in ecosystems: shift in <span class="qnum">40</span> <input data-lq="40" class="l-input" autocomplete="off" spellcheck="false"> – some die, others multiply</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="listen-footer">
-      <div class="muted" id="listenAutosave">Autosave: ready</div>
-      <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
-      <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
-      <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
-    </div>
-  `
-},
+      `
+    },
     writing: {
       task1Html: `You should spend about 20 minutes on this task.<br>
 The graph below shows the proportion of four different materials that were recycled from 1982 to 2010 in a particular country.<br>

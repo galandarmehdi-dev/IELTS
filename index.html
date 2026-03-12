@@ -1,698 +1,820 @@
-/* assets/js/app.js (v5: reliable gates + always-new attempt for students) */
-(function () {
-  "use strict";
-
-  console.log("JS is running (split build)");
-
-  const UI = () => window.IELTS.UI;
-  const S = () => window.IELTS.Storage;
-  const R = () => window.IELTS.Registry;
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+  <meta charset="UTF-8" />
+    <meta name="google" content="notranslate">
+  <meta name="googlebot" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IELTS Test</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="assets/css/base.css" />
+<link rel="stylesheet" href="assets/css/home.css" />
+<link rel="stylesheet" href="assets/css/listening.css" />
+<link rel="stylesheet" href="assets/css/reading.css" />
+<link rel="stylesheet" href="assets/css/writing.css" />
+<link rel="stylesheet" href="assets/css/modal.css" />
+<link rel="stylesheet" href="assets/css/highlighting.css" />
+</head>
   
-  // Student test password (front-end gate)
-  window.IELTS = window.IELTS || {};
-  window.IELTS.Registry = window.IELTS.Registry || {};
-  window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
-const Router = () => window.IELTS.Router;
-  const Modal = () => window.IELTS.Modal;
-
-  function isAdminView() {
-    try {
-      return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch {
-      return false;
-    }
-  }
-
-  function safe(fn) {
-    try {
-      return fn();
-    } catch {
-      return undefined;
-    }
-  }
-  // Active test helpers (multi-test safe defaults)
-  function getActiveTestId() {
-    return (R()?.getActiveTestId?.() || R()?.TESTS?.defaultTestId || "ielts1");
-  }
-  function setActiveTestId(id) {
-    try { R()?.setActiveTestId?.(id); } catch {}
-  }
-
-
-
-  // Start engine method when split bundles load out-of-order.
-  // Retries for a short period, and logs failures instead of silently swallowing them.
-  function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
-    const startAt = Date.now();
-    return new Promise((resolve, reject) => {
-      const tick = () => {
-        const fn = window.IELTS?.Engines?.[engineName]?.[methodName];
-        if (typeof fn === "function") {
-          try {
-            fn();
-            resolve(true);
-          } catch (e) {
-            console.error(`[IELTS] Failed to start ${engineName}.${methodName}`, e);
-            reject(e);
-          }
-          return;
-        }
-        if (Date.now() - startAt >= maxMs) {
-          const err = new Error(`Engine not ready: ${engineName}.${methodName}`);
-          console.error("[IELTS]", err);
-          reject(err);
-          return;
-        }
-        setTimeout(tick, intervalMs);
-      };
-      tick();
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    // Bind modal buttons once
-    if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
-      window.IELTS.Modal.bindModalOnce();
-      // Boot safety: never show modal on first load
-      safe(() => Modal().hideModal());
-      const m = document.getElementById("modal");
-      if (m) m.classList.add("hidden");
-    }
-
-    // Init admin/session gate + apply UI lockdown for students
-    safe(() => window.IELTS?.Access?.init?.());
-    safe(() => UI()?.applyStudentLockdownUI?.());
-
-    const isAdmin = isAdminView();
-    const $ = UI().$;
-    
-    const PREF_KEYS = {
-      fontScale: "IELTSPREF:fontScale",
-    };
-
-    function applyFontScale(value) {
-      const allowed = new Set(["small", "medium", "large"]);
-      const next = allowed.has(value) ? value : "medium";
-      try { document.body.setAttribute("data-font-scale", next); } catch {}
-      return next;
-    }
-
-    function initFontPreference() {
-      const select = $("fontSizeSelect");
-      const saved = (localStorage.getItem(PREF_KEYS.fontScale) || "medium").trim();
-      const active = applyFontScale(saved);
-      if (select) {
-        select.value = active;
-        select.addEventListener("change", () => {
-          const next = applyFontScale(select.value);
-          try { localStorage.setItem(PREF_KEYS.fontScale, next); } catch {}
-        });
-      }
-    }
-
-    initFontPreference();
-
-
-    // Key helpers
-    const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };
-
-    // -----------------------------
-    // Always-new attempt behavior
-    // -----------------------------
-    function clearAllStudentAttemptKeys() {
-      // Keep admin session, wipe everything else that belongs to attempts.
-      try {
-        const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId"]);
-        const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
-        const toRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (!k) continue;
-          if (keep.has(k)) continue;
-          if (prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
-        }
-        toRemove.forEach((k) => localStorage.removeItem(k));
-      } catch {}
-    }
-
-    // If student lands on "submitted" overlay, do NOT trap them forever.
-    // They should be able to start a new attempt.
-    const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
-    if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
-      S().set(R().EXAM.keys.finalSubmitted, "false");
-    }
-
-    const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-    if (finalDone && !isAdmin) {
-      // Student: auto-clear so Start Exam always works
-      clearAllStudentAttemptKeys();
-    }
-
-    // -----------------------------
-    // Reliable gates (Listening→Reading, Reading→Writing)
-    // -----------------------------
-    let showingGate = false;
-
-    function showListeningGate() {
-      if (isAdmin || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
-      const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      if (!listeningDone || readingDone) return;
-      // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
-      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
-      if (lastView === "reading" || lastView === "writing") return;
-
-
-      showingGate = true;
-      safe(() => UI().showOnly("listening"));
-      safe(() => UI().setExamNavStatus("Status: Listening finished"));
-
-      safe(() =>
-        Modal().showModal(
-          "Listening finished",
-          "Your Listening has been submitted. Click Start Reading to continue.",
-          {
-            mode: "gate",
-                        submitText: "Start Reading",
-            onConfirm: async () => {
-              // Mark that the user has moved on immediately to prevent any “gate loop” pulling them back.
-              try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (e) {}
-
-              // Keep the gate locked until we have attempted to start Reading.
-              // (If listening:submitted fires again for any reason, showListeningGate will ignore it.)
-              // Move to Reading view first, then start the engine (more reliable).
-              try { UI().setExamStarted(true); } catch (e) {}
-              try { UI().showOnly("reading"); } catch (e) {}
-              try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
-
-              try {
-                try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
-                await startEngineWhenReady("Reading", "startReadingSystem");
-              } catch (e) {
-                // Visible fallback: keep user on Reading screen even if engine failed.
-                try {
-                  window.alert("Reading failed to start. Please refresh the page and try again.");
-                } catch (_) {}
-              } finally {
-                showingGate = false;
-              }
-            },
-          }
-        )
-      );
-    }
-
-    function showReadingGate() {
-      if (isAdmin || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
-      const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
-      if (!listeningDone || !readingDone || writingStarted) return;
-      // If the user already moved to Writing, do not pull them back to Reading.
-      const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
-      if (lastView === "writing") return;
-
-
-      showingGate = true;
-      safe(() => UI().showOnly("reading"));
-      safe(() => UI().setExamNavStatus("Status: Reading finished"));
-
-      safe(() =>
-        Modal().showModal(
-          "Reading finished",
-          "Your Reading has been submitted. Click Start Writing to continue.",
-          {
-            mode: "gate",
-                        submitText: "Start Writing",
-            onConfirm: async () => {
-              showingGate = false;
-
-              try { UI().setExamStarted(true); } catch (e) {}
-              try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
-              try { UI().showOnly("writing"); } catch (e) {}
-              try { UI().setExamNavStatus("Status: Writing in progress"); } catch (e) {}
-
-              try {
-                try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
-                await startEngineWhenReady("Writing", "startWritingSystem");
-              } catch (e) {
-                try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
-              }
-            },
-          }
-        )
-      );
-    }
-
-    // Event-based (preferred)
-    document.addEventListener("listening:submitted", showListeningGate);
-    document.addEventListener("reading:submitted", showReadingGate);
-
-    // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
-    let lastRead = S().get(readingSubmittedKey(), "false");
-    setInterval(() => {
-      if (isAdmin) return;
-      const curListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
-      const curRead = S().get(readingSubmittedKey(), "false");
-
-      // If changed to true, run gates
-      if (curListen !== lastListen) {
-        lastListen = curListen;
-        if (curListen === "true") showListeningGate();
-      }
-      if (curRead !== lastRead) {
-        lastRead = curRead;
-        if (curRead === "true") showReadingGate();
-      }
-
-      // Also keep checking in case state was already true (refresh)
-      showListeningGate();
-      showReadingGate();
-    }, 800);
-
-    // Attach a direct audio ended fallback for listening
-    const aud = document.getElementById("listeningAudio");
-    if (aud && !aud.dataset.gateBound) {
-      aud.dataset.gateBound = "1";
-      aud.addEventListener("ended", () => {
-        // Give engine time to set submitted key
-        setTimeout(showListeningGate, 400);
-        setTimeout(showListeningGate, 1200);
-      });
-    }
-
-    // -----------------------------
-    // Admin nav buttons (unchanged)
-    // -----------------------------
-    const toHome = $("navToHomeBtn");
-    const toL = $("navToListeningBtn");
-    const toR = $("navToReadingBtn");
-    const toW = $("navToWritingBtn");
-    const resetBtn = $("resetExamBtn");
-
-    if (toHome) {
-      toHome.onclick = () => {
-        if (!isAdmin) return;
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-      };
-    }
-
-    if (toL) {
-      toL.onclick = () => {
-        if (!isAdmin) return;
-        UI().setExamStarted(true);
-        resetEngineInitFlags();
-        window.IELTS.Engines.Listening.initListeningSystem();
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Viewing Listening");
-      };
-    }
-
-    if (toR) {
-      toR.onclick = () => {
-        if (!isAdmin) return;
-        UI().setExamStarted(true);
-        window.__IELTS_READING_INIT__ = false;
-        window.IELTS.Engines.Reading.startReadingSystem();
-        UI().clearReadingLockStyles();
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Viewing Reading");
-      };
-    }
-
-    if (toW) {
-      toW.onclick = () => {
-        if (!isAdmin) return;
-        const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
-        const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
-        if (!writingStarted && !readingSubmitted) {
-          Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
-          UI().showOnly("reading");
-          UI().setExamNavStatus("Status: Viewing Reading");
-          return;
-        }
-        UI().setExamStarted(true);
-        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
-        else UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Viewing Writing");
-      };
-    }
-
-    if (resetBtn) {
-      resetBtn.onclick = () => {
-        if (!isAdmin) return;
-        const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
-        if (!ok) return;
-        UI().setExamStarted(false);
-        UI().resetExamAttempt();
-      };
-    }
-
-    // -----------------------------
-    // Admin results dashboard
-    // -----------------------------
-    const adminState = { rows: [], filtered: [] };
-
-    function num(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : 0;
-    }
-
-    function hasValue(value) {
-      return value !== null && value !== undefined && String(value).trim() !== "";
-    }
-
-    function fmtBand(value) {
-      return hasValue(value) ? num(value).toFixed(1) : "—";
-    }
-
-    function fmtTaskDetail(title, essay, band, breakdown, feedback) {
-      const parts = [title];
-      parts.push(`Band: ${fmtBand(band)}`);
-      if (hasValue(breakdown)) parts.push(`
-Score breakdown:
-${String(breakdown).trim()}`);
-      if (hasValue(feedback)) parts.push(`
-Feedback:
-${String(feedback).trim()}`);
-      if (hasValue(essay)) parts.push(`
-Essay:
-${String(essay).trim()}`);
-      return parts.join("
-");
-    }
-
-    function fmtDate(value) {
-      const d = new Date(value || "");
-      if (Number.isNaN(d.getTime())) return "—";
-      return d.toLocaleString();
-    }
-
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    async function fetchAdminResults() {
-      const endpoint = String(R()?.ADMIN_ENDPOINT || "").trim();
-      if (!endpoint) throw new Error("Admin endpoint is missing.");
-
-      const url = new URL(endpoint);
-      url.searchParams.set("action", "results");
-      url.searchParams.set("adminPasscode", String(R()?.ADMIN_PASSCODE || ""));
-      url.searchParams.set("t", String(Date.now()));
-
-      const res = await fetch(url.toString(), { method: "GET" });
-      const text = await res.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch {}
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!data || data.ok !== true || !Array.isArray(data.results)) {
-        throw new Error((data && data.error) || "Could not load admin results.");
-      }
-      return data.results;
-    }
-
-    function fillExamFilter(rows) {
-      const sel = $("adminResultsExamFilter");
-      if (!sel) return;
-      const current = sel.value || "";
-      const exams = Array.from(new Set(rows.map((r) => String(r.examId || "").trim()).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">All tests</option>' + exams.map((examId) => `<option value="${escapeHtml(examId)}">${escapeHtml(examId)}</option>`).join("");
-      sel.value = exams.includes(current) ? current : "";
-    }
-
-    function renderSummary(rows) {
-      const count = rows.length;
-      const avgListening = count ? (rows.reduce((a, r) => a + num(r.listeningBand), 0) / count) : 0;
-      const avgReading = count ? (rows.reduce((a, r) => a + num(r.readingBand), 0) / count) : 0;
-      const latest = rows.slice().sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0];
-      if ($("adminStatSubmissions")) $("adminStatSubmissions").textContent = String(count);
-      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening.toFixed(1);
-      if ($("adminStatReading")) $("adminStatReading").textContent = avgReading.toFixed(1);
-      if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
-    }
-
-    function renderAdminTable(rows) {
-      adminState.filtered = rows.slice();
-      const tbody = $("adminResultsTbody");
-      const empty = $("adminResultsEmpty");
-      if (!tbody) return;
-      if (!rows.length) {
-        tbody.innerHTML = "";
-        empty?.classList.remove("hidden");
-        renderSummary([]);
-        return;
-      }
-      empty?.classList.add("hidden");
-      tbody.innerHTML = rows.map((row, idx) => `
-        <tr>
-          <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
-          <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
-          <td>${escapeHtml(row.examId || "—")}</td>
-          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))}</span></td>
-          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))}</span></td>
-          <td>Overall Writing<br><span class="small">Band ${escapeHtml(fmtBand(row.finalWritingBand))}</span></td>
-          <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
-          <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
-        </tr>
-      `).join("");
-      renderSummary(rows);
-    }
-
-    function applyAdminFilters() {
-      const q = String($("adminResultsSearch")?.value || "").trim().toLowerCase();
-      const examFilter = String($("adminResultsExamFilter")?.value || "").trim();
-      const sortValue = String($("adminResultsSort")?.value || "submittedAt_desc");
-      let rows = adminState.rows.slice();
-
-      if (q) {
-        rows = rows.filter((row) => {
-          const hay = [row.studentFullName, row.reason, row.examId].map((x) => String(x || "").toLowerCase()).join(" ");
-          return hay.includes(q);
-        });
-      }
-      if (examFilter) rows = rows.filter((row) => String(row.examId || "") === examFilter);
-
-      const [field, dir] = sortValue.split("_");
-      rows.sort((a, b) => {
-        let av = a[field];
-        let bv = b[field];
-        if (field === "submittedAt") {
-          av = new Date(av || 0).getTime();
-          bv = new Date(bv || 0).getTime();
-        } else if (["objectiveTotal", "listeningTotal", "readingTotal", "finalWritingBand"].includes(field)) {
-          av = num(av);
-          bv = num(bv);
-        } else {
-          av = String(av || "").toLowerCase();
-          bv = String(bv || "").toLowerCase();
-        }
-        if (av < bv) return dir === "desc" ? 1 : -1;
-        if (av > bv) return dir === "desc" ? -1 : 1;
-        return 0;
-      });
-
-      renderAdminTable(rows);
-    }
-
-    function renderAdminDetail(row) {
-      const detail = $("adminResultDetail");
-      if (!detail || !row) return;
-      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
-      $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>Overall Writing: <b>Band ${escapeHtml(fmtBand(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
-      $("adminDetailTask1").textContent = fmtTaskDetail("Task 1", row.writingTask1, row.task1Band, row.task1Breakdown, row.task1Feedback);
-      $("adminDetailTask2").textContent = fmtTaskDetail("Task 2", row.writingTask2, row.task2Band, row.task2Breakdown, row.task2Feedback);
-      detail.classList.remove("hidden");
-    }
-
-    async function openAdminResultsView() {
-      if (!isAdmin) return;
-      UI().showOnly("adminResults");
-      UI().setExamNavStatus("Status: Admin results");
-      try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
-      const tbody = $("adminResultsTbody");
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
-      try {
-        const rows = await fetchAdminResults();
-        adminState.rows = rows;
-        fillExamFilter(rows);
-        applyAdminFilters();
-      } catch (e) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
-        renderSummary([]);
-      }
-    }
-
-    function exportAdminRowsCsv() {
-      if (!isAdmin || !adminState.filtered.length) return;
-      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback"];
-      const lines = [headers.join(",")].concat(
-        adminState.filtered.map((row) =>
-          headers
-            .map((key) => `"${String(row[key] ?? "").replace(/"/g, '""')}"`)
-            .join(",")
-        )
-      );
-      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "ielts-results.csv";
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        URL.revokeObjectURL(a.href);
-        a.remove();
-      }, 0);
-    }
-
-    // -----------------------------
-    // Hash route support (ADMIN ONLY)
-    // -----------------------------
-    const route = Router().parseHashRoute();
-    if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
-    if (isAdmin && route && route.view) {
-      if (route.view === "listening") {
-        UI().setExamStarted(true);
-        window.IELTS.Engines.Listening.initListeningSystem();
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening in progress");
-        return;
-      }
-      if (route.view === "reading") {
-        UI().setExamStarted(true);
-        window.__IELTS_READING_INIT__ = false;
-        window.IELTS.Engines.Reading.startReadingSystem();
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Viewing Reading");
-        return;
-      }
-      if (route.view === "writing") {
-        UI().setExamStarted(true);
-        window.__IELTS_WRITING_INIT__ = false;
-        window.IELTS.Engines.Writing.startWritingSystem();
-        UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Viewing Writing");
-        return;
-      }
-      if (route.view === "results") {
-        openAdminResultsView();
-        return;
-      }
-      if (route.view === "home") {
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-        return;
-      }
-    }
-
-    // -----------------------------
-    // Default to home
-    // -----------------------------
-    UI().showOnly("home");
-    UI().updateHomeStatusLine();
-
-    // -----------------------------
-    // Home buttons: START ALWAYS = NEW ATTEMPT
-    // -----------------------------
-    const startBtn = $("startIelts1Btn");
-    const startBtn2 = $("cardStartIelts1Btn");
-    const startBtnT2 = $("startIelts2Btn");
-    const startBtnT2b = $("cardStartIelts2Btn");
-    const contBtn = $("homeContinueBtn");
-    const adminResultsBtn = $("homeAdminResultsBtn");
-    const navResultsBtn = $("navToResultsBtn");
-    const adminRefreshBtn = $("adminResultsRefreshBtn");
-    const adminExportBtn = $("adminResultsExportBtn");
-
-    
-    // -----------------------------
-    // -----------------------------
-// Student password gate (does NOT affect admin view)
-// -----------------------------
-function requireTestPassword(onOk) {
-  if (isAdmin) { onOk(); return; }
-
-  // Always ask in student view (no "remember" unlock),
-  // so every click on Start Exam requires the password.
-  window.IELTS?.Modal?.showModal?.(
-    "Enter password",
-    "This test is password-protected. Please enter the password to start.",
-    {
-      mode: "password",
-      submitText: "Start exam",
-      onConfirm: () => {
-        onOk();
-      },
-    }
-  );
-}
-
-
-
-
-    function resetEngineInitFlags() {
-      try { window.__IELTS_LISTENING_INIT__ = false; } catch {}
-      try { window.__IELTS_READING_INIT__ = false; } catch {}
-      try { window.__IELTS_WRITING_INIT__ = false; } catch {}
-    }
-
-function startFreshExam() {
-      resetEngineInitFlags();
-      clearAllStudentAttemptKeys();
-      safe(() => Modal().hideModal());
-
-      safe(() => UI().setExamStarted(true));
-      safe(() => window.IELTS.Engines.Listening.initListeningSystem());
-      safe(() => UI().showOnly("listening"));
-      safe(() => UI().setExamNavStatus("Status: Listening in progress"));
-      safe(() => window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"));
-
-      // if audio already bound, ensure fallback ended listener exists
-      const a = document.getElementById("listeningAudio");
-      if (a && !a.dataset.gateBound) {
-        a.dataset.gateBound = "1";
-        a.addEventListener("ended", () => {
-          setTimeout(showListeningGate, 400);
-          setTimeout(showListeningGate, 1200);
-        });
-      }
-    }
-
-    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
-    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
-    if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
-    if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
-    if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
-    if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
-    if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
-    $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
-    $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
-    $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
-    $("adminDetailCloseBtn")?.addEventListener("click", () => $("adminResultDetail")?.classList.add("hidden"));
-    $("adminResultsTbody")?.addEventListener("click", (e) => {
-      const btn = e.target?.closest?.("[data-admin-view]");
-      if (!btn) return;
-      const idx = Number(btn.getAttribute("data-admin-view"));
-      const row = adminState.filtered[idx];
-      if (row) renderAdminDetail(row);
-    });
-
-    // If student refreshes after Listening is already submitted, show gate (not auto-reading)
-    if (!isAdmin) {
-      showListeningGate();
-      showReadingGate();
-    }
-  });
-})();
+<body translate="no">
+<!-- ================= HOME ================= -->
+<section id="homeSection" class="home-screen" aria-label="Home">
+  <header class="home-header">
+    <div class="home-topbar">
+      <div class="home-brand">
+        <img
+          class="home-logo landau"
+          src="https://qkbkbzw.landauschool.com/site/assets/files/1/group_9.svg"
+          alt="Landau School"
+          loading="lazy"
+        />
+        <div class="home-brand-divider" aria-hidden="true"></div>
+        <img
+          class="home-logo ielts"
+          src="https://webberz.in/blog/wp-content/uploads/2020/06/1200px-IELTS_logo.svg_-1170x441.png"
+          alt="IELTS"
+          loading="lazy"
+        />
+      </div>
+
+      <div class="home-top-actions">
+        <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button>
+        <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
+        <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
+      </div>
+    </div>
+
+    <div class="home-hero">
+      <div class="home-hero-left">
+        <div class="home-badge">Practice portal</div>
+        <h1 class="home-title">Choose a test and start your attempt</h1>
+        <p class="home-subtitle">
+          Complete Listening, then Reading, then Writing. Your answers are saved automatically on this browser.
+        </p>
+
+        <div class="home-hero-cta">
+          <button class="home-btn" type="button" id="startIelts1Btn">Start IELTS Test 1</button>
+          <button class="home-btn ghost" type="button" id="startIelts2Btn">Start IELTS Test 2</button>
+          <button class="home-btn ghost" type="button" id="homeNewAttemptBtn">New attempt</button>
+        </div>
+        <div class="home-preferences" aria-label="Display settings">
+          <div class="home-preferences-title">Display settings</div>
+          <label class="home-select-wrap" for="fontSizeSelect">
+            <span>Font size</span>
+            <select id="fontSizeSelect" class="home-select">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="home-notes" id="homeStatusLine">Status: Ready</div>
+      </div>
+
+      <div class="home-hero-right">
+        <div class="home-card">
+          <div class="home-card-h">IELTS Test 1</div>
+          <div class="home-card-p">
+            Full exam flow: Listening → Reading → Writing. Review mode after submission.
+          </div>
+
+          <div class="home-card-meta">
+            <div class="meta-pill">Listening: auto-submit</div>
+            <div class="meta-pill">Reading: 60 min</div>
+            <div class="meta-pill">Writing: 60 min</div>
+          </div>
+
+          <div class="home-card-actions">
+            <button class="home-btn" type="button" id="cardStartIelts1Btn">Open IELTS Test 1</button>
+            <button class="home-btn ghost" type="button" id="cardResetBtn">Clear this browser</button>
+          </div>
+        </div>
+
+        <div class="home-card">
+          <div class="home-card-h">IELTS Test 2</div>
+          <div class="home-card-p">
+            Separate Test 2 content with its own Listening, Reading and Writing flow.
+          </div>
+
+          <div class="home-card-meta">
+            <div class="meta-pill">Listening: auto-submit</div>
+            <div class="meta-pill">Reading: 60 min</div>
+            <div class="meta-pill">Writing: 60 min</div>
+          </div>
+
+          <div class="home-card-actions">
+            <button class="home-btn" type="button" id="cardStartIelts2Btn">Open IELTS Test 2</button>
+          </div>
+        </div>
+
+        <div class="home-mini">
+          You can now start IELTS Test 1 or IELTS Test 2 from this page.
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="home-main" id="homeHowItWorks">
+    <div class="home-grid">
+      <div class="home-info">
+        <div class="home-info-h">How it works</div>
+        <div class="home-info-p">
+          1) Start the test<br/>
+          2) Listening runs with no pause/skip<br/>
+          3) Reading unlocks after Listening submit<br/>
+          4) Writing unlocks after Reading submit or time end
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Autosave</div>
+        <div class="home-info-p">
+          Answers are saved automatically in your browser storage. If you refresh, you can continue from where you left off.
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Submission</div>
+        <div class="home-info-p">
+          After Writing, the final payload is stored locally and (if enabled) sent to Google Sheets via your Apps Script endpoint.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="home-footer">
+    <div class="home-footer-inner">
+      <div>© Landau School</div>
+      <div class="home-footer-muted">IELTS practice portal</div>
+    </div>
+  </footer>
+</section>
+
+<section id="adminResultsSection" class="admin-results-screen hidden" aria-label="Admin results">
+  <div class="admin-results-shell">
+    <div class="admin-results-header">
+      <div>
+        <div class="home-badge">Admin only</div>
+        <h1 class="admin-results-title">Student results dashboard</h1>
+        <p class="admin-results-subtitle">Search, filter, sort and inspect submitted IELTS results.</p>
+      </div>
+      <div class="admin-results-actions">
+        <button class="btn secondary" type="button" id="adminResultsRefreshBtn">Refresh</button>
+        <button class="btn secondary" type="button" id="adminResultsExportBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <div class="admin-results-toolbar">
+      <label class="admin-field">
+        <span>Search</span>
+        <input type="text" id="adminResultsSearch" placeholder="Student name or reason">
+      </label>
+
+      <label class="admin-field">
+        <span>Test</span>
+        <select id="adminResultsExamFilter">
+          <option value="">All tests</option>
+        </select>
+      </label>
+
+      <label class="admin-field">
+        <span>Sort by</span>
+        <select id="adminResultsSort">
+          <option value="submittedAt_desc">Newest first</option>
+          <option value="submittedAt_asc">Oldest first</option>
+          <option value="studentFullName_asc">Name A–Z</option>
+          <option value="studentFullName_desc">Name Z–A</option>
+          <option value="finalWritingBand_desc">Highest writing band</option>
+          <option value="finalWritingBand_asc">Lowest writing band</option>
+          <option value="listeningTotal_desc">Listening high→low</option>
+          <option value="readingTotal_desc">Reading high→low</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="admin-results-summary">
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Submissions</div>
+        <div class="admin-stat-value" id="adminStatSubmissions">0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Listening</div>
+        <div class="admin-stat-value" id="adminStatListening">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Reading</div>
+        <div class="admin-stat-value" id="adminStatReading">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Latest submit</div>
+        <div class="admin-stat-value admin-stat-small" id="adminStatLatest">—</div>
+      </div>
+    </div>
+
+    <div class="admin-results-table-wrap">
+      <div class="admin-results-empty hidden" id="adminResultsEmpty">No results found.</div>
+      <table class="admin-results-table">
+        <thead>
+          <tr>
+            <th>Submitted</th>
+            <th>Name</th>
+            <th>Test</th>
+            <th>Listening</th>
+            <th>Reading</th>
+            <th>Writing</th>
+            <th>Writing words</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="adminResultsTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="admin-result-detail hidden" id="adminResultDetail">
+      <div class="admin-result-detail-top">
+        <h2 id="adminDetailTitle">Result details</h2>
+        <button class="btn secondary" type="button" id="adminDetailCloseBtn">Close</button>
+      </div>
+      <div class="admin-detail-grid">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Submission</div>
+          <div id="adminDetailMeta"></div>
+        </div>
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Scores</div>
+          <div id="adminDetailScores"></div>
+        </div>
+      </div>
+      <div class="admin-detail-grid writing">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Writing Task 1</div>
+          <pre id="adminDetailTask1"></pre>
+        </div>
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Writing Task 2</div>
+          <pre id="adminDetailTask2"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  <!-- ================= EXAM NAV (NEW) ================= -->
+ <div class="exam-nav hidden" id="examNav">
+  <div class="exam-nav-left">
+    <b>IELTS Test</b>
+    <span class="exam-nav-status" id="examNavStatus">Status: In progress</span>
+    <span class="exam-nav-timer hidden" id="examNavTimer"></span>
+  </div>
+
+  <div class="exam-nav-actions">
+<button class="btn secondary" type="button" id="navToHomeBtn">Home</button>
+    <button class="btn secondary" type="button" id="navToListeningBtn">Listening</button>
+    <button class="btn secondary" type="button" id="navToReadingBtn">Reading</button>
+    <button class="btn secondary hidden" type="button" id="navToResultsBtn">Results</button>
+    <button class="btn secondary" type="button" id="navToWritingBtn">Writing</button>
+    <button class="btn" type="button" id="resetExamBtn">New attempt</button>
+  </div>
+</div>
+
+  <!-- ================= LISTENING (LOCKS READING UNTIL SUBMITTED) ================ -->
+  <section id="listeningSection" class="listening-screen hidden">
+    <div class="listening-shell">
+
+      <div class="listen-top">
+        <div class="listen-top-row">
+          <div>
+            <h1 class="listen-title">IELTS Listening</h1>
+            <div class="listen-sub">You must complete Listening before starting Reading.</div>
+          </div>
+          <div class="listen-status" id="listenStatus">Status: Not started</div>
+        </div>
+
+        <!-- Listening navigation -->
+        <div class="listen-nav" aria-label="Listening section navigation">
+          <div class="listen-tabs" role="tablist" aria-label="Listening tabs">
+            <button class="listenTab" type="button" data-listen-tab="0" role="tab" aria-selected="true">Section 1</button>
+            <button class="listenTab" type="button" data-listen-tab="1" role="tab" aria-selected="false">Section 2</button>
+            <button class="listenTab" type="button" data-listen-tab="2" role="tab" aria-selected="false">Section 3</button>
+            <button class="listenTab" type="button" data-listen-tab="3" role="tab" aria-selected="false">Section 4</button>
+          </div>
+
+          <div class="listen-nav-actions">
+            <button class="btn secondary" type="button" id="listenPrevBtn">Prev</button>
+            <button class="btn secondary" type="button" id="listenNextBtn">Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Start Warning Modal -->
+      <div class="listen-modal" id="listenModal">
+        <div class="listen-modal-card">
+          <h2>Before you start</h2>
+          <ul>
+            <li>Make sure you are ready. Once you press <b>START</b>, the audio will begin automatically.</li>
+            <li>You <b>cannot pause</b>, <b>cannot skip</b> forward/backward, and <b>cannot restart</b> inside this attempt.</li>
+            <li>Your Listening will be <b>submitted automatically</b> when the audio ends.</li>
+          </ul>
+          <div class="listen-modal-actions">
+            <button class="btn secondary" id="cancelListeningBtn" type="button">Not ready</button>
+            <button class="btn" id="startListeningBtn" type="button">START</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hidden audio (no controls) -->
+      <audio id="listeningAudio" preload="auto">
+        <source
+          src="https://audio.ieltsmock.org/listening_tp_part1.mp3"
+          type="audio/mpeg"
+        >
+      </audio>
+
+      <!-- Listening body -->
+      <div class="listen-body" id="listenBody">
+
+        <!-- PAGE 1 -->
+        <div class="listen-page" id="listenSec1">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 1 — Questions 1–10</div>
+            <div class="listen-inst">
+              Complete the notes/table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.
+              Write your answers <b>in the gaps</b>.
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Transport from Bayswater</div>
+
+              <div class="listen-example">
+                <div><b>Example</b></div>
+                <div>Destination: <b><i>Harbour City</i></b></div>
+              </div>
+
+              <div class="listen-notes">
+                <div class="note-row"><span class="qnum">1</span> Express train leaves at <input data-lq="1" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">2</span> Nearest station is <input data-lq="2" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">3</span> Number 706 bus goes to <input data-lq="3" class="l-input">.</div>
+                <div class="note-row"><span class="qnum">4</span> Number <input data-lq="4" class="l-input small"> bus goes to station.</div>
+                <div class="note-row"><span class="qnum">5</span> Earlier bus leaves at <input data-lq="5" class="l-input">.</div>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 6–10</div>
+
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Transport</th>
+                      <th>Cash fare</th>
+                      <th>Card fare</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Bus</td>
+                      <td>$ <span class="qnum">6</span> <input data-lq="6" class="l-input tiny"></td>
+                      <td>$1.50</td>
+                    </tr>
+                    <tr>
+                      <td>Train (peak)</td>
+                      <td>$10</td>
+                      <td>$10</td>
+                    </tr>
+                    <tr>
+                      <td>Train (off-peak)<br>
+                        <span class="muted">before 5pm or after <span class="qnum">7</span> <input data-lq="7" class="l-input tiny"> pm</span>
+                      </td>
+                      <td>$10</td>
+                      <td>$ <span class="qnum">8</span> <input data-lq="8" class="l-input tiny"></td>
+                    </tr>
+                    <tr>
+                      <td><span class="qnum">9</span> <input data-lq="9" class="l-input tiny"> ferry</td>
+                      <td>$4.50</td>
+                      <td>$3.55</td>
+                    </tr>
+                    <tr>
+                      <td>Tourist ferry (<span class="qnum">10</span> <input data-lq="10" class="l-input tiny">)</td>
+                      <td>$35</td>
+                      <td>–</td>
+                    </tr>
+                    <tr>
+                      <td>Tourist ferry (whole day)</td>
+                      <td>$65</td>
+                      <td>–</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAGE 2 -->
+        <div class="listen-page hidden" id="listenSec2">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 2 — Questions 11–20</div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 11–14</div>
+              <div class="listen-inst">Which counsellor should you see? Write the correct letter, <b>A, B or C</b>, in the gaps.</div>
+
+              <div class="people-box">
+                <div><b>A</b> Louise Bagshaw</div>
+                <div><b>B</b> Tony Denby</div>
+                <div><b>C</b> Naomi Flynn</div>
+              </div>
+
+              <div class="note-row"><span class="qnum">11</span> if you do not have an appointment
+                <select data-lq="11" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">12</span> if it is your first time seeing a counsellor
+                <select data-lq="12" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">13</span> if your concerns are related to anxiety
+                <select data-lq="13" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+              <div class="note-row"><span class="qnum">14</span> if you are unable to see a counsellor during normal office hours
+                <select data-lq="14" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 15–20</div>
+              <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Workshop</th>
+                      <th>Content</th>
+                      <th>Target group</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Adjusting</td>
+                      <td>what you need to succeed academically</td>
+                      <td><span class="qnum">15</span> <input data-lq="15" class="l-input tiny"> students</td>
+                    </tr>
+                    <tr>
+                      <td>Getting Organised</td>
+                      <td>use time effectively, find <span class="qnum">16</span> <input data-lq="16" class="l-input tiny"> between study and leisure</td>
+                      <td>all students</td>
+                    </tr>
+                    <tr>
+                      <td>Communicating</td>
+                      <td>talking with staff, communicating across cultures</td>
+                      <td>all students, especially <span class="qnum">17</span> <input data-lq="17" class="l-input tiny"></td>
+                    </tr>
+                    <tr>
+                      <td>Anxiety</td>
+                      <td><span class="qnum">18</span> <input data-lq="18" class="l-input tiny">, breathing techniques, meditation, etc.</td>
+                      <td>students about to sit exams</td>
+                    </tr>
+                    <tr>
+                      <td><span class="qnum">19</span> <input data-lq="19" class="l-input tiny"></td>
+                      <td>staying on track for long periods</td>
+                      <td><span class="qnum">20</span> <input data-lq="20" class="l-input tiny"> students only</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- PAGE 3 -->
+        <div class="listen-page hidden" id="listenSec3">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 3 — Questions 21–30</div>
+            <div class="listen-inst">Complete the notes below. Write <b>NO MORE THAN THREE WORDS</b> for each answer.</div>
+
+ <div class="listen-card section3-notes">
+
+  <!-- BASIC INFO -->
+  <div class="s3-group">
+    <div class="note-row"><b>Novel:</b> <span class="qnum">21</span> <input data-lq="21" class="l-input"></div>
+    <div class="note-row"><b>Protagonists:</b> Mary Lennox; Colin Craven</div>
+    <div class="note-row"><b>Time period:</b> Early in <span class="qnum">22</span> <input data-lq="22" class="l-input"></div>
+    <div class="note-row">
+      <b>Plot:</b> Mary → UK — meets Colin who thinks he’ll never be able to
+      <span class="qnum">23</span> <input data-lq="23" class="l-input">. They become friends.
+    </div>
+    <div class="note-row">
+      <b>Point of view:</b> “Omniscient” — narrator knows all about characters’ feelings, opinions and
+      <span class="qnum">24</span> <input data-lq="24" class="l-input">.
+    </div>
+    <div class="note-row"><b>Audience:</b> Good for children — story simple to follow</div>
+  </div>
+
+  <!-- SYMBOLS -->
+  <div class="s3-group">
+    <div class="note-row s3-title">
+      <b>Symbols</b> (physical items that represent
+      <span class="qnum">25</span> <input data-lq="25" class="l-input">):
+    </div>
+
+    <div class="note-row bullet">• the robin redbreast</div>
+    <div class="note-row bullet">• <span class="qnum">26</span> <input data-lq="26" class="l-input"></div>
+    <div class="note-row bullet">• the portrait of Mistress Craven</div>
+  </div>
+
+  <!-- MOTIFS -->
+  <div class="s3-group">
+    <div class="note-row s3-title"><b>Motifs</b> (patterns in the story):</div>
+
+    <div class="note-row bullet">• the Garden of Eden</div>
+    <div class="note-row bullet">
+      • secrecy — metaphorical and literal transition from
+      <span class="qnum">27</span> <input data-lq="27" class="l-input">
+    </div>
+  </div>
+
+  <!-- THEMES -->
+  <div class="s3-group">
+    <div class="note-row s3-title"><b>Themes:</b> Connections between</div>
+
+    <div class="note-row bullet">
+      • <span class="qnum">28</span> <input data-lq="28" class="l-input"> and outlook
+    </div>
+    <div class="note-row bullet">
+      • <span class="qnum">29</span> <input data-lq="29" class="l-input"> and well-being
+    </div>
+    <div class="note-row bullet">
+      • individuals and the need for <span class="qnum">30</span> <input data-lq="30" class="l-input">
+    </div>
+  </div>
+
+</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 4 -->
+        <div class="listen-page hidden" id="listenSec4">
+          <div class="listen-block">
+            <div class="listen-h">SECTION 4 — Questions 31–40</div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 31–35</div>
+              <div class="listen-inst">Complete the table below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+
+              <div class="listen-card-title" style="margin-top:10px;">Time Perspectives</div>
+              <div class="listen-table-wrap">
+                <table class="listen-table">
+                  <thead>
+                    <tr>
+                      <th>Time Zone</th>
+                      <th>Outlook</th>
+                      <th>Features &amp; Consequences</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Past</td>
+                      <td>Positive</td>
+                      <td>Remember good times, e.g. birthdays. Keep family records, photo albums, etc.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td><span class="qnum">31</span> <input data-lq="31" class="l-input tiny"></td>
+                      <td>Focus on disappointments, failures, bad decisions.</td>
+                    </tr>
+                    <tr>
+                      <td>Present</td>
+                      <td>Hedonistic</td>
+                      <td>Live for <span class="qnum">32</span> <input data-lq="32" class="l-input tiny">; seek sensation; avoid pain.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td>Fatalistic</td>
+                      <td>Life is governed by <span class="qnum">33</span> <input data-lq="33" class="l-input tiny">, religious beliefs, social conditions. Life’s path can’t be changed.</td>
+                    </tr>
+                    <tr>
+                      <td>Future</td>
+                      <td><span class="qnum">34</span> <input data-lq="34" class="l-input tiny"></td>
+                      <td>Prefer work to play. Don’t give in to temptation.</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td>Fatalistic</td>
+                      <td>Have a strong belief in life after death and importance of <span class="qnum">35</span> <input data-lq="35" class="l-input tiny"> in life.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Questions 37–39</div>
+              <div class="listen-inst">Complete each sentence with the correct ending, <b>A–E</b>, below.</div>
+
+              <div class="endings-box">
+                <div><b>A</b>. feeling a certain way at the conclusion of an experience decides how we remember it.</div>
+                <div><b>B</b>. decision-making and judgments are made too quickly.</div>
+                <div><b>C</b>. having less energy means we are more likely to succumb to an irrational bias.</div>
+                <div><b>D</b>. being sensitive to one’s surroundings is a useful survival skill.</div>
+                <div><b>E</b>. wanting more food or drink may distract us from the decision we are making.</div>
+              </div>
+
+              <div class="note-row"><span class="qnum">37</span> In the course of evolutionary history System 1 has served humans well because
+                <select data-lq="37" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+
+              <div class="note-row"><span class="qnum">38</span> Low blood sugar or tiredness may be factors in decision making because
+                <select data-lq="38" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+
+              <div class="note-row"><span class="qnum">39</span> The ‘peak-end rule’ shows us that
+                <select data-lq="39" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="listen-card">
+              <div class="listen-card-title">Question 40</div>
+              <div class="listen-inst">Choose the correct letter, <b>A, B, C or D</b>.</div>
+
+              <div class="mcq">
+                <div class="mcq-q"><span class="qnum">40</span> What is the writer’s primary purpose in writing this article?</div>
+                <label class="mcq-opt"><input type="radio" name="q40" value="A" data-lq-radio="40"> A) to introduce their own research to the general reader</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="B" data-lq-radio="40"> B) to summarize and review a recently published book</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="C" data-lq-radio="40"> C) to argue against a commonly-held theory</label>
+                <label class="mcq-opt"><input type="radio" name="q40" value="D" data-lq-radio="40"> D) to encourage readers to question their own decision-making processes</label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="listen-footer">
+          <div class="muted" id="listenAutosave">Autosave: ready</div>
+          <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+          <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+          <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= READING UI ================= -->
+ <div class="controls hidden" id="readingControls">
+    <div class="timer">Reading time left: <span id="timeLeft">60:00</span></div>
+        <div class="reading-controls-right">
+      <div class="reading-resize-hint">Drag the divider to resize text and questions.</div>
+      <button class="btn" id="submitBtn" type="button">Submit</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="container">
+    <section class="passage" id="passage"></section>
+        <div class="splitter" id="readingSplitter" role="separator" aria-orientation="vertical" aria-label="Resize reading panels" tabindex="0"></div>
+    <section class="questions" id="readingQuestions">
+      <div class="qcard" id="qCard"></div>
+      <div class="foot">
+        <div class="small" id="autosaveStatus">Autosave: ready</div>
+        <button class="btn secondary" id="downloadBtn" type="button">Download answers (JSON)</button>
+        <button class="btn secondary" id="copyBtn" type="button">Copy answers</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ================= WRITING (LOCKED UNTIL READING TIMER ENDS) ================= -->
+  <section id="writingSection" class="writing-screen hidden" aria-label="IELTS Writing">
+    <div class="writing-shell">
+      <div class="writing-top">
+        <div>
+          <h1 class="writing-title">IELTS Writing</h1>
+          <div class="writing-sub">Writing starts only after Reading time ends.</div>
+        </div>
+
+        <div class="writing-meta">
+          <div class="writing-timer">Writing time left: <span id="writingTimeLeft">60:00</span></div>
+        </div>
+      </div>
+
+      <div class="writing-body">
+        <div class="writing-card">
+          <div class="writing-card-title">WRITING TASK 1</div>
+          <div class="writing-inst">
+            You should spend about 20 minutes on this task.<br>
+            The graphs below give information about computer ownership as a percentage of the population between 2002 and 2010,
+            and by level of education for the years 2002 and 2010.<br>
+            Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+            <b>Write at least 150 words.</b>
+          </div>
+
+                    <div class="writing-graph-toolbar" aria-label="Task 1 image zoom controls">
+            <span class="small">Graph zoom</span>
+            <div class="writing-zoom-actions">
+              <button class="btn secondary" id="writingZoomOutBtn" type="button">−</button>
+              <button class="btn secondary" id="writingZoomResetBtn" type="button">100%</button>
+              <button class="btn secondary" id="writingZoomInBtn" type="button">+</button>
+            </div>
+          </div>
+
+          <div class="writing-graph" id="writingGraphViewport">
+
+            <img
+                            id="writingTask1GraphImg"
+
+              src="https://static.wixstatic.com/media/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg/v1/fill/w_568,h_650,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg"
+              alt="Task 1 graph"
+              loading="lazy"
+            >
+          </div>
+
+          <label class="writing-label" for="writingTask1">Task 1 answer</label>
+          <textarea id="writingTask1" class="writing-textarea" rows="14" placeholder="Type your Task 1 response here..."></textarea>
+          <div class="small muted" id="wt1Count">Word count: 0</div>
+        </div>
+
+        <div class="writing-card">
+          <div class="writing-card-title">WRITING TASK 2</div>
+          <div class="writing-inst">
+            You should spend about 40 minutes on this task.<br><br>
+            A person’s worth nowadays seems to be judged according to social status and material possessions.
+            Old-fashioned values, such as honour, kindness and trust, no longer seem important.<br>
+            <b>To what extent do you agree or disagree with this opinion?</b><br>
+            Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
+            <b>Write at least 250 words.</b>
+          </div>
+
+          <label class="writing-label" for="writingTask2">Task 2 answer</label>
+          <textarea id="writingTask2" class="writing-textarea" rows="18" placeholder="Type your Task 2 response here..."></textarea>
+          <div class="small muted" id="wt2Count">Word count: 0</div>
+        </div>
+
+        <div class="writing-footer">
+          <div class="small" id="writingAutosave">Autosave: ready</div>
+          <div class="writing-actions">
+            <button class="btn secondary" id="downloadWritingBtn" type="button">Download Writing (JSON)</button>
+            <button class="btn secondary" id="copyWritingBtn" type="button">Copy Writing</button>
+            <button class="btn" id="endExamBtn" type="button">End the exam</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal (reused) -->
+  <div class="modal hidden" id="modal">
+    <div class="modal-card">
+      <h3 id="modalTitle">Submitted</h3>
+      <p class="small" id="modalText"></p>
+      <div class="modal-name hidden" id="modalNameWrap">
+  <label class="small" for="modalFullName">Name and Surname</label>
+  <input id="modalFullName" class="modal-name-input" type="text" placeholder="e.g., Sakina Aliyeva" />
+</div>
+      
+
+      <div class="modal-pass hidden" id="modalPassWrap">
+        <label class="small" for="modalPasscode">Test password</label>
+        <input id="modalPasscode" class="modal-pass-input" type="password" placeholder="Enter password" autocomplete="current-password" />
+        <p class="small modal-pass-error hidden" id="modalPassError"></p>
+      </div>
+<div class="modal-actions">
+  <button class="btn secondary hidden" id="modalCancelBtn" type="button">Cancel</button>
+  <button class="btn" id="modalSubmitBtn" type="button">OK</button>
+</div>
+    </div>
+  </div>
+
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/tests/registry.js"></script>
+<script src="assets/js/access.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/router.js"></script>
+<script src="assets/js/modal.js"></script>
+<script src="assets/js/highlighting.js"></script>
+<script src="assets/js/tests/test1Content.js"></script>
+<script src="assets/js/tests/test2Content.js"></script>
+
+<script src="assets/js/engines/listeningEngine.js"></script>
+<script src="assets/js/engines/readingEngine.js"></script>
+<script src="assets/js/engines/writingEngine.js"></script>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
+ 

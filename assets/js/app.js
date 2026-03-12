@@ -361,28 +361,15 @@ const Router = () => window.IELTS.Router;
       return Number.isFinite(n) ? n : 0;
     }
 
-    function hasValue(value) {
-      return value !== null && value !== undefined && String(value).trim() !== "";
+    function bandText(value) {
+      if (value === null || value === undefined || String(value).trim() === "") return "—";
+      const n = Number(value);
+      return Number.isFinite(n) ? n.toFixed(1) : "—";
     }
 
-    function fmtBand(value) {
-      return hasValue(value) ? num(value).toFixed(1) : "—";
-    }
-
-    function fmtTaskDetail(title, essay, band, breakdown, feedback) {
-      const parts = [title];
-      parts.push(`Band: ${fmtBand(band)}`);
-      if (hasValue(breakdown)) parts.push(`
-Score breakdown:
-${String(breakdown).trim()}`);
-      if (hasValue(feedback)) parts.push(`
-Feedback:
-${String(feedback).trim()}`);
-      if (hasValue(essay)) parts.push(`
-Essay:
-${String(essay).trim()}`);
-      return parts.join("
-");
+    function plainText(value, fallback = "—") {
+      const t = String(value ?? "").trim();
+      return t || fallback;
     }
 
     function fmtDate(value) {
@@ -457,9 +444,9 @@ ${String(essay).trim()}`);
           <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
           <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
           <td>${escapeHtml(row.examId || "—")}</td>
-          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))}</span></td>
-          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))}</span></td>
-          <td>Overall Writing<br><span class="small">Band ${escapeHtml(fmtBand(row.finalWritingBand))}</span></td>
+          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(bandText(row.listeningBand))}</span></td>
+          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(bandText(row.readingBand))}</span></td>
+          <td>Band ${escapeHtml(bandText(row.finalWritingBand))}</td>
           <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
           <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
         </tr>
@@ -488,7 +475,7 @@ ${String(essay).trim()}`);
         if (field === "submittedAt") {
           av = new Date(av || 0).getTime();
           bv = new Date(bv || 0).getTime();
-        } else if (["objectiveTotal", "listeningTotal", "readingTotal", "finalWritingBand"].includes(field)) {
+        } else if (["finalWritingBand", "listeningTotal", "readingTotal"].includes(field)) {
           av = num(av);
           bv = num(bv);
         } else {
@@ -508,9 +495,14 @@ ${String(essay).trim()}`);
       if (!detail || !row) return;
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
       $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.listeningBand).toFixed(1)))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(String(num(row.readingBand).toFixed(1)))})<br>Overall Writing: <b>Band ${escapeHtml(fmtBand(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
-      $("adminDetailTask1").textContent = fmtTaskDetail("Task 1", row.writingTask1, row.task1Band, row.task1Breakdown, row.task1Feedback);
-      $("adminDetailTask2").textContent = fmtTaskDetail("Task 2", row.writingTask2, row.task2Band, row.task2Breakdown, row.task2Feedback);
+      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.readingBand))})<br>Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
+      $("adminDetailTask1Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task1Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${escapeHtml(plainText(row.task1Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      $("adminDetailTask1").textContent = row.writingTask1 || "";
+      $("adminDetailTask1Feedback").textContent = plainText(row.task1Feedback, "");
+      $("adminDetailTask2Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task2Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${escapeHtml(plainText(row.task2Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      $("adminDetailTask2").textContent = row.writingTask2 || "";
+      $("adminDetailTask2Feedback").textContent = plainText(row.task2Feedback, "");
+      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
       detail.classList.remove("hidden");
     }
 
@@ -534,7 +526,7 @@ ${String(essay).trim()}`);
 
     function exportAdminRowsCsv() {
       if (!isAdmin || !adminState.filtered.length) return;
-      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback"];
+      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
       const lines = [headers.join(",")].concat(
         adminState.filtered.map((row) =>
           headers

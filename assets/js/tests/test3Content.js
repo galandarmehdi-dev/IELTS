@@ -50,10 +50,10 @@
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 11–15</div>
-              <div class="listen-inst">Label the plan below. Write the correct letter, <b>A–H</b>, next to Questions 11–15.</div>
-              <div class="img-wrap" style="background:#fff;border:1px solid #d7dce5;border-radius:14px;padding:12px;margin-bottom:14px;">
-                <img src="assets/img/test3/listening-section2-plan.png" alt="Plan of Learning Resource Centre (Ground Floor)" style="width:100%;height:auto;display:block;border-radius:10px;">
-              </div>
+            <div class="listen-inst">Label the plan below. Write the correct letter, <b>A–H</b>, next to Questions 11–15.</div>
+<div class="img-wrap" style="background:#fff;border:1px solid #d7dce5;border-radius:14px;padding:12px;margin-bottom:14px;">
+  <img src="https://audio.ieltsmock.org/Screenshot%202026-03-13%20at%2021.50.32.png" alt="Plan of Learning Resource Centre (Ground Floor)" style="width:100%;height:auto;display:block;border-radius:10px;">
+</div>
               <div class="note-row"><span class="qnum">11</span> Newspapers <input data-lq="11" class="l-input tiny"></div>
               <div class="note-row"><span class="qnum">12</span> Computers <input data-lq="12" class="l-input tiny"></div>
               <div class="note-row"><span class="qnum">13</span> Photocopier <input data-lq="13" class="l-input tiny"></div>

@@ -111,7 +111,20 @@ const Router = () => window.IELTS.Router;
     }
 
     initFontPreference();
-
+    // -----------------------------
+    // Speaking exam (separate)
+    // -----------------------------
+    try {
+      if (
+        window.IELTS &&
+        window.IELTS.Speaking &&
+        typeof window.IELTS.Speaking.initSpeakingExam === "function"
+      ) {
+        window.IELTS.Speaking.initSpeakingExam();
+      }
+    } catch (e) {
+      console.error("Speaking exam init failed", e);
+    }
 
     // Key helpers
     const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };

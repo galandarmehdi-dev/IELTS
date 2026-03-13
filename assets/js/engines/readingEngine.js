@@ -948,14 +948,36 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
           saveAnswers(answers);
         });
 
-        if (item.leadingBlank) {
-          line.appendChild(input);
-          line.appendChild(document.createTextNode(" " + (item.text2 || "")));
-          row.appendChild(qbox);
-          row.appendChild(line);
-          panel.appendChild(row);
-          return;
-        }
+        if (item.inlineWithPrevious) {
+  const prevRow = panel.lastElementChild;
+  const prevLine = prevRow?.querySelector(".sentenceLine");
+
+  if (prevLine) {
+    const qnum = document.createElement("span");
+    qnum.style.fontWeight = "800";
+    qnum.style.margin = "0 6px 0 10px";
+    qnum.textContent = `${item.q}`;
+
+    const inlineGap = document.createElement("span");
+    inlineGap.className = "gapInline";
+    inlineGap.appendChild(input);
+
+    prevLine.appendChild(document.createTextNode(" "));
+    prevLine.appendChild(qnum);
+    prevLine.appendChild(inlineGap);
+    prevLine.appendChild(document.createTextNode(item.text2 || ""));
+    return;
+  }
+}
+
+if (item.leadingBlank) {
+  line.appendChild(input);
+  line.appendChild(document.createTextNode(" " + (item.text2 || "")));
+  row.appendChild(qbox);
+  row.appendChild(line);
+  panel.appendChild(row);
+  return;
+}
 
         line.textContent = `${item.text} ________${item.tail || ""}`;
 

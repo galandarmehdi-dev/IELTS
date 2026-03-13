@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="assets/css/writing.css" />
 <link rel="stylesheet" href="assets/css/modal.css" />
 <link rel="stylesheet" href="assets/css/highlighting.css" />
+<link rel="stylesheet" href="assets/css/speaking.css" />
 </head>
   
 <body translate="no">
@@ -41,6 +42,7 @@
         <button class="home-btn ghost" type="button" id="homeHowItWorksBtn">How it works</button>
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
         <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
+        <button class="home-btn ghost" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
       </div>
     </div>
 
@@ -848,6 +850,38 @@
 <script src="assets/js/engines/writingEngine.js"></script>
 
 <script src="assets/js/app.js"></script>
+
+<section id="speakingSection" class="hidden" aria-label="Speaking Exam">
+  <div class="speaking-shell">
+    <div class="speaking-topbar">
+      <h1>IELTS Speaking Exam</h1>
+      <div id="speakingStatus">Status: Ready</div>
+    </div>
+
+    <div class="speaking-card">
+      <h2>Instructions</h2>
+      <p>Press Start Recording, conduct the speaking exam, then press Stop Recording.</p>
+    </div>
+
+    <div class="speaking-card">
+      <h2>Controls</h2>
+      <button id="startSpeakingBtn" type="button">Start Recording</button>
+      <button id="stopSpeakingBtn" type="button">Stop Recording</button>
+      <button id="downloadSpeakingBtn" type="button">Download Recording</button>
+    </div>
+
+    <div class="speaking-card">
+      <h2>Playback</h2>
+      <audio id="speakingPlayback" controls></audio>
+    </div>
+
+    <div class="speaking-card">
+      <button id="backFromSpeakingBtn" type="button">Back to Home</button>
+    </div>
+  </div>
+</section>
+
+<script src="assets/js/speakingEngine.js"></script>
 </body>
 </html>
  

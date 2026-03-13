@@ -1,4 +1,3 @@
-
 (function () {
   "use strict";
 
@@ -6,7 +5,6 @@
   window.IELTS.Speaking = window.IELTS.Speaking || {};
 
   function initSpeakingExam() {
-
     const openBtn = document.getElementById("openSpeakingExamBtn");
     const speakingSection = document.getElementById("speakingSection");
     const homeSection = document.getElementById("homeSection");
@@ -17,6 +15,13 @@
     const backBtn = document.getElementById("backFromSpeakingBtn");
     const playback = document.getElementById("speakingPlayback");
     const statusEl = document.getElementById("speakingStatus");
+
+    if (!openBtn) {
+      console.warn("Speaking button not found: openSpeakingExamBtn");
+    }
+    if (!speakingSection) {
+      console.warn("Speaking section not found: speakingSection");
+    }
 
     let mediaRecorder = null;
     let recordedChunks = [];
@@ -51,23 +56,22 @@
         mediaRecorder.onstop = function () {
           audioBlob = new Blob(recordedChunks, { type: "audio/webm" });
           audioUrl = URL.createObjectURL(audioBlob);
-          playback.src = audioUrl;
-          statusEl.textContent = "Status: Recording saved";
+          if (playback) playback.src = audioUrl;
+          if (statusEl) statusEl.textContent = "Status: Recording saved";
         };
 
         mediaRecorder.start();
-        statusEl.textContent = "Status: Recording...";
-
+        if (statusEl) statusEl.textContent = "Status: Recording...";
       } catch (err) {
         console.error(err);
-        statusEl.textContent = "Status: Microphone access failed";
+        if (statusEl) statusEl.textContent = "Status: Microphone access failed";
       }
     }
 
     function stopRecording() {
       if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
-        statusEl.textContent = "Status: Stopping...";
+        if (statusEl) statusEl.textContent = "Status: Stopping...";
       }
     }
 
@@ -83,13 +87,12 @@
       a.click();
     }
 
-    if (openBtn) openBtn.addEventListener("click", showSpeaking);
-    if (backBtn) backBtn.addEventListener("click", showHome);
-    if (startBtn) startBtn.addEventListener("click", startRecording);
-    if (stopBtn) stopBtn.addEventListener("click", stopRecording);
-    if (downloadBtn) downloadBtn.addEventListener("click", downloadRecording);
+    if (openBtn) openBtn.onclick = showSpeaking;
+    if (backBtn) backBtn.onclick = showHome;
+    if (startBtn) startBtn.onclick = startRecording;
+    if (stopBtn) stopBtn.onclick = stopRecording;
+    if (downloadBtn) downloadBtn.onclick = downloadRecording;
   }
 
   window.IELTS.Speaking.initSpeakingExam = initSpeakingExam;
-
 })();

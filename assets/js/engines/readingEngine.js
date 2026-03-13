@@ -958,9 +958,11 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
       if (prevLine) {
         const qnum = document.createElement("span");
-        qnum.style.fontWeight = "800";
-        qnum.style.margin = "0 6px 0 10px";
-        qnum.textContent = `${item.q}`;
+qnum.className = "qbox";
+qnum.style.display = "inline-flex";
+qnum.style.margin = "0 6px 0 10px";
+qnum.style.verticalAlign = "middle";
+qnum.textContent = `${item.q}`;
 
         const inlineGap = document.createElement("span");
         inlineGap.className = "gapInline";

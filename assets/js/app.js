@@ -600,6 +600,8 @@ const Router = () => window.IELTS.Router;
     const startBtn2 = $("cardStartIelts1Btn");
     const startBtnT2 = $("startIelts2Btn");
     const startBtnT2b = $("cardStartIelts2Btn");
+    const startBtnT3 = $("startIelts3Btn");
+    const startBtnT3b = $("cardStartIelts3Btn");
     const contBtn = $("homeContinueBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
@@ -664,6 +666,8 @@ function startFreshExam() {
     if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
     if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
+    if (startBtnT3) startBtnT3.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
+    if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();

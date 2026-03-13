@@ -64,6 +64,12 @@
         writingTestId: "ielts-writing-002",
         content: { reading: null, writing: null, listening: null },
       },
+      ielts3: {
+        id: "ielts3",
+        readingTestId: "ielts-reading-3parts-003",
+        writingTestId: "ielts-writing-003",
+        content: { reading: null, writing: null, listening: null },
+      },
     },
   };
 

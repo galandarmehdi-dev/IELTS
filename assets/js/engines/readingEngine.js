@@ -922,78 +922,94 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function renderSentenceGapsBlock(cfg, answers) {
-      const panel = renderPanel(cfg.title, cfg.instructions);
+  const panel = renderPanel(cfg.title, cfg.instructions);
 
-      cfg.items.forEach((item) => {
-        const row = document.createElement("div");
-        row.className = "sentenceRow";
+  (cfg.items || []).forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "sentenceRow";
 
-        const qbox = document.createElement("div");
-        qbox.className = "qbox";
-        qbox.textContent = String(item.q);
+    const qbox = document.createElement("div");
+    qbox.className = "qbox";
+    qbox.textContent = String(item.q);
 
-        const line = document.createElement("div");
-        line.className = "sentenceLine";
+    const right = document.createElement("div");
+    right.style.flex = "1";
 
-        const input = document.createElement("input");
-        input.className = "gapInput";
-        input.type = "text";
-        input.placeholder = "Type your answer";
-        input.value = answers[item.q] ?? "";
-        input.disabled = hasSubmittedReading;
+    const line = document.createElement("div");
+    line.className = "sentenceLine";
 
-        input.addEventListener("input", () => {
-          if (hasSubmittedReading) return;
-          answers[item.q] = input.value.trim().replace(/\s+/g, " ");
-          saveAnswers(answers);
-        });
+    const input = document.createElement("input");
+    input.className = "gapInput";
+    input.type = "text";
+    input.placeholder = "Type your answer";
+    input.value = answers[item.q] ?? "";
+    input.disabled = hasSubmittedReading;
 
-        if (item.inlineWithPrevious) {
-  const prevRow = panel.lastElementChild;
-  const prevLine = prevRow?.querySelector(".sentenceLine");
+    input.addEventListener("input", () => {
+      if (hasSubmittedReading) return;
+      answers[item.q] = input.value;
+      saveAnswers(answers);
+    });
 
-  if (prevLine) {
-    const qnum = document.createElement("span");
-    qnum.style.fontWeight = "800";
-    qnum.style.margin = "0 6px 0 10px";
-    qnum.textContent = `${item.q}`;
+    // CASE 1: this gap must be attached to the previous sentence line
+    if (item.inlineWithPrevious) {
+      const prevRow = panel.lastElementChild;
+      const prevLine = prevRow?.querySelector(".sentenceLine");
+
+      if (prevLine) {
+        const qnum = document.createElement("span");
+        qnum.style.fontWeight = "800";
+        qnum.style.margin = "0 6px 0 10px";
+        qnum.textContent = `${item.q}`;
+
+        const inlineGap = document.createElement("span");
+        inlineGap.className = "gapInline";
+        inlineGap.appendChild(input);
+
+        prevLine.appendChild(document.createTextNode(" "));
+        prevLine.appendChild(qnum);
+        prevLine.appendChild(inlineGap);
+        prevLine.appendChild(document.createTextNode(item.text2 || ""));
+        return;
+      }
+    }
+
+    // CASE 2: sentence starts with a blank
+    if (item.leadingBlank) {
+      const inlineGap = document.createElement("span");
+      inlineGap.className = "gapInline";
+      inlineGap.appendChild(input);
+
+      line.appendChild(inlineGap);
+      line.appendChild(document.createTextNode(" " + (item.text2 || "")));
+
+      right.appendChild(line);
+      row.appendChild(qbox);
+      row.appendChild(right);
+      panel.appendChild(row);
+      return;
+    }
+
+    // CASE 3: normal sentence gap -> ALWAYS inline inside sentence
+    line.appendChild(document.createTextNode((item.text || "") + " "));
 
     const inlineGap = document.createElement("span");
     inlineGap.className = "gapInline";
     inlineGap.appendChild(input);
+    line.appendChild(inlineGap);
 
-    prevLine.appendChild(document.createTextNode(" "));
-    prevLine.appendChild(qnum);
-    prevLine.appendChild(inlineGap);
-    prevLine.appendChild(document.createTextNode(item.text2 || ""));
-    return;
-  }
-}
-
-if (item.leadingBlank) {
-  line.appendChild(input);
-  line.appendChild(document.createTextNode(" " + (item.text2 || "")));
-  row.appendChild(qbox);
-  row.appendChild(line);
-  panel.appendChild(row);
-  return;
-}
-
-        line.textContent = `${item.text} ________${item.tail || ""}`;
-
-        row.appendChild(qbox);
-
-        const right = document.createElement("div");
-        right.style.flex = "1";
-        right.appendChild(line);
-        right.appendChild(input);
-
-        row.appendChild(right);
-        panel.appendChild(row);
-      });
-
-      return panel;
+    if (item.tail) {
+      line.appendChild(document.createTextNode(item.tail));
     }
+
+    right.appendChild(line);
+    row.appendChild(qbox);
+    row.appendChild(right);
+    panel.appendChild(row);
+  });
+
+  return panel;
+}
 
     function renderTFNGBlock(cfg, answers) {
       const panel = renderPanel(cfg.title, cfg.instructions);

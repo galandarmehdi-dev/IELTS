@@ -1,0 +1,48 @@
+
+#speakingSection {
+  padding: 24px;
+}
+
+.speaking-shell {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.speaking-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.speaking-card {
+  background: #fff;
+  border: 1px solid #d7dce5;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.speaking-card h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+#startSpeakingBtn,
+#stopSpeakingBtn,
+#downloadSpeakingBtn,
+#backFromSpeakingBtn {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #cfd6e4;
+  background: #f7f9fc;
+  cursor: pointer;
+}
+
+#speakingPlayback {
+  width: 100%;
+  margin-top: 10px;
+}

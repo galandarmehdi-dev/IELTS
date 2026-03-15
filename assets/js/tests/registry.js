@@ -145,6 +145,7 @@
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = {
     ADMIN_ENDPOINT,
+    SPEAKING_UPLOAD_ENDPOINT,
     ADMIN_PASSCODE,
     ADMIN_SESSION_TTL_MIN,
     EXAM,

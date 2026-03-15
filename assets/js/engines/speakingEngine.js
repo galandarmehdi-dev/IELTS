@@ -129,7 +129,7 @@
 
     function getUploadEndpoint() {
       const fromRegistry = window.IELTS && window.IELTS.Registry
-        ? (window.IELTS.Registry.SPEAKING_UPLOAD_ENDPOINT || "")
+        ? (window.IELTS.Registry.SPEAKING_UPLOAD_ENDPOINT || "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec")
         : "";
       return String(fromRegistry || SPEAKING_CONFIG.uploadEndpoint || "").trim();
     }

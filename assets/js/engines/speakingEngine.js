@@ -341,27 +341,29 @@
           base64Audio: base64Audio
         };
 
-        const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "text/plain;charset=utf-8"
-  },
-  body: JSON.stringify(payload)
+        const body = new URLSearchParams({
+  payload: JSON.stringify(payload)
 });
 
-        const text = await res.text();
-        let data = null;
-        try {
-          data = JSON.parse(text);
-        } catch (e) {}
+const res = await fetch(endpoint, {
+  method: "POST",
+  body
+});
 
-        if (!res.ok) {
-          throw new Error(text || ("HTTP " + res.status));
-        }
+const text = await res.text();
+let data = null;
 
-        if (!data || data.ok !== true) {
-          throw new Error((data && data.error) || text || "Upload failed");
-        }
+try {
+  data = JSON.parse(text);
+} catch (e) {}
+
+if (!res.ok) {
+  throw new Error(text || ("HTTP " + res.status));
+}
+
+if (!data || data.ok !== true) {
+  throw new Error((data && data.error) || text || "Upload failed");
+}
 
         lastUploadResult = data;
 

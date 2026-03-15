@@ -139,6 +139,19 @@
       return typed;
     }
 
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = String(reader.result || "");
+          const base64 = result.split(",")[1] || "";
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
     function showSpeaking() {
       if (homeSection) homeSection.classList.add("hidden");
       if (speakingSection) speakingSection.classList.remove("hidden");
@@ -313,20 +326,27 @@
       if (uploadBtn) uploadBtn.disabled = true;
       if (uploadInfo) uploadInfo.textContent = "Uploading recording...";
 
-      const fd = new FormData();
-      fd.append("action", "uploadSpeaking");
-      fd.append("studentFullName", studentFullName);
-      fd.append("submittedAt", new Date().toISOString());
-      fd.append("part1DurationSec", String(SPEAKING_CONFIG.part1.duration));
-      fd.append("part2PrepSec", String(SPEAKING_CONFIG.part2.prepDuration));
-      fd.append("part2SpeakSec", String(SPEAKING_CONFIG.part2.speakDuration));
-      fd.append("part3DurationSec", String(SPEAKING_CONFIG.part3.duration));
-      fd.append("file", audioBlob, "ielts-speaking-exam.webm");
-
       try {
+        const base64Audio = await blobToBase64(audioBlob);
+
+        const payload = {
+          action: "uploadSpeaking",
+          studentFullName: studentFullName,
+          submittedAt: new Date().toISOString(),
+          part1DurationSec: String(SPEAKING_CONFIG.part1.duration),
+          part2PrepSec: String(SPEAKING_CONFIG.part2.prepDuration),
+          part2SpeakSec: String(SPEAKING_CONFIG.part2.speakDuration),
+          part3DurationSec: String(SPEAKING_CONFIG.part3.duration),
+          mimeType: audioBlob.type || "audio/webm",
+          base64Audio: base64Audio
+        };
+
         const res = await fetch(endpoint, {
           method: "POST",
-          body: fd
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
         });
 
         const text = await res.text();
@@ -346,7 +366,9 @@
         lastUploadResult = data;
 
         if (uploadInfo) {
-          const fileUrl = data.fileUrl ? `<a href="${data.fileUrl}" target="_blank" rel="noopener">Open file</a>` : "No file link";
+          const fileUrl = data.fileUrl
+            ? `<a href="${data.fileUrl}" target="_blank" rel="noopener">Open file</a>`
+            : "No file link";
           const rowInfo = data.rowNumber ? `Row ${data.rowNumber}` : "Saved";
           uploadInfo.innerHTML = `
             <div><strong>Upload successful.</strong></div>

@@ -5,7 +5,7 @@
   window.IELTS.Speaking = window.IELTS.Speaking || {};
 
   const SPEAKING_CONFIG = {
-    uploadEndpoint: "", // paste your Apps Script web app URL here if you want it hardcoded
+    uploadEndpoint: "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec", // paste your Apps Script web app URL here if you want it hardcoded
     part1: {
       label: "Part 1",
       duration: 270,

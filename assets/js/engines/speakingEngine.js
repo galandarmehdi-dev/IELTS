@@ -500,25 +500,58 @@
       });
 
       const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+await peerConnection.setLocalDescription(offer);
 
-      const response = await fetch(sessionEndpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/sdp"
-        },
-        body: offer.sdp
-      });
+await waitForIceGatheringComplete(peerConnection);
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Realtime session failed (${response.status})`);
-      }
+const localSdp = peerConnection.localDescription?.sdp || "";
+if (!localSdp.trim()) {
+  throw new Error("Local SDP offer is empty.");
+}
 
-      const answerSdp = await response.text();
-      await peerConnection.setRemoteDescription({ type: "answer", sdp: answerSdp });
+const response = await fetch(sessionEndpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/sdp"
+  },
+  body: localSdp
+});
+
+const answerSdp = await response.text();
+
+if (!response.ok) {
+  throw new Error(answerSdp || `Realtime session failed (${response.status})`);
+}
+
+await peerConnection.setRemoteDescription({
+  type: "answer",
+  sdp: answerSdp
+});
     }
 
+    function waitForIceGatheringComplete(pc) {
+  return new Promise((resolve) => {
+    if (pc.iceGatheringState === "complete") {
+      resolve();
+      return;
+    }
+
+    function checkState() {
+      if (pc.iceGatheringState === "complete") {
+        pc.removeEventListener("icegatheringstatechange", checkState);
+        resolve();
+      }
+    }
+
+    pc.addEventListener("icegatheringstatechange", checkState);
+
+    setTimeout(() => {
+      pc.removeEventListener("icegatheringstatechange", checkState);
+      resolve();
+    }, 2000);
+  });
+}
+    
     function disconnectRealtime() {
       realtimeConnected = false;
 

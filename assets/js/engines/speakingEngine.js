@@ -1,3 +1,4 @@
+/* assets/js/engines/speakingEngine.js */
 (function () {
   "use strict";
 
@@ -5,42 +6,44 @@
   window.IELTS.Speaking = window.IELTS.Speaking || {};
 
   const SPEAKING_CONFIG = {
-    uploadEndpoint: "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec", // paste your Apps Script web app URL here if you want it hardcoded
+    uploadEndpoint: "",
+    realtimeModel: "gpt-realtime",
+    voice: "marin",
     part1: {
-      label: "Part 1",
-      duration: 270,
       title: "Introduction and Interview",
+      duration: 270,
       questions: [
-        "Do you work or study?",
-        "Why did you choose that subject or job?",
-        "What do you enjoy most about your daily routine?",
-        "What is your hometown like?",
-        "What do you like most about your hometown?",
-        "Would you like to live in the same place in the future? Why?"
+        "Can you tell me your full name, please?",
+        "Where are you from?",
+        "Do you work or are you a student?",
+        "Do you enjoy reading?",
+        "What kind of books do you like?",
+        "Did you read more when you were a child?",
+        "Do you prefer reading at home or somewhere else?"
       ]
     },
     part2: {
-      label: "Part 2",
+      title: "Long Turn",
       prepDuration: 60,
       speakDuration: 120,
-      title: "Long Turn",
-      cueCardTitle: "Describe a book you recently read.",
-      cueCardPoints: [
-        "what the book was",
-        "when you read it",
-        "what it was about",
-        "and explain why you liked or disliked it"
-      ]
+      cueCard: {
+        topic: "Describe a book you have read recently.",
+        prompts: [
+          "what the book was",
+          "what kind of book it was",
+          "what happened in it",
+          "and explain why you enjoyed it or did not enjoy it"
+        ]
+      }
     },
     part3: {
-      label: "Part 3",
-      duration: 270,
       title: "Discussion",
+      duration: 270,
       questions: [
-        "Why do some people enjoy reading fiction?",
-        "How have reading habits changed in recent years?",
-        "Do you think children should be encouraged to read more books?",
-        "What are the advantages of digital reading compared with printed books?",
+        "Why do some people read more than others?",
+        "How has technology changed people's reading habits?",
+        "Do you think children should be encouraged to read more books? Why?",
+        "Is reading more beneficial than watching videos for learning?",
         "How can schools help students develop a reading habit?"
       ]
     }
@@ -72,6 +75,12 @@
     let uploadInProgress = false;
     let lastUploadResult = null;
 
+    let peerConnection = null;
+    let dataChannel = null;
+    let realtimeConnected = false;
+    let remoteAudioEl = null;
+    let remoteTranscriptEl = null;
+
     renderDynamicExamUI();
 
     const partBox = document.getElementById("speakingCurrentPart");
@@ -100,8 +109,9 @@
         else shell.appendChild(nameCard);
       }
 
+      const playbackCard = playback ? playback.closest(".speaking-card") : null;
+
       if (!document.getElementById("speakingExamFlowCard")) {
-        const playbackCard = playback ? playback.closest(".speaking-card") : null;
         const flowCard = document.createElement("div");
         flowCard.className = "speaking-card";
         flowCard.id = "speakingExamFlowCard";
@@ -115,7 +125,19 @@
         else shell.appendChild(flowCard);
       }
 
-      const playbackCard = playback ? playback.closest(".speaking-card") : null;
+      if (playbackCard && !document.getElementById("speakingExaminerCard")) {
+        const examinerCard = document.createElement("div");
+        examinerCard.className = "speaking-card";
+        examinerCard.id = "speakingExaminerCard";
+        examinerCard.innerHTML = `
+          <h2>AI Examiner</h2>
+          <div id="speakingRealtimeStatus" style="margin-bottom:10px;color:#475467;">Realtime status: Not connected</div>
+          <audio id="remoteAudio" autoplay playsinline controls style="width:100%;margin-top:10px;"></audio>
+          <div id="speakingExaminerTranscript" style="margin-top:12px;padding:12px;border:1px solid #e4e7ec;border-radius:10px;background:#f8fafc;line-height:1.6;color:#344054;min-height:48px;">The examiner's latest text will appear here.</div>
+        `;
+        shell.insertBefore(examinerCard, playbackCard);
+      }
+
       if (playbackCard && !document.getElementById("uploadSpeakingBtn")) {
         const uploadWrap = document.createElement("div");
         uploadWrap.style.marginTop = "14px";
@@ -127,11 +149,19 @@
       }
     }
 
+    remoteAudioEl = document.getElementById("remoteAudio");
+    remoteTranscriptEl = document.getElementById("speakingExaminerTranscript");
+
     function getUploadEndpoint() {
       const fromRegistry = window.IELTS && window.IELTS.Registry
-        ? (window.IELTS.Registry.SPEAKING_UPLOAD_ENDPOINT || "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec")
+        ? (window.IELTS.Registry.SPEAKING_UPLOAD_ENDPOINT || "")
         : "";
       return String(fromRegistry || SPEAKING_CONFIG.uploadEndpoint || "").trim();
+    }
+
+    function getRealtimeSessionEndpoint() {
+      const endpoint = window.IELTS?.Registry?.REALTIME_SESSION_ENDPOINT || "";
+      return String(endpoint).trim();
     }
 
     function getStudentName() {
@@ -177,6 +207,16 @@
       if (statusEl) statusEl.textContent = text;
     }
 
+    function setRealtimeStatus(text) {
+      const el = document.getElementById("speakingRealtimeStatus");
+      if (el) el.textContent = "Realtime status: " + text;
+    }
+
+    function setExaminerTranscript(text) {
+      if (!remoteTranscriptEl) return;
+      remoteTranscriptEl.textContent = text || "The examiner's latest text will appear here.";
+    }
+
     function renderPart1() {
       if (partBox) partBox.textContent = "Current stage: Part 1 — " + SPEAKING_CONFIG.part1.title;
       setStatus("Part 1 in progress");
@@ -192,33 +232,35 @@
     }
 
     function renderPart2Prep() {
-      if (partBox) partBox.textContent = "Current stage: Part 2 — Preparation Time";
+      if (partBox) partBox.textContent = "Current stage: Part 2 — Preparation time";
       setStatus("Part 2 preparation time");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:10px;font-weight:700;">Cue Card</div>
-          <div style="margin-bottom:10px;">${SPEAKING_CONFIG.part2.cueCardTitle}</div>
-          <ul style="margin:0;padding-left:20px;line-height:1.7;">
-            ${SPEAKING_CONFIG.part2.cueCardPoints.map(p => `<li>${p}</li>`).join("")}
-          </ul>
-          <div style="margin-top:14px;font-weight:700;">Preparation time is running now.</div>
+          <div style="margin-bottom:12px;">You have 1 minute to prepare.</div>
+          <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
+            <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
+            <ul style="margin:10px 0 0 18px;">
+              ${SPEAKING_CONFIG.part2.cueCard.prompts.map(p => `<li>${p}</li>`).join("")}
+            </ul>
+          </div>
         `;
       }
     }
 
     function renderPart2Speak() {
-      if (partBox) partBox.textContent = "Current stage: Part 2 — Candidate Speaking Time";
+      if (partBox) partBox.textContent = "Current stage: Part 2 — Long turn";
       setStatus("Part 2 speaking time");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:10px;font-weight:700;">Cue Card</div>
-          <div style="margin-bottom:10px;">${SPEAKING_CONFIG.part2.cueCardTitle}</div>
-          <ul style="margin:0;padding-left:20px;line-height:1.7;">
-            ${SPEAKING_CONFIG.part2.cueCardPoints.map(p => `<li>${p}</li>`).join("")}
-          </ul>
-          <div style="margin-top:14px;font-weight:700;">The student should speak now.</div>
+          <div style="margin-bottom:12px;">Please speak for up to 2 minutes on this topic:</div>
+          <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
+            <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
+            <ul style="margin:10px 0 0 18px;">
+              ${SPEAKING_CONFIG.part2.cueCard.prompts.map(p => `<li>${p}</li>`).join("")}
+            </ul>
+          </div>
         `;
       }
     }
@@ -229,7 +271,7 @@
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:10px;">Ask these discussion questions:</div>
+          <div style="margin-bottom:10px;">Discussion questions:</div>
           <ol style="margin:0;padding-left:20px;line-height:1.7;">
             ${SPEAKING_CONFIG.part3.questions.map(q => `<li>${q}</li>`).join("")}
           </ol>
@@ -238,15 +280,17 @@
     }
 
     function renderFinished() {
-      if (partBox) partBox.textContent = "Current stage: Exam finished";
+      if (partBox) partBox.textContent = "Current stage: Finished";
+      setStatus("Exam finished");
+      setTimerText(0);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="font-weight:700;margin-bottom:10px;">The speaking exam has finished automatically.</div>
-          <div>You can now play back, download, and upload the recording.</div>
+          <div style="line-height:1.7;">
+            The speaking exam is complete.<br>
+            You can now download the recording or upload it to the admin sheet.
+          </div>
         `;
       }
-      setTimerText(0);
-      setStatus("Speaking exam finished");
     }
 
     function stopStageTimer() {
@@ -256,50 +300,239 @@
       }
     }
 
-    function startStageTimer() {
-      stopStageTimer();
-      timer = setInterval(() => {
-        stageSecondsLeft -= 1;
-        setTimerText(Math.max(0, stageSecondsLeft));
-        if (stageSecondsLeft <= 0) moveToNextStage();
-      }, 1000);
+    function sendRealtimeEvent(payload) {
+      if (!dataChannel || dataChannel.readyState !== "open") return false;
+      dataChannel.send(JSON.stringify(payload));
+      return true;
+    }
+
+    function sendExaminerTranscriptPrompt(promptText) {
+      if (!promptText) return;
+      const ok = sendRealtimeEvent({
+        type: "conversation.item.create",
+        item: {
+          type: "message",
+          role: "user",
+          content: [
+            { type: "input_text", text: promptText }
+          ]
+        }
+      });
+      if (!ok) return;
+      sendRealtimeEvent({
+        type: "response.create",
+        response: {
+          output_modalities: ["audio", "text"]
+        }
+      });
+    }
+
+    function getStageInstruction(stage) {
+      if (stage === "part1") {
+        return [
+          "Begin IELTS Speaking Part 1 now.",
+          "Greet the candidate naturally, confirm that the speaking test is starting, then ask the Part 1 questions one by one.",
+          "Use these questions:",
+          ...SPEAKING_CONFIG.part1.questions.map((q, i) => `${i + 1}. ${q}`),
+          "Keep examiner turns short.",
+          "Do not give feedback or scores."
+        ].join("\n");
+      }
+
+      if (stage === "part2prep") {
+        return [
+          "Begin IELTS Speaking Part 2 preparation stage now.",
+          "Read the cue card briefly and tell the candidate they have one minute to prepare.",
+          `Cue card: ${SPEAKING_CONFIG.part2.cueCard.topic}`,
+          ...SPEAKING_CONFIG.part2.cueCard.prompts.map((p, i) => `- ${p}`),
+          "Do not keep talking after giving the cue card."
+        ].join("\n");
+      }
+
+      if (stage === "part2speak") {
+        return [
+          "The one-minute preparation time has finished.",
+          "Tell the candidate to start speaking now and allow them to continue.",
+          "Only intervene very briefly if needed."
+        ].join("\n");
+      }
+
+      if (stage === "part3") {
+        return [
+          "Begin IELTS Speaking Part 3 now.",
+          "Ask discussion questions one by one.",
+          "Use these questions:",
+          ...SPEAKING_CONFIG.part3.questions.map((q, i) => `${i + 1}. ${q}`),
+          "Keep examiner turns short and natural.",
+          "Do not give feedback or scores."
+        ].join("\n");
+      }
+
+      if (stage === "finished") {
+        return "The speaking test is finished. Thank the candidate briefly and stop.";
+      }
+
+      return "";
+    }
+
+    function pushStageToExaminer(stage) {
+      const prompt = getStageInstruction(stage);
+      if (prompt) sendExaminerTranscriptPrompt(prompt);
     }
 
     function beginStage(stageName) {
       currentStage = stageName;
+      stopStageTimer();
+
       if (stageName === "part1") {
         stageSecondsLeft = SPEAKING_CONFIG.part1.duration;
         renderPart1();
-        startStageTimer();
-        return;
-      }
-      if (stageName === "part2prep") {
+        pushStageToExaminer("part1");
+      } else if (stageName === "part2prep") {
         stageSecondsLeft = SPEAKING_CONFIG.part2.prepDuration;
         renderPart2Prep();
-        startStageTimer();
-        return;
-      }
-      if (stageName === "part2speak") {
+        pushStageToExaminer("part2prep");
+      } else if (stageName === "part2speak") {
         stageSecondsLeft = SPEAKING_CONFIG.part2.speakDuration;
         renderPart2Speak();
-        startStageTimer();
-        return;
-      }
-      if (stageName === "part3") {
+        pushStageToExaminer("part2speak");
+      } else if (stageName === "part3") {
         stageSecondsLeft = SPEAKING_CONFIG.part3.duration;
         renderPart3();
-        startStageTimer();
+        pushStageToExaminer("part3");
+      } else {
+        renderFinished();
         return;
       }
-      if (stageName === "finished") finishExamAutomatically();
+
+      timer = setInterval(() => {
+        stageSecondsLeft -= 1;
+        if (stageSecondsLeft < 0) stageSecondsLeft = 0;
+        setTimerText(stageSecondsLeft);
+
+        if (stageSecondsLeft <= 0) {
+          stopStageTimer();
+          if (currentStage === "part1") beginStage("part2prep");
+          else if (currentStage === "part2prep") beginStage("part2speak");
+          else if (currentStage === "part2speak") beginStage("part3");
+          else if (currentStage === "part3") finishExamAutomatically();
+        }
+      }, 1000);
     }
 
-    function moveToNextStage() {
-      stopStageTimer();
-      if (currentStage === "part1") return beginStage("part2prep");
-      if (currentStage === "part2prep") return beginStage("part2speak");
-      if (currentStage === "part2speak") return beginStage("part3");
-      if (currentStage === "part3") return beginStage("finished");
+    async function connectRealtime(stream) {
+      const sessionEndpoint = getRealtimeSessionEndpoint();
+      if (!sessionEndpoint) throw new Error("Realtime session endpoint is missing.");
+
+      setRealtimeStatus("Connecting...");
+
+      peerConnection = new RTCPeerConnection();
+
+      if (remoteAudioEl) {
+        remoteAudioEl.autoplay = true;
+        remoteAudioEl.playsInline = true;
+      }
+
+      peerConnection.ontrack = (event) => {
+        if (remoteAudioEl) remoteAudioEl.srcObject = event.streams[0];
+      };
+
+      stream.getTracks().forEach((track) => {
+        peerConnection.addTrack(track, stream);
+      });
+
+      dataChannel = peerConnection.createDataChannel("oai-events");
+
+      dataChannel.addEventListener("open", () => {
+        realtimeConnected = true;
+        setRealtimeStatus("Connected");
+
+        sendRealtimeEvent({
+          type: "session.update",
+          session: {
+            type: "realtime",
+            model: SPEAKING_CONFIG.realtimeModel,
+            output_modalities: ["audio", "text"],
+            audio: {
+              input: {
+                turn_detection: { type: "semantic_vad" }
+              },
+              output: {
+                voice: SPEAKING_CONFIG.voice
+              }
+            },
+            instructions: [
+              "You are an IELTS Speaking examiner for a mock exam.",
+              "Follow official IELTS Speaking structure.",
+              "Speak naturally, clearly, and briefly.",
+              "Ask one question at a time.",
+              "Do not give scores during the exam.",
+              "Do not become chatty.",
+              "Wait for the app's stage instructions and follow them closely."
+            ].join(" ")
+          }
+        });
+      });
+
+      dataChannel.addEventListener("message", (event) => {
+        try {
+          const serverEvent = JSON.parse(event.data);
+          if (serverEvent.type === "response.done") {
+            const output = serverEvent?.response?.output || [];
+            const textParts = [];
+            output.forEach((item) => {
+              const content = item?.content || [];
+              content.forEach((part) => {
+                if (part?.transcript) textParts.push(part.transcript);
+                if (part?.text) textParts.push(part.text);
+              });
+            });
+            if (textParts.length) setExaminerTranscript(textParts.join(" ").trim());
+          }
+
+          if (serverEvent.type === "error") {
+            console.error("Realtime server event error", serverEvent);
+            setRealtimeStatus("Error");
+          }
+        } catch (err) {
+          console.error("Failed to parse realtime event", err);
+        }
+      });
+
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+
+      const response = await fetch(sessionEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp"
+        },
+        body: offer.sdp
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Realtime session failed (${response.status})`);
+      }
+
+      const answerSdp = await response.text();
+      await peerConnection.setRemoteDescription({ type: "answer", sdp: answerSdp });
+    }
+
+    function disconnectRealtime() {
+      realtimeConnected = false;
+
+      try {
+        if (dataChannel) dataChannel.close();
+      } catch {}
+      dataChannel = null;
+
+      try {
+        if (peerConnection) peerConnection.close();
+      } catch {}
+      peerConnection = null;
+
+      setRealtimeStatus("Disconnected");
     }
 
     async function uploadRecording() {
@@ -309,84 +542,59 @@
         return;
       }
 
-      const endpoint = getUploadEndpoint();
-      if (!endpoint) {
-        alert("Speaking upload endpoint is not set yet.");
+      const studentFullName = getStudentName();
+      if (!studentFullName) {
+        alert("Please enter the student full name before uploading.");
         return;
       }
 
-      const studentFullName = getStudentName();
-      if (!studentFullName) {
-        alert("Please enter the student's full name first.");
-        if (studentNameInput) studentNameInput.focus();
+      const endpoint = getUploadEndpoint();
+      if (!endpoint) {
+        alert("Speaking upload endpoint is missing.");
         return;
       }
 
       uploadInProgress = true;
-      if (uploadBtn) uploadBtn.disabled = true;
       if (uploadInfo) uploadInfo.textContent = "Uploading recording...";
 
       try {
         const base64Audio = await blobToBase64(audioBlob);
-
         const payload = {
           action: "uploadSpeaking",
-          studentFullName: studentFullName,
+          studentFullName,
           submittedAt: new Date().toISOString(),
-          part1DurationSec: String(SPEAKING_CONFIG.part1.duration),
-          part2PrepSec: String(SPEAKING_CONFIG.part2.prepDuration),
-          part2SpeakSec: String(SPEAKING_CONFIG.part2.speakDuration),
-          part3DurationSec: String(SPEAKING_CONFIG.part3.duration),
+          part1DurationSec: SPEAKING_CONFIG.part1.duration,
+          part2PrepSec: SPEAKING_CONFIG.part2.prepDuration,
+          part2SpeakSec: SPEAKING_CONFIG.part2.speakDuration,
+          part3DurationSec: SPEAKING_CONFIG.part3.duration,
           mimeType: audioBlob.type || "audio/webm",
-          base64Audio: base64Audio
+          base64Audio
         };
 
-        const body = new URLSearchParams({
-  payload: JSON.stringify(payload)
-});
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
 
-const res = await fetch(endpoint, {
-  method: "POST",
-  body
-});
+        const json = await response.json();
+        lastUploadResult = json;
 
-const text = await res.text();
-let data = null;
-
-try {
-  data = JSON.parse(text);
-} catch (e) {}
-
-if (!res.ok) {
-  throw new Error(text || ("HTTP " + res.status));
-}
-
-if (!data || data.ok !== true) {
-  throw new Error((data && data.error) || text || "Upload failed");
-}
-
-        lastUploadResult = data;
-
-        if (uploadInfo) {
-          const fileUrl = data.fileUrl
-            ? `<a href="${data.fileUrl}" target="_blank" rel="noopener">Open file</a>`
-            : "No file link";
-          const rowInfo = data.rowNumber ? `Row ${data.rowNumber}` : "Saved";
-          uploadInfo.innerHTML = `
-            <div><strong>Upload successful.</strong></div>
-            <div>${fileUrl}</div>
-            <div>${rowInfo}</div>
-          `;
+        if (!json.ok) {
+          throw new Error(json.error || "Upload failed");
         }
 
-        setStatus("Recording uploaded successfully");
+        if (uploadInfo) {
+          uploadInfo.innerHTML = `
+            <div>Upload complete.</div>
+            <div><a href="${json.fileUrl}" target="_blank" rel="noopener">Open recording file</a></div>
+          `;
+        }
       } catch (err) {
-        console.error("Speaking upload failed:", err);
-        if (uploadInfo) uploadInfo.textContent = "Upload failed: " + (err.message || err);
-        setStatus("Upload failed");
+        console.error(err);
+        if (uploadInfo) uploadInfo.textContent = "Upload failed: " + String(err.message || err);
       } finally {
         uploadInProgress = false;
-        if (uploadBtn) uploadBtn.disabled = false;
       }
     }
 
@@ -395,24 +603,22 @@ if (!data || data.ok !== true) {
 
       const studentFullName = getStudentName();
       if (!studentFullName) {
-        alert("Please enter the student's full name first.");
-        if (studentNameInput) studentNameInput.focus();
+        alert("Please enter the student full name before starting the exam.");
         return;
       }
 
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
+        examRunning = true;
+        examFinished = false;
         recordedChunks = [];
         audioBlob = null;
         audioUrl = "";
-        lastUploadResult = null;
-        examRunning = true;
-        examFinished = false;
-
         if (uploadInfo) uploadInfo.textContent = "";
         if (playback) playback.src = "";
+        setExaminerTranscript("");
+        setStatus("Requesting microphone...");
 
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(micStream);
 
         mediaRecorder.ondataavailable = function (event) {
@@ -420,7 +626,7 @@ if (!data || data.ok !== true) {
         };
 
         mediaRecorder.onstop = function () {
-          audioBlob = new Blob(recordedChunks, { type: "audio/webm" });
+          audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
           audioUrl = URL.createObjectURL(audioBlob);
 
           if (playback) playback.src = audioUrl;
@@ -431,18 +637,20 @@ if (!data || data.ok !== true) {
           examFinished = true;
           window.onbeforeunload = null;
 
+          pushStageToExaminer("finished");
+          disconnectRealtime();
+
           if (micStream) {
             micStream.getTracks().forEach(track => track.stop());
             micStream = null;
           }
 
           renderFinished();
-
-          // Auto upload after exam ends
           uploadRecording();
         };
 
         mediaRecorder.start();
+        await connectRealtime(micStream);
 
         window.onbeforeunload = function () {
           return "Speaking exam is in progress. Are you sure you want to leave?";
@@ -452,7 +660,13 @@ if (!data || data.ok !== true) {
       } catch (err) {
         console.error(err);
         examRunning = false;
-        setStatus("Microphone access failed");
+        setStatus("Microphone / Realtime connection failed");
+        setRealtimeStatus("Failed");
+        disconnectRealtime();
+        if (micStream) {
+          micStream.getTracks().forEach(track => track.stop());
+          micStream = null;
+        }
       }
     }
 
@@ -496,6 +710,7 @@ if (!data || data.ok !== true) {
       `;
     }
     setTimerText(0);
+    setRealtimeStatus("Not connected");
 
     if (openBtn) openBtn.onclick = showSpeaking;
     if (backBtn) backBtn.onclick = showHome;

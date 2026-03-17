@@ -2,17 +2,18 @@
 (function () {
   "use strict";
 
-  // Your Google Apps Script endpoint (kept)
   const ADMIN_ENDPOINT =
     "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
-  const SPEAKING_UPLOAD_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
-  
-  // Admin-only controls (client-side gate)
-  const ADMIN_PASSCODE = "SMOKEY";
-  const ADMIN_SESSION_TTL_MIN = 240; // admin stays enabled for 4 hours on this browser
 
-  // TEMP: allow students to scrub Listening audio for testing (set to false to disable)
+  const SPEAKING_UPLOAD_ENDPOINT =
+    "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
+
+  // Local backend for OpenAI Realtime session creation.
+  // Change only if you host the small Node server elsewhere.
+  const REALTIME_SESSION_ENDPOINT = "http://localhost:3000/session";
+
+  const ADMIN_PASSCODE = "SMOKEY";
+  const ADMIN_SESSION_TTL_MIN = 240;
   const TEMP_STUDENT_AUDIO_SCRUB = true;
 
   const EXAM = {
@@ -29,8 +30,6 @@
     ACTIVE_TEST_ID: "IELTS:EXAM:activeTestId",
   };
 
-  // Legacy (single-test) keys that existed before multi-test support.
-  // We keep these ONLY to auto-migrate any in-progress attempts on this browser.
   const LEGACY = {
     listeningKeys: {
       submitted: "IELTS:LISTENING:submitted",
@@ -49,8 +48,6 @@
     },
   };
 
-  // Multi-test config (same functions, different content).
-  // Content for ielts2 is intentionally left as placeholders for you to replace.
   const TESTS = {
     defaultTestId: "ielts1",
     byId: {
@@ -75,7 +72,6 @@
     },
   };
 
-  // Helpers (safe even if Storage isn't loaded yet)
   function StorageSafe() {
     return window.IELTS && window.IELTS.Storage ? window.IELTS.Storage : null;
   }
@@ -108,7 +104,6 @@
     return getTestConfig(getActiveTestId());
   }
 
-  // Namespaced key helper to prevent Test 1 / Test 2 overwriting each other.
   function makeKey(testId, area, name) {
     const id = String(testId || "").trim() || TESTS.defaultTestId;
     const a = String(area || "").trim().toUpperCase();
@@ -137,29 +132,22 @@
     };
   }
 
-  function getActiveTestContent() {
-    const cfg = getActiveTestConfig();
-    return (cfg && cfg.content) || {};
-  }
-
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = {
     ADMIN_ENDPOINT,
     SPEAKING_UPLOAD_ENDPOINT,
+    REALTIME_SESSION_ENDPOINT,
     ADMIN_PASSCODE,
     ADMIN_SESSION_TTL_MIN,
+    TEMP_STUDENT_AUDIO_SCRUB,
     EXAM,
     KEYS,
-    TESTS,
     LEGACY,
-    TEMP_STUDENT_AUDIO_SCRUB,
-
-    // Multi-test helpers
+    TESTS,
     getActiveTestId,
     setActiveTestId,
     getTestConfig,
     getActiveTestConfig,
-    getActiveTestContent,
     makeKey,
     keysFor,
   };

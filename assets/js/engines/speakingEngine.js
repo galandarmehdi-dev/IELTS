@@ -73,13 +73,13 @@
     let examFinished = false;
     let micStream = null;
     let uploadInProgress = false;
-    let lastUploadResult = null;
 
     let peerConnection = null;
     let dataChannel = null;
-    let realtimeConnected = false;
     let remoteAudioEl = null;
-    let remoteTranscriptEl = null;
+    let sessionReady = false;
+    let pendingStagePrompt = null;
+    let pushStageTimeout = null;
 
     renderDynamicExamUI();
 
@@ -133,7 +133,6 @@
           <h2>AI Examiner</h2>
           <div id="speakingRealtimeStatus" style="margin-bottom:10px;color:#475467;">Realtime status: Not connected</div>
           <audio id="remoteAudio" autoplay playsinline controls style="width:100%;margin-top:10px;"></audio>
-          <div id="speakingExaminerTranscript" style="margin-top:12px;padding:12px;border:1px solid #e4e7ec;border-radius:10px;background:#f8fafc;line-height:1.6;color:#344054;min-height:48px;">The examiner's latest text will appear here.</div>
         `;
         shell.insertBefore(examinerCard, playbackCard);
       }
@@ -150,7 +149,6 @@
     }
 
     remoteAudioEl = document.getElementById("remoteAudio");
-    remoteTranscriptEl = document.getElementById("speakingExaminerTranscript");
 
     function getUploadEndpoint() {
       const fromRegistry = window.IELTS && window.IELTS.Registry
@@ -165,8 +163,7 @@
     }
 
     function getStudentName() {
-      const typed = studentNameInput ? String(studentNameInput.value || "").trim() : "";
-      return typed;
+      return studentNameInput ? String(studentNameInput.value || "").trim() : "";
     }
 
     function blobToBase64(blob) {
@@ -212,21 +209,17 @@
       if (el) el.textContent = "Realtime status: " + text;
     }
 
-    function setExaminerTranscript(text) {
-      if (!remoteTranscriptEl) return;
-      remoteTranscriptEl.textContent = text || "The examiner's latest text will appear here.";
-    }
-
     function renderPart1() {
-      if (partBox) partBox.textContent = "Current stage: Part 1 — " + SPEAKING_CONFIG.part1.title;
+      if (partBox) partBox.textContent = "Current stage: Part 1 — Introduction and Interview";
       setStatus("Part 1 in progress");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:10px;">Ask these short questions:</div>
-          <ol style="margin:0;padding-left:20px;line-height:1.7;">
-            ${SPEAKING_CONFIG.part1.questions.map(q => `<li>${q}</li>`).join("")}
-          </ol>
+          <div style="line-height:1.7;">
+            The examiner is asking Part 1 questions.<br>
+            Listen and answer naturally.<br>
+            <div style="margin-top:12px;color:#667085;">Questions are spoken only and are not shown on the screen.</div>
+          </div>
         `;
       }
     }
@@ -241,7 +234,7 @@
           <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
             <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
             <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map(p => `<li>${p}</li>`).join("")}
+              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
             </ul>
           </div>
         `;
@@ -258,7 +251,7 @@
           <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
             <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
             <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map(p => `<li>${p}</li>`).join("")}
+              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
             </ul>
           </div>
         `;
@@ -266,15 +259,16 @@
     }
 
     function renderPart3() {
-      if (partBox) partBox.textContent = "Current stage: Part 3 — " + SPEAKING_CONFIG.part3.title;
+      if (partBox) partBox.textContent = "Current stage: Part 3 — Discussion";
       setStatus("Part 3 in progress");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:10px;">Discussion questions:</div>
-          <ol style="margin:0;padding-left:20px;line-height:1.7;">
-            ${SPEAKING_CONFIG.part3.questions.map(q => `<li>${q}</li>`).join("")}
-          </ol>
+          <div style="line-height:1.7;">
+            The examiner is asking Part 3 questions.<br>
+            Listen carefully and answer in detail.<br>
+            <div style="margin-top:12px;color:#667085;">Questions are spoken only and are not shown on the screen.</div>
+          </div>
         `;
       }
     }
@@ -300,15 +294,77 @@
       }
     }
 
+    function clearPendingStagePrompt() {
+      if (pushStageTimeout) {
+        clearTimeout(pushStageTimeout);
+        pushStageTimeout = null;
+      }
+    }
+
     function sendRealtimeEvent(payload) {
       if (!dataChannel || dataChannel.readyState !== "open") return false;
       dataChannel.send(JSON.stringify(payload));
       return true;
     }
 
-    function sendExaminerTranscriptPrompt(promptText) {
-      if (!promptText) return;
-      const ok = sendRealtimeEvent({
+    function createStageInstruction(stage) {
+      if (stage === "part1") {
+        return [
+          "Start the IELTS Speaking test now.",
+          "You are in Part 1.",
+          "First greet the candidate briefly, ask for their full name, and immediately continue with short Part 1 questions.",
+          "Ask one question at a time and keep your turns short.",
+          "Stay within Part 1 only until the app changes the stage.",
+          "Use only these Part 1 questions as your pool:",
+          ...SPEAKING_CONFIG.part1.questions.map((q, i) => `${i + 1}. ${q}`),
+          "Do not give feedback or scores. Do not chat casually."
+        ].join("\n");
+      }
+
+      if (stage === "part2prep") {
+        return [
+          "Part 2 preparation starts now.",
+          "Tell the candidate they now have one minute to prepare.",
+          "Read the cue card briefly once and then stop speaking.",
+          `Cue card topic: ${SPEAKING_CONFIG.part2.cueCard.topic}`,
+          ...SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `- ${p}`),
+          "After giving the cue card, remain silent unless the app changes the stage."
+        ].join("\n");
+      }
+
+      if (stage === "part2speak") {
+        return [
+          "The one-minute preparation time is over.",
+          "Tell the candidate to start speaking now.",
+          "After that, remain silent and let the candidate speak for the long turn.",
+          "Do not interrupt unless absolutely necessary."
+        ].join("\n");
+      }
+
+      if (stage === "part3") {
+        return [
+          "Part 3 starts now.",
+          "Ask deeper discussion questions one at a time.",
+          "Stay within Part 3 only until the app ends the exam.",
+          "Use only these Part 3 questions as your pool:",
+          ...SPEAKING_CONFIG.part3.questions.map((q, i) => `${i + 1}. ${q}`),
+          "Keep examiner turns short and natural.",
+          "Do not give feedback or scores."
+        ].join("\n");
+      }
+
+      if (stage === "finished") {
+        return "The speaking test has ended. Thank the candidate briefly in one short sentence and stop.";
+      }
+
+      return "";
+    }
+
+    function sendStagePromptNow(stage) {
+      const promptText = createStageInstruction(stage);
+      if (!promptText) return false;
+
+      const created = sendRealtimeEvent({
         type: "conversation.item.create",
         item: {
           type: "message",
@@ -318,66 +374,29 @@
           ]
         }
       });
-      if (!ok) return;
-      sendRealtimeEvent({
+
+      if (!created) return false;
+
+      return sendRealtimeEvent({
         type: "response.create",
         response: {
-          output_modalities: ["audio", "text"]
+          output_modalities: ["audio"]
         }
       });
     }
 
-    function getStageInstruction(stage) {
-      if (stage === "part1") {
-        return [
-          "Begin IELTS Speaking Part 1 now.",
-          "Greet the candidate naturally, confirm that the speaking test is starting, then ask the Part 1 questions one by one.",
-          "Use these questions:",
-          ...SPEAKING_CONFIG.part1.questions.map((q, i) => `${i + 1}. ${q}`),
-          "Keep examiner turns short.",
-          "Do not give feedback or scores."
-        ].join("\n");
-      }
+    function queueOrSendStagePrompt(stage) {
+      pendingStagePrompt = stage;
+      clearPendingStagePrompt();
 
-      if (stage === "part2prep") {
-        return [
-          "Begin IELTS Speaking Part 2 preparation stage now.",
-          "Read the cue card briefly and tell the candidate they have one minute to prepare.",
-          `Cue card: ${SPEAKING_CONFIG.part2.cueCard.topic}`,
-          ...SPEAKING_CONFIG.part2.cueCard.prompts.map((p, i) => `- ${p}`),
-          "Do not keep talking after giving the cue card."
-        ].join("\n");
-      }
+      if (!sessionReady) return;
 
-      if (stage === "part2speak") {
-        return [
-          "The one-minute preparation time has finished.",
-          "Tell the candidate to start speaking now and allow them to continue.",
-          "Only intervene very briefly if needed."
-        ].join("\n");
-      }
-
-      if (stage === "part3") {
-        return [
-          "Begin IELTS Speaking Part 3 now.",
-          "Ask discussion questions one by one.",
-          "Use these questions:",
-          ...SPEAKING_CONFIG.part3.questions.map((q, i) => `${i + 1}. ${q}`),
-          "Keep examiner turns short and natural.",
-          "Do not give feedback or scores."
-        ].join("\n");
-      }
-
-      if (stage === "finished") {
-        return "The speaking test is finished. Thank the candidate briefly and stop.";
-      }
-
-      return "";
-    }
-
-    function pushStageToExaminer(stage) {
-      const prompt = getStageInstruction(stage);
-      if (prompt) sendExaminerTranscriptPrompt(prompt);
+      pushStageTimeout = setTimeout(() => {
+        if (pendingStagePrompt) {
+          sendStagePromptNow(pendingStagePrompt);
+          pendingStagePrompt = null;
+        }
+      }, 700);
     }
 
     function beginStage(stageName) {
@@ -387,23 +406,21 @@
       if (stageName === "part1") {
         stageSecondsLeft = SPEAKING_CONFIG.part1.duration;
         renderPart1();
-        pushStageToExaminer("part1");
       } else if (stageName === "part2prep") {
         stageSecondsLeft = SPEAKING_CONFIG.part2.prepDuration;
         renderPart2Prep();
-        pushStageToExaminer("part2prep");
       } else if (stageName === "part2speak") {
         stageSecondsLeft = SPEAKING_CONFIG.part2.speakDuration;
         renderPart2Speak();
-        pushStageToExaminer("part2speak");
       } else if (stageName === "part3") {
         stageSecondsLeft = SPEAKING_CONFIG.part3.duration;
         renderPart3();
-        pushStageToExaminer("part3");
       } else {
         renderFinished();
         return;
       }
+
+      queueOrSendStagePrompt(stageName);
 
       timer = setInterval(() => {
         stageSecondsLeft -= 1;
@@ -425,6 +442,9 @@
       if (!sessionEndpoint) throw new Error("Realtime session endpoint is missing.");
 
       setRealtimeStatus("Connecting...");
+      sessionReady = false;
+      pendingStagePrompt = null;
+      clearPendingStagePrompt();
 
       peerConnection = new RTCPeerConnection();
 
@@ -444,7 +464,6 @@
       dataChannel = peerConnection.createDataChannel("oai-events");
 
       dataChannel.addEventListener("open", () => {
-        realtimeConnected = true;
         setRealtimeStatus("Connected");
 
         sendRealtimeEvent({
@@ -452,7 +471,7 @@
           session: {
             type: "realtime",
             model: SPEAKING_CONFIG.realtimeModel,
-            output_modalities: ["audio", "text"],
+            output_modalities: ["audio"],
             audio: {
               input: {
                 turn_detection: { type: "semantic_vad" }
@@ -463,33 +482,26 @@
             },
             instructions: [
               "You are an IELTS Speaking examiner for a mock exam.",
-              "Follow official IELTS Speaking structure.",
+              "Follow the app's stage instructions exactly.",
+              "Act only as an examiner, not as a casual chatbot.",
               "Speak naturally, clearly, and briefly.",
               "Ask one question at a time.",
-              "Do not give scores during the exam.",
-              "Do not become chatty.",
-              "Wait for the app's stage instructions and follow them closely."
+              "Do not provide scores, feedback, explanations, or transcripts.",
+              "Do not move to another part unless the app tells you to.",
+              "If the app tells you to remain silent, remain silent."
             ].join(" ")
           }
         });
+
+        setTimeout(() => {
+          sessionReady = true;
+          if (currentStage) queueOrSendStagePrompt(currentStage);
+        }, 500);
       });
 
       dataChannel.addEventListener("message", (event) => {
         try {
           const serverEvent = JSON.parse(event.data);
-          if (serverEvent.type === "response.done") {
-            const output = serverEvent?.response?.output || [];
-            const textParts = [];
-            output.forEach((item) => {
-              const content = item?.content || [];
-              content.forEach((part) => {
-                if (part?.transcript) textParts.push(part.transcript);
-                if (part?.text) textParts.push(part.text);
-              });
-            });
-            if (textParts.length) setExaminerTranscript(textParts.join(" ").trim());
-          }
-
           if (serverEvent.type === "error") {
             console.error("Realtime server event error", serverEvent);
             setRealtimeStatus("Error");
@@ -500,60 +512,58 @@
       });
 
       const offer = await peerConnection.createOffer();
-await peerConnection.setLocalDescription(offer);
+      await peerConnection.setLocalDescription(offer);
+      await waitForIceGatheringComplete(peerConnection);
 
-await waitForIceGatheringComplete(peerConnection);
+      const localSdp = peerConnection.localDescription?.sdp || "";
+      if (!localSdp.trim()) throw new Error("Local SDP offer is empty.");
 
-const localSdp = peerConnection.localDescription?.sdp || "";
-if (!localSdp.trim()) {
-  throw new Error("Local SDP offer is empty.");
-}
+      const response = await fetch(sessionEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/sdp"
+        },
+        body: localSdp
+      });
 
-const response = await fetch(sessionEndpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/sdp"
-  },
-  body: localSdp
-});
+      const answerSdp = await response.text();
+      if (!response.ok) {
+        throw new Error(answerSdp || `Realtime session failed (${response.status})`);
+      }
 
-const answerSdp = await response.text();
-
-if (!response.ok) {
-  throw new Error(answerSdp || `Realtime session failed (${response.status})`);
-}
-
-await peerConnection.setRemoteDescription({
-  type: "answer",
-  sdp: answerSdp
-});
+      await peerConnection.setRemoteDescription({
+        type: "answer",
+        sdp: answerSdp
+      });
     }
 
     function waitForIceGatheringComplete(pc) {
-  return new Promise((resolve) => {
-    if (pc.iceGatheringState === "complete") {
-      resolve();
-      return;
+      return new Promise((resolve) => {
+        if (pc.iceGatheringState === "complete") {
+          resolve();
+          return;
+        }
+
+        function checkState() {
+          if (pc.iceGatheringState === "complete") {
+            pc.removeEventListener("icegatheringstatechange", checkState);
+            resolve();
+          }
+        }
+
+        pc.addEventListener("icegatheringstatechange", checkState);
+
+        setTimeout(() => {
+          pc.removeEventListener("icegatheringstatechange", checkState);
+          resolve();
+        }, 2000);
+      });
     }
 
-    function checkState() {
-      if (pc.iceGatheringState === "complete") {
-        pc.removeEventListener("icegatheringstatechange", checkState);
-        resolve();
-      }
-    }
-
-    pc.addEventListener("icegatheringstatechange", checkState);
-
-    setTimeout(() => {
-      pc.removeEventListener("icegatheringstatechange", checkState);
-      resolve();
-    }, 2000);
-  });
-}
-    
     function disconnectRealtime() {
-      realtimeConnected = false;
+      sessionReady = false;
+      pendingStagePrompt = null;
+      clearPendingStagePrompt();
 
       try {
         if (dataChannel) dataChannel.close();
@@ -611,11 +621,7 @@ await peerConnection.setRemoteDescription({
         });
 
         const json = await response.json();
-        lastUploadResult = json;
-
-        if (!json.ok) {
-          throw new Error(json.error || "Upload failed");
-        }
+        if (!json.ok) throw new Error(json.error || "Upload failed");
 
         if (uploadInfo) {
           uploadInfo.innerHTML = `
@@ -648,7 +654,6 @@ await peerConnection.setRemoteDescription({
         audioUrl = "";
         if (uploadInfo) uploadInfo.textContent = "";
         if (playback) playback.src = "";
-        setExaminerTranscript("");
         setStatus("Requesting microphone...");
 
         micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -670,11 +675,11 @@ await peerConnection.setRemoteDescription({
           examFinished = true;
           window.onbeforeunload = null;
 
-          pushStageToExaminer("finished");
-          disconnectRealtime();
+          queueOrSendStagePrompt("finished");
+          setTimeout(() => disconnectRealtime(), 250);
 
           if (micStream) {
-            micStream.getTracks().forEach(track => track.stop());
+            micStream.getTracks().forEach((track) => track.stop());
             micStream = null;
           }
 
@@ -697,7 +702,7 @@ await peerConnection.setRemoteDescription({
         setRealtimeStatus("Failed");
         disconnectRealtime();
         if (micStream) {
-          micStream.getTracks().forEach(track => track.stop());
+          micStream.getTracks().forEach((track) => track.stop());
           micStream = null;
         }
       }

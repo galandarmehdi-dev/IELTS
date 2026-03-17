@@ -656,12 +656,37 @@
         if (playback) playback.src = "";
         setStatus("Requesting microphone...");
 
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(micStream);
+micStream = await navigator.mediaDevices.getUserMedia({
+  audio: {
+    noiseSuppression: true,
+    echoCancellation: true,
+    autoGainControl: true,
+    channelCount: 1,
+    sampleRate: 48000
+  }
+});
 
-        mediaRecorder.ondataavailable = function (event) {
-          if (event.data && event.data.size > 0) recordedChunks.push(event.data);
-        };
+// audio processing (reduces sensitivity to background noise)
+const audioContext = new AudioContext();
+const source = audioContext.createMediaStreamSource(micStream);
+
+const gainNode = audioContext.createGain();
+gainNode.gain.value = 0.85;
+
+source.connect(gainNode);
+
+// create a new processed stream
+const processedStream = audioContext.createMediaStreamDestination();
+gainNode.connect(processedStream);
+
+// use the processed stream for recording
+mediaRecorder = new MediaRecorder(processedStream.stream);
+
+mediaRecorder.ondataavailable = function (event) {
+  if (event.data && event.data.size > 0) {
+    recordedChunks.push(event.data);
+  }
+};
 
         mediaRecorder.onstop = function () {
           audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });

@@ -8,9 +8,7 @@
   const SPEAKING_UPLOAD_ENDPOINT =
     "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
 
-  // Local backend for OpenAI Realtime session creation.
-  // Change only if you host the small Node server elsewhere.
-  const REALTIME_SESSION_ENDPOINT = "http://localhost:3000/session";
+  REALTIME_SESSION_ENDPOINT: "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session",
 
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;

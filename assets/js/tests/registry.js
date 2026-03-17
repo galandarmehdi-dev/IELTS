@@ -6,9 +6,10 @@
     "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
 
   const SPEAKING_UPLOAD_ENDPOINT =
-    "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
+  "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
 
-  REALTIME_SESSION_ENDPOINT: "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session",
+const REALTIME_SESSION_ENDPOINT =
+  "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";
 
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;

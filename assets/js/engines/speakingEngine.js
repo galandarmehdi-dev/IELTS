@@ -132,19 +132,9 @@
         examinerCard.innerHTML = `
           <h2>AI Examiner</h2>
           <div id="speakingRealtimeStatus" style="margin-bottom:10px;color:#475467;">Realtime status: Not connected</div>
-          <audio id="remoteAudio" autoplay playsinline controls style="width:100%;margin-top:10px;"></audio>
+          <audio id="remoteAudio" autoplay playsinline style="display:none"></audio>
         `;
         shell.insertBefore(examinerCard, playbackCard);
-      }
-
-      if (playbackCard && !document.getElementById("uploadSpeakingBtn")) {
-        const uploadWrap = document.createElement("div");
-        uploadWrap.style.marginTop = "14px";
-        uploadWrap.innerHTML = `
-          <button id="uploadSpeakingBtn" type="button">Upload Recording</button>
-          <div id="speakingUploadInfo" style="margin-top:10px;line-height:1.6;color:#475467;"></div>
-        `;
-        playbackCard.appendChild(uploadWrap);
       }
     }
 

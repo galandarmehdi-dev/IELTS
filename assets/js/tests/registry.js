@@ -14,6 +14,7 @@ const REALTIME_SESSION_ENDPOINT =
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;
   const TEMP_STUDENT_AUDIO_SCRUB = true;
+  const HISTORY_TABLE = "exam_attempts";
 
   const EXAM = {
     id: "ielts-full-001",
@@ -103,15 +104,6 @@ const REALTIME_SESSION_ENDPOINT =
     return getTestConfig(getActiveTestId());
   }
 
-  function getTestContent(testId) {
-    const cfg = getTestConfig(testId);
-    return cfg && cfg.content ? cfg.content : { listening: null, reading: null, writing: null };
-  }
-
-  function getActiveTestContent() {
-    return getTestContent(getActiveTestId());
-  }
-
   function makeKey(testId, area, name) {
     const id = String(testId || "").trim() || TESTS.defaultTestId;
     const a = String(area || "").trim().toUpperCase();
@@ -148,6 +140,7 @@ const REALTIME_SESSION_ENDPOINT =
     ADMIN_PASSCODE,
     ADMIN_SESSION_TTL_MIN,
     TEMP_STUDENT_AUDIO_SCRUB,
+    HISTORY_TABLE,
     EXAM,
     KEYS,
     LEGACY,
@@ -156,8 +149,6 @@ const REALTIME_SESSION_ENDPOINT =
     setActiveTestId,
     getTestConfig,
     getActiveTestConfig,
-    getTestContent,
-    getActiveTestContent,
     makeKey,
     keysFor,
   };

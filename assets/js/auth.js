@@ -1,4 +1,3 @@
-window.IELTS = window.IELTS || {};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://bgujwyknnszwborgbkxq.supabase.co";
@@ -7,23 +6,13 @@ const SITE_URL = "https://ieltsmock.org/";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-window.IELTS = window.IELTS || {};
-window.IELTS.Auth = window.IELTS.Auth || {};
-window.IELTS.Auth.supabase = supabase;
-window.IELTS.Auth.getSavedUser = function () {
-  try {
-    return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
-  } catch {
-    return null;
-  }
-};
-
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const protectedIds = [
   "homeSection",
+  "historySection",
   "listeningSection",
   "readingControls",
   "container",
@@ -34,6 +23,14 @@ const protectedIds = [
 
 function getEl(id) {
   return document.getElementById(id);
+}
+
+function getSavedUser() {
+  try {
+    return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+  } catch {
+    return null;
+  }
 }
 
 function showProtectedApp(show) {
@@ -68,9 +65,7 @@ function clearSavedUser() {
 
 function hideBlockingModals() {
   const mainModal = getEl("modal");
-  if (mainModal) {
-    mainModal.classList.add("hidden");
-  }
+  if (mainModal) mainModal.classList.add("hidden");
 
   const listenModal = getEl("listenModal");
   if (listenModal) {
@@ -94,28 +89,14 @@ function forceHomeAfterLogin() {
   } catch {}
 
   try {
-    const home = getEl("homeSection");
-    const listening = getEl("listeningSection");
-    const readingControls = getEl("readingControls");
-    const container = getEl("container");
-    const writing = getEl("writingSection");
-    const examNav = getEl("examNav");
-    const admin = getEl("adminResultsSection");
-  const history = getEl("historySection");
-
-    home?.classList.remove("hidden");
-    const listenModal = getEl("listenModal");
-    if (listenModal) {
-      listenModal.classList.remove("hidden");
-      listenModal.style.display = "none";
-    }
-    listening?.classList.add("hidden");
-    readingControls?.classList.add("hidden");
-    container?.classList.add("hidden");
-    writing?.classList.add("hidden");
-    admin?.classList.add("hidden");
-    history?.classList.add("hidden");
-    examNav?.classList.add("hidden");
+    getEl("homeSection")?.classList.remove("hidden");
+    getEl("historySection")?.classList.add("hidden");
+    getEl("listeningSection")?.classList.add("hidden");
+    getEl("readingControls")?.classList.add("hidden");
+    getEl("container")?.classList.add("hidden");
+    getEl("writingSection")?.classList.add("hidden");
+    getEl("adminResultsSection")?.classList.add("hidden");
+    getEl("examNav")?.classList.add("hidden");
   } catch {}
 
   try {
@@ -165,9 +146,7 @@ async function signInWithGoogle() {
   setMessage("Redirecting to Google...");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: {
-      redirectTo: SITE_URL
-    }
+    options: { redirectTo: SITE_URL }
   });
   if (error) setMessage(error.message);
 }
@@ -176,10 +155,7 @@ async function signInWithMicrosoft() {
   setMessage("Redirecting to Microsoft...");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
-    options: {
-      redirectTo: SITE_URL,
-      scopes: "email"
-    }
+    options: { redirectTo: SITE_URL, scopes: "email" }
   });
   if (error) setMessage(error.message);
 }
@@ -194,9 +170,7 @@ async function sendOtpOrMagicLink() {
   setMessage("Sending... Please wait.");
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      emailRedirectTo: SITE_URL
-    }
+    options: { emailRedirectTo: SITE_URL }
   });
   setMessage(error ? error.message : "Check your email for the code or magic link.");
 }
@@ -236,6 +210,14 @@ async function logout() {
     history.replaceState({}, "", location.pathname + location.search);
   } catch {}
 }
+
+window.IELTS = window.IELTS || {};
+window.IELTS.Auth = {
+  supabase,
+  getSavedUser,
+  refreshAuthUI,
+  logout
+};
 
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);

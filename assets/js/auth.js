@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://bgujwyknnszwborgbkxq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z";
-const SITE_URL = "https://ieltsmock.org";
+const SITE_URL = "https://ieltsmock.org/";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -55,10 +55,16 @@ function clearSavedUser() {
 }
 
 function hideBlockingModals() {
-  ["modal", "listenModal"].forEach((id) => {
-    const el = getEl(id);
-    if (el) el.classList.add("hidden");
-  });
+  const mainModal = getEl("modal");
+  if (mainModal) {
+    mainModal.classList.add("hidden");
+  }
+
+  const listenModal = getEl("listenModal");
+  if (listenModal) {
+    listenModal.classList.remove("hidden");
+    listenModal.style.display = "none";
+  }
 }
 
 function forceHomeAfterLogin() {
@@ -85,6 +91,11 @@ function forceHomeAfterLogin() {
     const admin = getEl("adminResultsSection");
 
     home?.classList.remove("hidden");
+    const listenModal = getEl("listenModal");
+    if (listenModal) {
+      listenModal.classList.remove("hidden");
+      listenModal.style.display = "none";
+    }
     listening?.classList.add("hidden");
     readingControls?.classList.add("hidden");
     container?.classList.add("hidden");

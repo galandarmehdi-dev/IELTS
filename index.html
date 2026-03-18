@@ -67,6 +67,7 @@
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
         <button class="home-btn" type="button" id="homeContinueBtn">Continue</button>
         <button class="home-btn ghost" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
+        <button class="home-btn ghost" type="button" id="openHistoryBtn">My History</button>
         <button class="home-btn ghost hidden" type="button" id="logoutBtn">Log out</button>
       </div>
     </div>
@@ -194,6 +195,82 @@
       <div class="home-footer-muted">IELTS practice portal</div>
     </div>
   </footer>
+</section>
+
+<section id="historySection" class="history-screen hidden" aria-label="My History">
+  <div class="history-shell">
+    <div class="history-header">
+      <div>
+        <div class="home-badge">My account</div>
+        <h1 class="history-title">My test history</h1>
+        <p class="history-subtitle">See the tests you have completed on this account.</p>
+      </div>
+      <div class="history-actions">
+        <button class="btn secondary" type="button" id="historyRefreshBtn">Refresh</button>
+        <button class="btn secondary" type="button" id="historyBackBtn">Back to Home</button>
+      </div>
+    </div>
+
+    <div class="history-summary">
+      <div class="history-stat-card">
+        <div class="history-stat-label">Completed tests</div>
+        <div class="history-stat-value" id="historyStatCount">0</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">Latest test</div>
+        <div class="history-stat-value history-stat-small" id="historyStatLatest">—</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">Latest writing words</div>
+        <div class="history-stat-value" id="historyStatWords">0</div>
+      </div>
+    </div>
+
+    <div class="history-table-wrap">
+      <div class="history-empty hidden" id="historyEmpty">No completed tests yet.</div>
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Submitted</th>
+            <th>Test</th>
+            <th>Name used</th>
+            <th>Listening</th>
+            <th>Reading</th>
+            <th>Writing words</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="historyTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="history-detail hidden" id="historyDetail">
+      <div class="history-detail-top">
+        <h2 id="historyDetailTitle">Attempt details</h2>
+        <button class="btn secondary" type="button" id="historyDetailCloseBtn">Close</button>
+      </div>
+      <div class="history-detail-grid">
+        <div class="history-detail-card">
+          <div class="history-detail-label">Summary</div>
+          <div id="historyDetailMeta"></div>
+        </div>
+        <div class="history-detail-card">
+          <div class="history-detail-label">Saved data</div>
+          <div id="historyDetailScores"></div>
+        </div>
+      </div>
+      <div class="history-detail-grid writing">
+        <div class="history-detail-card">
+          <div class="history-detail-label">Writing Task 1</div>
+          <pre id="historyDetailTask1"></pre>
+        </div>
+        <div class="history-detail-card">
+          <div class="history-detail-label">Writing Task 2</div>
+          <pre id="historyDetailTask2"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section id="adminResultsSection" class="admin-results-screen hidden" aria-label="Admin results">
@@ -875,6 +952,7 @@
 <script src="assets/js/engines/writingEngine.js"></script>
 
 <script type="module" src="assets/js/auth.js"></script>
+<script src="assets/js/history.js"></script>
 <script src="assets/js/app.js"></script>
 
 <section id="speakingSection" class="hidden" aria-label="Speaking Exam">

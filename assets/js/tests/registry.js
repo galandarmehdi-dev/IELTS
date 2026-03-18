@@ -57,33 +57,48 @@
     },
   };
 
-  function StorageSafe() { return window.IELTS && window.IELTS.Storage ? window.IELTS.Storage : null; }
-  function getActiveTestId() { try { const S = StorageSafe(); const id = S ? S.get(KEYS.ACTIVE_TEST_ID, "") : ""; return id || TESTS.defaultTestId; } catch { return TESTS.defaultTestId; } }
-  function setActiveTestId(testId) { const id = String(testId || "").trim(); if (!id) return; try { const S = StorageSafe(); if (S) S.set(KEYS.ACTIVE_TEST_ID, id); } catch {} }
-  function getTestConfig(testId) { const id = String(testId || "").trim() || TESTS.defaultTestId; return TESTS.byId[id] || TESTS.byId[TESTS.defaultTestId]; }
-  function getActiveTestConfig() { return getTestConfig(getActiveTestId()); }
-  function getTestContent(testId) { const cfg = getTestConfig(testId); return cfg && cfg.content ? cfg.content : { listening: null, reading: null, writing: null }; }
-  function getActiveTestContent() { return getTestContent(getActiveTestId()); }
-  function makeKey(testId, area, name) { const id = String(testId || "").trim() || TESTS.defaultTestId; const a = String(area || "").trim().toUpperCase(); const n = String(name || "").trim(); return `IELTS:${id}:${a}:${n}`; }
+  function getActiveTestId() {
+    try {
+      return localStorage.getItem(KEYS.ACTIVE_TEST_ID) || TESTS.defaultTestId;
+    } catch {
+      return TESTS.defaultTestId;
+    }
+  }
+
+  function setActiveTestId(id) {
+    const next = TESTS.byId[id] ? id : TESTS.defaultTestId;
+    try { localStorage.setItem(KEYS.ACTIVE_TEST_ID, next); } catch {}
+    return next;
+  }
+
+  function getTestConfig(testId) {
+    return TESTS.byId[testId] || TESTS.byId[TESTS.defaultTestId];
+  }
+
   function keysFor(testId) {
-    const id = String(testId || "").trim() || TESTS.defaultTestId;
+    const cfg = getTestConfig(testId);
     return {
       listening: {
-        submitted: makeKey(id, "LISTENING", "submitted"),
-        started: makeKey(id, "LISTENING", "started"),
-        answers: makeKey(id, "LISTENING", "answers"),
-        lastSubmission: makeKey(id, "LISTENING", "lastSubmission"),
-        pageIndex: makeKey(id, "LISTENING", "pageIndex"),
+        submitted: `IELTS:${cfg.id}:LISTENING:submitted`,
+        started: `IELTS:${cfg.id}:LISTENING:started`,
+        answers: `IELTS:${cfg.id}:LISTENING:answers`,
+        lastSubmission: `IELTS:${cfg.id}:LISTENING:lastSubmission`,
+        pageIndex: `IELTS:${cfg.id}:LISTENING:pageIndex`,
       },
       writing: {
-        started: makeKey(id, "WRITING", "started"),
-        submitted: makeKey(id, "WRITING", "submitted"),
-        remaining: makeKey(id, "WRITING", "remainingSeconds"),
-        answers: makeKey(id, "WRITING", "answers"),
-        lastSubmission: makeKey(id, "WRITING", "lastSubmission"),
-        studentName: makeKey(id, "WRITING", "studentFullName"),
+        started: `IELTS:${cfg.id}:WRITING:started`,
+        submitted: `IELTS:${cfg.id}:WRITING:submitted`,
+        remaining: `IELTS:${cfg.id}:WRITING:remainingSeconds`,
+        answers: `IELTS:${cfg.id}:WRITING:answers`,
+        lastSubmission: `IELTS:${cfg.id}:WRITING:lastSubmission`,
+        studentName: `IELTS:${cfg.id}:WRITING:studentFullName`,
       },
     };
+  }
+
+  function getActiveTestContent() {
+    const active = getActiveTestId();
+    return getTestConfig(active)?.content || {};
   }
 
   window.IELTS = window.IELTS || {};
@@ -102,10 +117,7 @@
     getActiveTestId,
     setActiveTestId,
     getTestConfig,
-    getActiveTestConfig,
-    getTestContent,
-    getActiveTestContent,
-    makeKey,
     keysFor,
+    getActiveTestContent,
   };
 })();

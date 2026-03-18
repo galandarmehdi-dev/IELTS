@@ -26,7 +26,7 @@
 
     const W = {
       TEST_ID: cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001",
-      DURATION_MINUTES: 1,
+      DURATION_MINUTES: 60,
       keys: namespacedKeys.writing || legacyKeys,
       readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",
       listeningKeys: namespacedKeys.listening || R().LEGACY?.listeningKeys || R().TESTS?.listeningKeys || {},

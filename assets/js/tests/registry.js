@@ -103,6 +103,15 @@ const REALTIME_SESSION_ENDPOINT =
     return getTestConfig(getActiveTestId());
   }
 
+  function getTestContent(testId) {
+    const cfg = getTestConfig(testId);
+    return cfg && cfg.content ? cfg.content : { listening: null, reading: null, writing: null };
+  }
+
+  function getActiveTestContent() {
+    return getTestContent(getActiveTestId());
+  }
+
   function makeKey(testId, area, name) {
     const id = String(testId || "").trim() || TESTS.defaultTestId;
     const a = String(area || "").trim().toUpperCase();
@@ -147,6 +156,8 @@ const REALTIME_SESSION_ENDPOINT =
     setActiveTestId,
     getTestConfig,
     getActiveTestConfig,
+    getTestContent,
+    getActiveTestContent,
     makeKey,
     keysFor,
   };

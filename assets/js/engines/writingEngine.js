@@ -214,6 +214,49 @@ function collectWritingPayload(reason) {
     },
   };
 }
+
+async function saveAttemptToSupabase(finalPayload) {
+  try {
+    const supabase = window.IELTS?.Auth?.supabase;
+    const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+    const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
+    if (!supabase || !authUser?.id) return { ok: false, skipped: true };
+
+    const listening = finalPayload?.listening || {};
+    const reading = finalPayload?.reading || {};
+    const writing = finalPayload?.writing || {};
+    const task1 = String(writing?.answers?.task1 || "");
+    const task2 = String(writing?.answers?.task2 || "");
+
+    const record = {
+      user_id: authUser.id,
+      user_email: authUser.email || null,
+      student_full_name: finalPayload?.studentFullName || authUser.name || null,
+      exam_id: finalPayload?.examId || null,
+      active_test_id: listening?.activeTestId || reading?.activeTestId || null,
+      submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
+      reason: writing?.reason || reading?.reason || listening?.reason || null,
+      listening_test_id: listening?.testId || null,
+      reading_test_id: reading?.testId || null,
+      writing_test_id: writing?.testId || null,
+      listening_answers: listening?.answers || {},
+      reading_answers: reading?.answers || {},
+      writing_task1: task1,
+      writing_task2: task2,
+      task1_words: Number(writing?.wordCount?.task1 || 0),
+      task2_words: Number(writing?.wordCount?.task2 || 0),
+      final_payload: finalPayload,
+    };
+
+    const { error } = await supabase.from(historyTable).insert(record);
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    console.error("Supabase history save failed:", err);
+    return { ok: false, error: err };
+  }
+}
+
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
@@ -264,6 +307,8 @@ const finalPayload = {
 
       UI().lockWholeExamAfterFinalSubmit();
 
+      const historyResult = await saveAttemptToSupabase(finalPayload);
+
       // Send to admin if endpoint set
 const endpoint = R().ADMIN_ENDPOINT;
 if (endpoint) {
@@ -286,7 +331,7 @@ if (endpoint) {
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Exam submitted",
-      "Submitted successfully to Google Sheets.",
+      historyResult?.ok ? "Submitted successfully and saved to your history." : "Submitted successfully to Google Sheets. History save was skipped on this device.",
       { mode: "confirm" }
     );
     return;
@@ -295,14 +340,14 @@ if (endpoint) {
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Submitted (local only)",
-      "Could not send to Google Sheets. Saved locally on this browser.",
+      historyResult?.ok ? "Could not send to Google Sheets, but the test was saved to your history." : "Could not send to Google Sheets. Saved locally on this browser.",
       { mode: "confirm" }
     );
     return;
   }
 }
       window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-      Modal().showModal("Submitted (local only)", "ADMIN_ENDPOINT is not set. The exam is saved locally.", { mode: "confirm" });
+      Modal().showModal("Submitted", historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.", { mode: "confirm" });
     }
 
     // expose for modal final submit button

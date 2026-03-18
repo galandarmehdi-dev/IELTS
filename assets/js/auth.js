@@ -1,3 +1,4 @@
+window.IELTS = window.IELTS || {};
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://bgujwyknnszwborgbkxq.supabase.co";
@@ -5,6 +6,17 @@ const SUPABASE_KEY = "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z";
 const SITE_URL = "https://ieltsmock.org/";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+window.IELTS = window.IELTS || {};
+window.IELTS.Auth = window.IELTS.Auth || {};
+window.IELTS.Auth.supabase = supabase;
+window.IELTS.Auth.getSavedUser = function () {
+  try {
+    return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+  } catch {
+    return null;
+  }
+};
 
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
@@ -89,6 +101,7 @@ function forceHomeAfterLogin() {
     const writing = getEl("writingSection");
     const examNav = getEl("examNav");
     const admin = getEl("adminResultsSection");
+  const history = getEl("historySection");
 
     home?.classList.remove("hidden");
     const listenModal = getEl("listenModal");
@@ -101,6 +114,7 @@ function forceHomeAfterLogin() {
     container?.classList.add("hidden");
     writing?.classList.add("hidden");
     admin?.classList.add("hidden");
+    history?.classList.add("hidden");
     examNav?.classList.add("hidden");
   } catch {}
 

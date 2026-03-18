@@ -18,6 +18,30 @@
 </head>
   
 <body translate="no">
+<section id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <h1>Sign in to continue</h1>
+    <p>Please sign in before you can access the IELTS tests.</p>
+
+    <div class="auth-buttons">
+      <button id="googleLoginBtn" class="btn">Continue with Google</button>
+      <button id="microsoftLoginBtn" class="btn secondary">Continue with Microsoft</button>
+    </div>
+
+    <div style="margin:18px 0; border-top:1px solid #e6e6e6;"></div>
+
+    <h3>Email sign-in</h3>
+    <input id="otpEmail" type="email" placeholder="Enter your email">
+    <button id="sendOtpBtn" class="btn">Send code or magic link</button>
+
+    <div style="margin-top:12px;">
+      <input id="otpCode" type="text" placeholder="Enter email code if you receive one">
+      <button id="verifyOtpBtn" class="btn secondary">Verify code</button>
+    </div>
+
+    <p id="authMessage" class="small" style="margin-top:14px;"></p>
+  </div>
+</section>
 <!-- ================= HOME ================= -->
 <section id="homeSection" class="home-screen" aria-label="Home">
   <header class="home-header">

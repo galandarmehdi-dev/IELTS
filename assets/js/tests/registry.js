@@ -6,10 +6,10 @@
     "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
 
   const SPEAKING_UPLOAD_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
+    "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
 
-const REALTIME_SESSION_ENDPOINT =
-  "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";
+  const REALTIME_SESSION_ENDPOINT =
+    "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";
 
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;
@@ -51,66 +51,20 @@ const REALTIME_SESSION_ENDPOINT =
   const TESTS = {
     defaultTestId: "ielts1",
     byId: {
-      ielts1: {
-        id: "ielts1",
-        readingTestId: "ielts-reading-3parts-001",
-        writingTestId: "ielts-writing-001",
-        content: { reading: null, writing: null, listening: null },
-      },
-      ielts2: {
-        id: "ielts2",
-        readingTestId: "ielts-reading-3parts-002",
-        writingTestId: "ielts-writing-002",
-        content: { reading: null, writing: null, listening: null },
-      },
-      ielts3: {
-        id: "ielts3",
-        readingTestId: "ielts-reading-3parts-003",
-        writingTestId: "ielts-writing-003",
-        content: { reading: null, writing: null, listening: null },
-      },
+      ielts1: { id: "ielts1", readingTestId: "ielts-reading-3parts-001", writingTestId: "ielts-writing-001", content: { reading: null, writing: null, listening: null } },
+      ielts2: { id: "ielts2", readingTestId: "ielts-reading-3parts-002", writingTestId: "ielts-writing-002", content: { reading: null, writing: null, listening: null } },
+      ielts3: { id: "ielts3", readingTestId: "ielts-reading-3parts-003", writingTestId: "ielts-writing-003", content: { reading: null, writing: null, listening: null } },
     },
   };
 
-  function StorageSafe() {
-    return window.IELTS && window.IELTS.Storage ? window.IELTS.Storage : null;
-  }
-
-  function getActiveTestId() {
-    try {
-      const S = StorageSafe();
-      const id = S ? S.get(KEYS.ACTIVE_TEST_ID, "") : "";
-      return id || TESTS.defaultTestId;
-    } catch {
-      return TESTS.defaultTestId;
-    }
-  }
-
-  function setActiveTestId(testId) {
-    const id = String(testId || "").trim();
-    if (!id) return;
-    try {
-      const S = StorageSafe();
-      if (S) S.set(KEYS.ACTIVE_TEST_ID, id);
-    } catch {}
-  }
-
-  function getTestConfig(testId) {
-    const id = String(testId || "").trim() || TESTS.defaultTestId;
-    return TESTS.byId[id] || TESTS.byId[TESTS.defaultTestId];
-  }
-
-  function getActiveTestConfig() {
-    return getTestConfig(getActiveTestId());
-  }
-
-  function makeKey(testId, area, name) {
-    const id = String(testId || "").trim() || TESTS.defaultTestId;
-    const a = String(area || "").trim().toUpperCase();
-    const n = String(name || "").trim();
-    return `IELTS:${id}:${a}:${n}`;
-  }
-
+  function StorageSafe() { return window.IELTS && window.IELTS.Storage ? window.IELTS.Storage : null; }
+  function getActiveTestId() { try { const S = StorageSafe(); const id = S ? S.get(KEYS.ACTIVE_TEST_ID, "") : ""; return id || TESTS.defaultTestId; } catch { return TESTS.defaultTestId; } }
+  function setActiveTestId(testId) { const id = String(testId || "").trim(); if (!id) return; try { const S = StorageSafe(); if (S) S.set(KEYS.ACTIVE_TEST_ID, id); } catch {} }
+  function getTestConfig(testId) { const id = String(testId || "").trim() || TESTS.defaultTestId; return TESTS.byId[id] || TESTS.byId[TESTS.defaultTestId]; }
+  function getActiveTestConfig() { return getTestConfig(getActiveTestId()); }
+  function getTestContent(testId) { const cfg = getTestConfig(testId); return cfg && cfg.content ? cfg.content : { listening: null, reading: null, writing: null }; }
+  function getActiveTestContent() { return getTestContent(getActiveTestId()); }
+  function makeKey(testId, area, name) { const id = String(testId || "").trim() || TESTS.defaultTestId; const a = String(area || "").trim().toUpperCase(); const n = String(name || "").trim(); return `IELTS:${id}:${a}:${n}`; }
   function keysFor(testId) {
     const id = String(testId || "").trim() || TESTS.defaultTestId;
     return {
@@ -149,6 +103,8 @@ const REALTIME_SESSION_ENDPOINT =
     setActiveTestId,
     getTestConfig,
     getActiveTestConfig,
+    getTestContent,
+    getActiveTestContent,
     makeKey,
     keysFor,
   };

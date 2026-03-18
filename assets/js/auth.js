@@ -6,13 +6,14 @@ const SITE_URL = "https://ieltsmock.org/";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+window.IELTS = window.IELTS || {};
+
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 
 const protectedIds = [
   "homeSection",
-  "historySection",
   "listeningSection",
   "readingControls",
   "container",
@@ -63,6 +64,17 @@ function clearSavedUser() {
   localStorage.removeItem("IELTS:AUTH:user");
 }
 
+function syncAuthExport() {
+  window.IELTS = window.IELTS || {};
+  window.IELTS.Auth = {
+    supabase,
+    getSavedUser,
+    showProtectedApp,
+    refreshAuthUI,
+    logout
+  };
+}
+
 function hideBlockingModals() {
   const mainModal = getEl("modal");
   if (mainModal) mainModal.classList.add("hidden");
@@ -89,14 +101,21 @@ function forceHomeAfterLogin() {
   } catch {}
 
   try {
-    getEl("homeSection")?.classList.remove("hidden");
-    getEl("historySection")?.classList.add("hidden");
-    getEl("listeningSection")?.classList.add("hidden");
-    getEl("readingControls")?.classList.add("hidden");
-    getEl("container")?.classList.add("hidden");
-    getEl("writingSection")?.classList.add("hidden");
-    getEl("adminResultsSection")?.classList.add("hidden");
-    getEl("examNav")?.classList.add("hidden");
+    const home = getEl("homeSection");
+    const listening = getEl("listeningSection");
+    const readingControls = getEl("readingControls");
+    const container = getEl("container");
+    const writing = getEl("writingSection");
+    const examNav = getEl("examNav");
+    const admin = getEl("adminResultsSection");
+
+    home?.classList.remove("hidden");
+    listening?.classList.add("hidden");
+    readingControls?.classList.add("hidden");
+    container?.classList.add("hidden");
+    writing?.classList.add("hidden");
+    admin?.classList.add("hidden");
+    examNav?.classList.add("hidden");
   } catch {}
 
   try {
@@ -104,7 +123,7 @@ function forceHomeAfterLogin() {
     if (window.IELTS?.Router?.setHashRoute) {
       window.IELTS.Router.setHashRoute(activeTestId, "home");
     } else if (location.hash === "#" || !location.hash) {
-      history.replaceState({}, "", `${location.pathname}#/` + activeTestId + `/home`);
+      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
     }
   } catch {}
 }
@@ -122,6 +141,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   if (error) {
     setMessage(error.message);
     clearSavedUser();
+    syncAuthExport();
     showProtectedApp(false);
     return;
   }
@@ -130,12 +150,14 @@ async function refreshAuthUI({ forceHome = false } = {}) {
 
   if (session?.user) {
     saveUser(session.user);
+    syncAuthExport();
     showProtectedApp(true);
     if (forceHome || location.hash === "#" || !location.hash) {
       forceHomeAfterLogin();
     }
   } else {
     clearSavedUser();
+    syncAuthExport();
     hideBlockingModals();
     showProtectedApp(false);
     clearOAuthFragmentsIfNeeded();
@@ -155,7 +177,10 @@ async function signInWithMicrosoft() {
   setMessage("Redirecting to Microsoft...");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
-    options: { redirectTo: SITE_URL, scopes: "email" }
+    options: {
+      redirectTo: SITE_URL,
+      scopes: "email"
+    }
   });
   if (error) setMessage(error.message);
 }
@@ -205,19 +230,12 @@ async function logout() {
   hideBlockingModals();
   showProtectedApp(false);
   clearSavedUser();
+  syncAuthExport();
   setMessage("");
   try {
     history.replaceState({}, "", location.pathname + location.search);
   } catch {}
 }
-
-window.IELTS = window.IELTS || {};
-window.IELTS.Auth = {
-  supabase,
-  getSavedUser,
-  refreshAuthUI,
-  logout
-};
 
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
@@ -237,5 +255,6 @@ supabase.auth.onAuthStateChange(async (event) => {
   await refreshAuthUI();
 });
 
+syncAuthExport();
 showProtectedApp(false);
 refreshAuthUI({ forceHome: location.hash === "#" || !location.hash });

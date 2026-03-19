@@ -125,16 +125,21 @@
         else shell.appendChild(flowCard);
       }
 
-      if (playbackCard && !document.getElementById("speakingExaminerCard")) {
+      if (playbackCard) {
+        playbackCard.style.display = "none";
+      }
+
+      if (!document.getElementById("speakingExaminerCard")) {
         const examinerCard = document.createElement("div");
         examinerCard.className = "speaking-card";
         examinerCard.id = "speakingExaminerCard";
+        examinerCard.style.display = "none";
         examinerCard.innerHTML = `
-          <h2>AI Examiner</h2>
-          <div id="speakingRealtimeStatus" style="margin-bottom:10px;color:#475467;">Realtime status: Not connected</div>
+          <div id="speakingRealtimeStatus" style="display:none;">Realtime status: Not connected</div>
           <audio id="remoteAudio" autoplay playsinline style="display:none"></audio>
         `;
-        shell.insertBefore(examinerCard, playbackCard);
+        if (playbackCard) shell.insertBefore(examinerCard, playbackCard);
+        else shell.appendChild(examinerCard);
       }
     }
 
@@ -271,7 +276,7 @@
         bodyBox.innerHTML = `
           <div style="line-height:1.7;">
             The speaking exam is complete.<br>
-            You can now download the recording or upload it to the admin sheet.
+            Your recording is being saved automatically.
           </div>
         `;
       }

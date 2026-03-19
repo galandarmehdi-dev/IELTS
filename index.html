@@ -203,7 +203,7 @@
       <div>
         <div class="home-badge">My account</div>
         <h1 class="history-title">My test history</h1>
-        <p class="history-subtitle">See the tests you have completed on this account.</p>
+        <p class="history-subtitle">See only the tests completed on this account and the marked results for each attempt.</p>
       </div>
       <div class="history-actions">
         <button class="btn secondary" type="button" id="historyRefreshBtn">Refresh</button>
@@ -217,12 +217,16 @@
         <div class="history-stat-value" id="historyStatCount">0</div>
       </div>
       <div class="history-stat-card">
-        <div class="history-stat-label">Latest test</div>
-        <div class="history-stat-value history-stat-small" id="historyStatLatest">—</div>
+        <div class="history-stat-label">Avg Listening</div>
+        <div class="history-stat-value" id="historyStatListening">0.0</div>
       </div>
       <div class="history-stat-card">
-        <div class="history-stat-label">Latest writing words</div>
-        <div class="history-stat-value" id="historyStatWords">0</div>
+        <div class="history-stat-label">Avg Reading</div>
+        <div class="history-stat-value" id="historyStatReading">0.0</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">Avg Writing</div>
+        <div class="history-stat-value" id="historyStatWriting">0.0</div>
       </div>
     </div>
 
@@ -233,9 +237,9 @@
           <tr>
             <th>Submitted</th>
             <th>Test</th>
-            <th>Name used</th>
             <th>Listening</th>
             <th>Reading</th>
+            <th>Overall Writing</th>
             <th>Writing words</th>
             <th>Action</th>
           </tr>
@@ -255,18 +259,32 @@
           <div id="historyDetailMeta"></div>
         </div>
         <div class="history-detail-card">
-          <div class="history-detail-label">Saved data</div>
+          <div class="history-detail-label">Scores</div>
           <div id="historyDetailScores"></div>
         </div>
       </div>
       <div class="history-detail-grid writing">
         <div class="history-detail-card">
           <div class="history-detail-label">Writing Task 1</div>
+          <div id="historyDetailTask1Score" class="history-detail-meta-block"></div>
+          <div class="history-detail-subtitle">Essay</div>
           <pre id="historyDetailTask1"></pre>
+          <div class="history-detail-subtitle">Feedback</div>
+          <pre id="historyDetailTask1Feedback"></pre>
         </div>
         <div class="history-detail-card">
           <div class="history-detail-label">Writing Task 2</div>
+          <div id="historyDetailTask2Score" class="history-detail-meta-block"></div>
+          <div class="history-detail-subtitle">Essay</div>
           <pre id="historyDetailTask2"></pre>
+          <div class="history-detail-subtitle">Feedback</div>
+          <pre id="historyDetailTask2Feedback"></pre>
+        </div>
+      </div>
+      <div class="history-detail-grid writing">
+        <div class="history-detail-card">
+          <div class="history-detail-label">Overall Writing Feedback</div>
+          <div id="historyDetailOverallWriting" class="history-detail-meta-block"></div>
         </div>
       </div>
     </div>

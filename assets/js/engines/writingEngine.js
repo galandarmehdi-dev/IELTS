@@ -357,14 +357,13 @@ const finalPayload = {
 const endpoint = R().ADMIN_ENDPOINT;
 if (endpoint) {
   try {
-    const body = new URLSearchParams({
-      payload: JSON.stringify(finalPayload)
-    });
-
     const res = await fetch(endpoint, {
-      method: "POST",
-      body
-    });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify(finalPayload)
+});
 
     const text = await res.text();
     let parsed = null;

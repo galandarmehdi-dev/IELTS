@@ -248,58 +248,96 @@ async function saveAttemptToSupabase(finalPayload) {
       final_payload: finalPayload,
     };
 
-    const { data, error } = await supabase
-      .from(historyTable)
-      .insert(record)
-      .select("id")
-      .single();
-
+    const { error } = await supabase.from(historyTable).insert(record);
     if (error) throw error;
-    return { ok: true, id: data?.id || null };
+    return { ok: true };
   } catch (err) {
     console.error("Supabase history save failed:", err);
     return { ok: false, error: err };
   }
 }
 
-    function toBandNumber(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : null;
-    }
 
-    async function updateAttemptResultInSupabase(attemptId, scoredResult) {
-      try {
-        const supabase = window.IELTS?.Auth?.supabase;
-        const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-        if (!supabase || !attemptId || !scoredResult) return { ok: false, skipped: true };
+async function fetchStudentResultFromBackend(finalPayload) {
+  const endpoint = R().ADMIN_ENDPOINT;
+  if (!endpoint) return { ok: false, error: "Missing endpoint" };
 
-        const patch = {
-          listening_total: scoredResult.listeningTotal ?? null,
-          listening_band: toBandNumber(scoredResult.listeningBand),
-          reading_total: scoredResult.readingTotal ?? null,
-          reading_band: toBandNumber(scoredResult.readingBand),
-          final_writing_band: toBandNumber(scoredResult.finalWritingBand),
-          task1_band: toBandNumber(scoredResult.task1Band),
-          task1_breakdown: scoredResult.task1Breakdown || null,
-          task1_feedback: scoredResult.task1Feedback || null,
-          task2_band: toBandNumber(scoredResult.task2Band),
-          task2_breakdown: scoredResult.task2Breakdown || null,
-          task2_feedback: scoredResult.task2Feedback || null,
-          overall_feedback: scoredResult.overallFeedback || null,
-        };
+  const url = new URL(endpoint);
+  url.searchParams.set("action", "studentResult");
+  url.searchParams.set("submittedAt", String(finalPayload?.submittedAt || ""));
+  url.searchParams.set("studentFullName", String(finalPayload?.studentFullName || ""));
+  url.searchParams.set("examId", String(finalPayload?.examId || ""));
+  url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
 
-        const { error } = await supabase
-          .from(historyTable)
-          .update(patch)
-          .eq("id", attemptId);
-
-        if (error) throw error;
-        return { ok: true };
-      } catch (err) {
-        console.error("Supabase history result update failed:", err);
-        return { ok: false, error: err };
-      }
+  const res = await fetch(url.toString(), { method: "GET" });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || data.ok !== true) {
+    throw new Error((data && data.error) || `HTTP ${res.status}`);
+  }
+  return data;
 }
+
+async function updateAttemptScoresInSupabase(finalPayload, markedResult) {
+  try {
+    const supabase = window.IELTS?.Auth?.supabase;
+    const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+    const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
+    if (!supabase || !authUser?.id || !markedResult) return { ok: false, skipped: true };
+
+    const patch = {
+      listening_total: markedResult.listeningTotal ?? null,
+      listening_band: markedResult.listeningBand ?? null,
+      reading_total: markedResult.readingTotal ?? null,
+      reading_band: markedResult.readingBand ?? null,
+      final_writing_band: markedResult.finalWritingBand ?? null,
+      task1_band: markedResult.task1Band ?? null,
+      task2_band: markedResult.task2Band ?? null,
+      task1_breakdown: markedResult.task1Breakdown ?? null,
+      task2_breakdown: markedResult.task2Breakdown ?? null,
+      task1_feedback: markedResult.task1Feedback ?? null,
+      task2_feedback: markedResult.task2Feedback ?? null,
+      overall_feedback: markedResult.overallFeedback ?? null,
+    };
+
+    const { error } = await supabase
+      .from(historyTable)
+      .update(patch)
+      .eq("user_id", authUser.id)
+      .eq("submitted_at", String(finalPayload?.submittedAt || ""))
+      .eq("exam_id", String(finalPayload?.examId || ""));
+
+    if (error) throw error;
+    return { ok: true };
+  } catch (err) {
+    console.error("Supabase score update failed:", err);
+    return { ok: false, error: err };
+  }
+}
+
+function startMarkedResultPolling(finalPayload) {
+  const maxAttempts = 12;
+  const intervalMs = 15000;
+  let attempts = 0;
+
+  const tick = async () => {
+    attempts += 1;
+    try {
+      const data = await fetchStudentResultFromBackend(finalPayload);
+      if (data?.graded && data?.result) {
+        await updateAttemptScoresInSupabase(finalPayload, data.result);
+        return;
+      }
+    } catch (err) {
+      console.error("Marked result polling failed:", err);
+    }
+    if (attempts < maxAttempts) {
+      setTimeout(tick, intervalMs);
+    }
+  };
+
+  setTimeout(tick, intervalMs);
+}
+
 
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
@@ -367,32 +405,23 @@ if (endpoint) {
     });
 
     const text = await res.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch {}
+    let json = null;
+    try { json = JSON.parse(text); } catch {}
 
-    if (!res.ok) {
-      throw new Error((parsed && parsed.error) || text || `HTTP ${res.status}`);
+    const okResponse = res.ok && (/^OK\b/i.test(text) || (json && json.ok === true));
+    if (!okResponse) {
+      throw new Error((json && json.error) || text || `HTTP ${res.status}`);
     }
 
-    let scoredResult = null;
-    if (parsed && parsed.ok === true) {
-      scoredResult = parsed.result || null;
-    } else if (/^OK\b/i.test(text)) {
-      scoredResult = null;
-    } else {
-      throw new Error((parsed && parsed.error) || text || `HTTP ${res.status}`);
-    }
-
-    if (historyResult?.ok && historyResult?.id && scoredResult) {
-      await updateAttemptResultInSupabase(historyResult.id, scoredResult);
-    }
+    // Background grading / sync
+    startMarkedResultPolling(finalPayload);
 
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Exam submitted",
       historyResult?.ok
-        ? "Submitted successfully and saved to your history with marked results."
-        : "Submitted successfully to Google Sheets, but history save was skipped on this device.",
+        ? "Submitted successfully. Listening and Reading are saved now. Writing will appear in your history after grading finishes."
+        : "Submitted successfully to Google Sheets. Writing will appear after grading finishes.",
       { mode: "confirm" }
     );
     return;
@@ -401,9 +430,7 @@ if (endpoint) {
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Submitted (local only)",
-      historyResult?.ok
-        ? "Could not fetch marked results from Google Sheets, but the test was saved to your history."
-        : "Could not send to Google Sheets. Saved locally on this browser.",
+      historyResult?.ok ? "Could not send to Google Sheets, but the test was saved to your history." : "Could not send to Google Sheets. Saved locally on this browser.",
       { mode: "confirm" }
     );
     return;

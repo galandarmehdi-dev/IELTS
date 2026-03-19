@@ -406,7 +406,7 @@
 .history-summary{
   padding:14px;
   display:grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
+  grid-template-columns: repeat(4, minmax(0,1fr));
   gap:12px;
   margin-bottom:16px;
 }
@@ -443,3 +443,8 @@
   .history-summary,
   .history-detail-grid{ grid-template-columns:1fr; }
 }
+
+
+.history-detail-meta-block{ line-height:1.6; }
+.history-detail-subtitle{ margin:14px 0 8px; font-size:13px; color:#666; font-weight:800; text-transform:uppercase; letter-spacing:.02em; }
+.history-detail-text{ white-space:normal; word-break:break-word; }

@@ -37,30 +37,6 @@
     return Number(row.task1_words || 0) + Number(row.task2_words || 0);
   }
 
-  function num(value) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function bandText(value) {
-    const n = num(value);
-    return n === null ? "—" : n.toFixed(1);
-  }
-
-  function scoreText(total, band) {
-    const t = num(total);
-    const b = num(band);
-    if (t === null && b === null) return "—";
-    if (t !== null && b !== null) return `${t} / 40 · Band ${b.toFixed(1)}`;
-    if (t !== null) return `${t} / 40`;
-    return `Band ${b.toFixed(1)}`;
-  }
-
-  function detailBandLine(label, value) {
-    const n = num(value);
-    return `${label}: <b>${n === null ? "—" : n.toFixed(1)}</b>`;
-  }
-
   async function loadRows() {
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
@@ -69,24 +45,84 @@
 
     const { data, error } = await supabase
       .from(table)
-      .select("id,user_id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task1_breakdown,task1_feedback,task2_band,task2_breakdown,task2_feedback,overall_feedback")
-      .eq("user_id", user.id)
+      .select("id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
       .order("submitted_at", { ascending: false });
 
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   }
 
-  function renderSummary(rows) {
-    const count = rows.length;
-    const avgListening = count ? (rows.reduce((sum, row) => sum + (num(row.listening_band) || 0), 0) / count) : 0;
-    const avgReading = count ? (rows.reduce((sum, row) => sum + (num(row.reading_band) || 0), 0) / count) : 0;
-    const avgWriting = count ? (rows.reduce((sum, row) => sum + (num(row.final_writing_band) || 0), 0) / count) : 0;
 
-    $("historyStatCount").textContent = String(count);
-    $("historyStatListening").textContent = avgListening.toFixed(1);
-    $("historyStatReading").textContent = avgReading.toFixed(1);
-    $("historyStatWriting").textContent = avgWriting.toFixed(1);
+  async function fetchStudentResultForRow(row) {
+    const endpoint = Registry()?.ADMIN_ENDPOINT;
+    if (!endpoint) return null;
+
+    const url = new URL(endpoint);
+    url.searchParams.set("action", "studentResult");
+    url.searchParams.set("submittedAt", String(row.submitted_at || ""));
+    url.searchParams.set("studentFullName", String(row.student_full_name || ""));
+    url.searchParams.set("examId", String(row.exam_id || row.active_test_id || ""));
+    url.searchParams.set("reason", String(row.reason || ""));
+
+    const res = await fetch(url.toString(), { method: "GET" });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok !== true) return null;
+    return data;
+  }
+
+  async function syncRowToSupabase(row, result) {
+    const supabase = Auth()?.supabase;
+    const user = Auth()?.getSavedUser?.();
+    const table = Registry()?.HISTORY_TABLE || "exam_attempts";
+    if (!supabase || !user?.id || !row?.id || !result) return false;
+
+    const patch = {
+      listening_total: result.listeningTotal ?? null,
+      listening_band: result.listeningBand ?? null,
+      reading_total: result.readingTotal ?? null,
+      reading_band: result.readingBand ?? null,
+      final_writing_band: result.finalWritingBand ?? null,
+      task1_band: result.task1Band ?? null,
+      task2_band: result.task2Band ?? null,
+      task1_breakdown: result.task1Breakdown ?? null,
+      task2_breakdown: result.task2Breakdown ?? null,
+      task1_feedback: result.task1Feedback ?? null,
+      task2_feedback: result.task2Feedback ?? null,
+      overall_feedback: result.overallFeedback ?? null,
+    };
+
+    const { error } = await supabase.from(table).update(patch).eq("id", row.id).eq("user_id", user.id);
+    return !error;
+  }
+
+  function isPending(row) {
+    return !row.final_writing_band;
+  }
+
+  async function refreshPendingRows(rows) {
+    const pending = (rows || []).filter(isPending).slice(0, 5);
+    if (!pending.length) return false;
+
+    let updatedAny = false;
+    for (const row of pending) {
+      try {
+        const data = await fetchStudentResultForRow(row);
+        if (data?.graded && data?.result) {
+          const ok = await syncRowToSupabase(row, data.result);
+          if (ok) updatedAny = true;
+        }
+      } catch (err) {
+        console.error("History sync failed:", err);
+      }
+    }
+    return updatedAny;
+  }
+
+
+  function renderSummary(rows) {
+    $("historyStatCount").textContent = String(rows.length);
+    $("historyStatLatest").textContent = rows[0] ? fmtDate(rows[0].submitted_at) : "—";
+    $("historyStatWords").textContent = rows[0] ? String(totalWords(rows[0])) : "0";
   }
 
   function renderTable(rows) {
@@ -102,55 +138,34 @@
     }
 
     empty.classList.add("hidden");
-    tbody.innerHTML = rows.map((row, idx) => `
-      <tr>
-        <td>${escapeHtml(fmtDate(row.submitted_at))}<br><span class="small">${escapeHtml(row.student_full_name || "—")}</span></td>
-        <td>${escapeHtml(examLabel(row))}</td>
-        <td>${escapeHtml(scoreText(row.listening_total, row.listening_band))}</td>
-        <td>${escapeHtml(scoreText(row.reading_total, row.reading_band))}</td>
-        <td>${escapeHtml(bandText(row.final_writing_band) === "—" ? "—" : `Band ${bandText(row.final_writing_band)}`)}</td>
-        <td>T1: ${escapeHtml(String(row.task1_words || 0))}<br>T2: ${escapeHtml(String(row.task2_words || 0))}</td>
-        <td><button class="btn secondary" type="button" data-history-view="${idx}">View</button></td>
-      </tr>
-    `).join("");
+    tbody.innerHTML = rows.map((row, idx) => {
+      const payload = row.final_payload || {};
+      const listeningSaved = payload.listening ? "Saved" : "—";
+      const readingSaved = payload.reading ? "Saved" : "—";
+      return `
+        <tr>
+          <td>${escapeHtml(fmtDate(row.submitted_at))}</td>
+          <td>${escapeHtml(examLabel(row))}</td>
+          <td>${escapeHtml(row.student_full_name || "—")}</td>
+          <td>${escapeHtml(row.listening_band ? `Band ${row.listening_band}` : listeningSaved)}</td>
+          <td>${escapeHtml(row.reading_band ? `Band ${row.reading_band}` : readingSaved)}</td>
+          <td>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}<br><span class="small">T1: ${escapeHtml(String(row.task1_words || 0))} · T2: ${escapeHtml(String(row.task2_words || 0))}</span></td>
+          <td><button class="btn secondary" type="button" data-history-view="${idx}">View</button></td>
+        </tr>
+      `;
+    }).join("");
     renderSummary(rows);
   }
 
   function renderDetail(row) {
     const detail = $("historyDetail");
     if (!detail || !row) return;
-
+    const payload = row.final_payload || {};
     $("historyDetailTitle").textContent = examLabel(row);
-    $("historyDetailMeta").innerHTML =
-      `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>` +
-      `Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>` +
-      `Email: <b>${escapeHtml(row.user_email || "—")}</b><br>` +
-      `Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-
-    $("historyDetailScores").innerHTML =
-      `Listening: <b>${escapeHtml(scoreText(row.listening_total, row.listening_band))}</b><br>` +
-      `Reading: <b>${escapeHtml(scoreText(row.reading_total, row.reading_band))}</b><br>` +
-      `Overall Writing: <b>${escapeHtml(bandText(row.final_writing_band) === "—" ? "—" : `Band ${bandText(row.final_writing_band)}`)}</b><br>` +
-      `Writing words: <b>${escapeHtml(String(totalWords(row)))}</b>`;
-
-    $("historyDetailTask1Score").innerHTML =
-      `${detailBandLine("Band", row.task1_band)}<br>` +
-      `Breakdown:<br><div class="history-detail-text">${escapeHtml(String(row.task1_breakdown || "—")).replace(/\n/g, "<br>")}</div>`;
-
+    $("historyDetailMeta").innerHTML = `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>Email: <b>${escapeHtml(row.user_email || "—")}</b>`;
+    $("historyDetailScores").innerHTML = `Exam ID: <b>${escapeHtml(row.exam_id || row.active_test_id || "—")}</b><br>Listening: <b>${escapeHtml(row.listening_total != null && row.listening_total !== "" ? `${row.listening_total} / 40 (Band ${row.listening_band || "—"})` : "Pending")}</b><br>Reading: <b>${escapeHtml(row.reading_total != null && row.reading_total !== "" ? `${row.reading_total} / 40 (Band ${row.reading_band || "—"})` : "Pending")}</b><br>Writing: <b>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}</b><br>Writing words: <b>${escapeHtml(String(totalWords(row)))}</b><br><br>Task 1 band: <b>${escapeHtml(row.task1_band || "—")}</b><br>Task 2 band: <b>${escapeHtml(row.task2_band || "—")}</b><br><br><b>Task 1 feedback</b><br>${escapeHtml(row.task1_feedback || "").replace(/\n/g,"<br>")}<br><br><b>Task 2 feedback</b><br>${escapeHtml(row.task2_feedback || "").replace(/\n/g,"<br>")}<br><br><b>Overall feedback</b><br>${escapeHtml(row.overall_feedback || "").replace(/\n/g,"<br>")}`;
     $("historyDetailTask1").textContent = row.writing_task1 || "";
-    $("historyDetailTask1Feedback").textContent = String(row.task1_feedback || "");
-
-    $("historyDetailTask2Score").innerHTML =
-      `${detailBandLine("Band", row.task2_band)}<br>` +
-      `Breakdown:<br><div class="history-detail-text">${escapeHtml(String(row.task2_breakdown || "—")).replace(/\n/g, "<br>")}</div>`;
-
     $("historyDetailTask2").textContent = row.writing_task2 || "";
-    $("historyDetailTask2Feedback").textContent = String(row.task2_feedback || "");
-
-    $("historyDetailOverallWriting").innerHTML =
-      `Overall Writing: <b>${escapeHtml(bandText(row.final_writing_band) === "—" ? "—" : `Band ${bandText(row.final_writing_band)}`)}</b><br><br>` +
-      `<div class="history-detail-text">${escapeHtml(String(row.overall_feedback || "—")).replace(/\n/g, "<br>")}</div>`;
-
     detail.classList.remove("hidden");
   }
 
@@ -167,9 +182,15 @@
       $("examNav")?.classList.add("hidden");
       $("historySection")?.classList.remove("hidden");
       if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
-      const rows = await loadRows();
+      let rows = await loadRows();
       state.rows = rows;
       renderTable(rows);
+      const updated = await refreshPendingRows(rows);
+      if (updated) {
+        rows = await loadRows();
+        state.rows = rows;
+        renderTable(rows);
+      }
     } catch (err) {
       const tbody = $("historyTbody");
       if (tbody) tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;

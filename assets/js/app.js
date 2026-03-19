@@ -135,7 +135,7 @@ const Router = () => window.IELTS.Router;
     function clearAllStudentAttemptKeys() {
       // Keep admin session, wipe everything else that belongs to attempts.
       try {
-        const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId"]);
+        const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId","IELTS:AUTH:user"]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {

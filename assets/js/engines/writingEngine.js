@@ -248,57 +248,13 @@ async function saveAttemptToSupabase(finalPayload) {
       final_payload: finalPayload,
     };
 
-    const { data, error } = await supabase
-      .from(historyTable)
-      .insert(record)
-      .select("id")
-      .single();
-
+    const { error } = await supabase.from(historyTable).insert(record);
     if (error) throw error;
-    return { ok: true, id: data?.id || null };
+    return { ok: true };
   } catch (err) {
     console.error("Supabase history save failed:", err);
     return { ok: false, error: err };
   }
-}
-
-    function toBandNumber(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : null;
-    }
-
-    async function updateAttemptResultInSupabase(attemptId, scoredResult) {
-      try {
-        const supabase = window.IELTS?.Auth?.supabase;
-        const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-        if (!supabase || !attemptId || !scoredResult) return { ok: false, skipped: true };
-
-        const patch = {
-          listening_total: scoredResult.listeningTotal ?? null,
-          listening_band: toBandNumber(scoredResult.listeningBand),
-          reading_total: scoredResult.readingTotal ?? null,
-          reading_band: toBandNumber(scoredResult.readingBand),
-          final_writing_band: toBandNumber(scoredResult.finalWritingBand),
-          task1_band: toBandNumber(scoredResult.task1Band),
-          task1_breakdown: scoredResult.task1Breakdown || null,
-          task1_feedback: scoredResult.task1Feedback || null,
-          task2_band: toBandNumber(scoredResult.task2Band),
-          task2_breakdown: scoredResult.task2Breakdown || null,
-          task2_feedback: scoredResult.task2Feedback || null,
-          overall_feedback: scoredResult.overallFeedback || null,
-        };
-
-        const { error } = await supabase
-          .from(historyTable)
-          .update(patch)
-          .eq("id", attemptId);
-
-        if (error) throw error;
-        return { ok: true };
-      } catch (err) {
-        console.error("Supabase history result update failed:", err);
-        return { ok: false, error: err };
-      }
 }
 
     async function submitFinalExam(reason) {
@@ -357,41 +313,25 @@ const finalPayload = {
 const endpoint = R().ADMIN_ENDPOINT;
 if (endpoint) {
   try {
+    const body = new URLSearchParams({
+      payload: JSON.stringify(finalPayload)
+    });
+
     const res = await fetch(endpoint, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(finalPayload)
-});
+      method: "POST",
+      body
+    });
 
     const text = await res.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch {}
 
-    if (!res.ok) {
-      throw new Error((parsed && parsed.error) || text || `HTTP ${res.status}`);
-    }
-
-    let scoredResult = null;
-    if (parsed && parsed.ok === true) {
-      scoredResult = parsed.result || null;
-    } else if (/^OK\b/i.test(text)) {
-      scoredResult = null;
-    } else {
-      throw new Error((parsed && parsed.error) || text || `HTTP ${res.status}`);
-    }
-
-    if (historyResult?.ok && historyResult?.id && scoredResult) {
-      await updateAttemptResultInSupabase(historyResult.id, scoredResult);
+    if (!res.ok || !/^OK\b/i.test(text)) {
+      throw new Error(text || `HTTP ${res.status}`);
     }
 
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Exam submitted",
-      historyResult?.ok
-        ? "Submitted successfully and saved to your history with marked results."
-        : "Submitted successfully to Google Sheets, but history save was skipped on this device.",
+      historyResult?.ok ? "Submitted successfully and saved to your history." : "Submitted successfully to Google Sheets. History save was skipped on this device.",
       { mode: "confirm" }
     );
     return;
@@ -400,9 +340,7 @@ if (endpoint) {
     window.__IELTS_FINAL_SUBMIT_REASON__ = "";
     Modal().showModal(
       "Submitted (local only)",
-      historyResult?.ok
-        ? "Could not fetch marked results from Google Sheets, but the test was saved to your history."
-        : "Could not send to Google Sheets. Saved locally on this browser.",
+      historyResult?.ok ? "Could not send to Google Sheets, but the test was saved to your history." : "Could not send to Google Sheets. Saved locally on this browser.",
       { mode: "confirm" }
     );
     return;

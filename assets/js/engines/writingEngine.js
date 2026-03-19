@@ -215,6 +215,19 @@ function collectWritingPayload(reason) {
   };
 }
 
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = setTimeout(() => {
+    try { controller?.abort(); } catch (e) {}
+  }, Math.max(1000, Number(timeoutMs) || 25000));
+
+  const nextOptions = { ...options };
+  if (controller) nextOptions.signal = controller.signal;
+
+  return fetch(url, nextOptions).finally(() => clearTimeout(timer));
+}
+
 async function saveAttemptToSupabase(finalPayload) {
   try {
     const supabase = window.IELTS?.Auth?.supabase;
@@ -337,15 +350,12 @@ function startMarkedResultPolling(finalPayload) {
 
   setTimeout(tick, intervalMs);
 }
-
-
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
       let fullName = getStudentFullName();
 
       if (!UI().isValidFullName(fullName)) {
-        // Force modal final mode (name required) and preserve the original submit reason.
         openFinalSubmitModal(reason, {
           title: "Name required",
           text: "Please type your Name and Surname to submit the exam.",
@@ -359,30 +369,32 @@ function startMarkedResultPolling(finalPayload) {
 
       saveWriting();
 
-      const writingPayload = collectWritingPayload(reason);
+      const submitReason = String(reason || "Student submitted exam.").trim() || "Student submitted exam.";
+      const submittedAt = new Date().toISOString();
+      const writingPayload = collectWritingPayload(submitReason);
+      writingPayload.reason = submitReason;
+      writingPayload.submittedAt = submittedAt;
       S().setJSON(W.keys.lastSubmission, writingPayload);
 
-      // Build FINAL payload (Listening + Reading + Writing)
       const listening = S().getJSON(W.listeningKeys.lastSubmission, null);
       const reading = S().getJSON(`${W.readingTestId}:lastSubmission`, null);
 
-      // Determine examId dynamically
-const activeTestId = R().getActiveTestId
-  ? R().getActiveTestId()
-  : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
+      const activeTestId = R().getActiveTestId
+        ? R().getActiveTestId()
+        : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
 
-const testNumber = String(activeTestId).replace("ielts", "");
-const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
+      const testNumber = String(activeTestId).replace("ielts", "");
+      const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
 
-// Build FINAL payload
-const finalPayload = {
-  examId: examId,
-  submittedAt: new Date().toISOString(),
-  studentFullName: fullName,
-  listening,
-  reading,
-  writing: writingPayload,
-};
+      const finalPayload = {
+        examId,
+        submittedAt,
+        studentFullName: fullName,
+        reason: submitReason,
+        listening,
+        reading,
+        writing: writingPayload,
+      };
 
       S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
       S().set(R().EXAM.keys.finalSubmitted, "true");
@@ -391,53 +403,65 @@ const finalPayload = {
 
       const historyResult = await saveAttemptToSupabase(finalPayload);
 
-      // Send to admin if endpoint set
-const endpoint = R().ADMIN_ENDPOINT;
-if (endpoint) {
-  try {
-    const body = new URLSearchParams({
-      payload: JSON.stringify(finalPayload)
-    });
+      const endpoint = String(R().ADMIN_ENDPOINT || "").trim();
+      if (endpoint) {
+        try {
+          const body = new URLSearchParams({
+            payload: JSON.stringify(finalPayload)
+          });
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      body
-    });
+          const res = await fetchWithTimeout(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+            },
+            body: body.toString()
+          }, 25000);
 
-    const text = await res.text();
-    let json = null;
-    try { json = JSON.parse(text); } catch {}
+          const text = await res.text();
+          let json = null;
+          try { json = JSON.parse(text); } catch (e) {}
 
-    const okResponse = res.ok && (/^OK\b/i.test(text) || (json && json.ok === true));
-    if (!okResponse) {
-      throw new Error((json && json.error) || text || `HTTP ${res.status}`);
-    }
+          const okResponse = res.ok && (
+            /^OK/i.test(String(text || "").trim()) ||
+            (json && json.ok === true)
+          );
 
-    // Background grading / sync
-    startMarkedResultPolling(finalPayload);
+          if (!okResponse) {
+            throw new Error((json && json.error) || text || `HTTP ${res.status}`);
+          }
 
-    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal(
-      "Exam submitted",
-      historyResult?.ok
-        ? "Submitted successfully. Listening and Reading are saved now. Writing will appear in your history after grading finishes."
-        : "Submitted successfully to Google Sheets. Writing will appear after grading finishes.",
-      { mode: "confirm" }
-    );
-    return;
-  } catch (err) {
-    console.error("Final submit failed:", err);
-    window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-    Modal().showModal(
-      "Submitted (local only)",
-      historyResult?.ok ? "Could not send to Google Sheets, but the test was saved to your history." : "Could not send to Google Sheets. Saved locally on this browser.",
-      { mode: "confirm" }
-    );
-    return;
-  }
-}
+          startMarkedResultPolling(finalPayload);
+
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+          Modal().showModal(
+            "Exam submitted",
+            historyResult?.ok
+              ? "Submitted successfully. Objective scores are saved now, and writing will appear in your history after grading finishes."
+              : "Submitted successfully to Google Sheets. Writing will appear in your history after grading finishes.",
+            { mode: "confirm" }
+          );
+          return;
+        } catch (err) {
+          console.error("Final submit failed:", err);
+          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+          Modal().showModal(
+            "Submitted (local only)",
+            historyResult?.ok
+              ? "Could not send to Google Sheets, but the test was saved to your history."
+              : "Could not send to Google Sheets. Saved locally on this browser.",
+            { mode: "confirm" }
+          );
+          return;
+        }
+      }
+
       window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-      Modal().showModal("Submitted", historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.", { mode: "confirm" });
+      Modal().showModal(
+        "Submitted",
+        historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.",
+        { mode: "confirm" }
+      );
     }
 
     // expose for modal final submit button

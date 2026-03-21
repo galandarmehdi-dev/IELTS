@@ -120,9 +120,25 @@
 
 
   function renderSummary(rows) {
-    $("historyStatCount").textContent = String(rows.length);
-    $("historyStatLatest").textContent = rows[0] ? fmtDate(rows[0].submitted_at) : "—";
-    $("historyStatWords").textContent = rows[0] ? String(totalWords(rows[0])) : "0";
+    const setText = (id, value) => {
+      const el = $(id);
+      if (el) el.textContent = String(value);
+    };
+
+    const avg = (items, key) => {
+      const nums = items
+        .map((r) => Number(r?.[key]))
+        .filter((n) => Number.isFinite(n) && n > 0);
+      if (!nums.length) return "0.0";
+      return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
+    };
+
+    setText("historyStatCount", rows.length);
+    setText("historyStatListening", avg(rows, "listening_band"));
+    setText("historyStatReading", avg(rows, "reading_band"));
+    setText("historyStatWriting", avg(rows, "final_writing_band"));
+    setText("historyStatLatest", rows[0] ? fmtDate(rows[0].submitted_at) : "—");
+    setText("historyStatWords", rows[0] ? totalWords(rows[0]) : 0);
   }
 
   function renderTable(rows) {
@@ -164,8 +180,21 @@
     $("historyDetailTitle").textContent = examLabel(row);
     $("historyDetailMeta").innerHTML = `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>Email: <b>${escapeHtml(row.user_email || "—")}</b>`;
     $("historyDetailScores").innerHTML = `Exam ID: <b>${escapeHtml(row.exam_id || row.active_test_id || "—")}</b><br>Listening: <b>${escapeHtml(row.listening_total != null && row.listening_total !== "" ? `${row.listening_total} / 40 (Band ${row.listening_band || "—"})` : "Pending")}</b><br>Reading: <b>${escapeHtml(row.reading_total != null && row.reading_total !== "" ? `${row.reading_total} / 40 (Band ${row.reading_band || "—"})` : "Pending")}</b><br>Writing: <b>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}</b><br>Writing words: <b>${escapeHtml(String(totalWords(row)))}</b><br><br>Task 1 band: <b>${escapeHtml(row.task1_band || "—")}</b><br>Task 2 band: <b>${escapeHtml(row.task2_band || "—")}</b><br><br><b>Task 1 feedback</b><br>${escapeHtml(row.task1_feedback || "").replace(/\n/g,"<br>")}<br><br><b>Task 2 feedback</b><br>${escapeHtml(row.task2_feedback || "").replace(/\n/g,"<br>")}<br><br><b>Overall feedback</b><br>${escapeHtml(row.overall_feedback || "").replace(/\n/g,"<br>")}`;
-    $("historyDetailTask1").textContent = row.writing_task1 || "";
-    $("historyDetailTask2").textContent = row.writing_task2 || "";
+    const setText = (id, value) => {
+      const el = $(id);
+      if (el) el.textContent = value || "";
+    };
+    const setHtml = (id, value) => {
+      const el = $(id);
+      if (el) el.innerHTML = value || "";
+    };
+    setHtml("historyDetailTask1Score", `Task 1 band: <b>${escapeHtml(row.task1_band || "—")}</b>`);
+    setHtml("historyDetailTask2Score", `Task 2 band: <b>${escapeHtml(row.task2_band || "—")}</b>`);
+    setHtml("historyDetailOverallWriting", `Overall Writing band: <b>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}</b>`);
+    setText("historyDetailTask1", row.writing_task1 || "");
+    setText("historyDetailTask2", row.writing_task2 || "");
+    setText("historyDetailTask1Feedback", row.task1_feedback || "");
+    setText("historyDetailTask2Feedback", row.task2_feedback || "");
     detail.classList.remove("hidden");
   }
 

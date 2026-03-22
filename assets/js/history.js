@@ -63,11 +63,24 @@
     url.searchParams.set("studentFullName", String(row.student_full_name || ""));
     url.searchParams.set("examId", String(row.exam_id || row.active_test_id || ""));
     url.searchParams.set("reason", String(row.reason || ""));
+    url.searchParams.set("t", String(Date.now()));
 
-    const res = await fetch(url.toString(), { method: "GET" });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data || data.ok !== true) return null;
-    return data;
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = setTimeout(() => {
+      try { controller?.abort(); } catch (e) {}
+    }, 12000);
+
+    try {
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        signal: controller ? controller.signal : undefined
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true) return null;
+      return data;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async function syncRowToSupabase(row, result) {

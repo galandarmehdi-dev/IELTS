@@ -216,11 +216,18 @@ function collectWritingPayload(reason) {
 }
 
 
-function fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+
+function hasAnyWritingText(writingPayload) {
+  const task1 = String(writingPayload?.answers?.task1 || "").trim();
+  const task2 = String(writingPayload?.answers?.task2 || "").trim();
+  return Boolean(task1 || task2);
+}
+
+function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
   const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
   const timer = setTimeout(() => {
     try { controller?.abort(); } catch (e) {}
-  }, Math.max(1000, Number(timeoutMs) || 25000));
+  }, Math.max(1000, Number(timeoutMs) || 20000));
 
   const nextOptions = { ...options };
   if (controller) nextOptions.signal = controller.signal;
@@ -350,119 +357,140 @@ function startMarkedResultPolling(finalPayload) {
 
   setTimeout(tick, intervalMs);
 }
-    async function submitFinalExam(reason) {
+    
+async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
-      let fullName = getStudentFullName();
+      try {
+        let fullName = getStudentFullName();
 
-      if (!UI().isValidFullName(fullName)) {
-        openFinalSubmitModal(reason, {
-          title: "Name required",
-          text: "Please type your Name and Surname to submit the exam.",
-        });
-        return;
-      }
-
-      hasSubmitted = true;
-      S().set(W.keys.submitted, "true");
-      if (timer) clearInterval(timer);
-
-      saveWriting();
-
-      const submitReason = String(reason || "Student submitted exam.").trim() || "Student submitted exam.";
-      const submittedAt = new Date().toISOString();
-      const writingPayload = collectWritingPayload(submitReason);
-      writingPayload.reason = submitReason;
-      writingPayload.submittedAt = submittedAt;
-      S().setJSON(W.keys.lastSubmission, writingPayload);
-
-      const listening = S().getJSON(W.listeningKeys.lastSubmission, null);
-      const reading = S().getJSON(`${W.readingTestId}:lastSubmission`, null);
-
-      const activeTestId = R().getActiveTestId
-        ? R().getActiveTestId()
-        : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
-
-      const testNumber = String(activeTestId).replace("ielts", "");
-      const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
-
-      const finalPayload = {
-        examId,
-        submittedAt,
-        studentFullName: fullName,
-        reason: submitReason,
-        listening,
-        reading,
-        writing: writingPayload,
-      };
-
-      S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
-      S().set(R().EXAM.keys.finalSubmitted, "true");
-
-      UI().lockWholeExamAfterFinalSubmit();
-
-      const historyResult = await saveAttemptToSupabase(finalPayload);
-
-      const endpoint = String(R().ADMIN_ENDPOINT || "").trim();
-      if (endpoint) {
-        try {
-          const body = new URLSearchParams({
-            payload: JSON.stringify(finalPayload)
+        if (!UI().isValidFullName(fullName)) {
+          openFinalSubmitModal(reason, {
+            title: "Name required",
+            text: "Please type your Name and Surname to submit the exam.",
           });
-
-          const res = await fetchWithTimeout(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
-            body: body.toString()
-          }, 45000);
-
-          const text = await res.text();
-          let json = null;
-          try { json = JSON.parse(text); } catch (e) {}
-
-          const okResponse = res.ok && (
-            /^OK/i.test(String(text || "").trim()) ||
-            (json && json.ok === true) ||
-            (json && (json.queuedForWriting === true || json.rowNumber))
-          );
-
-          if (!okResponse) {
-            throw new Error((json && json.error) || text || `HTTP ${res.status}`);
-          }
-
-          startMarkedResultPolling(finalPayload);
-
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal(
-            "Exam submitted",
-            historyResult?.ok
-              ? "Submitted successfully. Objective scores are saved now, and writing will appear in your history after grading finishes."
-              : "Submitted successfully to Google Sheets. Writing will appear in your history after grading finishes.",
-            { mode: "confirm" }
-          );
-          return;
-        } catch (err) {
-          console.error("Final submit failed:", err);
-          window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-          Modal().showModal(
-            "Submitted (local only)",
-            historyResult?.ok
-              ? "Could not send to Google Sheets, but the test was saved to your history."
-              : "Could not send to Google Sheets. Saved locally on this browser.",
-            { mode: "confirm" }
-          );
           return;
         }
-      }
 
-      window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-      Modal().showModal(
-        "Submitted",
-        historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.",
-        { mode: "confirm" }
-      );
+        hasSubmitted = true;
+        S().set(W.keys.submitted, "true");
+        if (timer) clearInterval(timer);
+
+        saveWriting();
+
+        const submitReason = String(reason || "Student submitted exam.").trim() || "Student submitted exam.";
+        const submittedAt = new Date().toISOString();
+        const writingPayload = collectWritingPayload(submitReason);
+        writingPayload.reason = submitReason;
+        writingPayload.submittedAt = submittedAt;
+        S().setJSON(W.keys.lastSubmission, writingPayload);
+
+        const listening = S().getJSON(W.listeningKeys.lastSubmission, null);
+        const reading = S().getJSON(`${W.readingTestId}:lastSubmission`, null);
+
+        const activeTestId = R().getActiveTestId
+          ? R().getActiveTestId()
+          : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
+
+        const testNumber = String(activeTestId).replace("ielts", "");
+        const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
+
+        const finalPayload = {
+          examId,
+          submittedAt,
+          studentFullName: fullName,
+          reason: submitReason,
+          listening,
+          reading,
+          writing: writingPayload,
+        };
+
+        S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
+        S().set(R().EXAM.keys.finalSubmitted, "true");
+
+        UI().lockWholeExamAfterFinalSubmit();
+
+        const historyResult = await saveAttemptToSupabase(finalPayload);
+        const hasWritingText = hasAnyWritingText(writingPayload);
+
+        const endpoint = String(R().ADMIN_ENDPOINT || "").trim();
+        if (endpoint) {
+          try {
+            const body = new URLSearchParams({
+              payload: JSON.stringify(finalPayload)
+            });
+
+            const res = await fetchWithTimeout(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+              },
+              body: body.toString()
+            }, 20000);
+
+            const text = await res.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch (e) {}
+
+            const okResponse = res.ok && (
+              /^OK/i.test(String(text || "").trim()) ||
+              (json && json.ok === true)
+            );
+
+            if (!okResponse) {
+              throw new Error((json && json.error) || text || `HTTP ${res.status}`);
+            }
+
+            if (hasWritingText) {
+              startMarkedResultPolling(finalPayload);
+            }
+
+            if (historyResult?.ok) {
+              try { window.IELTS?.History?.refresh?.(); } catch (e) {}
+            }
+
+            window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+            Modal().showModal(
+              "Exam submitted",
+              hasWritingText
+                ? (historyResult?.ok
+                    ? "Submitted successfully. Objective scores are saved now, and writing will appear in your history after grading finishes."
+                    : "Submitted successfully to Google Sheets. Writing will appear in your history after grading finishes.")
+                : (historyResult?.ok
+                    ? "Submitted successfully. Your test is saved in Google Sheets and in your history."
+                    : "Submitted successfully to Google Sheets."),
+              { mode: "confirm" }
+            );
+            return;
+          } catch (err) {
+            console.error("Final submit failed:", err);
+            window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+            Modal().showModal(
+              "Submitted (history/local)",
+              historyResult?.ok
+                ? "Google Sheets did not confirm the submission in time, but the test was saved to your history."
+                : "Google Sheets did not confirm the submission. Your answers are still saved on this browser.",
+              { mode: "confirm" }
+            );
+            return;
+          }
+        }
+
+        window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+        Modal().showModal(
+          "Submitted",
+          historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.",
+          { mode: "confirm" }
+        );
+      } catch (err) {
+        console.error("submitFinalExam crashed:", err);
+        window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+        Modal().showModal(
+          "Submission error",
+          "Something went wrong during submission. Your latest answers are still saved on this browser. Please refresh and try again.",
+          { mode: "confirm" }
+        );
+      }
     }
 
     // expose for modal final submit button

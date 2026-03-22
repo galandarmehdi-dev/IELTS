@@ -416,15 +416,16 @@ function startMarkedResultPolling(finalPayload) {
               "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
             body: body.toString()
-          }, 25000);
+          }, 45000);
 
           const text = await res.text();
           let json = null;
           try { json = JSON.parse(text); } catch (e) {}
 
           const okResponse = res.ok && (
-            /^OK/i.test(String(text || "").trim()) ||
-            (json && json.ok === true)
+            /^OK/i.test(String(text || "").trim()) ||
+            (json && json.ok === true) ||
+            (json && (json.queuedForWriting === true || json.rowNumber))
           );
 
           if (!okResponse) {

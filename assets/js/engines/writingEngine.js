@@ -1,4 +1,5 @@
 /* assets/js/engines/writingEngine.js */
+/* STEP 1 PATCH V5 — smaller Supabase payload + non-blocking history save */
 (function () {
   "use strict";
 
@@ -10,7 +11,7 @@
   function startWritingSystem() {
     if (window.__IELTS_WRITING_INIT__) return;
     window.__IELTS_WRITING_INIT__ = true;
-    // Multi-test safe: resolve config + keys separately so writing timer/storage always exists.
+
     const activeTestId =
       (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
       S().get("IELTS:EXAM:activeTestId", R().TESTS?.defaultTestId || "ielts1");
@@ -60,20 +61,20 @@
     const zoomResetBtn = $("writingZoomResetBtn");
     const ZOOM_KEY = "IELTSPREF:writingGraphZoom";
 
-function applyActiveWritingContent() {
-  const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-  const writing = content.writing || {};
-  const cards = writingSection.querySelectorAll(".writing-card");
-  if (cards.length < 2) return;
+    function applyActiveWritingContent() {
+      const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+      const writing = content.writing || {};
+      const cards = writingSection.querySelectorAll(".writing-card");
+      if (cards.length < 2) return;
 
-  const task1Inst = cards[0].querySelector(".writing-inst");
-  const task1GraphImg = cards[0].querySelector(".writing-graph img");
-  const task2Inst = cards[1].querySelector(".writing-inst");
+      const task1Inst = cards[0].querySelector(".writing-inst");
+      const task1GraphImg = cards[0].querySelector(".writing-graph img");
+      const task2Inst = cards[1].querySelector(".writing-inst");
 
-  if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
-  if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
-  if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
-}
+      if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
+      if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
+      if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
+    }
 
     function setGraphZoom(value) {
       if (!graphImg) return 1;
@@ -144,8 +145,6 @@ function applyActiveWritingContent() {
       updateCounts();
     }
 
-
-    // Debounced save (reduces localStorage writes while typing)
     let __saveT = null;
     function saveWritingDebounced() {
       if (__saveT) clearTimeout(__saveT);
@@ -154,6 +153,7 @@ function applyActiveWritingContent() {
         saveWriting();
       }, 450);
     }
+
     function getStudentFullName() {
       return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }
@@ -172,193 +172,234 @@ function applyActiveWritingContent() {
       );
     }
 
-function collectWritingPayload(reason) {
-  const fullName = getStudentFullName();
-  const answers =
-    S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
-      task1: wt1?.value || "",
-      task2: wt2?.value || "",
-    };
+    function collectWritingPayload(reason) {
+      const fullName = getStudentFullName();
+      const answers =
+        S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
+          task1: wt1?.value || "",
+          task2: wt2?.value || "",
+        };
 
-  const activeContent =
-    (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
-  const writingContent = activeContent.writing || {};
+      const activeContent =
+        (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
+      const writingContent = activeContent.writing || {};
 
-  const stripHtml = (html) => {
-    const div = document.createElement("div");
-    div.innerHTML = String(html || "");
-    return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
-  };
+      const stripHtml = (html) => {
+        const div = document.createElement("div");
+        div.innerHTML = String(html || "");
+        return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+      };
 
-  return {
-    type: "writing",
-    testId: W.TEST_ID,
-    submittedAt: new Date().toISOString(),
-    reason,
-    studentFullName: fullName,
-    durationMinutes: W.DURATION_MINUTES,
-    remainingSeconds,
-
-    prompts: {
-      task1Html: writingContent.task1Html || "",
-      task1Text: stripHtml(writingContent.task1Html || ""),
-      task1ImageSrc: writingContent.task1ImageSrc || "",
-      task2Html: writingContent.task2Html || "",
-      task2Text: stripHtml(writingContent.task2Html || ""),
-    },
-
-    answers,
-    wordCount: {
-      task1: UI().wordCount(answers.task1),
-      task2: UI().wordCount(answers.task2),
-    },
-  };
-}
-
-
-
-function hasAnyWritingText(writingPayload) {
-  const task1 = String(writingPayload?.answers?.task1 || "").trim();
-  const task2 = String(writingPayload?.answers?.task2 || "").trim();
-  return Boolean(task1 || task2);
-}
-
-function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
-  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-  const timer = setTimeout(() => {
-    try { controller?.abort(); } catch (e) {}
-  }, Math.max(1000, Number(timeoutMs) || 20000));
-
-  const nextOptions = { ...options };
-  if (controller) nextOptions.signal = controller.signal;
-
-  return fetch(url, nextOptions).finally(() => clearTimeout(timer));
-}
-
-async function saveAttemptToSupabase(finalPayload) {
-  try {
-    const supabase = window.IELTS?.Auth?.supabase;
-    const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
-    const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-    if (!supabase || !authUser?.id) return { ok: false, skipped: true };
-
-    const listening = finalPayload?.listening || {};
-    const reading = finalPayload?.reading || {};
-    const writing = finalPayload?.writing || {};
-    const task1 = String(writing?.answers?.task1 || "");
-    const task2 = String(writing?.answers?.task2 || "");
-
-    const record = {
-      user_id: authUser.id,
-      user_email: authUser.email || null,
-      student_full_name: finalPayload?.studentFullName || authUser.name || null,
-      exam_id: finalPayload?.examId || null,
-      active_test_id: listening?.activeTestId || reading?.activeTestId || null,
-      submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
-      reason: writing?.reason || reading?.reason || listening?.reason || null,
-      listening_test_id: listening?.testId || null,
-      reading_test_id: reading?.testId || null,
-      writing_test_id: writing?.testId || null,
-      listening_answers: listening?.answers || {},
-      reading_answers: reading?.answers || {},
-      writing_task1: task1,
-      writing_task2: task2,
-      task1_words: Number(writing?.wordCount?.task1 || 0),
-      task2_words: Number(writing?.wordCount?.task2 || 0),
-      final_payload: finalPayload,
-    };
-
-    const { error } = await supabase.from(historyTable).insert(record);
-    if (error) throw error;
-    return { ok: true };
-  } catch (err) {
-    console.error("Supabase history save failed:", err);
-    return { ok: false, error: err };
-  }
-}
-
-
-async function fetchStudentResultFromBackend(finalPayload) {
-  const endpoint = R().ADMIN_ENDPOINT;
-  if (!endpoint) return { ok: false, error: "Missing endpoint" };
-
-  const url = new URL(endpoint);
-  url.searchParams.set("action", "studentResult");
-  url.searchParams.set("submittedAt", String(finalPayload?.submittedAt || ""));
-  url.searchParams.set("studentFullName", String(finalPayload?.studentFullName || ""));
-  url.searchParams.set("examId", String(finalPayload?.examId || ""));
-  url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
-
-  const res = await fetch(url.toString(), { method: "GET" });
-  const data = await res.json().catch(() => null);
-  if (!res.ok || !data || data.ok !== true) {
-    throw new Error((data && data.error) || `HTTP ${res.status}`);
-  }
-  return data;
-}
-
-async function updateAttemptScoresInSupabase(finalPayload, markedResult) {
-  try {
-    const supabase = window.IELTS?.Auth?.supabase;
-    const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
-    const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-    if (!supabase || !authUser?.id || !markedResult) return { ok: false, skipped: true };
-
-    const patch = {
-      listening_total: markedResult.listeningTotal ?? null,
-      listening_band: markedResult.listeningBand ?? null,
-      reading_total: markedResult.readingTotal ?? null,
-      reading_band: markedResult.readingBand ?? null,
-      final_writing_band: markedResult.finalWritingBand ?? null,
-      task1_band: markedResult.task1Band ?? null,
-      task2_band: markedResult.task2Band ?? null,
-      task1_breakdown: markedResult.task1Breakdown ?? null,
-      task2_breakdown: markedResult.task2Breakdown ?? null,
-      task1_feedback: markedResult.task1Feedback ?? null,
-      task2_feedback: markedResult.task2Feedback ?? null,
-      overall_feedback: markedResult.overallFeedback ?? null,
-    };
-
-    const { error } = await supabase
-      .from(historyTable)
-      .update(patch)
-      .eq("user_id", authUser.id)
-      .eq("submitted_at", String(finalPayload?.submittedAt || ""))
-      .eq("exam_id", String(finalPayload?.examId || ""));
-
-    if (error) throw error;
-    return { ok: true };
-  } catch (err) {
-    console.error("Supabase score update failed:", err);
-    return { ok: false, error: err };
-  }
-}
-
-function startMarkedResultPolling(finalPayload) {
-  const maxAttempts = 12;
-  const intervalMs = 15000;
-  let attempts = 0;
-
-  const tick = async () => {
-    attempts += 1;
-    try {
-      const data = await fetchStudentResultFromBackend(finalPayload);
-      if (data?.graded && data?.result) {
-        await updateAttemptScoresInSupabase(finalPayload, data.result);
-        return;
-      }
-    } catch (err) {
-      console.error("Marked result polling failed:", err);
+      return {
+        type: "writing",
+        testId: W.TEST_ID,
+        submittedAt: new Date().toISOString(),
+        reason,
+        studentFullName: fullName,
+        durationMinutes: W.DURATION_MINUTES,
+        remainingSeconds,
+        prompts: {
+          task1Html: writingContent.task1Html || "",
+          task1Text: stripHtml(writingContent.task1Html || ""),
+          task1ImageSrc: writingContent.task1ImageSrc || "",
+          task2Html: writingContent.task2Html || "",
+          task2Text: stripHtml(writingContent.task2Html || ""),
+        },
+        answers,
+        wordCount: {
+          task1: UI().wordCount(answers.task1),
+          task2: UI().wordCount(answers.task2),
+        },
+      };
     }
-    if (attempts < maxAttempts) {
+
+    function hasAnyWritingText(writingPayload) {
+      const task1 = String(writingPayload?.answers?.task1 || "").trim();
+      const task2 = String(writingPayload?.answers?.task2 || "").trim();
+      return Boolean(task1 || task2);
+    }
+
+    function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timer = setTimeout(() => {
+        try { controller?.abort(); } catch (e) {}
+      }, Math.max(1000, Number(timeoutMs) || 20000));
+
+      const nextOptions = { ...options };
+      if (controller) nextOptions.signal = controller.signal;
+
+      return fetch(url, nextOptions).finally(() => clearTimeout(timer));
+    }
+
+    async function withTimeout(promise, timeoutMs, label) {
+      let timer = null;
+      const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label || "Operation"} timed out`)), timeoutMs);
+      });
+      try {
+        return await Promise.race([promise, timeoutPromise]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    function buildSlimHistoryPayload(finalPayload) {
+      const listening = finalPayload?.listening || null;
+      const reading = finalPayload?.reading || null;
+      const writing = finalPayload?.writing || null;
+
+      return {
+        examId: finalPayload?.examId || null,
+        submittedAt: finalPayload?.submittedAt || null,
+        studentFullName: finalPayload?.studentFullName || null,
+        reason: finalPayload?.reason || null,
+        listening: listening ? {
+          saved: true,
+          testId: listening.testId || null,
+          answerCount: Object.keys(listening.answers || {}).length
+        } : null,
+        reading: reading ? {
+          saved: true,
+          testId: reading.testId || null,
+          answerCount: Object.keys(reading.answers || {}).length
+        } : null,
+        writing: writing ? {
+          saved: true,
+          testId: writing.testId || null,
+          task1Words: Number(writing?.wordCount?.task1 || 0),
+          task2Words: Number(writing?.wordCount?.task2 || 0)
+        } : null
+      };
+    }
+
+    async function saveAttemptToSupabase(finalPayload) {
+      try {
+        const supabase = window.IELTS?.Auth?.supabase;
+        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
+        if (!supabase || !authUser?.id) return { ok: false, skipped: true };
+
+        const listening = finalPayload?.listening || {};
+        const reading = finalPayload?.reading || {};
+        const writing = finalPayload?.writing || {};
+        const task1 = String(writing?.answers?.task1 || "");
+        const task2 = String(writing?.answers?.task2 || "");
+
+        const record = {
+          user_id: authUser.id,
+          user_email: authUser.email || null,
+          student_full_name: finalPayload?.studentFullName || authUser.name || null,
+          exam_id: finalPayload?.examId || null,
+          active_test_id: listening?.activeTestId || reading?.activeTestId || null,
+          submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
+          reason: writing?.reason || reading?.reason || listening?.reason || null,
+          listening_test_id: listening?.testId || null,
+          reading_test_id: reading?.testId || null,
+          writing_test_id: writing?.testId || null,
+          listening_answers: listening?.answers || {},
+          reading_answers: reading?.answers || {},
+          writing_task1: task1,
+          writing_task2: task2,
+          task1_words: Number(writing?.wordCount?.task1 || 0),
+          task2_words: Number(writing?.wordCount?.task2 || 0),
+          final_payload: buildSlimHistoryPayload(finalPayload),
+        };
+
+        const insertPromise = supabase.from(historyTable).insert(record);
+        const result = await withTimeout(insertPromise, 8000, "History save");
+        const error = result?.error || null;
+        if (error) throw error;
+        return { ok: true };
+      } catch (err) {
+        console.error("Supabase history save failed:", err);
+        return { ok: false, error: err };
+      }
+    }
+
+    async function fetchStudentResultFromBackend(finalPayload) {
+      const endpoint = R().ADMIN_ENDPOINT;
+      if (!endpoint) return { ok: false, error: "Missing endpoint" };
+
+      const url = new URL(endpoint);
+      url.searchParams.set("action", "studentResult");
+      url.searchParams.set("submittedAt", String(finalPayload?.submittedAt || ""));
+      url.searchParams.set("studentFullName", String(finalPayload?.studentFullName || ""));
+      url.searchParams.set("examId", String(finalPayload?.examId || ""));
+      url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
+
+      const res = await fetchWithTimeout(url.toString(), { method: "GET" }, 12000);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true) {
+        throw new Error((data && data.error) || `HTTP ${res.status}`);
+      }
+      return data;
+    }
+
+    async function updateAttemptScoresInSupabase(finalPayload, markedResult) {
+      try {
+        const supabase = window.IELTS?.Auth?.supabase;
+        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
+        if (!supabase || !authUser?.id || !markedResult) return { ok: false, skipped: true };
+
+        const patch = {
+          listening_total: markedResult.listeningTotal ?? null,
+          listening_band: markedResult.listeningBand ?? null,
+          reading_total: markedResult.readingTotal ?? null,
+          reading_band: markedResult.readingBand ?? null,
+          final_writing_band: markedResult.finalWritingBand ?? null,
+          task1_band: markedResult.task1Band ?? null,
+          task2_band: markedResult.task2Band ?? null,
+          task1_breakdown: markedResult.task1Breakdown ?? null,
+          task2_breakdown: markedResult.task2Breakdown ?? null,
+          task1_feedback: markedResult.task1Feedback ?? null,
+          task2_feedback: markedResult.task2Feedback ?? null,
+          overall_feedback: markedResult.overallFeedback ?? null,
+        };
+
+        const updatePromise = supabase
+          .from(historyTable)
+          .update(patch)
+          .eq("user_id", authUser.id)
+          .eq("submitted_at", String(finalPayload?.submittedAt || ""))
+          .eq("exam_id", String(finalPayload?.examId || ""));
+
+        const result = await withTimeout(updatePromise, 8000, "History score update");
+        const error = result?.error || null;
+        if (error) throw error;
+        return { ok: true };
+      } catch (err) {
+        console.error("Supabase score update failed:", err);
+        return { ok: false, error: err };
+      }
+    }
+
+    function startMarkedResultPolling(finalPayload) {
+      const maxAttempts = 12;
+      const intervalMs = 15000;
+      let attempts = 0;
+
+      const tick = async () => {
+        attempts += 1;
+        try {
+          const data = await fetchStudentResultFromBackend(finalPayload);
+          if (data?.graded && data?.result) {
+            await updateAttemptScoresInSupabase(finalPayload, data.result);
+            try { window.IELTS?.History?.refresh?.(); } catch (e) {}
+            return;
+          }
+        } catch (err) {
+          console.error("Marked result polling failed:", err);
+        }
+        if (attempts < maxAttempts) {
+          setTimeout(tick, intervalMs);
+        }
+      };
+
       setTimeout(tick, intervalMs);
     }
-  };
 
-  setTimeout(tick, intervalMs);
-}
-    
-async function submitFinalExam(reason) {
+    async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
       try {
@@ -410,76 +451,63 @@ async function submitFinalExam(reason) {
 
         UI().lockWholeExamAfterFinalSubmit();
 
-        const historyResult = await saveAttemptToSupabase(finalPayload);
         const hasWritingText = hasAnyWritingText(writingPayload);
 
         const endpoint = String(R().ADMIN_ENDPOINT || "").trim();
+        let sheetsSaved = false;
         if (endpoint) {
-          try {
-            const body = new URLSearchParams({
-              payload: JSON.stringify(finalPayload)
-            });
+          const body = new URLSearchParams({
+            payload: JSON.stringify(finalPayload)
+          });
 
-            const res = await fetchWithTimeout(endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-              },
-              body: body.toString()
-            }, 20000);
+          const res = await fetchWithTimeout(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+            },
+            body: body.toString()
+          }, 20000);
 
-            const text = await res.text();
-            let json = null;
-            try { json = JSON.parse(text); } catch (e) {}
+          const text = await res.text();
+          let json = null;
+          try { json = JSON.parse(text); } catch (e) {}
 
-            const okResponse = res.ok && (
-              /^OK/i.test(String(text || "").trim()) ||
-              (json && json.ok === true)
-            );
+          const okResponse = res.ok && (
+            /^OK\b/i.test(String(text || "").trim()) ||
+            (json && json.ok === true)
+          );
 
-            if (!okResponse) {
-              throw new Error((json && json.error) || text || `HTTP ${res.status}`);
-            }
-
-            if (hasWritingText) {
-              startMarkedResultPolling(finalPayload);
-            }
-
-            if (historyResult?.ok) {
-              try { window.IELTS?.History?.refresh?.(); } catch (e) {}
-            }
-
-            window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-            Modal().showModal(
-              "Exam submitted",
-              hasWritingText
-                ? (historyResult?.ok
-                    ? "Submitted successfully. Objective scores are saved now, and writing will appear in your history after grading finishes."
-                    : "Submitted successfully to Google Sheets. Writing will appear in your history after grading finishes.")
-                : (historyResult?.ok
-                    ? "Submitted successfully. Your test is saved in Google Sheets and in your history."
-                    : "Submitted successfully to Google Sheets."),
-              { mode: "confirm" }
-            );
-            return;
-          } catch (err) {
-            console.error("Final submit failed:", err);
-            window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-            Modal().showModal(
-              "Submitted (history/local)",
-              historyResult?.ok
-                ? "Google Sheets did not confirm the submission in time, but the test was saved to your history."
-                : "Google Sheets did not confirm the submission. Your answers are still saved on this browser.",
-              { mode: "confirm" }
-            );
-            return;
+          if (!okResponse) {
+            throw new Error((json && json.error) || text || `HTTP ${res.status}`);
           }
+          sheetsSaved = true;
+        }
+
+        // Save history AFTER Sheets, but do not let history block the submit screen.
+        const historyResult = await saveAttemptToSupabase(finalPayload);
+
+        if (hasWritingText) {
+          startMarkedResultPolling(finalPayload);
+        }
+
+        if (historyResult?.ok) {
+          try { window.IELTS?.History?.refresh?.(); } catch (e) {}
         }
 
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
         Modal().showModal(
-          "Submitted",
-          historyResult?.ok ? "Saved to your history for this account." : "Saved locally on this browser.",
+          "Exam submitted",
+          sheetsSaved
+            ? (historyResult?.ok
+                ? (hasWritingText
+                    ? "Submitted successfully. Google Sheets is saved, and writing will appear in your history after grading finishes."
+                    : "Submitted successfully. Google Sheets and history are both saved.")
+                : (hasWritingText
+                    ? "Submitted successfully to Google Sheets. History may appear after a short delay."
+                    : "Submitted successfully to Google Sheets. History may appear after a short delay."))
+            : (historyResult?.ok
+                ? "Saved to your history for this account."
+                : "Saved locally on this browser."),
           { mode: "confirm" }
         );
       } catch (err) {
@@ -493,7 +521,6 @@ async function submitFinalExam(reason) {
       }
     }
 
-    // expose for modal final submit button
     window.__IELTS_SUBMIT_FINAL__ = submitFinalExam;
 
     function startTimer() {
@@ -521,7 +548,6 @@ async function submitFinalExam(reason) {
       }, 1000);
     }
 
-
     writingSection.addEventListener("input", (e) => {
       const t = e.target;
       if (!t) return;
@@ -531,7 +557,6 @@ async function submitFinalExam(reason) {
     const endBtn = $("endExamBtn");
     if (endBtn) {
       endBtn.onclick = () => {
-        // Admin-only: students must not end/submit early via button
         const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
         if (!isAdmin) return;
         openFinalSubmitModal("Admin ended the exam.", {

@@ -65,19 +65,24 @@
     url.searchParams.set("reason", String(row.reason || ""));
     url.searchParams.set("t", String(Date.now()));
 
+    const timeoutMs = Number(Registry()?.TIMEOUTS?.historySyncMs || 45000);
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timer = setTimeout(() => {
-      try { controller?.abort(); } catch (e) {}
-    }, 12000);
+      try { controller?.abort("history-timeout"); } catch (e) {}
+    }, timeoutMs);
 
     try {
       const res = await fetch(url.toString(), {
         method: "GET",
+        cache: "no-store",
         signal: controller ? controller.signal : undefined
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true) return null;
       return data;
+    } catch (err) {
+      if (String(err?.name || "") === "AbortError") return null;
+      throw err;
     } finally {
       clearTimeout(timer);
     }
@@ -109,11 +114,16 @@
   }
 
   function isPending(row) {
-    return !row.final_writing_band;
+    const hasWriting =
+      String(row?.writing_task1 || "").trim() !== "" ||
+      String(row?.writing_task2 || "").trim() !== "";
+    if (!hasWriting) return false;
+    return String(row?.final_writing_band || "").trim() === "";
   }
 
   async function refreshPendingRows(rows) {
-    const pending = (rows || []).filter(isPending).slice(0, 5);
+    const limit = Number(Registry()?.POLLING?.historyRefreshPendingLimit || 8);
+    const pending = (rows || []).filter(isPending).slice(0, limit);
     if (!pending.length) return false;
 
     let updatedAny = false;
@@ -125,7 +135,9 @@
           if (ok) updatedAny = true;
         }
       } catch (err) {
-        console.error("History sync failed:", err);
+        if (String(err?.name || "") !== "AbortError") {
+          console.error("History sync failed:", err);
+        }
       }
     }
     return updatedAny;

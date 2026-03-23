@@ -2,15 +2,13 @@
 (function () {
   "use strict";
 
-  // One-time global init guard
   if (window.__IELTS_HIGHLIGHT_INIT__) return;
   window.__IELTS_HIGHLIGHT_INIT__ = true;
 
-  const UI = () => window.IELTS.UI;
-  const S = () => window.IELTS.Storage;
+  const S = () => window.IELTS?.Storage;
 
-  const STORAGE_KEY = "IELTS:HIGHLIGHTS:v1";
-  const ROOTS = []; // { key, el }
+  const STORAGE_KEY = "IELTS:HIGHLIGHTS:v2";
+  const ROOTS = [];
 
   let toolbar = null;
   let btnHL = null;
@@ -18,33 +16,32 @@
   let btnClear = null;
 
   function readStore() {
-    return S().getJSON(STORAGE_KEY, {}) || {};
+    return S()?.getJSON?.(STORAGE_KEY, {}) || {};
   }
+
   function writeStore(obj) {
-    S().setJSON(STORAGE_KEY, obj);
+    try { S()?.setJSON?.(STORAGE_KEY, obj || {}); } catch {}
   }
 
-
-  function getCurrentReadingPart() {
+  function getActiveReadingPart() {
     try {
-      const fromDom = document.documentElement?.dataset?.readingPart;
-      if (fromDom) return String(fromDom);
-    } catch {}
-    try {
-      const activeBtn = document.querySelector(".partTab.active");
-      const txt = String(activeBtn?.textContent || "").toLowerCase();
-      if (txt.includes("1")) return "part1";
-      if (txt.includes("2")) return "part2";
-      if (txt.includes("3")) return "part3";
+      const active = document.querySelector(".partTab.active");
+      const partId =
+        active?.dataset?.part ||
+        active?.getAttribute?.("data-part") ||
+        active?.dataset?.partId ||
+        active?.getAttribute?.("data-part-id");
+      if (partId) return String(partId);
     } catch {}
     return "part1";
   }
 
-  function effectiveStoreKey(rootKey) {
-    if (rootKey === "readingPassage" || rootKey === "readingQuestions") {
-      return `${rootKey}::${getCurrentReadingPart()}`;
+  function getStoreKey(baseKey) {
+    const key = String(baseKey || "");
+    if (key === "readingPassage" || key === "readingQuestions") {
+      return `${key}:${getActiveReadingPart()}`;
     }
-    return rootKey;
+    return key;
   }
 
   function ensureToolbar() {
@@ -74,17 +71,16 @@
       if (isInsideForbidden(range.commonAncestorContainer)) return;
       if (range.collapsed) return;
 
-      const hl = applyHighlightToRange(range, rootInfo.el);
-      if (hl.length) saveHighlightsFromDOM(rootInfo);
+      const marks = applyHighlightToRange(range, rootInfo.el);
+      if (marks.length) saveHighlightsFromDOM(rootInfo);
 
       hideToolbar();
-      sel.removeAllRanges();
+      try { sel.removeAllRanges(); } catch {}
     });
 
     btnRemove.addEventListener("click", () => {
       const sel = window.getSelection();
-      const node =
-        sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
+      const node = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
       const rootInfo = findRootInfo(node);
       if (!rootInfo) return;
 
@@ -93,25 +89,24 @@
         unwrapMark(mark);
         saveHighlightsFromDOM(rootInfo);
       }
+
       hideToolbar();
-      sel?.removeAllRanges?.();
+      try { sel?.removeAllRanges?.(); } catch {}
     });
 
     btnClear.addEventListener("click", () => {
       const sel = window.getSelection();
-      const node =
-        sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
+      const node = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
       const rootInfo = findRootInfo(node);
       if (!rootInfo) return;
 
-      const ok = confirm("Clear ALL highlights in this section?");
-      if (!ok) return;
+      if (!window.confirm("Clear ALL highlights in this section?")) return;
 
       clearAllHighlightsInRoot(rootInfo.el);
       saveHighlightsFromDOM(rootInfo);
 
       hideToolbar();
-      sel?.removeAllRanges?.();
+      try { sel?.removeAllRanges?.(); } catch {}
     });
   }
 
@@ -120,7 +115,6 @@
     toolbar.style.left = `${x}px`;
     toolbar.style.top = `${y}px`;
     toolbar.style.display = "flex";
-
     if (mode === "selection") {
       btnHL.style.display = "";
       btnRemove.style.display = "none";
@@ -131,36 +125,38 @@
   }
 
   function hideToolbar() {
-    if (!toolbar) return;
-    toolbar.style.display = "none";
+    if (toolbar) toolbar.style.display = "none";
   }
 
   function registerRoot(key, el) {
     if (!el) return;
     el.dataset.hlRootKey = key;
-    ROOTS.push({ key, el });
+    const existing = ROOTS.find((r) => r.key === key);
+    if (existing) {
+      existing.el = el;
+    } else {
+      ROOTS.push({ key, el });
+    }
   }
 
   function findRootInfo(node) {
     if (!node) return null;
     const el = node.nodeType === 1 ? node : node.parentElement;
     if (!el) return null;
-
     const rootEl = el.closest("[data-hl-root-key]");
     if (!rootEl) return null;
-
     const key = rootEl.dataset.hlRootKey;
     return ROOTS.find((r) => r.key === key) || null;
   }
 
   function isInsideForbidden(node) {
-    const el = node.nodeType === 1 ? node : node.parentElement;
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
     if (!el) return false;
     return !!el.closest("input, select, textarea, button, audio, video");
   }
 
   function findClosestMark(node) {
-    const el = node.nodeType === 1 ? node : node.parentElement;
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
     if (!el) return null;
     return el.closest("mark.hl");
   }
@@ -174,7 +170,7 @@
   }
 
   function clearAllHighlightsInRoot(rootEl) {
-    rootEl.querySelectorAll("mark.hl").forEach(unwrapMark);
+    rootEl?.querySelectorAll?.("mark.hl").forEach(unwrapMark);
   }
 
   function getNodePath(root, node) {
@@ -192,7 +188,7 @@
 
   function resolveNodePath(root, path) {
     let cur = root;
-    for (const idx of path) {
+    for (const idx of path || []) {
       if (!cur || !cur.childNodes || !cur.childNodes[idx]) return null;
       cur = cur.childNodes[idx];
     }
@@ -208,9 +204,35 @@
     );
   }
 
+  function manualWrapTextRange(subRange, textNode, marks) {
+    const start = subRange.startOffset;
+    const end = subRange.endOffset;
+
+    const after = textNode.splitText(end);
+    const mid = textNode.splitText(start);
+
+    const wrapMark = document.createElement("mark");
+    wrapMark.className = "hl";
+    wrapMark.appendChild(mid.cloneNode(true));
+    mid.parentNode.replaceChild(wrapMark, mid);
+    marks.push(wrapMark);
+    void after;
+  }
+
+  function mergeAdjacentMarks(rootEl) {
+    const marks = Array.from(rootEl.querySelectorAll("mark.hl"));
+    marks.forEach((m) => {
+      const next = m.nextSibling;
+      if (next && next.nodeType === 1 && next.matches("mark.hl")) {
+        while (next.firstChild) m.appendChild(next.firstChild);
+        next.remove();
+      }
+    });
+  }
+
   function applyHighlightToRange(range, rootEl) {
     const marks = [];
-    if (!rootEl.contains(range.commonAncestorContainer)) return marks;
+    if (!rootEl || !rootEl.contains(range.commonAncestorContainer)) return marks;
 
     const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
       acceptNode: (textNode) => {
@@ -233,11 +255,11 @@
 
       if (textNode === range.startContainer) sub.setStart(textNode, range.startOffset);
       if (textNode === range.endContainer) sub.setEnd(textNode, range.endOffset);
-
       if (sub.collapsed) return;
 
       const mark = document.createElement("mark");
       mark.className = "hl";
+
       try {
         sub.surroundContents(mark);
         marks.push(mark);
@@ -248,34 +270,6 @@
 
     mergeAdjacentMarks(rootEl);
     return marks;
-  }
-
-  function manualWrapTextRange(subRange, textNode, marks) {
-    const start = subRange.startOffset;
-    const end = subRange.endOffset;
-
-    const after = textNode.splitText(end);
-    const mid = textNode.splitText(start);
-
-    const wrapMark = document.createElement("mark");
-    wrapMark.className = "hl";
-    wrapMark.appendChild(mid.cloneNode(true));
-
-    mid.parentNode.replaceChild(wrapMark, mid);
-    marks.push(wrapMark);
-
-    void after;
-  }
-
-  function mergeAdjacentMarks(rootEl) {
-    const marks = Array.from(rootEl.querySelectorAll("mark.hl"));
-    marks.forEach((m) => {
-      const next = m.nextSibling;
-      if (next && next.nodeType === 1 && next.matches("mark.hl")) {
-        while (next.firstChild) m.appendChild(next.firstChild);
-        next.remove();
-      }
-    });
   }
 
   function firstTextNode(el) {
@@ -292,55 +286,70 @@
   }
 
   function saveHighlightsFromDOM(rootInfo) {
-    const rootEl = rootInfo.el;
-    const key = effectiveStoreKey(rootInfo.key);
+    if (!rootInfo?.el) return;
 
+    const rootEl = rootInfo.el;
     const store = readStore();
+    const saveKey = getStoreKey(rootInfo.key);
     const records = [];
 
     rootEl.querySelectorAll("mark.hl").forEach((mark) => {
-      const firstText = firstTextNode(mark);
-      const lastText = lastTextNode(mark);
-      if (!firstText || !lastText) return;
+      const first = firstTextNode(mark);
+      const last = lastTextNode(mark);
+      if (!first || !last) return;
 
-      const startPath = getNodePath(rootEl, firstText);
-      const endPath = getNodePath(rootEl, lastText);
-
-      const startOffset = 0;
-      const endOffset = lastText.nodeValue ? lastText.nodeValue.length : 0;
-
-      records.push({ startPath, startOffset, endPath, endOffset });
+      records.push({
+        startPath: getNodePath(rootEl, first),
+        startOffset: 0,
+        endPath: getNodePath(rootEl, last),
+        endOffset: String(last.nodeValue || "").length,
+      });
     });
 
-    store[key] = records;
+    store[saveKey] = records;
     writeStore(store);
   }
 
   function restoreHighlightsToRoot(rootInfo) {
+    if (!rootInfo?.el) return;
+
     const rootEl = rootInfo.el;
-    const key = effectiveStoreKey(rootInfo.key);
+    const store = readStore();
+    const saveKey = getStoreKey(rootInfo.key);
+    const records = Array.isArray(store[saveKey]) ? store[saveKey] : [];
 
     clearAllHighlightsInRoot(rootEl);
-
-    const store = readStore();
-    const records = Array.isArray(store[key]) ? store[key] : [];
     if (!records.length) return;
 
     records.forEach((rec) => {
       const startNode = resolveNodePath(rootEl, rec.startPath);
       const endNode = resolveNodePath(rootEl, rec.endPath);
       if (!startNode || !endNode) return;
-      if (startNode.nodeType !== 3 || endNode.nodeType !== 3) return;
 
-      const r = document.createRange();
       try {
-        r.setStart(startNode, Math.min(rec.startOffset || 0, startNode.nodeValue.length));
-        r.setEnd(endNode, Math.min(rec.endOffset || endNode.nodeValue.length, endNode.nodeValue.length));
-        if (!r.collapsed) applyHighlightToRange(r, rootEl);
+        const range = document.createRange();
+        range.setStart(startNode, Math.max(0, Math.min(Number(rec.startOffset) || 0, startNode.nodeValue?.length || 0)));
+        range.setEnd(endNode, Math.max(0, Math.min(Number(rec.endOffset) || 0, endNode.nodeValue?.length || 0)));
+        if (range.collapsed) return;
+        applyHighlightToRange(range, rootEl);
       } catch {}
     });
+  }
 
-    mergeAdjacentMarks(rootEl);
+  function restoreReadingRootsSoon() {
+    setTimeout(() => {
+      const p = ROOTS.find((r) => r.key === "readingPassage");
+      const q = ROOTS.find((r) => r.key === "readingQuestions");
+      if (p) restoreHighlightsToRoot(p);
+      if (q) restoreHighlightsToRoot(q);
+    }, 0);
+  }
+
+  function persistCurrentReadingRoots() {
+    const p = ROOTS.find((r) => r.key === "readingPassage");
+    const q = ROOTS.find((r) => r.key === "readingQuestions");
+    if (p) saveHighlightsFromDOM(p);
+    if (q) saveHighlightsFromDOM(q);
   }
 
   function onSelectionChange() {
@@ -352,12 +361,6 @@
 
     const range = sel.getRangeAt(0);
     const node = range.commonAncestorContainer;
-
-    if (isInsideForbidden(node)) {
-      hideToolbar();
-      return;
-    }
-
     const rootInfo = findRootInfo(node);
     if (!rootInfo) {
       hideToolbar();
@@ -385,7 +388,6 @@
   document.addEventListener("DOMContentLoaded", () => {
     ensureToolbar();
 
-    // register highlight roots
     registerRoot("listening", document.getElementById("listeningSection"));
     registerRoot("readingPassage", document.getElementById("passage"));
     registerRoot("readingQuestions", document.getElementById("qCard"));
@@ -393,38 +395,32 @@
 
     ROOTS.forEach(restoreHighlightsToRoot);
 
-    function restoreReadingRootsSoon() {
-      setTimeout(() => {
-        const p = ROOTS.find((r) => r.key === "readingPassage");
-        const q = ROOTS.find((r) => r.key === "readingQuestions");
-        if (p) restoreHighlightsToRoot(p);
-        if (q) restoreHighlightsToRoot(q);
-      }, 0);
-    }
+    document.addEventListener("mousedown", (e) => {
+      const tab = e.target?.closest?.(".partTab");
+      if (!tab) return;
+      persistCurrentReadingRoots();
+    }, true);
 
-    // restore after part switch
     document.addEventListener("click", (e) => {
-      const el = e.target;
-      if (el && el.classList && el.classList.contains("partTab")) {
-        restoreReadingRootsSoon();
-      }
+      const tab = e.target?.closest?.(".partTab");
+      if (!tab) return;
+      restoreReadingRootsSoon();
     });
-
-    document.addEventListener("reading:partchange", restoreReadingRootsSoon);
 
     document.addEventListener("mouseup", () => setTimeout(onSelectionChange, 0));
     document.addEventListener("keyup", () => setTimeout(onSelectionChange, 0));
-
     window.addEventListener("scroll", hideToolbar, true);
 
-    document.addEventListener(
-      "mousedown",
-      (e) => {
-        if (toolbar && e.target && toolbar.contains(e.target)) return;
-        if (e.target && e.target.closest && e.target.closest("mark.hl")) return;
-        hideToolbar();
-      },
-      true
-    );
+    document.addEventListener("mousedown", (e) => {
+      if (toolbar && e.target && toolbar.contains(e.target)) return;
+      if (e.target?.closest?.("mark.hl")) return;
+      hideToolbar();
+    }, true);
   });
+
+  window.IELTS = window.IELTS || {};
+  window.IELTS.Highlighting = {
+    restoreReadingRootsSoon,
+    persistCurrentReadingRoots,
+  };
 })();

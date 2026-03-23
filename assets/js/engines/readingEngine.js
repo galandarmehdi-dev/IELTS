@@ -6,6 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
+  const HL = () => window.IELTS?.Highlighting;
 
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
@@ -30,11 +31,6 @@
     const PARTS = ["part1", "part2", "part3"];
     let activePart = "part1";
     const SPLIT_KEY = "IELTSPREF:readingSplitPct";
-
-    function syncReadingPartState() {
-      try { document.documentElement.dataset.readingPart = activePart; } catch {}
-      try { document.dispatchEvent(new CustomEvent("reading:partchange", { detail: { partId: activePart } })); } catch {}
-    }
 
     function applySplitPercent(value) {
       const container = $("container");
@@ -564,8 +560,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       style.id = "readingStylesInjected";
       style.textContent = `
         .panel{border:1px solid var(--border);border-radius:16px;padding:14px;background:#fff;box-shadow:var(--shadow);margin-bottom:16px;}
-        .task-title{font-weight:900;margin:0 0 10px;font-size:19px;color:#000;}
-        .task-instructions{color:#000;font-size:17px;line-height:1.65;white-space:pre-line;margin:0 0 14px;font-weight:800;}
+        .task-title{font-weight:800;margin:0 0 10px;font-size:16px;}
+        .task-instructions{color:var(--muted);font-size:13px;line-height:1.4;white-space:pre-line;margin:0 0 14px;}
         .headings-list-title{font-weight:800;margin:0 0 8px;}
         .headings-list{margin:0;padding-left:18px;line-height:1.55;}
         .headings-list li{margin:4px 0;}
@@ -574,10 +570,10 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         .qrows{margin-top:14px;display:flex;flex-direction:column;gap:12px;}
         .qrow{display:grid;grid-template-columns:38px 1fr 180px;gap:10px;align-items:center;}
         .qbox{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;background:#fff;flex:0 0 auto;}
-        .qtext{font-weight:700;line-height:1.45;color:#000;}
+        .qtext{font-weight:600;line-height:1.35;}
         .qselect{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:#fff;font-size:14px;}
         .sentenceRow{display:flex;gap:10px;align-items:flex-start;margin:10px 0 14px;}
-        .sentenceLine{flex:1;line-height:1.7;font-weight:700;color:#000;}
+        .sentenceLine{flex:1;line-height:1.6;font-weight:600;}
         .gapInput{width:220px;max-width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:12px;font-size:14px;background:#fff;}
         .gapInline{display:inline-block;vertical-align:baseline;margin:0 6px;}
         .gapInline input{width:220px;max-width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;}
@@ -1331,13 +1327,14 @@ qnum.textContent = `${item.q}`;
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
 
+      try { HL()?.persistCurrentReadingRoots?.(); } catch {}
+
       if (!hasSubmittedReading) {
         const latest = collectCurrentAnswersFromDOM(answersRef.current);
         saveAnswers(latest);
       }
 
       activePart = partId;
-      syncReadingPartState();
       refreshTabUI();
 
       renderPassageForActivePart();
@@ -1346,11 +1343,13 @@ qnum.textContent = `${item.q}`;
       answersRef.current = fresh;
       renderQuestionsForActivePart(fresh);
 
+      try { HL()?.restoreReadingRootsSoon?.(); } catch {}
+
       if (hasSubmittedReading) {
-      lockReadingUI();
-      // If the page is refreshed after Reading was submitted, show the Writing gate.
-      transitionToWritingOnce();
-    }
+        lockReadingUI();
+        // If the page is refreshed after Reading was submitted, show the Writing gate.
+        transitionToWritingOnce();
+      }
     }
 
     function renderPassageForActivePart() {
@@ -1371,15 +1370,11 @@ qnum.textContent = `${item.q}`;
     .join("");
 
   passageEl.innerHTML = html;
-  passageEl.style.background = "#ffffff";
-  passageEl.style.color = "#000000";
 }
     function renderQuestionsForActivePart(answers) {
       const card = $("qCard");
       if (!card) return;
       card.innerHTML = "";
-      card.style.background = "#ffffff";
-      card.style.color = "#000000";
 
       const partCfg = getActivePartConfig();
       if (partCfg && typeof partCfg.renderQuestions === "function") {
@@ -1434,11 +1429,11 @@ qnum.textContent = `${item.q}`;
     injectStyles();
     const answersRef = { current: loadState().answers };
 
-    syncReadingPartState();
     buildPartTabs();
     initReadingSplitter();
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
+    try { HL()?.restoreReadingRootsSoon?.(); } catch {}
 
     if (hasSubmittedReading) {
       lockReadingUI();

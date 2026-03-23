@@ -147,3 +147,56 @@
   .passage{ flex-basis:auto; }
   .splitter{ display:none; }
 }
+
+
+/* --- Reading legibility fixes --- */
+#container,
+#container .passage,
+#container .questions,
+#container .qcard,
+#container .panel,
+#container .optionsBox{
+  background:#ffffff !important;
+}
+
+#container .passage,
+#container .passage h1,
+#container .passage h2,
+#container .passage h3,
+#container .passage h4,
+#container .passage p,
+#container .passage li,
+#container .passage div,
+#container .questions,
+#container .questions h1,
+#container .questions h2,
+#container .questions h3,
+#container .questions h4,
+#container .questions p,
+#container .questions li,
+#container .questions label,
+#container .questions span,
+#container .questions div{
+  color:#000000 !important;
+}
+
+#container .task-instructions{
+  font-size:17px !important;
+  line-height:1.65 !important;
+  font-weight:800 !important;
+  color:#000000 !important;
+}
+
+#container .task-title{
+  font-size:19px !important;
+  font-weight:900 !important;
+  color:#000000 !important;
+}
+
+#container .headings-list-title,
+#container .answer-example,
+#container .qtext,
+#container .sentenceLine,
+#container .mcqPrompt{
+  color:#000000 !important;
+}

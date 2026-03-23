@@ -314,9 +314,14 @@
         if (!isAdmin) return;
         UI().setExamStarted(true);
         resetEngineInitFlags();
-        window.IELTS.Engines.Listening.initListeningSystem();
         UI().showOnly("listening");
         UI().setExamNavStatus("Status: Viewing Listening");
+        try {
+          window.IELTS.Engines.Listening.initListeningSystem();
+        } catch (e) {
+          console.error("Listening failed to open from nav:", e);
+          try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
+        }
       };
     }
 
@@ -654,11 +659,17 @@ function startFreshExam() {
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 
-      safe(() => UI().setExamStarted(true));
-      safe(() => window.IELTS.Engines.Listening.initListeningSystem());
-      safe(() => UI().showOnly("listening"));
-      safe(() => UI().setExamNavStatus("Status: Listening in progress"));
-      safe(() => window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"));
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("listening"); } catch (e) {}
+      try { UI().setExamNavStatus("Status: Listening in progress"); } catch (e) {}
+      try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"); } catch (e) {}
+
+      try {
+        window.IELTS.Engines.Listening.initListeningSystem();
+      } catch (e) {
+        console.error("Listening failed to start:", e);
+        try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
+      }
 
       // if audio already bound, ensure fallback ended listener exists
       const a = document.getElementById("listeningAudio");

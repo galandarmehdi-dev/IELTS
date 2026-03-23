@@ -182,7 +182,7 @@ function routeHomeAfterLogin() {
   }
 }
 
-async function refreshAuthUI({ forceHome = true } = {}) {
+async function refreshAuthUI({ forceHome = false } = {}) {
   const { data, error } = await supabase.auth.getSession();
 
   if (error) {
@@ -369,7 +369,8 @@ async function bootAuth() {
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
-    const ok = await refreshAuthUI({ forceHome: true });
+    const shouldForceHomeOnBoot = hasOAuthCallbackParams() || location.hash === "#" || !location.hash;
+    const ok = await refreshAuthUI({ forceHome: shouldForceHomeOnBoot });
 
     if (!ok && !authReady) {
       showProtectedApp(false);

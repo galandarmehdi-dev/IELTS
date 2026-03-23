@@ -24,6 +24,29 @@
     S().setJSON(STORAGE_KEY, obj);
   }
 
+
+  function getCurrentReadingPart() {
+    try {
+      const fromDom = document.documentElement?.dataset?.readingPart;
+      if (fromDom) return String(fromDom);
+    } catch {}
+    try {
+      const activeBtn = document.querySelector(".partTab.active");
+      const txt = String(activeBtn?.textContent || "").toLowerCase();
+      if (txt.includes("1")) return "part1";
+      if (txt.includes("2")) return "part2";
+      if (txt.includes("3")) return "part3";
+    } catch {}
+    return "part1";
+  }
+
+  function effectiveStoreKey(rootKey) {
+    if (rootKey === "readingPassage" || rootKey === "readingQuestions") {
+      return `${rootKey}::${getCurrentReadingPart()}`;
+    }
+    return rootKey;
+  }
+
   function ensureToolbar() {
     if (toolbar) return;
 
@@ -270,7 +293,7 @@
 
   function saveHighlightsFromDOM(rootInfo) {
     const rootEl = rootInfo.el;
-    const key = rootInfo.key;
+    const key = effectiveStoreKey(rootInfo.key);
 
     const store = readStore();
     const records = [];
@@ -295,7 +318,7 @@
 
   function restoreHighlightsToRoot(rootInfo) {
     const rootEl = rootInfo.el;
-    const key = rootInfo.key;
+    const key = effectiveStoreKey(rootInfo.key);
 
     clearAllHighlightsInRoot(rootEl);
 
@@ -370,18 +393,24 @@
 
     ROOTS.forEach(restoreHighlightsToRoot);
 
+    function restoreReadingRootsSoon() {
+      setTimeout(() => {
+        const p = ROOTS.find((r) => r.key === "readingPassage");
+        const q = ROOTS.find((r) => r.key === "readingQuestions");
+        if (p) restoreHighlightsToRoot(p);
+        if (q) restoreHighlightsToRoot(q);
+      }, 0);
+    }
+
     // restore after part switch
     document.addEventListener("click", (e) => {
       const el = e.target;
       if (el && el.classList && el.classList.contains("partTab")) {
-        setTimeout(() => {
-          const p = ROOTS.find((r) => r.key === "readingPassage");
-          const q = ROOTS.find((r) => r.key === "readingQuestions");
-          if (p) restoreHighlightsToRoot(p);
-          if (q) restoreHighlightsToRoot(q);
-        }, 0);
+        restoreReadingRootsSoon();
       }
     });
+
+    document.addEventListener("reading:partchange", restoreReadingRootsSoon);
 
     document.addEventListener("mouseup", () => setTimeout(onSelectionChange, 0));
     document.addEventListener("keyup", () => setTimeout(onSelectionChange, 0));

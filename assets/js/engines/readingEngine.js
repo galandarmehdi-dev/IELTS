@@ -1329,7 +1329,6 @@ qnum.textContent = `${item.q}`;
         const passageEl = $("passage");
         const qCard = $("qCard");
         if (HL?.registerReadingRoots) HL.registerReadingRoots(activePart, passageEl, qCard);
-        if (HL?.restoreReadingPartHighlights) HL.restoreReadingPartHighlights(activePart);
       } catch {}
     }
 
@@ -1337,14 +1336,12 @@ qnum.textContent = `${item.q}`;
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
 
-      try { window.IELTS?.Highlighting?.persistCurrentReadingRoots?.(activePart); } catch (e) {}
+      try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch {}
 
       if (!hasSubmittedReading) {
         const latest = collectCurrentAnswersFromDOM(answersRef.current);
         saveAnswers(latest);
       }
-
-      try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch {}
 
       activePart = partId;
       try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch {}
@@ -1356,13 +1353,14 @@ qnum.textContent = `${item.q}`;
       answersRef.current = fresh;
       renderQuestionsForActivePart(fresh);
 
-      try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch (e) {}
+      syncReadingHighlights();
+      try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch {}
 
       if (hasSubmittedReading) {
-      lockReadingUI();
-      // If the page is refreshed after Reading was submitted, show the Writing gate.
-      transitionToWritingOnce();
-    }
+        lockReadingUI();
+        // If the page is refreshed after Reading was submitted, show the Writing gate.
+        transitionToWritingOnce();
+      }
     }
 
     function renderPassageForActivePart() {

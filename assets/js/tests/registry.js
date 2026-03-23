@@ -13,8 +13,23 @@
 
   const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;
+  const TEST_PASSWORD = "ILEZT123";
   const TEMP_STUDENT_AUDIO_SCRUB = true;
   const HISTORY_TABLE = "exam_attempts";
+
+  const TIMEOUTS = {
+    submissionPostMs: 45000,
+    resultFetchMs: 45000,
+    historySyncMs: 45000,
+    historyInsertMs: 12000,
+    historyUpdateMs: 12000,
+  };
+
+  const POLLING = {
+    markedResultIntervalMs: 10000,
+    markedResultMaxAttempts: 18,
+    historyRefreshPendingLimit: 8,
+  };
 
   const EXAM = {
     id: "ielts-full-001",
@@ -108,8 +123,11 @@
     REALTIME_SESSION_ENDPOINT,
     ADMIN_PASSCODE,
     ADMIN_SESSION_TTL_MIN,
+    TEST_PASSWORD,
     TEMP_STUDENT_AUDIO_SCRUB,
     HISTORY_TABLE,
+    TIMEOUTS,
+    POLLING,
     EXAM,
     KEYS,
     LEGACY,

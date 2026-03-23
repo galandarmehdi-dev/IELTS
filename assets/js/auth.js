@@ -20,17 +20,6 @@ const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const logoutBtn = document.getElementById("logoutBtn");
 
-const protectedIds = [
-  "homeSection",
-  "historySection",
-  "listeningSection",
-  "readingControls",
-  "container",
-  "writingSection",
-  "examNav",
-  "adminResultsSection"
-];
-
 let authReady = false;
 let loggingOut = false;
 
@@ -44,17 +33,6 @@ function getSavedUser() {
   } catch {
     return null;
   }
-}
-
-function showProtectedApp(show) {
-  protectedIds.forEach((id) => {
-    const el = getEl(id);
-    if (!el) return;
-    el.classList.toggle("hidden", !show);
-  });
-
-  if (authGate) authGate.classList.toggle("hidden", show);
-  if (logoutBtn) logoutBtn.classList.toggle("hidden", !show);
 }
 
 function setMessage(text) {
@@ -100,6 +78,35 @@ function hideBlockingModals() {
     listenModal.classList.add("hidden");
     listenModal.style.display = "none";
   }
+}
+
+function forceHideAllAppSections() {
+  [
+    "homeSection",
+    "historySection",
+    "listeningSection",
+    "readingControls",
+    "container",
+    "writingSection",
+    "examNav",
+    "adminResultsSection"
+  ].forEach((id) => {
+    const el = getEl(id);
+    if (el) el.classList.add("hidden");
+  });
+}
+
+function showProtectedApp(show) {
+  if (authGate) authGate.classList.toggle("hidden", show);
+  if (logoutBtn) logoutBtn.classList.toggle("hidden", !show);
+
+  if (!show) {
+    forceHideAllAppSections();
+    return;
+  }
+
+  // IMPORTANT: do not unhide every section here.
+  // Let UI.showOnly() decide which screen should be visible.
 }
 
 function hasOAuthCallbackParams() {
@@ -154,12 +161,7 @@ function routeHomeAfterLogin() {
   } catch {}
 
   hideBlockingModals();
-
-  try {
-    window.IELTS?.UI?.showOnly?.("home");
-    window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
-    window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
-  } catch {}
+  forceHideAllAppSections();
 
   try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
@@ -169,9 +171,18 @@ function routeHomeAfterLogin() {
       history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
     }
   } catch {}
+
+  try {
+    window.IELTS?.UI?.showOnly?.("home");
+    window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
+    window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
+  } catch {
+    const home = getEl("homeSection");
+    if (home) home.classList.remove("hidden");
+  }
 }
 
-async function refreshAuthUI({ forceHome = false } = {}) {
+async function refreshAuthUI({ forceHome = true } = {}) {
   const { data, error } = await supabase.auth.getSession();
 
   if (error) {
@@ -358,7 +369,7 @@ async function bootAuth() {
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
-    const ok = await refreshAuthUI({ forceHome: hasOAuthCallbackParams() || location.hash === "#" || !location.hash });
+    const ok = await refreshAuthUI({ forceHome: true });
 
     if (!ok && !authReady) {
       showProtectedApp(false);

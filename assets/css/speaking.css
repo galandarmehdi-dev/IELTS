@@ -1,48 +1,76 @@
-
-#speakingSection {
-  padding: 24px;
+/* ===================== SPEAKING ===================== */
+#speakingSection{
+  min-height:100vh;
+  padding:28px 0 42px;
+  background:
+    radial-gradient(820px 360px at 0% 0%, rgba(18,59,109,.10), transparent 56%),
+    radial-gradient(760px 340px at 100% 0%, rgba(215,25,32,.10), transparent 54%),
+    linear-gradient(180deg, #f6f9fd 0%, #eef3f8 100%);
 }
-
-.speaking-shell {
-  max-width: 900px;
-  margin: 0 auto;
+.speaking-shell{
+  max-width:960px;
+  margin:0 auto;
+  padding:0 18px;
 }
-
-.speaking-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+.speaking-topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:18px;
 }
-
-.speaking-card {
-  background: #fff;
-  border: 1px solid #d7dce5;
-  border-radius: 14px;
-  padding: 18px;
-  margin-bottom: 16px;
+.speaking-topbar h1{
+  margin:0;
+  font-size:38px;
+  line-height:1.08;
+  letter-spacing:-.03em;
+  color:#152033;
 }
-
-.speaking-card h2 {
-  margin-top: 0;
-  margin-bottom: 10px;
+#speakingStatus{
+  display:inline-flex;
+  align-items:center;
+  min-height:42px;
+  padding:0 14px;
+  border-radius:999px;
+  border:1px solid #d5deeb;
+  background:#f7fbff;
+  color:#123b6d;
+  font-weight:900;
 }
-
+.speaking-card{
+  background:linear-gradient(180deg, #fff 0%, #fafcff 100%);
+  border:1px solid #dbe3ee;
+  border-radius:24px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 22px 54px rgba(16,24,40,.08);
+}
+.speaking-card h2{ margin:0 0 10px; color:#152033; }
+.speaking-card p{ margin:0; color:#5d697f; line-height:1.65; }
 #startSpeakingBtn,
 #stopSpeakingBtn,
 #downloadSpeakingBtn,
-#backFromSpeakingBtn {
-  margin-right: 10px;
-  margin-bottom: 10px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid #cfd6e4;
-  background: #f7f9fc;
-  cursor: pointer;
+#backFromSpeakingBtn{
+  margin-right:10px;
+  margin-bottom:10px;
+  min-height:44px;
+  padding:0 18px;
+  border-radius:999px;
+  border:none;
+  background:linear-gradient(180deg, #d71920 0%, #b51017 100%);
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 12px 24px rgba(215,25,32,.18);
+  cursor:pointer;
 }
+#backFromSpeakingBtn{
+  background:#fff;
+  color:#123b6d;
+  border:1px solid #dbe3ee;
+  box-shadow:0 8px 20px rgba(16,24,40,.06);
+}
+#speakingPlayback{ width:100%; margin-top:10px; }
 
-#speakingPlayback {
-  width: 100%;
-  margin-top: 10px;
+@media (max-width: 720px){
+  .speaking-topbar{ flex-direction:column; align-items:flex-start; }
 }

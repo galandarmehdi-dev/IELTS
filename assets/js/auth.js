@@ -22,6 +22,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 
 let authReady = false;
 let loggingOut = false;
+let hasHandledInitialLoginRedirect = false;
 
 function getEl(id) {
   return document.getElementById(id);
@@ -154,6 +155,58 @@ function clearAuthCallbackArtifacts() {
   } catch {}
 }
 
+function getDesiredView() {
+  try {
+    const hashRoute = window.IELTS?.Router?.parseHashRoute?.();
+    if (hashRoute?.view) return String(hashRoute.view);
+  } catch {}
+
+  try {
+    const saved = localStorage.getItem("IELTS:HOME:lastView");
+    if (saved && String(saved).trim()) return String(saved).trim();
+  } catch {}
+
+  return "home";
+}
+
+function restoreViewAfterAuth() {
+  hideBlockingModals();
+
+  const view = getDesiredView();
+  const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+
+  try {
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute(activeTestId, view);
+    } else if (!location.hash || location.hash === "#") {
+      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/${view}`);
+    }
+  } catch {}
+
+  try {
+    window.IELTS?.UI?.showOnly?.(view);
+    if (view === "home") {
+      window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
+      window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
+    }
+    return;
+  } catch {}
+
+  const fallbackIdMap = {
+    home: "homeSection",
+    listening: "listeningSection",
+    reading: "readingControls",
+    writing: "writingSection",
+    adminResults: "adminResultsSection",
+    history: "historySection"
+  };
+
+  forceHideAllAppSections();
+  const fallbackId = fallbackIdMap[view] || "homeSection";
+  const el = getEl(fallbackId);
+  if (el) el.classList.remove("hidden");
+}
+
 function routeHomeAfterLogin() {
   try {
     localStorage.setItem("IELTS:HOME:lastView", "home");
@@ -206,10 +259,20 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     setMessage("");
     authReady = true;
 
-    if (forceHome || hasOAuthCallbackParams() || location.hash === "#" || !location.hash) {
+    if (forceHome) {
       routeHomeAfterLogin();
       clearAuthCallbackArtifacts();
+      hasHandledInitialLoginRedirect = true;
+      return true;
     }
+
+    restoreViewAfterAuth();
+
+    if (hasOAuthCallbackParams()) {
+      clearAuthCallbackArtifacts();
+      hasHandledInitialLoginRedirect = true;
+    }
+
     return true;
   }
 
@@ -336,8 +399,15 @@ supabase.auth.onAuthStateChange((event, session) => {
     showProtectedApp(true);
     setMessage("");
     authReady = true;
-    routeHomeAfterLogin();
-    clearAuthCallbackArtifacts();
+
+    const shouldForceHome = hasOAuthCallbackParams() && !hasHandledInitialLoginRedirect;
+    if (shouldForceHome) {
+      routeHomeAfterLogin();
+      clearAuthCallbackArtifacts();
+      hasHandledInitialLoginRedirect = true;
+    } else {
+      restoreViewAfterAuth();
+    }
     return;
   }
 
@@ -345,6 +415,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     saveUser(session.user);
     showProtectedApp(true);
     setMessage("");
+    authReady = true;
     return;
   }
 
@@ -355,6 +426,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     syncAuthExport();
     setMessage("");
     authReady = true;
+    hasHandledInitialLoginRedirect = false;
     return;
   }
 });
@@ -364,13 +436,13 @@ async function bootAuth() {
   showProtectedApp(false);
 
   try {
-    if (hasOAuthCallbackParams()) {
+    const cameFromOAuth = hasOAuthCallbackParams();
+    if (cameFromOAuth) {
       setMessage("Signing you in...");
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
-    const shouldForceHomeOnBoot = hasOAuthCallbackParams() || location.hash === "#" || !location.hash;
-    const ok = await refreshAuthUI({ forceHome: shouldForceHomeOnBoot });
+    const ok = await refreshAuthUI({ forceHome: cameFromOAuth });
 
     if (!ok && !authReady) {
       showProtectedApp(false);

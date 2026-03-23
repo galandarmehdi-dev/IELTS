@@ -1300,6 +1300,7 @@ qnum.textContent = `${item.q}`;
         const b = document.createElement("button");
         b.type = "button";
         b.className = "partTab";
+        b.dataset.part = id;
         b.textContent = label;
         b.addEventListener("click", () => switchPart(id));
         return b;
@@ -1322,6 +1323,16 @@ qnum.textContent = `${item.q}`;
       });
     }
 
+    function syncReadingHighlights() {
+      try {
+        const HL = window.IELTS?.Highlighting;
+        const passageEl = $("passage");
+        const qCard = $("qCard");
+        if (HL?.registerReadingRoots) HL.registerReadingRoots(activePart, passageEl, qCard);
+        if (HL?.restoreReadingPartHighlights) HL.restoreReadingPartHighlights(activePart);
+      } catch {}
+    }
+
     function switchPart(partId) {
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
@@ -1333,7 +1344,10 @@ qnum.textContent = `${item.q}`;
         saveAnswers(latest);
       }
 
+      try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch {}
+
       activePart = partId;
+      try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch {}
       refreshTabUI();
 
       renderPassageForActivePart();
@@ -1430,8 +1444,10 @@ qnum.textContent = `${item.q}`;
 
     buildPartTabs();
     initReadingSplitter();
+    try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch {}
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
+    syncReadingHighlights();
     try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch (e) {}
 
     if (hasSubmittedReading) {

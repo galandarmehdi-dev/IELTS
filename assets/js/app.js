@@ -8,11 +8,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
   
-  // Student test password (front-end gate)
-  window.IELTS = window.IELTS || {};
-  window.IELTS.Registry = window.IELTS.Registry || {};
-  window.IELTS.Registry.TEST_PASSWORD = "ILEZT123";
-const Router = () => window.IELTS.Router;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
   function isAdminView() {

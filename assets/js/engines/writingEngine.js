@@ -290,14 +290,12 @@
           user_email: authUser.email || null,
           student_full_name: finalPayload?.studentFullName || authUser.name || null,
           exam_id: finalPayload?.examId || null,
-          active_test_id: listening?.activeTestId || reading?.activeTestId || null,
+          active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || null,
           submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
           reason: writing?.reason || reading?.reason || listening?.reason || null,
           listening_test_id: listening?.testId || null,
           reading_test_id: reading?.testId || null,
           writing_test_id: writing?.testId || null,
-          listening_answers: listening?.answers || {},
-          reading_answers: reading?.answers || {},
           writing_task1: task1,
           writing_task2: task2,
           task1_words: Number(writing?.wordCount?.task1 || 0),
@@ -306,13 +304,13 @@
         };
 
         const insertPromise = supabase.from(historyTable).insert(record);
-        const result = await withTimeout(insertPromise, Number(R().TIMEOUTS?.historyInsertMs || 12000), "History save");
+        const result = await withTimeout(insertPromise, Number(R().TIMEOUTS?.historyInsertMs || 25000), "History save");
         const error = result?.error || null;
         if (error) throw error;
         return { ok: true };
       } catch (err) {
         console.error("Supabase history save failed:", err);
-        return { ok: false, error: err };
+        return { ok: false, error: err, message: String(err?.message || err || "History save failed") };
       }
     }
 

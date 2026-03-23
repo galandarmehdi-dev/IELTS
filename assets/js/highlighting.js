@@ -36,12 +36,20 @@
     return "part1";
   }
 
-  function getStoreKey(baseKey) {
+  function getStoreKey(baseKey, partIdOverride) {
     const key = String(baseKey || "");
     if (key === "readingPassage" || key === "readingQuestions") {
-      return `${key}:${getActiveReadingPart()}`;
+      const partId = String(partIdOverride || getActiveReadingPart() || "part1");
+      return `${key}:${partId}`;
     }
     return key;
+  }
+
+  function getReadingRootPair() {
+    return {
+      passage: ROOTS.find((r) => r.key === "readingPassage") || null,
+      questions: ROOTS.find((r) => r.key === "readingQuestions") || null,
+    };
   }
 
   function ensureToolbar() {
@@ -285,12 +293,12 @@
     return last;
   }
 
-  function saveHighlightsFromDOM(rootInfo) {
+  function saveHighlightsFromDOM(rootInfo, partIdOverride) {
     if (!rootInfo?.el) return;
 
     const rootEl = rootInfo.el;
     const store = readStore();
-    const saveKey = getStoreKey(rootInfo.key);
+    const saveKey = getStoreKey(rootInfo.key, partIdOverride);
     const records = [];
 
     rootEl.querySelectorAll("mark.hl").forEach((mark) => {
@@ -310,12 +318,12 @@
     writeStore(store);
   }
 
-  function restoreHighlightsToRoot(rootInfo) {
+  function restoreHighlightsToRoot(rootInfo, partIdOverride) {
     if (!rootInfo?.el) return;
 
     const rootEl = rootInfo.el;
     const store = readStore();
-    const saveKey = getStoreKey(rootInfo.key);
+    const saveKey = getStoreKey(rootInfo.key, partIdOverride);
     const records = Array.isArray(store[saveKey]) ? store[saveKey] : [];
 
     clearAllHighlightsInRoot(rootEl);
@@ -336,20 +344,26 @@
     });
   }
 
-  function restoreReadingRootsSoon() {
+  function restoreReadingRootsSoon(partIdOverride) {
     setTimeout(() => {
-      const p = ROOTS.find((r) => r.key === "readingPassage");
-      const q = ROOTS.find((r) => r.key === "readingQuestions");
-      if (p) restoreHighlightsToRoot(p);
-      if (q) restoreHighlightsToRoot(q);
+      restoreReadingPartHighlights(partIdOverride || getActiveReadingPart());
     }, 0);
   }
 
-  function persistCurrentReadingRoots() {
-    const p = ROOTS.find((r) => r.key === "readingPassage");
-    const q = ROOTS.find((r) => r.key === "readingQuestions");
-    if (p) saveHighlightsFromDOM(p);
-    if (q) saveHighlightsFromDOM(q);
+  function persistCurrentReadingRoots(partIdOverride) {
+    saveReadingPartHighlights(partIdOverride || getActiveReadingPart());
+  }
+
+  function saveReadingPartHighlights(partId) {
+    const pair = getReadingRootPair();
+    if (pair.passage) saveHighlightsFromDOM(pair.passage, partId);
+    if (pair.questions) saveHighlightsFromDOM(pair.questions, partId);
+  }
+
+  function restoreReadingPartHighlights(partId) {
+    const pair = getReadingRootPair();
+    if (pair.passage) restoreHighlightsToRoot(pair.passage, partId);
+    if (pair.questions) restoreHighlightsToRoot(pair.questions, partId);
   }
 
   function onSelectionChange() {
@@ -398,13 +412,18 @@
     document.addEventListener("mousedown", (e) => {
       const tab = e.target?.closest?.(".partTab");
       if (!tab) return;
-      persistCurrentReadingRoots();
+      persistCurrentReadingRoots(getActiveReadingPart());
     }, true);
 
     document.addEventListener("click", (e) => {
       const tab = e.target?.closest?.(".partTab");
       if (!tab) return;
-      restoreReadingRootsSoon();
+      const targetPart =
+        tab?.dataset?.part ||
+        tab?.getAttribute?.("data-part") ||
+        tab?.dataset?.partId ||
+        tab?.getAttribute?.("data-part-id");
+      restoreReadingRootsSoon(targetPart || getActiveReadingPart());
     });
 
     document.addEventListener("mouseup", () => setTimeout(onSelectionChange, 0));
@@ -422,5 +441,7 @@
   window.IELTS.Highlighting = {
     restoreReadingRootsSoon,
     persistCurrentReadingRoots,
+    saveReadingPartHighlights,
+    restoreReadingPartHighlights,
   };
 })();

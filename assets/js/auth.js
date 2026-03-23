@@ -9,7 +9,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: "pkce"
+    flowType: "pkce",
+    storageKey: "ieltsmock-auth"
   }
 });
 
@@ -21,6 +22,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 
 const protectedIds = [
   "homeSection",
+  "historySection",
   "listeningSection",
   "readingControls",
   "container",
@@ -28,6 +30,9 @@ const protectedIds = [
   "examNav",
   "adminResultsSection"
 ];
+
+let authReady = false;
+let loggingOut = false;
 
 function getEl(id) {
   return document.getElementById(id);
@@ -57,18 +62,22 @@ function setMessage(text) {
 }
 
 function saveUser(user) {
-  localStorage.setItem(
-    "IELTS:AUTH:user",
-    JSON.stringify({
-      id: user?.id || "",
-      email: user?.email || "",
-      name: user?.user_metadata?.full_name || user?.user_metadata?.name || ""
-    })
-  );
+  try {
+    localStorage.setItem(
+      "IELTS:AUTH:user",
+      JSON.stringify({
+        id: user?.id || "",
+        email: user?.email || "",
+        name: user?.user_metadata?.full_name || user?.user_metadata?.name || ""
+      })
+    );
+  } catch {}
 }
 
 function clearSavedUser() {
-  localStorage.removeItem("IELTS:AUTH:user");
+  try {
+    localStorage.removeItem("IELTS:AUTH:user");
+  } catch {}
 }
 
 function syncAuthExport() {
@@ -88,12 +97,57 @@ function hideBlockingModals() {
 
   const listenModal = getEl("listenModal");
   if (listenModal) {
-    listenModal.classList.remove("hidden");
+    listenModal.classList.add("hidden");
     listenModal.style.display = "none";
   }
 }
 
-function forceHomeAfterLogin() {
+function hasOAuthCallbackParams() {
+  try {
+    const params = new URLSearchParams(location.search);
+    if (params.get("code")) return true;
+    if (params.get("access_token")) return true;
+    if (params.get("refresh_token")) return true;
+    if (params.get("token_hash")) return true;
+
+    const hash = String(location.hash || "");
+    return (
+      hash.includes("access_token=") ||
+      hash.includes("refresh_token=") ||
+      hash.includes("type=recovery") ||
+      hash.includes("type=signup")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function clearAuthCallbackArtifacts() {
+  try {
+    const url = new URL(location.href);
+    url.searchParams.delete("code");
+    url.searchParams.delete("type");
+    url.searchParams.delete("access_token");
+    url.searchParams.delete("refresh_token");
+    url.searchParams.delete("expires_at");
+    url.searchParams.delete("expires_in");
+    url.searchParams.delete("token_type");
+    url.searchParams.delete("provider_token");
+    url.searchParams.delete("provider_refresh_token");
+
+    if (
+      String(url.hash || "").includes("access_token=") ||
+      String(url.hash || "").includes("refresh_token=") ||
+      url.hash === "#"
+    ) {
+      url.hash = "";
+    }
+
+    history.replaceState({}, "", url.pathname + url.search + url.hash);
+  } catch {}
+}
+
+function routeHomeAfterLogin() {
   try {
     localStorage.setItem("IELTS:HOME:lastView", "home");
     localStorage.setItem("IELTS:EXAM:started", "false");
@@ -111,52 +165,64 @@ function forceHomeAfterLogin() {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
     if (window.IELTS?.Router?.setHashRoute) {
       window.IELTS.Router.setHashRoute(activeTestId, "home");
-    } else if (location.hash === "#" || !location.hash) {
+    } else {
       history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
     }
   } catch {}
 }
 
-function clearOAuthFragmentsIfNeeded() {
-  if (location.hash === "#") {
-    try {
-      history.replaceState({}, "", location.pathname + location.search);
-    } catch {}
-  }
-}
-
 async function refreshAuthUI({ forceHome = false } = {}) {
   const { data, error } = await supabase.auth.getSession();
+
   if (error) {
-    setMessage(error.message);
+    console.error("[AUTH] getSession error:", error);
+    setMessage(error.message || "Authentication error.");
     clearSavedUser();
     syncAuthExport();
+    hideBlockingModals();
     showProtectedApp(false);
-    return;
+    authReady = true;
+    return false;
   }
 
-  const session = data.session;
+  const session = data?.session || null;
+  const user = session?.user || null;
 
-  if (session?.user) {
-    saveUser(session.user);
+  if (user) {
+    saveUser(user);
     syncAuthExport();
     showProtectedApp(true);
-    if (forceHome || location.hash === "#" || !location.hash) {
-      forceHomeAfterLogin();
+    setMessage("");
+    authReady = true;
+
+    if (forceHome || hasOAuthCallbackParams() || location.hash === "#" || !location.hash) {
+      routeHomeAfterLogin();
+      clearAuthCallbackArtifacts();
     }
-  } else {
-    applyLoggedOutUI();
-    clearOAuthFragmentsIfNeeded();
+    return true;
   }
+
+  clearSavedUser();
+  syncAuthExport();
+  hideBlockingModals();
+  showProtectedApp(false);
+  authReady = true;
+  return false;
 }
 
 async function signInWithGoogle() {
   setMessage("Redirecting to Google...");
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: SITE_URL }
+    options: {
+      redirectTo: SITE_URL,
+      skipBrowserRedirect: false
+    }
   });
-  if (error) setMessage(error.message);
+  if (error) {
+    console.error("[AUTH] Google sign-in error:", error);
+    setMessage(error.message || "Google sign-in failed.");
+  }
 }
 
 async function signInWithMicrosoft() {
@@ -165,10 +231,14 @@ async function signInWithMicrosoft() {
     provider: "azure",
     options: {
       redirectTo: SITE_URL,
-      scopes: "email"
+      scopes: "email",
+      skipBrowserRedirect: false
     }
   });
-  if (error) setMessage(error.message);
+  if (error) {
+    console.error("[AUTH] Microsoft sign-in error:", error);
+    setMessage(error.message || "Microsoft sign-in failed.");
+  }
 }
 
 async function sendOtpOrMagicLink() {
@@ -181,8 +251,14 @@ async function sendOtpOrMagicLink() {
   setMessage("Sending... Please wait.");
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: SITE_URL }
+    options: {
+      emailRedirectTo: SITE_URL
+    }
   });
+
+  if (error) {
+    console.error("[AUTH] OTP send error:", error);
+  }
   setMessage(error ? error.message : "Check your email for the code or magic link.");
 }
 
@@ -203,40 +279,36 @@ async function verifyOtpCode() {
   });
 
   if (error) {
+    console.error("[AUTH] OTP verify error:", error);
     setMessage(error.message);
     return;
   }
 
-  setMessage("Login successful.");
   await refreshAuthUI({ forceHome: true });
 }
 
-let __logoutInFlight = false;
+async function logout() {
+  if (loggingOut) return;
+  loggingOut = true;
 
-function applyLoggedOutUI() {
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.error("[AUTH] Logout error:", e);
+  }
+
   hideBlockingModals();
   showProtectedApp(false);
   clearSavedUser();
   syncAuthExport();
   setMessage("");
-  try {
-    history.replaceState({}, "", location.pathname + location.search);
-  } catch {}
-}
 
-async function logout() {
-  if (__logoutInFlight) return;
-  __logoutInFlight = true;
   try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    applyLoggedOutUI();
-  } catch (err) {
-    console.error("Logout failed:", err);
-    setMessage(err?.message || "Could not log out.");
-  } finally {
-    __logoutInFlight = false;
-  }
+    const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+    history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
+  } catch {}
+
+  loggingOut = false;
 }
 
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
@@ -245,18 +317,57 @@ getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 logoutBtn?.addEventListener("click", logout);
 
-supabase.auth.onAuthStateChange(async (event) => {
-  if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
-    await refreshAuthUI({ forceHome: event === "SIGNED_IN" });
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log("[AUTH] onAuthStateChange:", event);
+
+  if (event === "SIGNED_IN" && session?.user) {
+    saveUser(session.user);
+    showProtectedApp(true);
+    setMessage("");
+    authReady = true;
+    routeHomeAfterLogin();
+    clearAuthCallbackArtifacts();
     return;
   }
+
+  if (event === "TOKEN_REFRESHED" && session?.user) {
+    saveUser(session.user);
+    showProtectedApp(true);
+    setMessage("");
+    return;
+  }
+
   if (event === "SIGNED_OUT") {
-    applyLoggedOutUI();
+    hideBlockingModals();
+    showProtectedApp(false);
+    clearSavedUser();
+    syncAuthExport();
+    setMessage("");
+    authReady = true;
     return;
   }
-  await refreshAuthUI();
 });
 
-syncAuthExport();
-showProtectedApp(false);
-refreshAuthUI({ forceHome: location.hash === "#" || !location.hash });
+async function bootAuth() {
+  syncAuthExport();
+  showProtectedApp(false);
+
+  try {
+    if (hasOAuthCallbackParams()) {
+      setMessage("Signing you in...");
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+
+    const ok = await refreshAuthUI({ forceHome: hasOAuthCallbackParams() || location.hash === "#" || !location.hash });
+
+    if (!ok && !authReady) {
+      showProtectedApp(false);
+    }
+  } catch (e) {
+    console.error("[AUTH] Boot error:", e);
+    showProtectedApp(false);
+    setMessage("Could not restore your session.");
+  }
+}
+
+bootAuth();

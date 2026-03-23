@@ -219,11 +219,11 @@
       return Boolean(task1 || task2);
     }
 
-    function fetchWithTimeout(url, options = {}, timeoutMs = 20000) {
+    function fetchWithTimeout(url, options = {}, timeoutMs = Number(R().TIMEOUTS?.resultFetchMs || 45000)) {
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timer = setTimeout(() => {
         try { controller?.abort(); } catch (e) {}
-      }, Math.max(1000, Number(timeoutMs) || 20000));
+      }, Math.max(1000, Number(timeoutMs) || Number(R().TIMEOUTS?.resultFetchMs || 45000)));
 
       const nextOptions = { ...options };
       if (controller) nextOptions.signal = controller.signal;
@@ -306,7 +306,7 @@
         };
 
         const insertPromise = supabase.from(historyTable).insert(record);
-        const result = await withTimeout(insertPromise, 8000, "History save");
+        const result = await withTimeout(insertPromise, Number(R().TIMEOUTS?.historyInsertMs || 12000), "History save");
         const error = result?.error || null;
         if (error) throw error;
         return { ok: true };
@@ -327,7 +327,7 @@
       url.searchParams.set("examId", String(finalPayload?.examId || ""));
       url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
 
-      const res = await fetchWithTimeout(url.toString(), { method: "GET" }, 12000);
+      const res = await fetchWithTimeout(url.toString(), { method: "GET", cache: "no-store" }, Number(R().TIMEOUTS?.resultFetchMs || 45000));
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true) {
         throw new Error((data && data.error) || `HTTP ${res.status}`);
@@ -364,7 +364,7 @@
           .eq("submitted_at", String(finalPayload?.submittedAt || ""))
           .eq("exam_id", String(finalPayload?.examId || ""));
 
-        const result = await withTimeout(updatePromise, 8000, "History score update");
+        const result = await withTimeout(updatePromise, Number(R().TIMEOUTS?.historyUpdateMs || 12000), "History score update");
         const error = result?.error || null;
         if (error) throw error;
         return { ok: true };
@@ -375,8 +375,8 @@
     }
 
     function startMarkedResultPolling(finalPayload) {
-      const maxAttempts = 12;
-      const intervalMs = 15000;
+      const maxAttempts = Number(R().POLLING?.markedResultMaxAttempts || 18);
+      const intervalMs = Number(R().POLLING?.markedResultIntervalMs || 10000);
       let attempts = 0;
 
       const tick = async () => {
@@ -396,7 +396,7 @@
         }
       };
 
-      setTimeout(tick, intervalMs);
+      setTimeout(tick, 4000);
     }
 
     async function submitFinalExam(reason) {
@@ -466,7 +466,7 @@
               "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
             },
             body: body.toString()
-          }, 20000);
+          }, Number(R().TIMEOUTS?.submissionPostMs || 45000));
 
           const text = await res.text();
           let json = null;
@@ -487,7 +487,17 @@
         const historyResult = await saveAttemptToSupabase(finalPayload);
 
         if (hasWritingText) {
-          startMarkedResultPolling(finalPayload);
+          try {
+            const immediate = await fetchStudentResultFromBackend(finalPayload);
+            if (immediate?.graded && immediate?.result) {
+              await updateAttemptScoresInSupabase(finalPayload, immediate.result);
+            } else {
+              startMarkedResultPolling(finalPayload);
+            }
+          } catch (err) {
+            console.error("Immediate marked-result fetch failed:", err);
+            startMarkedResultPolling(finalPayload);
+          }
         }
 
         if (historyResult?.ok) {

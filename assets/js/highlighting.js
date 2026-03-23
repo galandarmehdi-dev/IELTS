@@ -6,8 +6,7 @@
   window.__IELTS_HIGHLIGHT_INIT__ = true;
 
   const S = () => window.IELTS?.Storage;
-
-  const STORAGE_KEY = "IELTS:HIGHLIGHTS:v2";
+  const STORAGE_KEY = "IELTS:HIGHLIGHTS:v3";
   const ROOTS = [];
 
   let toolbar = null;
@@ -21,38 +20,6 @@
 
   function writeStore(obj) {
     try { S()?.setJSON?.(STORAGE_KEY, obj || {}); } catch {}
-  }
-
-  function getActiveReadingPart() {
-    try {
-      const explicit = window.IELTS?.__ACTIVE_READING_PART;
-      if (explicit) return String(explicit);
-      const active = document.querySelector(".partTab.active");
-      const partId =
-        active?.dataset?.part ||
-        active?.getAttribute?.("data-part") ||
-        active?.dataset?.partId ||
-        active?.getAttribute?.("data-part-id");
-      if (partId) return String(partId);
-    } catch {}
-    return "part1";
-  }
-
-  function getStoreKey(baseKey, partIdOverride, rootEl) {
-    const key = String(baseKey || "");
-    if (key === "readingPassage" || key === "readingQuestions") {
-      const fromEl = rootEl?.dataset?.hlPart || rootEl?.getAttribute?.("data-hl-part");
-      const partId = String(partIdOverride || fromEl || getActiveReadingPart() || "part1");
-      return `${key}:${partId}`;
-    }
-    return key;
-  }
-
-  function getReadingRootPair() {
-    return {
-      passage: ROOTS.find((r) => r.key === "readingPassage") || null,
-      questions: ROOTS.find((r) => r.key === "readingQuestions") || null,
-    };
   }
 
   function ensureToolbar() {
@@ -78,9 +45,7 @@
 
       const range = sel.getRangeAt(0);
       const rootInfo = findRootInfo(range.commonAncestorContainer);
-      if (!rootInfo) return;
-      if (isInsideForbidden(range.commonAncestorContainer)) return;
-      if (range.collapsed) return;
+      if (!rootInfo || range.collapsed || isInsideForbidden(range.commonAncestorContainer)) return;
 
       const marks = applyHighlightToRange(range, rootInfo.el);
       if (marks.length) saveHighlightsFromDOM(rootInfo);
@@ -110,12 +75,10 @@
       const node = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
       const rootInfo = findRootInfo(node);
       if (!rootInfo) return;
-
       if (!window.confirm("Clear ALL highlights in this section?")) return;
 
       clearAllHighlightsInRoot(rootInfo.el);
       saveHighlightsFromDOM(rootInfo);
-
       hideToolbar();
       try { sel?.removeAllRanges?.(); } catch {}
     });
@@ -140,14 +103,16 @@
   }
 
   function registerRoot(key, el) {
-    if (!el) return;
+    if (!key || !el) return null;
     el.dataset.hlRootKey = key;
     const existing = ROOTS.find((r) => r.key === key);
     if (existing) {
       existing.el = el;
-    } else {
-      ROOTS.push({ key, el });
+      return existing;
     }
+    const info = { key, el };
+    ROOTS.push(info);
+    return info;
   }
 
   function findRootInfo(node) {
@@ -157,6 +122,10 @@
     const rootEl = el.closest("[data-hl-root-key]");
     if (!rootEl) return null;
     const key = rootEl.dataset.hlRootKey;
+    return ROOTS.find((r) => r.key === key) || null;
+  }
+
+  function getRootInfoByKey(key) {
     return ROOTS.find((r) => r.key === key) || null;
   }
 
@@ -184,28 +153,6 @@
     rootEl?.querySelectorAll?.("mark.hl").forEach(unwrapMark);
   }
 
-  function getNodePath(root, node) {
-    const path = [];
-    let cur = node;
-    while (cur && cur !== root) {
-      const parent = cur.parentNode;
-      if (!parent) break;
-      const idx = Array.prototype.indexOf.call(parent.childNodes, cur);
-      path.unshift(idx);
-      cur = parent;
-    }
-    return path;
-  }
-
-  function resolveNodePath(root, path) {
-    let cur = root;
-    for (const idx of path || []) {
-      if (!cur || !cur.childNodes || !cur.childNodes[idx]) return null;
-      cur = cur.childNodes[idx];
-    }
-    return cur;
-  }
-
   function rangeIntersectsNode(range, node) {
     const nodeRange = document.createRange();
     nodeRange.selectNodeContents(node);
@@ -218,8 +165,7 @@
   function manualWrapTextRange(subRange, textNode, marks) {
     const start = subRange.startOffset;
     const end = subRange.endOffset;
-
-    const after = textNode.splitText(end);
+    textNode.splitText(end);
     const mid = textNode.splitText(start);
 
     const wrapMark = document.createElement("mark");
@@ -227,7 +173,6 @@
     wrapMark.appendChild(mid.cloneNode(true));
     mid.parentNode.replaceChild(wrapMark, mid);
     marks.push(wrapMark);
-    void after;
   }
 
   function mergeAdjacentMarks(rootEl) {
@@ -263,14 +208,12 @@
     textNodes.forEach((textNode) => {
       const sub = document.createRange();
       sub.selectNodeContents(textNode);
-
       if (textNode === range.startContainer) sub.setStart(textNode, range.startOffset);
       if (textNode === range.endContainer) sub.setEnd(textNode, range.endOffset);
       if (sub.collapsed) return;
 
       const mark = document.createElement("mark");
       mark.className = "hl";
-
       try {
         sub.surroundContents(mark);
         marks.push(mark);
@@ -283,20 +226,6 @@
     return marks;
   }
 
-  function firstTextNode(el) {
-    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    return w.nextNode();
-  }
-
-  function lastTextNode(el) {
-    let last = null;
-    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-    let n;
-    while ((n = w.nextNode())) last = n;
-    return last;
-  }
-
-  
   function getTextOffsetWithin(rootEl, targetNode, localOffset) {
     let total = 0;
     const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
@@ -306,6 +235,7 @@
         return NodeFilter.FILTER_ACCEPT;
       },
     });
+
     let n;
     while ((n = walker.nextNode())) {
       if (n === targetNode) return total + Math.min(localOffset || 0, n.nodeValue.length);
@@ -324,6 +254,7 @@
         return NodeFilter.FILTER_ACCEPT;
       },
     });
+
     let n;
     while ((n = walker.nextNode())) {
       const nextTotal = total + n.nodeValue.length;
@@ -335,111 +266,88 @@
     return null;
   }
 
-  function usesReadingOffsetStore(rootInfo) {
-    return !!rootInfo && (rootInfo.key === "readingPassage" || rootInfo.key === "readingQuestions");
-  }
-
-  function saveHighlightsFromDOM(rootInfo, partIdOverride) {
+  function saveHighlightsFromDOM(rootInfo) {
+    if (!rootInfo?.el) return;
     const rootEl = rootInfo.el;
-    const saveKey = getStoreKey(rootInfo.key, partIdOverride, rootEl);
-    const store = readStore();
     const records = [];
 
     rootEl.querySelectorAll("mark.hl").forEach((mark) => {
-      const firstText = firstTextNode(mark);
-      const lastText = lastTextNode(mark);
+      const walker = document.createTreeWalker(mark, NodeFilter.SHOW_TEXT, null);
+      const firstText = walker.nextNode();
+      let lastText = firstText;
+      let n;
+      while ((n = walker.nextNode())) lastText = n;
       if (!firstText || !lastText) return;
 
-      if (usesReadingOffsetStore(rootInfo)) {
-        const startOffset = getTextOffsetWithin(rootEl, firstText, 0);
-        const endOffset = getTextOffsetWithin(rootEl, lastText, lastText.nodeValue ? lastText.nodeValue.length : 0);
-        if (endOffset > startOffset) records.push({ mode: "offset", startOffset, endOffset });
-        return;
-      }
-
-      const startPath = getNodePath(rootEl, firstText);
-      const endPath = getNodePath(rootEl, lastText);
-      const startOffset = 0;
-      const endOffset = lastText.nodeValue ? lastText.nodeValue.length : 0;
-      records.push({ mode: "path", startPath, startOffset, endPath, endOffset });
+      const startOffset = getTextOffsetWithin(rootEl, firstText, 0);
+      const endOffset = getTextOffsetWithin(rootEl, lastText, lastText.nodeValue ? lastText.nodeValue.length : 0);
+      if (endOffset > startOffset) records.push({ startOffset, endOffset });
     });
 
-    store[saveKey] = records;
+    const store = readStore();
+    store[rootInfo.key] = records;
     writeStore(store);
   }
 
-  function restoreHighlightsToRoot(rootInfo, partIdOverride) {
+  function restoreHighlightsToRoot(rootInfo) {
+    if (!rootInfo?.el) return;
     const rootEl = rootInfo.el;
-    const saveKey = getStoreKey(rootInfo.key, partIdOverride, rootEl);
     clearAllHighlightsInRoot(rootEl);
 
     const store = readStore();
-    const records = Array.isArray(store[saveKey]) ? store[saveKey] : [];
+    const records = Array.isArray(store[rootInfo.key]) ? store[rootInfo.key] : [];
     if (!records.length) return;
 
     records.forEach((rec) => {
       try {
-        const r = document.createRange();
-
-        if (rec && rec.mode === "offset") {
-          const start = resolveTextOffsetWithin(rootEl, rec.startOffset);
-          const end = resolveTextOffsetWithin(rootEl, rec.endOffset);
-          if (!start || !end || start.node.nodeType !== 3 || end.node.nodeType !== 3) return;
-          r.setStart(start.node, start.offset);
-          r.setEnd(end.node, end.offset);
-        } else {
-          const startNode = resolveNodePath(rootEl, rec.startPath);
-          const endNode = resolveNodePath(rootEl, rec.endPath);
-          if (!startNode || !endNode) return;
-          if (startNode.nodeType !== 3 || endNode.nodeType !== 3) return;
-          r.setStart(startNode, Math.min(rec.startOffset || 0, startNode.nodeValue.length));
-          r.setEnd(endNode, Math.min(rec.endOffset || endNode.nodeValue.length, endNode.nodeValue.length));
-        }
-
-        if (!r.collapsed) applyHighlightToRange(r, rootEl);
+        const start = resolveTextOffsetWithin(rootEl, rec.startOffset);
+        const end = resolveTextOffsetWithin(rootEl, rec.endOffset);
+        if (!start || !end) return;
+        const range = document.createRange();
+        range.setStart(start.node, start.offset);
+        range.setEnd(end.node, end.offset);
+        if (!range.collapsed) applyHighlightToRange(range, rootEl);
       } catch {}
     });
 
     mergeAdjacentMarks(rootEl);
   }
 
+  function saveRootByKey(key) {
+    const info = getRootInfoByKey(key);
+    if (info) saveHighlightsFromDOM(info);
+  }
 
+  function restoreRootByKey(key) {
+    const info = getRootInfoByKey(key);
+    if (info) restoreHighlightsToRoot(info);
+  }
 
   function registerReadingRoots(partId, passageEl, questionsEl) {
-    try {
-      window.IELTS = window.IELTS || {};
-      window.IELTS.__ACTIVE_READING_PART = String(partId || "part1");
-    } catch {}
-    if (passageEl) {
-      passageEl.dataset.hlPart = String(partId || "part1");
-      registerRoot("readingPassage", passageEl);
-    }
-    if (questionsEl) {
-      questionsEl.dataset.hlPart = String(partId || "part1");
-      registerRoot("readingQuestions", questionsEl);
-    }
-  }
-
-  function restoreReadingRootsSoon(partIdOverride) {
-    setTimeout(() => {
-      restoreReadingPartHighlights(partIdOverride || getActiveReadingPart());
-    }, 0);
-  }
-
-  function persistCurrentReadingRoots(partIdOverride) {
-    saveReadingPartHighlights(partIdOverride || getActiveReadingPart());
+    const part = String(partId || "part1");
+    registerRoot(`readingPassage::${part}`, passageEl);
+    registerRoot(`readingQuestions::${part}`, questionsEl);
   }
 
   function saveReadingPartHighlights(partId) {
-    const pair = getReadingRootPair();
-    if (pair.passage) saveHighlightsFromDOM(pair.passage, partId);
-    if (pair.questions) saveHighlightsFromDOM(pair.questions, partId);
+    const part = String(partId || "part1");
+    saveRootByKey(`readingPassage::${part}`);
+    saveRootByKey(`readingQuestions::${part}`);
   }
 
   function restoreReadingPartHighlights(partId) {
-    const pair = getReadingRootPair();
-    if (pair.passage) restoreHighlightsToRoot(pair.passage, partId);
-    if (pair.questions) restoreHighlightsToRoot(pair.questions, partId);
+    const part = String(partId || "part1");
+    restoreRootByKey(`readingPassage::${part}`);
+    restoreRootByKey(`readingQuestions::${part}`);
+  }
+
+  function clearReadingPartHighlights(partId) {
+    const part = String(partId || "part1");
+    const store = readStore();
+    delete store[`readingPassage::${part}`];
+    delete store[`readingQuestions::${part}`];
+    writeStore(store);
+    restoreReadingPartHighlights(part);
   }
 
   function onSelectionChange() {
@@ -466,9 +374,7 @@
 
     if (!range.collapsed) {
       const rect = range.getBoundingClientRect();
-      const x = Math.min(window.innerWidth - 260, rect.left);
-      const y = Math.max(10, rect.top - 52);
-      showToolbarAt(x, y, "selection");
+      showToolbarAt(Math.min(window.innerWidth - 260, rect.left), Math.max(10, rect.top - 52), "selection");
       return;
     }
 
@@ -479,28 +385,10 @@
     ensureToolbar();
 
     registerRoot("listening", document.getElementById("listeningSection"));
-    registerRoot("readingPassage", document.getElementById("passage"));
-    registerRoot("readingQuestions", document.getElementById("qCard"));
     registerRoot("writing", document.getElementById("writingSection"));
 
-    ROOTS.forEach(restoreHighlightsToRoot);
-
-    document.addEventListener("mousedown", (e) => {
-      const tab = e.target?.closest?.(".partTab");
-      if (!tab) return;
-      persistCurrentReadingRoots(getActiveReadingPart());
-    }, true);
-
-    document.addEventListener("click", (e) => {
-      const tab = e.target?.closest?.(".partTab");
-      if (!tab) return;
-      const targetPart =
-        tab?.dataset?.part ||
-        tab?.getAttribute?.("data-part") ||
-        tab?.dataset?.partId ||
-        tab?.getAttribute?.("data-part-id");
-      restoreReadingRootsSoon(targetPart || getActiveReadingPart());
-    });
+    restoreRootByKey("listening");
+    restoreRootByKey("writing");
 
     document.addEventListener("mouseup", () => setTimeout(onSelectionChange, 0));
     document.addEventListener("keyup", () => setTimeout(onSelectionChange, 0));
@@ -516,9 +404,8 @@
   window.IELTS = window.IELTS || {};
   window.IELTS.Highlighting = {
     registerReadingRoots,
-    restoreReadingRootsSoon,
-    persistCurrentReadingRoots,
     saveReadingPartHighlights,
     restoreReadingPartHighlights,
+    clearReadingPartHighlights,
   };
 })();

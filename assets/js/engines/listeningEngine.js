@@ -71,6 +71,15 @@
 
     let currentPageIndex = Math.max(0, Math.min(3, parseInt(S().get(L_KEYS.pageIndex, "0"), 10) || 0));
 
+    const initialListenBodyHtml = (() => {
+      try {
+        const el = document.getElementById("listenBody");
+        return el && typeof el.innerHTML === "string" ? el.innerHTML : "";
+      } catch {
+        return "";
+      }
+    })();
+
     let lastGoodTime = 0;
     let ignoreSeekUntil = 0;
 
@@ -81,19 +90,32 @@ function applyActiveListeningContent() {
   const body = $("listenBody");
   const aud = audio();
 
-  if (body && typeof listening.html === "string" && listening.html.trim()) {
-    body.innerHTML = listening.html;
+  if (body) {
+    const nextHtml = (typeof listening.html === "string" ? listening.html.trim() : "");
+    if (nextHtml) {
+      body.innerHTML = nextHtml;
+    } else if (!String(body.innerHTML || "").trim() && initialListenBodyHtml.trim()) {
+      body.innerHTML = initialListenBodyHtml;
+    }
   }
 
-  if (aud && typeof listening.audioSrc === "string" && listening.audioSrc.trim()) {
+  if (aud) {
     let source = aud.querySelector("source");
     if (!source) {
       source = document.createElement("source");
       source.type = "audio/mpeg";
       aud.appendChild(source);
     }
-    source.src = listening.audioSrc.trim();
-    aud.load();
+
+    const nextSrc = (typeof listening.audioSrc === "string" ? listening.audioSrc.trim() : "") || source.getAttribute("src") || source.src || "";
+    if (nextSrc) {
+      source.src = nextSrc;
+      try { aud.load(); } catch (e) {}
+    }
+  }
+
+  if (body && !body.querySelector(".listen-page") && initialListenBodyHtml.trim()) {
+    body.innerHTML = initialListenBodyHtml;
   }
 }
 

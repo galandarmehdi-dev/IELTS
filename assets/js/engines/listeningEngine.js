@@ -438,7 +438,10 @@ function applyActiveListeningContent() {
       s.classList.remove("started");
 
       const m = modal();
-      if (m) m.style.display = "flex";
+      if (m) {
+        m.classList.remove("hidden");
+        m.style.display = "flex";
+      }
 
       loadListeningAnswers();
       setupNavHandlers();
@@ -483,7 +486,10 @@ function applyActiveListeningContent() {
         S().set(L_KEYS.started, "true");
 
         s.classList.add("started");
-        if (m) m.style.display = "none";
+        if (m) {
+          m.classList.add("hidden");
+          m.style.display = "none";
+        }
 
         setupNavHandlers();
         setStatus("Status: Playing (navigate Section 1–4 while audio continues)");
@@ -573,7 +579,10 @@ function applyActiveListeningContent() {
   if (cBtn) {
     cBtn.onclick = () => {
       const m = modal();
-      if (m) m.style.display = "flex";
+      if (m) {
+        m.classList.remove("hidden");
+        m.style.display = "flex";
+      }
       setStatus("Status: Not started");
     };
   }

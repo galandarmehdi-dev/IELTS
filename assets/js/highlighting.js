@@ -293,25 +293,72 @@
     return last;
   }
 
-  function saveHighlightsFromDOM(rootInfo, partIdOverride) {
-    if (!rootInfo?.el) return;
+  
+  function getTextOffsetWithin(rootEl, targetNode, localOffset) {
+    let total = 0;
+    const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (textNode) => {
+        if (!textNode.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (isInsideForbidden(textNode)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let n;
+    while ((n = walker.nextNode())) {
+      if (n === targetNode) return total + Math.min(localOffset || 0, n.nodeValue.length);
+      total += n.nodeValue.length;
+    }
+    return total;
+  }
 
+  function resolveTextOffsetWithin(rootEl, absoluteOffset) {
+    const target = Math.max(0, Number(absoluteOffset) || 0);
+    let total = 0;
+    const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT, {
+      acceptNode: (textNode) => {
+        if (!textNode.nodeValue) return NodeFilter.FILTER_REJECT;
+        if (isInsideForbidden(textNode)) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    let n;
+    while ((n = walker.nextNode())) {
+      const nextTotal = total + n.nodeValue.length;
+      if (target <= nextTotal) {
+        return { node: n, offset: Math.max(0, Math.min(target - total, n.nodeValue.length)) };
+      }
+      total = nextTotal;
+    }
+    return null;
+  }
+
+  function usesReadingOffsetStore(rootInfo) {
+    return !!rootInfo && (rootInfo.key === "readingPassage" || rootInfo.key === "readingQuestions");
+  }
+
+  function saveHighlightsFromDOM(rootInfo, partIdOverride) {
     const rootEl = rootInfo.el;
-    const store = readStore();
     const saveKey = getStoreKey(rootInfo.key, partIdOverride);
+    const store = readStore();
     const records = [];
 
     rootEl.querySelectorAll("mark.hl").forEach((mark) => {
-      const first = firstTextNode(mark);
-      const last = lastTextNode(mark);
-      if (!first || !last) return;
+      const firstText = firstTextNode(mark);
+      const lastText = lastTextNode(mark);
+      if (!firstText || !lastText) return;
 
-      records.push({
-        startPath: getNodePath(rootEl, first),
-        startOffset: 0,
-        endPath: getNodePath(rootEl, last),
-        endOffset: String(last.nodeValue || "").length,
-      });
+      if (usesReadingOffsetStore(rootInfo)) {
+        const startOffset = getTextOffsetWithin(rootEl, firstText, 0);
+        const endOffset = getTextOffsetWithin(rootEl, lastText, lastText.nodeValue ? lastText.nodeValue.length : 0);
+        if (endOffset > startOffset) records.push({ mode: "offset", startOffset, endOffset });
+        return;
+      }
+
+      const startPath = getNodePath(rootEl, firstText);
+      const endPath = getNodePath(rootEl, lastText);
+      const startOffset = 0;
+      const endOffset = lastText.nodeValue ? lastText.nodeValue.length : 0;
+      records.push({ mode: "path", startPath, startOffset, endPath, endOffset });
     });
 
     store[saveKey] = records;
@@ -319,30 +366,40 @@
   }
 
   function restoreHighlightsToRoot(rootInfo, partIdOverride) {
-    if (!rootInfo?.el) return;
-
     const rootEl = rootInfo.el;
-    const store = readStore();
     const saveKey = getStoreKey(rootInfo.key, partIdOverride);
-    const records = Array.isArray(store[saveKey]) ? store[saveKey] : [];
-
     clearAllHighlightsInRoot(rootEl);
+
+    const store = readStore();
+    const records = Array.isArray(store[saveKey]) ? store[saveKey] : [];
     if (!records.length) return;
 
     records.forEach((rec) => {
-      const startNode = resolveNodePath(rootEl, rec.startPath);
-      const endNode = resolveNodePath(rootEl, rec.endPath);
-      if (!startNode || !endNode) return;
-
       try {
-        const range = document.createRange();
-        range.setStart(startNode, Math.max(0, Math.min(Number(rec.startOffset) || 0, startNode.nodeValue?.length || 0)));
-        range.setEnd(endNode, Math.max(0, Math.min(Number(rec.endOffset) || 0, endNode.nodeValue?.length || 0)));
-        if (range.collapsed) return;
-        applyHighlightToRange(range, rootEl);
+        const r = document.createRange();
+
+        if (rec && rec.mode === "offset") {
+          const start = resolveTextOffsetWithin(rootEl, rec.startOffset);
+          const end = resolveTextOffsetWithin(rootEl, rec.endOffset);
+          if (!start || !end || start.node.nodeType !== 3 || end.node.nodeType !== 3) return;
+          r.setStart(start.node, start.offset);
+          r.setEnd(end.node, end.offset);
+        } else {
+          const startNode = resolveNodePath(rootEl, rec.startPath);
+          const endNode = resolveNodePath(rootEl, rec.endPath);
+          if (!startNode || !endNode) return;
+          if (startNode.nodeType !== 3 || endNode.nodeType !== 3) return;
+          r.setStart(startNode, Math.min(rec.startOffset || 0, startNode.nodeValue.length));
+          r.setEnd(endNode, Math.min(rec.endOffset || endNode.nodeValue.length, endNode.nodeValue.length));
+        }
+
+        if (!r.collapsed) applyHighlightToRange(r, rootEl);
       } catch {}
     });
+
+    mergeAdjacentMarks(rootEl);
   }
+
 
   function restoreReadingRootsSoon(partIdOverride) {
     setTimeout(() => {

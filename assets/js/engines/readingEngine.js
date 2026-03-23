@@ -6,7 +6,6 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
-  const HL = () => window.IELTS?.Highlighting;
 
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
@@ -1327,7 +1326,7 @@ qnum.textContent = `${item.q}`;
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
 
-      try { HL()?.persistCurrentReadingRoots?.(); } catch {}
+      try { window.IELTS?.Highlighting?.persistCurrentReadingRoots?.(activePart); } catch (e) {}
 
       if (!hasSubmittedReading) {
         const latest = collectCurrentAnswersFromDOM(answersRef.current);
@@ -1343,13 +1342,13 @@ qnum.textContent = `${item.q}`;
       answersRef.current = fresh;
       renderQuestionsForActivePart(fresh);
 
-      try { HL()?.restoreReadingRootsSoon?.(); } catch {}
+      try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch (e) {}
 
       if (hasSubmittedReading) {
-        lockReadingUI();
-        // If the page is refreshed after Reading was submitted, show the Writing gate.
-        transitionToWritingOnce();
-      }
+      lockReadingUI();
+      // If the page is refreshed after Reading was submitted, show the Writing gate.
+      transitionToWritingOnce();
+    }
     }
 
     function renderPassageForActivePart() {
@@ -1433,7 +1432,7 @@ qnum.textContent = `${item.q}`;
     initReadingSplitter();
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
-    try { HL()?.restoreReadingRootsSoon?.(); } catch {}
+    try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch (e) {}
 
     if (hasSubmittedReading) {
       lockReadingUI();

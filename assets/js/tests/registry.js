@@ -21,8 +21,9 @@
     submissionPostMs: 45000,
     resultFetchMs: 45000,
     historySyncMs: 45000,
-    historyInsertMs: 12000,
-    historyUpdateMs: 12000,
+    historyLoadMs: 20000,
+    historyInsertMs: 25000,
+    historyUpdateMs: 15000,
   };
 
   const POLLING = {

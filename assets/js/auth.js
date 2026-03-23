@@ -4,7 +4,14 @@ const SUPABASE_URL = "https://bgujwyknnszwborgbkxq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z";
 const SITE_URL = "https://ieltsmock.org/";
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: "pkce"
+  }
+});
 
 window.IELTS = window.IELTS || {};
 
@@ -138,10 +145,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
       forceHomeAfterLogin();
     }
   } else {
-    clearSavedUser();
-    syncAuthExport();
-    hideBlockingModals();
-    showProtectedApp(false);
+    applyLoggedOutUI();
     clearOAuthFragmentsIfNeeded();
   }
 }
@@ -207,8 +211,9 @@ async function verifyOtpCode() {
   await refreshAuthUI({ forceHome: true });
 }
 
-async function logout() {
-  await supabase.auth.signOut();
+let __logoutInFlight = false;
+
+function applyLoggedOutUI() {
   hideBlockingModals();
   showProtectedApp(false);
   clearSavedUser();
@@ -219,6 +224,21 @@ async function logout() {
   } catch {}
 }
 
+async function logout() {
+  if (__logoutInFlight) return;
+  __logoutInFlight = true;
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    applyLoggedOutUI();
+  } catch (err) {
+    console.error("Logout failed:", err);
+    setMessage(err?.message || "Could not log out.");
+  } finally {
+    __logoutInFlight = false;
+  }
+}
+
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
@@ -226,12 +246,12 @@ getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 logoutBtn?.addEventListener("click", logout);
 
 supabase.auth.onAuthStateChange(async (event) => {
-  if (event === "SIGNED_IN") {
-    await refreshAuthUI({ forceHome: true });
+  if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+    await refreshAuthUI({ forceHome: event === "SIGNED_IN" });
     return;
   }
   if (event === "SIGNED_OUT") {
-    await logout();
+    applyLoggedOutUI();
     return;
   }
   await refreshAuthUI();

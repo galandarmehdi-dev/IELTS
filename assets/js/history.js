@@ -37,17 +37,32 @@
     return Number(row.task1_words || 0) + Number(row.task2_words || 0);
   }
 
+  async function withTimeout(promise, timeoutMs, label) {
+    let timer = null;
+    const timeoutPromise = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`${label || "Operation"} timed out`)), Math.max(1000, Number(timeoutMs) || 20000));
+    });
+    try {
+      return await Promise.race([promise, timeoutPromise]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function loadRows() {
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
     if (!supabase || !user?.id) return [];
 
-    const { data, error } = await supabase
+    const query = supabase
       .from(table)
-      .select("id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
-      .order("submitted_at", { ascending: false });
+      .select("id,user_id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
+      .eq("user_id", user.id)
+      .order("submitted_at", { ascending: false })
+      .limit(50);
 
+    const { data, error } = await withTimeout(query, Number(Registry()?.TIMEOUTS?.historyLoadMs || 20000), "History load");
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   }
@@ -239,6 +254,15 @@
       let rows = await loadRows();
       state.rows = rows;
       renderTable(rows);
+      if (!rows.length) {
+        const lastLocal = window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
+        if (lastLocal?.submittedAt) {
+          const tbody = $("historyTbody");
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
+          }
+        }
+      }
       const updated = await refreshPendingRows(rows);
       if (updated) {
         rows = await loadRows();

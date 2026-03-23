@@ -101,24 +101,6 @@ function forceHomeAfterLogin() {
   } catch {}
 
   try {
-    const home = getEl("homeSection");
-    const listening = getEl("listeningSection");
-    const readingControls = getEl("readingControls");
-    const container = getEl("container");
-    const writing = getEl("writingSection");
-    const examNav = getEl("examNav");
-    const admin = getEl("adminResultsSection");
-
-    home?.classList.remove("hidden");
-    listening?.classList.add("hidden");
-    readingControls?.classList.add("hidden");
-    container?.classList.add("hidden");
-    writing?.classList.add("hidden");
-    admin?.classList.add("hidden");
-    examNav?.classList.add("hidden");
-  } catch {}
-
-  try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
     if (window.IELTS?.Router?.setHashRoute) {
       window.IELTS.Router.setHashRoute(activeTestId, "home");

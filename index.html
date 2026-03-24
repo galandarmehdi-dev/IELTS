@@ -65,7 +65,7 @@
     </div>
   </div>
 </section>
-<!-- ================= HOME ================= -->
+<!-- ================= HOME / PUBLIC EXPERIENCE ================= -->
 <section id="homeSection" class="home-screen" aria-label="Home">
   <header class="home-header">
     <div class="home-topbar">
@@ -536,7 +536,7 @@
   </div>
 </section>
 
-  <!-- ================= EXAM NAV (NEW) ================= -->
+  <!-- ================= EXAM EXPERIENCE ================= -->
  <div class="exam-nav hidden" id="examNav">
   <div class="exam-nav-left">
     <b>IELTS Test</b>
@@ -1098,27 +1098,38 @@
 <section id="speakingSection" class="hidden" aria-label="Speaking Exam">
   <div class="speaking-shell">
     <div class="speaking-topbar">
-      <h1>IELTS Speaking Exam</h1>
+      <div>
+        <div class="home-badge">Speaking module</div>
+        <h1>IELTS Speaking Exam</h1>
+        <p class="speaking-subtitle">Use this space for structured speaking practice, recorded responses, and future speaking evaluation workflows.</p>
+      </div>
       <div id="speakingStatus">Status: Ready</div>
     </div>
 
-    <div class="speaking-card">
-      <h2>Instructions</h2>
-      <p>Press Start Recording to conduct the speaking exam. </p>
+    <div class="speaking-grid">
+      <div class="speaking-card speaking-hero-card">
+        <h2>How it works</h2>
+        <p>Start the speaking exam, record your response, and use playback to review your performance. This flow can later support scoring, transcript review, and tutor feedback.</p>
+        <div class="speaking-pill-row">
+          <div class="speaking-pill">Recorded response flow</div>
+          <div class="speaking-pill">Playback-ready</div>
+          <div class="speaking-pill">Expandable for scoring</div>
+        </div>
+      </div>
+
+      <div class="speaking-card">
+        <h2>Controls</h2>
+        <div class="speaking-actions">
+          <button id="startSpeakingBtn" type="button">Start Speaking Exam</button>
+          <button id="backFromSpeakingBtn" type="button">Back to Home</button>
+        </div>
+      </div>
     </div>
 
     <div class="speaking-card">
-      <h2>Controls</h2>
-      <button id="startSpeakingBtn" type="button">Start Speaking Exam</button>
-    </div>
-
-    <div class="speaking-card">
-      <h2 class="hidden">Playback</h2>
+      <h2>Playback</h2>
+      <p class="speaking-helper">Once a recording is available, playback controls can appear here for review.</p>
       <audio id="speakingPlayback" style="display:none"></audio> 
-    </div>
-
-    <div class="speaking-card">
-      <button id="backFromSpeakingBtn" type="button">Back to Home</button>
     </div>
   </div>
 </section>

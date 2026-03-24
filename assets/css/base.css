@@ -114,19 +114,22 @@ pre{ font-family: inherit; }
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:10px;
+  gap:8px;
 }
 .auth-provider-icon{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:20px;
-  height:20px;
-  flex:0 0 20px;
+  width:16px;
+  height:16px;
+  flex:0 0 16px;
+  line-height:0;
 }
 .auth-provider-icon svg{
-  width:20px;
-  height:20px;
+  width:16px !important;
+  height:16px !important;
+  max-width:16px;
+  max-height:16px;
   display:block;
 }
 .auth-provider-google{

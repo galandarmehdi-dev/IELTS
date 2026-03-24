@@ -94,6 +94,25 @@
       const shell = speakingSection ? speakingSection.querySelector(".speaking-shell") : null;
       if (!shell) return;
 
+      const safeAppendAfterFirstCard = (node) => {
+        const firstCard = shell.querySelector(".speaking-card");
+        if (firstCard && firstCard.parentNode === shell) {
+          if (firstCard.nextSibling) shell.insertBefore(node, firstCard.nextSibling);
+          else shell.appendChild(node);
+        } else {
+          shell.appendChild(node);
+        }
+      };
+
+      const safeInsertBeforePlayback = (node) => {
+        const currentPlaybackCard = playback ? playback.closest(".speaking-card") : null;
+        if (currentPlaybackCard && currentPlaybackCard.parentNode === shell) {
+          shell.insertBefore(node, currentPlaybackCard);
+        } else {
+          shell.appendChild(node);
+        }
+      };
+
       if (!document.getElementById("speakingNameCard")) {
         const nameCard = document.createElement("div");
         nameCard.className = "speaking-card";
@@ -104,9 +123,7 @@
           <input id="speakingStudentName" type="text" placeholder="Enter full name" style="width:100%;max-width:420px;padding:10px 12px;border:1px solid #d7dce5;border-radius:10px;">
           <div style="margin-top:10px;color:#667085;font-size:14px;">This name will be saved together with the recording link.</div>
         `;
-        const firstCard = shell.querySelector(".speaking-card");
-        if (firstCard) shell.insertBefore(nameCard, firstCard.nextSibling);
-        else shell.appendChild(nameCard);
+        safeAppendAfterFirstCard(nameCard);
       }
 
       const playbackCard = playback ? playback.closest(".speaking-card") : null;
@@ -121,8 +138,7 @@
           <div id="speakingTimer" style="font-size:28px;font-weight:800;margin-bottom:14px;">00:00</div>
           <div id="speakingDynamicBody"></div>
         `;
-        if (playbackCard) shell.insertBefore(flowCard, playbackCard);
-        else shell.appendChild(flowCard);
+        safeInsertBeforePlayback(flowCard);
       }
 
       if (playbackCard) {
@@ -138,8 +154,7 @@
           <div id="speakingRealtimeStatus" style="display:none;">Realtime status: Not connected</div>
           <audio id="remoteAudio" autoplay playsinline style="display:none"></audio>
         `;
-        if (playbackCard) shell.insertBefore(examinerCard, playbackCard);
-        else shell.appendChild(examinerCard);
+        safeInsertBeforePlayback(examinerCard);
       }
     }
 

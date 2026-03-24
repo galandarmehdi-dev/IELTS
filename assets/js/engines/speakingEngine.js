@@ -177,14 +177,9 @@
     function showSpeaking() {
       try {
         if (window.IELTS?.UI?.showOnly) {
-          window.IELTS.UI.showOnly("home");
+          window.IELTS.UI.showOnly("speaking");
         }
       } catch {}
-      if (homeSection) homeSection.classList.add("hidden");
-      const historySection = document.getElementById("historySection");
-      const adminResultsSection = document.getElementById("adminResultsSection");
-      if (historySection) historySection.classList.add("hidden");
-      if (adminResultsSection) adminResultsSection.classList.add("hidden");
       if (speakingSection) speakingSection.classList.remove("hidden");
       try {
         window.IELTS?.UI?.setExamNavStatus?.("Status: Speaking module");

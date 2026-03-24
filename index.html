@@ -5,7 +5,8 @@
     <meta name="google" content="notranslate">
   <meta name="googlebot" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>IELTS Test</title>
+  <title>IELTS Mock Tests & Practice Portal</title>
+<meta name="description" content="Practice IELTS with realistic mock tests, secure sign-in, automatic saving, timed Reading and Writing, and progress tracking for serious learners."/>
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="assets/css/base.css" />
 <link rel="stylesheet" href="assets/css/home.css" />
@@ -74,18 +75,26 @@
 
     <div class="home-hero">
       <div class="home-hero-left">
-        <div class="home-badge">Practice portal</div>
-        <h1 class="home-title">Choose a test and start your attempt</h1>
+        <div class="home-badge">Realistic IELTS mock exam platform</div>
+        <h1 class="home-title">Practice IELTS in a focused exam environment built for real preparation</h1>
         <p class="home-subtitle">
-          Complete Listening, then Reading, then Writing. Your answers are saved automatically on this browser.
+          Take full IELTS mock tests with a realistic Listening → Reading → Writing flow, automatic saving, secure sign-in, and progress history designed for serious learners.
         </p>
 
         <div class="home-hero-cta">
-          <button class="home-btn" type="button" id="startIelts1Btn">Start IELTS Test 1</button>
-          <button class="home-btn ghost" type="button" id="startIelts2Btn">Start IELTS Test 2</button>
-          <button class="home-btn ghost" type="button" id="startIelts3Btn">Start IELTS Test 3</button>
-          <button class="home-btn ghost" type="button" id="homeNewAttemptBtn">New attempt</button>
+          <button class="home-btn" type="button" id="startIelts1Btn">Start Test 1</button>
+          <button class="home-btn ghost" type="button" id="startIelts2Btn">Start Test 2</button>
+          <button class="home-btn ghost" type="button" id="startIelts3Btn">Start Test 3</button>
+          <button class="home-btn ghost" type="button" id="homeNewAttemptBtn">Reset attempt</button>
         </div>
+
+        <div class="home-trust-strip" aria-label="Platform highlights">
+          <div class="trust-pill">Listening with auto-submit</div>
+          <div class="trust-pill">Reading and Writing timing</div>
+          <div class="trust-pill">Autosave on this browser</div>
+          <div class="trust-pill">History and result tracking</div>
+        </div>
+
         <div class="home-preferences" aria-label="Display settings">
           <div class="home-preferences-title">Display settings</div>
           <label class="home-select-wrap" for="fontSizeSelect">
@@ -98,14 +107,15 @@
           </label>
         </div>
 
-        <div class="home-notes" id="homeStatusLine">Status: Ready</div>
+        <div class="home-notes" id="homeStatusLine">Status: Ready to begin your mock exam</div>
       </div>
 
       <div class="home-hero-right">
-        <div class="home-card">
-          <div class="home-card-h">IELTS Test 1</div>
+        <div class="home-card featured-card">
+          <div class="home-card-topline">Recommended starting point</div>
+          <div class="home-card-h">IELTS Mock Test 1</div>
           <div class="home-card-p">
-            Full exam flow: Listening → Reading → Writing. Review mode after submission.
+            A full exam-style experience with Listening, Reading, and Writing in the correct sequence. Best for learners who want a realistic first attempt.
           </div>
 
           <div class="home-card-meta">
@@ -115,15 +125,16 @@
           </div>
 
           <div class="home-card-actions">
-            <button class="home-btn" type="button" id="cardStartIelts1Btn">Open IELTS Test 1</button>
+            <button class="home-btn" type="button" id="cardStartIelts1Btn">Open Test 1</button>
             <button class="home-btn ghost" type="button" id="cardResetBtn">Clear this browser</button>
           </div>
         </div>
 
         <div class="home-card">
-          <div class="home-card-h">IELTS Test 2</div>
+          <div class="home-card-topline">Alternative test set</div>
+          <div class="home-card-h">IELTS Mock Test 2</div>
           <div class="home-card-p">
-            Separate Test 2 content with its own Listening, Reading and Writing flow.
+            A separate full mock with its own Listening, Reading, and Writing content for additional timed practice.
           </div>
 
           <div class="home-card-meta">
@@ -133,14 +144,15 @@
           </div>
 
           <div class="home-card-actions">
-            <button class="home-btn" type="button" id="cardStartIelts2Btn">Open IELTS Test 2</button>
+            <button class="home-btn" type="button" id="cardStartIelts2Btn">Open Test 2</button>
           </div>
         </div>
 
         <div class="home-card">
-          <div class="home-card-h">IELTS Test 3</div>
+          <div class="home-card-topline">Additional exam variation</div>
+          <div class="home-card-h">IELTS Mock Test 3</div>
           <div class="home-card-p">
-            Test 3 with the uploaded Listening and Reading papers plus your new Writing tasks.
+            Another complete test flow with updated Reading and Writing tasks for broader exam practice.
           </div>
 
           <div class="home-card-meta">
@@ -150,12 +162,12 @@
           </div>
 
           <div class="home-card-actions">
-            <button class="home-btn" type="button" id="cardStartIelts3Btn">Open IELTS Test 3</button>
+            <button class="home-btn" type="button" id="cardStartIelts3Btn">Open Test 3</button>
           </div>
         </div>
 
         <div class="home-mini">
-          You can now start IELTS Test 1, IELTS Test 2 or IELTS Test 3 from this page.
+          Choose the mock test you want, sign in, and continue from your saved progress on this browser when available.
         </div>
       </div>
     </div>
@@ -164,26 +176,44 @@
   <main class="home-main" id="homeHowItWorks">
     <div class="home-grid">
       <div class="home-info">
-        <div class="home-info-h">How it works</div>
+        <div class="home-info-h">Real exam flow</div>
         <div class="home-info-p">
-          1) Start the test<br/>
-          2) Listening runs with no pause/skip<br/>
-          3) Reading unlocks after Listening submit<br/>
-          4) Writing unlocks after Reading submit or time end
+          Start the mock test, complete Listening first, move into Reading, and unlock Writing only when the previous stage is finished.
         </div>
       </div>
 
       <div class="home-info">
-        <div class="home-info-h">Autosave</div>
+        <div class="home-info-h">Focused test conditions</div>
         <div class="home-info-p">
-          Answers are saved automatically in your browser storage. If you refresh, you can continue from where you left off.
+          Listening runs without pause or skipping, while Reading and Writing are timed to simulate a more serious exam experience.
         </div>
       </div>
 
       <div class="home-info">
-        <div class="home-info-h">Submission</div>
+        <div class="home-info-h">Automatic saving</div>
         <div class="home-info-p">
-          After Writing, the final payload is stored locally and (if enabled) sent to Google Sheets via your Apps Script endpoint.
+          Your answers are stored automatically in this browser, so refreshing the page does not instantly destroy your progress.
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Progress history</div>
+        <div class="home-info-p">
+          Signed-in learners can view past attempts, marked writing results, and score summaries from previous exams.
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Speaking support</div>
+        <div class="home-info-p">
+          The platform also includes a separate IELTS Speaking Exam flow so learners can prepare beyond just the written sections.
+        </div>
+      </div>
+
+      <div class="home-info">
+        <div class="home-info-h">Teacher and admin review</div>
+        <div class="home-info-p">
+          Results can be collected for review, making the platform useful for schools, teachers, and managed student cohorts as well.
         </div>
       </div>
     </div>

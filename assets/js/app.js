@@ -726,5 +726,81 @@ function startFreshExam() {
       showListeningGate();
       showReadingGate();
     }
+
+    // End of main init
   });
+
+  // -----------------------------
+  // Fallback handlers: ensure buttons work even if earlier init threw
+  // -----------------------------
+  (function () {
+    function safeCall(fnPath, args) {
+      try {
+        const parts = fnPath.split('.');
+        let fn = window;
+        for (const p of parts) { fn = fn?.[p]; if (!fn) break; }
+        if (typeof fn === 'function') return fn.apply(null, args || []);
+      } catch (e) {
+        console.error('safeCall error', fnPath, e);
+      }
+    }
+
+    function installFallback() {
+      if (window.__IELTS_FALLBACK_INSTALLED__) return;
+      window.__IELTS_FALLBACK_INSTALLED__ = true;
+
+      document.addEventListener('click', function (e) {
+        const b = e.target.closest && e.target.closest('button');
+        if (!b) return;
+        const id = b.id || (b.textContent && b.textContent.trim());
+        try {
+          if (id === 'startIelts1Btn' || /Start Test 1|Open Test 1/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts1']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
+          if (id === 'startIelts2Btn' || /Start Test 2|Open Test 2/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts2']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
+          if (id === 'startIelts3Btn' || /Start Test 3|Open Test 3/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts3']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
+          if (id === 'openHistoryBtn' || /My History/i.test(id)) {
+            safeCall('IELTS.History.openHistory');
+            return;
+          }
+          if (id === 'openSpeakingExamBtn' || /Speaking/i.test(id)) {
+            safeCall('IELTS.Speaking.initSpeakingExam');
+            safeCall('IELTS.UI.showOnly', ['speaking']);
+            return;
+          }
+          if (id === 'logoutBtn' || /Log out/i.test(id)) {
+            safeCall('IELTS.Auth.logout');
+            return;
+          }
+        } catch (err) {
+          console.error('fallback handler failed', err);
+        }
+      }, { capture: true });
+
+      console.log('IELTS fallback handlers installed');
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', installFallback, { once: true });
+    } else {
+      installFallback();
+    }
+  })();
+
 })();

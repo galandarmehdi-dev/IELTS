@@ -484,6 +484,10 @@
 .admin-stat-small{ font-size:15px; }
 .history-table-wrap,
 .admin-results-table-wrap{ overflow:hidden; border-radius:24px; }
+.history-table tbody tr:hover,
+.admin-results-table tbody tr:hover{
+  background:rgba(18,59,109,.03);
+}
 .history-table th,
 .history-table td,
 .admin-results-table th,

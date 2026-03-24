@@ -56,7 +56,9 @@ function showExamNav(show) {
     // Writing
     const writing = $("writingSection");
 
-    // Admin results
+    // History / Speaking / Admin
+    const history = $("historySection");
+    const speaking = $("speakingSection");
     const adminResults = $("adminResultsSection");
 
     // Modal should not be auto-hidden here (modal controls itself)
@@ -64,20 +66,22 @@ function showExamNav(show) {
     const isListening = view === "listening";
     const isReading = view === "reading";
     const isWriting = view === "writing";
+    const isHistory = view === "history";
+    const isSpeaking = view === "speaking";
     const isAdminResults = view === "adminResults";
 
     if (home) home.classList.toggle("hidden", !isHome);
-
     if (listening) listening.classList.toggle("hidden", !isListening);
-
     if (readingControls) readingControls.classList.toggle("hidden", !isReading);
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
-
     if (writing) writing.classList.toggle("hidden", !isWriting);
+    if (history) history.classList.toggle("hidden", !isHistory);
+    if (speaking) speaking.classList.toggle("hidden", !isSpeaking);
     if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
 
-    // Exam nav hidden on home, visible elsewhere
-    showExamNav(!(isHome));
+    // Exam nav hidden on public/supporting views, visible on core exam views
+    const showNav = isListening || isReading || isWriting || isAdminResults;
+    showExamNav(showNav);
 
     // Remember last view (optional, used by app.js auto-resume)
     try {

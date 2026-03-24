@@ -283,10 +283,10 @@
   window.IELTS = window.IELTS || {};
   window.IELTS.History = { openHistory, closeHistory, refresh: openHistory };
 
-  window.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("partials:loaded", () => {
     $("openHistoryBtn")?.addEventListener("click", openHistory);
     $("historyRefreshBtn")?.addEventListener("click", openHistory);
     $("historyBackBtn")?.addEventListener("click", closeHistory);
     $("historyDetailCloseBtn")?.addEventListener("click", () => $("historyDetail")?.classList.add("hidden"));
-  });
+  }, { once: true });
 })();

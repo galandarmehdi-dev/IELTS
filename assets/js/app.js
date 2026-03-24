@@ -117,6 +117,16 @@
         typeof window.IELTS.Speaking.initSpeakingExam === "function"
       ) {
         window.IELTS.Speaking.initSpeakingExam();
+      } else {
+        window.addEventListener("load", () => {
+          try {
+            if (window.IELTS?.Speaking?.initSpeakingExam) {
+              window.IELTS.Speaking.initSpeakingExam();
+            }
+          } catch (e) {
+            console.error("Speaking exam late init failed", e);
+          }
+        }, { once: true });
       }
     } catch (e) {
       console.error("Speaking exam init failed", e);

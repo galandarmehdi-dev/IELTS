@@ -20,27 +20,49 @@
   
 <body translate="no">
 <section id="authGate" class="auth-gate">
-  <div class="auth-card">
-    <h1>Sign in to continue</h1>
-    <p>Please sign in before you can access the IELTS tests.</p>
+  <div class="auth-shell">
+    <div class="auth-showcase">
+      <div class="auth-kicker">Premium IELTS preparation experience</div>
+      <h1 class="auth-showcase-title">Sign in to access your mock tests, progress history, and speaking practice</h1>
+      <p class="auth-showcase-copy">
+        This platform is designed for structured IELTS preparation with realistic test flow, secure access, saved progress, and review-ready results.
+      </p>
 
-    <div class="auth-buttons">
-      <button id="googleLoginBtn" class="btn">Continue with Google</button>
-      <button id="microsoftLoginBtn" class="btn secondary">Continue with Microsoft</button>
+      <div class="auth-feature-list">
+        <div class="auth-feature-pill">Realistic Listening → Reading → Writing flow</div>
+        <div class="auth-feature-pill">Secure sign-in and saved progress</div>
+        <div class="auth-feature-pill">History tracking and managed cohorts</div>
+      </div>
     </div>
 
-    <div style="margin:18px 0; border-top:1px solid #e6e6e6;"></div>
+    <div class="auth-card">
+      <div class="auth-card-topline">Member access</div>
+      <h2 class="auth-title">Sign in to continue</h2>
+      <p class="auth-subtitle">Use Google, Microsoft, or your email to continue into the IELTS practice portal.</p>
 
-    <h3>Email sign-in</h3>
-    <input id="otpEmail" type="email" placeholder="Enter your email">
-    <button id="sendOtpBtn" class="btn">Send code or magic link</button>
+      <div class="auth-buttons">
+        <button id="googleLoginBtn" class="btn">Continue with Google</button>
+        <button id="microsoftLoginBtn" class="btn secondary">Continue with Microsoft</button>
+      </div>
 
-    <div style="margin-top:12px;">
-      <input id="otpCode" type="text" placeholder="Enter email code if you receive one">
-      <button id="verifyOtpBtn" class="btn secondary">Verify code</button>
+      <div class="auth-divider"><span>or sign in with email</span></div>
+
+      <div class="auth-field-group">
+        <label class="auth-label" for="otpEmail">Email address</label>
+        <input id="otpEmail" type="email" placeholder="Enter your email">
+      </div>
+      <button id="sendOtpBtn" class="btn auth-full-btn">Send code or magic link</button>
+
+      <div class="auth-code-row">
+        <div class="auth-field-group auth-code-field">
+          <label class="auth-label" for="otpCode">Verification code</label>
+          <input id="otpCode" type="text" placeholder="Enter the code if you received one">
+        </div>
+        <button id="verifyOtpBtn" class="btn secondary auth-code-btn">Verify code</button>
+      </div>
+
+      <p id="authMessage" class="small auth-message"></p>
     </div>
-
-    <p id="authMessage" class="small" style="margin-top:14px;"></p>
   </div>
 </section>
 <!-- ================= HOME ================= -->

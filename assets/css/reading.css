@@ -123,6 +123,10 @@
   background:linear-gradient(180deg, #fff 0%, #fafcff 100%);
   box-shadow:0 18px 42px rgba(16,24,40,.08);
 }
+.qcard:focus-within{
+  border-color:#123b6d;
+  box-shadow:0 22px 46px rgba(18,59,109,.12);
+}
 .qcard h3,
 .qcard h4{ color:#152033; }
 .qcard p,

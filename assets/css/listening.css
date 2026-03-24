@@ -149,6 +149,10 @@
   box-shadow:0 22px 54px rgba(16,24,40,.08);
   margin:14px 0;
 }
+.listen-card:focus-within{
+  border-color:#123b6d;
+  box-shadow:0 24px 56px rgba(18,59,109,.12);
+}
 .listen-card-title{
   font-size:18px;
   font-weight:900;

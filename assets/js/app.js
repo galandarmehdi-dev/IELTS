@@ -313,6 +313,7 @@
     if (toHome) {
       toHome.onclick = () => {
         if (!isAdmin) return;
+        try { stopAllAudio(); } catch (e) {}
         UI().showOnly("home");
         UI().updateHomeStatusLine();
         UI().setExamNavStatus("Status: Home");
@@ -667,6 +668,13 @@ function requireTestPassword(onOk) {
       try { window.__IELTS_WRITING_INIT__ = false; } catch {}
     }
 
+    // stop any playing audio used by exam flows (listening / speaking)
+    function stopAllAudio() {
+      try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
+      try { const sp = document.getElementById('speakingPlayback'); if (sp && !sp.paused) { sp.pause(); sp.currentTime = 0; } } catch (e) {}
+      try { const remote = document.getElementById('remoteAudio'); if (remote && !remote.paused) { remote.pause(); remote.currentTime = 0; } } catch (e) {}
+    }
+
 function startFreshExam() {
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
@@ -801,10 +809,13 @@ function startFreshExam() {
           if (id === 'navToHomeBtn' || id === 'navToListeningBtn' || id === 'navToReadingBtn' || id === 'navToWritingBtn') {
             // best-effort: call the UI navigation helpers
             if (id === 'navToHomeBtn') {
+              try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
+              try { const sp = document.getElementById('speakingPlayback'); if (sp && !sp.paused) { sp.pause(); sp.currentTime = 0; } } catch (e) {}
               safeCall('IELTS.UI.showOnly', ['home']);
               safeCall('IELTS.UI.updateHomeStatusLine');
               return;
             }
+            if (id === 'navToListeningBtn') {
             if (id === 'navToListeningBtn') {
               safeCall('IELTS.UI.setExamStarted', [true]);
               safeCall('IELTS.Engines.Listening.initListeningSystem');

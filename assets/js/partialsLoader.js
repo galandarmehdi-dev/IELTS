@@ -9,16 +9,9 @@
     target.innerHTML = await res.text();
   }
 
-  let loaded = false;
-
   async function loadAllPartials() {
-    if (loaded) {
-      document.dispatchEvent(new CustomEvent("partials:loaded"));
-      return;
-    }
     await loadPartial("homeMount", "assets/partials/home.html");
     await loadPartial("speakingMount", "assets/partials/speaking.html");
-    loaded = true;
     document.dispatchEvent(new CustomEvent("partials:loaded"));
   }
 

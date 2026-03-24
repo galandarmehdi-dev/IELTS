@@ -18,6 +18,7 @@ window.IELTS = window.IELTS || {};
 
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
+const logoutBtn = document.getElementById("logoutBtn");
 
 let authReady = false;
 let loggingOut = false;
@@ -97,7 +98,6 @@ function forceHideAllAppSections() {
 }
 
 function showProtectedApp(show) {
-  const logoutBtn = getEl("logoutBtn");
   if (authGate) authGate.classList.toggle("hidden", show);
   if (logoutBtn) logoutBtn.classList.toggle("hidden", !show);
 
@@ -389,9 +389,7 @@ getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
-document.addEventListener("partials:loaded", () => {
-  getEl("logoutBtn")?.addEventListener("click", logout);
-}, { once: true });
+logoutBtn?.addEventListener("click", logout);
 
 supabase.auth.onAuthStateChange((event, session) => {
   console.log("[AUTH] onAuthStateChange:", event);

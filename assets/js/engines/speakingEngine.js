@@ -175,8 +175,20 @@
     }
 
     function showSpeaking() {
+      try {
+        if (window.IELTS?.UI?.showOnly) {
+          window.IELTS.UI.showOnly("home");
+        }
+      } catch {}
       if (homeSection) homeSection.classList.add("hidden");
+      const historySection = document.getElementById("historySection");
+      const adminResultsSection = document.getElementById("adminResultsSection");
+      if (historySection) historySection.classList.add("hidden");
+      if (adminResultsSection) adminResultsSection.classList.add("hidden");
       if (speakingSection) speakingSection.classList.remove("hidden");
+      try {
+        window.IELTS?.UI?.setExamNavStatus?.("Status: Speaking module");
+      } catch {}
     }
 
     function showHome() {
@@ -185,6 +197,13 @@
         if (!leave) return;
       }
       if (speakingSection) speakingSection.classList.add("hidden");
+      try {
+        if (window.IELTS?.UI?.showOnly) {
+          window.IELTS.UI.showOnly("home");
+          window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
+          return;
+        }
+      } catch {}
       if (homeSection) homeSection.classList.remove("hidden");
     }
 

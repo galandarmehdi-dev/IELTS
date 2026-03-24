@@ -64,26 +64,28 @@
   gap:14px;
   min-width:0;
 }
-.home-logo{
-  background:#fff;
+.home-wordmark{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:10px 14px;
+  border-radius:20px;
+  background:rgba(255,255,255,.78);
   border:1px solid rgba(255,255,255,.72);
-  box-shadow:0 16px 38px rgba(16,24,40,.12);
+  box-shadow:0 16px 38px rgba(16,24,40,.10);
 }
-.home-logo.landau{
-  width:56px;
-  height:56px;
-  border-radius:18px;
-  padding:8px;
+.home-wordmark-kicker{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
 }
-.home-logo.ielts{
-  height:46px;
-  padding:8px 12px;
-  border-radius:16px;
-}
-.home-brand-divider{
-  width:1px;
-  height:40px;
-  background:linear-gradient(180deg, transparent 0%, rgba(107,119,140,.35) 20%, rgba(107,119,140,.35) 80%, transparent 100%);
+.home-wordmark-title{
+  color:var(--ink);
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.03em;
 }
 .home-top-actions{
   display:flex;

@@ -65,7 +65,7 @@
     });
   }
 
-  document.addEventListener("partials:loaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();

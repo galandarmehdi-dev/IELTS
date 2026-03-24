@@ -64,26 +64,28 @@
   gap:14px;
   min-width:0;
 }
-.home-logo{
-  background:#fff;
+.home-wordmark{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:10px 14px;
+  border-radius:20px;
+  background:rgba(255,255,255,.78);
   border:1px solid rgba(255,255,255,.72);
-  box-shadow:0 16px 38px rgba(16,24,40,.12);
+  box-shadow:0 16px 38px rgba(16,24,40,.10);
 }
-.home-logo.landau{
-  width:56px;
-  height:56px;
-  border-radius:18px;
-  padding:8px;
+.home-wordmark-kicker{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
 }
-.home-logo.ielts{
-  height:46px;
-  padding:8px 12px;
-  border-radius:16px;
-}
-.home-brand-divider{
-  width:1px;
-  height:40px;
-  background:linear-gradient(180deg, transparent 0%, rgba(107,119,140,.35) 20%, rgba(107,119,140,.35) 80%, transparent 100%);
+.home-wordmark-title{
+  color:var(--ink);
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:-.03em;
 }
 .home-top-actions{
   display:flex;
@@ -277,7 +279,38 @@
   grid-template-columns:repeat(3, minmax(0, 1fr));
   gap:14px;
 }
+.home-premium-band,
+.home-testimonials,
+.home-faq{
+  margin-top:26px;
+}
+.home-section-head{
+  margin-bottom:16px;
+  max-width:760px;
+}
+.home-section-title{
+  margin:12px 0 10px;
+  font-size:clamp(28px, 4vw, 42px);
+  line-height:1.08;
+  letter-spacing:-.035em;
+  color:var(--ink);
+}
+.home-section-copy{
+  margin:0;
+  color:var(--muted);
+  line-height:1.7;
+}
+.premium-grid,
+.testimonial-grid,
+.faq-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:14px;
+}
 .home-info,
+.premium-card,
+.testimonial-card,
+.faq-card,
 .history-summary,
 .history-table-wrap,
 .history-detail,
@@ -290,9 +323,46 @@
   box-shadow:0 20px 48px rgba(16,24,40,.08);
   backdrop-filter:blur(12px);
 }
-.home-info{
+.home-info,
+.premium-card,
+.testimonial-card,
+.faq-card{
   border-radius:22px;
   padding:18px;
+}
+.premium-card,
+.testimonial-card,
+.faq-card{
+  background:rgba(255,255,255,.96);
+  border:1px solid rgba(255,255,255,.78);
+  box-shadow:0 20px 48px rgba(16,24,40,.08);
+  backdrop-filter:blur(12px);
+}
+.testimonial-quote{
+  margin:0 0 14px;
+  color:var(--ink);
+  font-size:18px;
+  line-height:1.6;
+  font-weight:800;
+}
+.testimonial-meta{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.faq-card h3,
+.premium-card h3{
+  margin:0 0 8px;
+  color:var(--ink);
+  font-size:18px;
+}
+.faq-card p,
+.premium-card p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.65;
 }
 .home-info-h{
   font-size:18px;
@@ -314,6 +384,43 @@
   font-weight:800;
 }
 .home-footer-muted{ color:var(--muted); font-weight:700; }
+.premium-footer{
+  margin-top:28px;
+  background:linear-gradient(180deg, rgba(19,37,68,.98) 0%, rgba(22,45,81,.98) 100%);
+  border-top:none;
+}
+.premium-footer-inner{
+  padding:22px 0 28px;
+  color:#fff;
+}
+.footer-brand{
+  font-size:20px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.premium-footer .home-footer-muted{
+  color:rgba(255,255,255,.74);
+}
+.footer-links{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:flex-start;
+  justify-content:flex-end;
+}
+.footer-link-btn{
+  min-height:42px;
+  padding:0 16px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  font-weight:800;
+  cursor:pointer;
+}
+.footer-link-btn:hover{
+  background:rgba(255,255,255,.14);
+}
 
 /* History */
 .history-screen,
@@ -470,6 +577,9 @@
   .home-title{ max-width:none; }
   .home-hero-right{ grid-template-columns:1fr; }
   .home-grid,
+  .premium-grid,
+  .testimonial-grid,
+  .faq-grid,
   .history-summary,
   .admin-results-summary,
   .admin-results-toolbar,
@@ -481,7 +591,8 @@
   .home-topbar,
   .history-header,
   .admin-results-header,
-  .home-footer-inner{
+  .home-footer-inner,
+  .premium-footer-inner{
     flex-direction:column;
     align-items:flex-start;
   }
@@ -489,12 +600,14 @@
   .home-card-actions,
   .history-actions,
   .admin-results-actions,
-  .admin-row-actions{ width:100%; }
+  .admin-row-actions,
+  .footer-links{ width:100%; }
   .home-card-actions .home-btn,
   .home-top-actions .home-btn,
   .history-actions .btn,
   .admin-results-actions .btn,
-  .admin-row-actions .btn{ flex:1 1 100%; }
+  .admin-row-actions .btn,
+  .footer-link-btn{ flex:1 1 100%; }
   .history-table-wrap,
   .admin-results-table-wrap{ overflow-x:auto; }
 }

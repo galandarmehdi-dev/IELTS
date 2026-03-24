@@ -41,8 +41,28 @@
       <p class="auth-subtitle">Use Google, Microsoft, or your email to continue into the IELTS practice portal.</p>
 
       <div class="auth-buttons">
-        <button id="googleLoginBtn" class="btn">Continue with Google</button>
-        <button id="microsoftLoginBtn" class="btn secondary">Continue with Microsoft</button>
+        <button id="googleLoginBtn" class="btn auth-provider-btn auth-provider-google">
+          <span class="auth-provider-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.26-.96 2.33-2.04 3.05l3.3 2.56c1.92-1.77 3.03-4.38 3.03-7.5 0-.72-.06-1.41-.19-2.07H12z"/>
+              <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.44l-3.3-2.56c-.92.62-2.1.99-3.33.99-2.56 0-4.72-1.73-5.49-4.06H3.1v2.64A10 10 0 0 0 12 22z"/>
+              <path fill="#4A90E2" d="M6.51 13.93A5.96 5.96 0 0 1 6.2 12c0-.67.12-1.31.31-1.93V7.43H3.1A10 10 0 0 0 2 12c0 1.61.39 3.12 1.1 4.57l3.41-2.64z"/>
+              <path fill="#FBBC05" d="M12 6.01c1.47 0 2.78.5 3.82 1.49l2.86-2.86C16.96 3.03 14.7 2 12 2A10 10 0 0 0 3.1 7.43l3.41 2.64C7.28 7.74 9.44 6.01 12 6.01z"/>
+            </svg>
+          </span>
+          <span>Continue with Google</span>
+        </button>
+        <button id="microsoftLoginBtn" class="btn secondary auth-provider-btn auth-provider-microsoft">
+          <span class="auth-provider-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+              <rect x="3" y="3" width="8.5" height="8.5" fill="#F25022"/>
+              <rect x="12.5" y="3" width="8.5" height="8.5" fill="#7FBA00"/>
+              <rect x="3" y="12.5" width="8.5" height="8.5" fill="#00A4EF"/>
+              <rect x="12.5" y="12.5" width="8.5" height="8.5" fill="#FFB900"/>
+            </svg>
+          </span>
+          <span>Continue with Microsoft</span>
+        </button>
       </div>
 
       <div class="auth-divider"><span>or sign in with email</span></div>

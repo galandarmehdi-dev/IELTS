@@ -1,8 +1,8 @@
 /* ===================== BASE (GLOBAL) ===================== */
 :root{
-  --brand:#d71920;
-  --brand-dark:#b51017;
-  --brand-soft:#fff2f3;
+  --brand:#1f4b87;
+  --brand-dark:#173965;
+  --brand-soft:#edf4ff;
   --navy:#123b6d;
   --navy-soft:#eef4fb;
   --ink:#152033;
@@ -85,13 +85,13 @@ pre{ font-family: inherit; }
   cursor:pointer;
   font-weight:800;
   letter-spacing:.01em;
-  box-shadow:0 10px 20px rgba(215,25,32,.18);
+  box-shadow:0 12px 26px rgba(18,59,109,.16);
   transition:transform .16s ease, box-shadow .16s ease, background .16s ease, border-color .16s ease, color .16s ease;
 }
 .btn:hover,
 .home-btn:hover{
   transform:translateY(-1px);
-  box-shadow:0 14px 28px rgba(215,25,32,.22);
+  box-shadow:0 16px 30px rgba(18,59,109,.22);
 }
 .btn:active,
 .home-btn:active{ transform:translateY(0); }
@@ -109,6 +109,31 @@ pre{ font-family: inherit; }
 .home-btn.ghost:hover{
   border-color:var(--navy);
   box-shadow:0 12px 24px rgba(18,59,109,.12);
+}
+.auth-provider-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+}
+.auth-provider-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+  height:20px;
+  flex:0 0 20px;
+}
+.auth-provider-icon svg{
+  width:20px;
+  height:20px;
+  display:block;
+}
+.auth-provider-google{
+  background:linear-gradient(180deg, #1f4b87 0%, #173965 100%);
+}
+.auth-provider-microsoft{
+  background:#fff;
 }
 
 /* Inputs */

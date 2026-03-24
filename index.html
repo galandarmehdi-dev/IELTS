@@ -20,30 +20,72 @@
   
 <body translate="no">
 <section id="authGate" class="auth-gate">
-  <div class="auth-card">
-    <h1>Sign in to continue</h1>
-    <p>Please sign in before you can access the IELTS tests.</p>
+  <div class="auth-shell">
+    <div class="auth-showcase">
+      <div class="auth-kicker">Premium IELTS preparation experience</div>
+      <h1 class="auth-showcase-title">Sign in to access your mock tests, progress history, and speaking practice</h1>
+      <p class="auth-showcase-copy">
+        This platform is designed for structured IELTS preparation with realistic test flow, secure access, saved progress, and review-ready results.
+      </p>
 
-    <div class="auth-buttons">
-      <button id="googleLoginBtn" class="btn">Continue with Google</button>
-      <button id="microsoftLoginBtn" class="btn secondary">Continue with Microsoft</button>
+      <div class="auth-feature-list">
+        <div class="auth-feature-pill">Realistic Listening → Reading → Writing flow</div>
+        <div class="auth-feature-pill">Secure sign-in and saved progress</div>
+        <div class="auth-feature-pill">History tracking and managed cohorts</div>
+      </div>
     </div>
 
-    <div style="margin:18px 0; border-top:1px solid #e6e6e6;"></div>
+    <div class="auth-card">
+      <div class="auth-card-topline">Member access</div>
+      <h2 class="auth-title">Sign in to continue</h2>
+      <p class="auth-subtitle">Use Google, Microsoft, or your email to continue into the IELTS practice portal.</p>
 
-    <h3>Email sign-in</h3>
-    <input id="otpEmail" type="email" placeholder="Enter your email">
-    <button id="sendOtpBtn" class="btn">Send code or magic link</button>
+      <div class="auth-buttons">
+        <button id="googleLoginBtn" class="btn auth-provider-btn auth-provider-google">
+          <span class="auth-provider-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+              <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.26-.96 2.33-2.04 3.05l3.3 2.56c1.92-1.77 3.03-4.38 3.03-7.5 0-.72-.06-1.41-.19-2.07H12z"/>
+              <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.44l-3.3-2.56c-.92.62-2.1.99-3.33.99-2.56 0-4.72-1.73-5.49-4.06H3.1v2.64A10 10 0 0 0 12 22z"/>
+              <path fill="#4A90E2" d="M6.51 13.93A5.96 5.96 0 0 1 6.2 12c0-.67.12-1.31.31-1.93V7.43H3.1A10 10 0 0 0 2 12c0 1.61.39 3.12 1.1 4.57l3.41-2.64z"/>
+              <path fill="#FBBC05" d="M12 6.01c1.47 0 2.78.5 3.82 1.49l2.86-2.86C16.96 3.03 14.7 2 12 2A10 10 0 0 0 3.1 7.43l3.41 2.64C7.28 7.74 9.44 6.01 12 6.01z"/>
+            </svg>
+          </span>
+          <span>Continue with Google</span>
+        </button>
+        <button id="microsoftLoginBtn" class="btn secondary auth-provider-btn auth-provider-microsoft">
+          <span class="auth-provider-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="img" focusable="false">
+              <rect x="3" y="3" width="8.5" height="8.5" fill="#F25022"/>
+              <rect x="12.5" y="3" width="8.5" height="8.5" fill="#7FBA00"/>
+              <rect x="3" y="12.5" width="8.5" height="8.5" fill="#00A4EF"/>
+              <rect x="12.5" y="12.5" width="8.5" height="8.5" fill="#FFB900"/>
+            </svg>
+          </span>
+          <span>Continue with Microsoft</span>
+        </button>
+      </div>
 
-    <div style="margin-top:12px;">
-      <input id="otpCode" type="text" placeholder="Enter email code if you receive one">
-      <button id="verifyOtpBtn" class="btn secondary">Verify code</button>
+      <div class="auth-divider"><span>or sign in with email</span></div>
+
+      <div class="auth-field-group">
+        <label class="auth-label" for="otpEmail">Email address</label>
+        <input id="otpEmail" type="email" placeholder="Enter your email">
+      </div>
+      <button id="sendOtpBtn" class="btn auth-full-btn">Send code or magic link</button>
+
+      <div class="auth-code-row">
+        <div class="auth-field-group auth-code-field">
+          <label class="auth-label" for="otpCode">Verification code</label>
+          <input id="otpCode" type="text" placeholder="Enter the code if you received one">
+        </div>
+        <button id="verifyOtpBtn" class="btn secondary auth-code-btn">Verify code</button>
+      </div>
+
+      <p id="authMessage" class="small auth-message"></p>
     </div>
-
-    <p id="authMessage" class="small" style="margin-top:14px;"></p>
   </div>
 </section>
-<!-- ================= HOME ================= -->
+<!-- ================= HOME / PUBLIC EXPERIENCE ================= -->
 <section id="homeSection" class="home-screen" aria-label="Home">
   <header class="home-header">
     <div class="home-topbar">
@@ -514,7 +556,7 @@
   </div>
 </section>
 
-  <!-- ================= EXAM NAV (NEW) ================= -->
+  <!-- ================= EXAM EXPERIENCE ================= -->
  <div class="exam-nav hidden" id="examNav">
   <div class="exam-nav-left">
     <b>IELTS Test</b>
@@ -1076,27 +1118,38 @@
 <section id="speakingSection" class="hidden" aria-label="Speaking Exam">
   <div class="speaking-shell">
     <div class="speaking-topbar">
-      <h1>IELTS Speaking Exam</h1>
+      <div>
+        <div class="home-badge">Speaking module</div>
+        <h1>IELTS Speaking Exam</h1>
+        <p class="speaking-subtitle">Use this space for structured speaking practice, recorded responses, and future speaking evaluation workflows.</p>
+      </div>
       <div id="speakingStatus">Status: Ready</div>
     </div>
 
-    <div class="speaking-card">
-      <h2>Instructions</h2>
-      <p>Press Start Recording to conduct the speaking exam. </p>
+    <div class="speaking-grid">
+      <div class="speaking-card speaking-hero-card">
+        <h2>How it works</h2>
+        <p>Start the speaking exam, record your response, and use playback to review your performance. This flow can later support scoring, transcript review, and tutor feedback.</p>
+        <div class="speaking-pill-row">
+          <div class="speaking-pill">Recorded response flow</div>
+          <div class="speaking-pill">Playback-ready</div>
+          <div class="speaking-pill">Expandable for scoring</div>
+        </div>
+      </div>
+
+      <div class="speaking-card">
+        <h2>Controls</h2>
+        <div class="speaking-actions">
+          <button id="startSpeakingBtn" type="button">Start Speaking Exam</button>
+          <button id="backFromSpeakingBtn" type="button">Back to Home</button>
+        </div>
+      </div>
     </div>
 
     <div class="speaking-card">
-      <h2>Controls</h2>
-      <button id="startSpeakingBtn" type="button">Start Speaking Exam</button>
-    </div>
-
-    <div class="speaking-card">
-      <h2 class="hidden">Playback</h2>
+      <h2>Playback</h2>
+      <p class="speaking-helper">Once a recording is available, playback controls can appear here for review.</p>
       <audio id="speakingPlayback" style="display:none"></audio> 
-    </div>
-
-    <div class="speaking-card">
-      <button id="backFromSpeakingBtn" type="button">Back to Home</button>
     </div>
   </div>
 </section>

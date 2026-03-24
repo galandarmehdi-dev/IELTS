@@ -241,15 +241,7 @@
   async function openHistory() {
     try {
       if (!Auth()?.getSavedUser?.()) return;
-      UI()?.showOnly?.("home");
-      $("homeSection")?.classList.add("hidden");
-      $("listeningSection")?.classList.add("hidden");
-      $("readingControls")?.classList.add("hidden");
-      $("container")?.classList.add("hidden");
-      $("writingSection")?.classList.add("hidden");
-      $("adminResultsSection")?.classList.add("hidden");
-      $("examNav")?.classList.add("hidden");
-      $("historySection")?.classList.remove("hidden");
+      UI()?.showOnly?.("history");
       if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       let rows = await loadRows();
       state.rows = rows;
@@ -276,9 +268,7 @@
   }
 
   function closeHistory() {
-    $("historySection")?.classList.add("hidden");
     $("historyDetail")?.classList.add("hidden");
-    $("homeSection")?.classList.remove("hidden");
     UI()?.showOnly?.("home");
     UI()?.updateHomeStatusLine?.("Status: Signed in");
   }

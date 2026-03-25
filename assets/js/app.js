@@ -746,7 +746,7 @@ function startFreshExam() {
       try {
         const parts = fnPath.split('.');
         let fn = window;
-        for (const p of parts) { fn = fn?.[p]; if (!fn) break; }
+        for (const p of parts) { if (!fn) { fn = undefined; break; } fn = fn[p]; }
         if (typeof fn === 'function') return fn.apply(null, args || []);
       } catch (e) {
         console.error('safeCall error', fnPath, e);

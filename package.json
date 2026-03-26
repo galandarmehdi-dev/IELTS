@@ -1,0 +1,30 @@
+{
+  "name": "ielts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "smoke": "node tools/smoke.js",
+    "axe": "node tools/axe-check.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galandarmehdi-dev/ielts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/galandarmehdi-dev/ielts/issues"
+  },
+  "homepage": "https://github.com/galandarmehdi-dev/ielts#readme",
+  "dependencies": {
+    "jsdom": "^21.1.2",
+    "puppeteer-core": "^24.40.0"
+  }
+}

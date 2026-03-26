@@ -7,33 +7,33 @@
       try {
         const v = localStorage.getItem(key);
         return v === null ? fallback : v;
-      } catch {
+      } catch (e) {
         return fallback;
       }
     },
     set(key, value) {
       try {
         localStorage.setItem(key, String(value));
-      } catch {}
+      } catch (e) {}
     },
     remove(key) {
       try {
         localStorage.removeItem(key);
-      } catch {}
+      } catch (e) {}
     },
     getJSON(key, fallback = null) {
       try {
         const raw = localStorage.getItem(key);
         if (!raw) return fallback;
         return JSON.parse(raw);
-      } catch {
+      } catch (e) {
         return fallback;
       }
     },
     setJSON(key, obj) {
       try {
         localStorage.setItem(key, JSON.stringify(obj));
-      } catch {}
+      } catch (e) {}
     },
     removeByPrefixes(prefixes) {
       try {
@@ -42,7 +42,7 @@
           if (!k) continue;
           if (prefixes.some((p) => k.startsWith(p))) localStorage.removeItem(k);
         }
-      } catch {}
+      } catch (e) {}
     },
   };
 

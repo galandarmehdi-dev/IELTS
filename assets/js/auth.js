@@ -30,7 +30,7 @@ function getEl(id) {
 function getSavedUser() {
   try {
     return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
-  } catch {
+  } catch (e) {
     return null;
   }
 }
@@ -49,13 +49,13 @@ function saveUser(user) {
         name: user?.user_metadata?.full_name || user?.user_metadata?.name || ""
       })
     );
-  } catch {}
+  } catch (e) {}
 }
 
 function clearSavedUser() {
   try {
     localStorage.removeItem("IELTS:AUTH:user");
-  } catch {}
+  } catch (e) {}
 }
 
 function syncAuthExport() {
@@ -125,7 +125,7 @@ function hasOAuthCallbackParams() {
       hash.includes("type=recovery") ||
       hash.includes("type=signup")
     );
-  } catch {
+  } catch (e) {
     return false;
   }
 }
@@ -152,19 +152,19 @@ function clearAuthCallbackArtifacts() {
     }
 
     history.replaceState({}, "", url.pathname + url.search + url.hash);
-  } catch {}
+  } catch (e) {}
 }
 
 function getDesiredView() {
   try {
     const hashRoute = window.IELTS?.Router?.parseHashRoute?.();
     if (hashRoute?.view) return String(hashRoute.view);
-  } catch {}
+  } catch (e) {}
 
   try {
     const saved = localStorage.getItem("IELTS:HOME:lastView");
     if (saved && String(saved).trim()) return String(saved).trim();
-  } catch {}
+  } catch (e) {}
 
   return "home";
 }
@@ -181,7 +181,7 @@ function restoreViewAfterAuth() {
     } else if (!location.hash || location.hash === "#") {
       history.replaceState({}, "", `${location.pathname}#/${activeTestId}/${view}`);
     }
-  } catch {}
+  } catch (e) {}
 
   try {
     window.IELTS?.UI?.showOnly?.(view);
@@ -190,7 +190,7 @@ function restoreViewAfterAuth() {
       window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
     }
     return;
-  } catch {}
+  } catch (e) {}
 
   const fallbackIdMap = {
     home: "homeSection",
@@ -211,7 +211,7 @@ function routeHomeAfterLogin() {
   try {
     localStorage.setItem("IELTS:HOME:lastView", "home");
     localStorage.setItem("IELTS:EXAM:started", "false");
-  } catch {}
+  } catch (e) {}
 
   hideBlockingModals();
   forceHideAllAppSections();
@@ -223,13 +223,13 @@ function routeHomeAfterLogin() {
     } else {
       history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
     }
-  } catch {}
+  } catch (e) {}
 
   try {
     window.IELTS?.UI?.showOnly?.("home");
     window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
     window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
-  } catch {
+  } catch (e) {
     const home = getEl("homeSection");
     if (home) home.classList.remove("hidden");
   }
@@ -380,7 +380,7 @@ async function logout() {
   try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
     history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
-  } catch {}
+  } catch (e) {}
 
   loggingOut = false;
 }

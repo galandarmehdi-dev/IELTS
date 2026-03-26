@@ -194,11 +194,11 @@
         if (window.IELTS?.UI?.showOnly) {
           window.IELTS.UI.showOnly("speaking");
         }
-      } catch {}
+      } catch (e) {}
       if (speakingSection) speakingSection.classList.remove("hidden");
       try {
         window.IELTS?.UI?.setExamNavStatus?.("Status: Speaking module");
-      } catch {}
+      } catch (e) {}
     }
 
     function showHome() {
@@ -213,7 +213,7 @@
           window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
           return;
         }
-      } catch {}
+      } catch (e) {}
       if (homeSection) homeSection.classList.remove("hidden");
     }
 
@@ -591,12 +591,12 @@
 
       try {
         if (dataChannel) dataChannel.close();
-      } catch {}
+      } catch (e) {}
       dataChannel = null;
 
       try {
         if (peerConnection) peerConnection.close();
-      } catch {}
+      } catch (e) {}
       peerConnection = null;
 
       setRealtimeStatus("Disconnected");

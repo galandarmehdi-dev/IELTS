@@ -81,7 +81,7 @@
       const zoom = Math.max(1, Math.min(3, Number(value) || 1));
       graphImg.style.width = `${Math.round(zoom * 100)}%`;
       if (zoomResetBtn) zoomResetBtn.textContent = `${Math.round(zoom * 100)}%`;
-      try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch {}
+      try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch (e) {}
       return zoom;
     }
 

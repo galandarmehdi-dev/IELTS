@@ -76,14 +76,14 @@
   function getActiveTestId() {
     try {
       return localStorage.getItem(KEYS.ACTIVE_TEST_ID) || TESTS.defaultTestId;
-    } catch {
+    } catch (e) {
       return TESTS.defaultTestId;
     }
   }
 
   function setActiveTestId(id) {
     const next = TESTS.byId[id] ? id : TESTS.defaultTestId;
-    try { localStorage.setItem(KEYS.ACTIVE_TEST_ID, next); } catch {}
+    try { localStorage.setItem(KEYS.ACTIVE_TEST_ID, next); } catch (e) {}
     return next;
   }
 

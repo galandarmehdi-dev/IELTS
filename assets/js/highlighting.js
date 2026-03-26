@@ -19,7 +19,7 @@
   }
 
   function writeStore(obj) {
-    try { S()?.setJSON?.(STORAGE_KEY, obj || {}); } catch {}
+    try { S()?.setJSON?.(STORAGE_KEY, obj || {}); } catch (e) {}
   }
 
   function ensureToolbar() {
@@ -51,7 +51,7 @@
       if (marks.length) saveHighlightsFromDOM(rootInfo);
 
       hideToolbar();
-      try { sel.removeAllRanges(); } catch {}
+      try { sel.removeAllRanges(); } catch (e) {}
     });
 
     btnRemove.addEventListener("click", () => {
@@ -67,7 +67,7 @@
       }
 
       hideToolbar();
-      try { sel?.removeAllRanges?.(); } catch {}
+      try { sel?.removeAllRanges?.(); } catch (e) {}
     });
 
     btnClear.addEventListener("click", () => {
@@ -80,7 +80,7 @@
       clearAllHighlightsInRoot(rootInfo.el);
       saveHighlightsFromDOM(rootInfo);
       hideToolbar();
-      try { sel?.removeAllRanges?.(); } catch {}
+      try { sel?.removeAllRanges?.(); } catch (e) {}
     });
   }
 
@@ -217,7 +217,7 @@
       try {
         sub.surroundContents(mark);
         marks.push(mark);
-      } catch {
+      } catch (e) {
         manualWrapTextRange(sub, textNode, marks);
       }
     });
@@ -307,7 +307,7 @@
         range.setStart(start.node, start.offset);
         range.setEnd(end.node, end.offset);
         if (!range.collapsed) applyHighlightToRange(range, rootEl);
-      } catch {}
+      } catch (e) {}
     });
 
     mergeAdjacentMarks(rootEl);

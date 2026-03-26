@@ -32,7 +32,7 @@
     }
     const h = Math.max(0, nav.offsetHeight || 0);
     document.documentElement.style.setProperty("--exam-nav-h", `${h}px`);
-  } catch {}
+  } catch (e) {}
 }
 
 function showExamNav(show) {
@@ -86,13 +86,13 @@ function showExamNav(show) {
     // Remember last view (optional, used by app.js auto-resume)
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
-    } catch {}
+    } catch (e) {}
   }
 
   function setExamStarted(v) {
     try {
       S().set(R().KEYS.EXAM_STARTED, v ? "true" : "false");
-    } catch {}
+    } catch (e) {}
   }
 
   function updateHomeStatusLine(text) {
@@ -189,7 +189,7 @@ function resetExamAttempt() {
   function isAdminView() {
   try {
     return window.IELTS?.Access?.isAdmin?.() === true;
-  } catch {
+  } catch (e) {
     return false;
   }
 }
@@ -254,7 +254,7 @@ function showSubmittedOverlay(text) {
       text || "Your exam has been submitted. Please wait for your teacher.",
       { mode: "locked" }
     );
-  } catch {}
+  } catch (e) {}
 }
 
 // Keep sticky offsets correct if the top nav changes height (e.g., buttons wrap on small screens)
@@ -269,7 +269,7 @@ try {
   });
   // initial compute
   setTimeout(updateExamNavHeightVar, 0);
-} catch {}
+} catch (e) {}
 
 window.IELTS.UI = {
   $,

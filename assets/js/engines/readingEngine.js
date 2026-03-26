@@ -39,7 +39,7 @@
       const pct = Math.max(30, Math.min(70, Number(value) || 50));
       passage.style.flexBasis = `${pct}%`;
       questions.style.flexBasis = `${100 - pct}%`;
-      try { localStorage.setItem(SPLIT_KEY, String(pct)); } catch {}
+      try { localStorage.setItem(SPLIT_KEY, String(pct)); } catch (e) {}
     }
 
     function initReadingSplitter() {
@@ -1329,14 +1329,14 @@ qnum.textContent = `${item.q}`;
         const passageEl = $("passage");
         const qCard = $("qCard");
         if (HL?.registerReadingRoots) HL.registerReadingRoots(activePart, passageEl, qCard);
-      } catch {}
+      } catch (e) {}
     }
 
     function switchPart(partId) {
       if (!PARTS.includes(partId)) return;
       if (partId === activePart) return;
 
-      try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch {}
+      try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch (e) {}
 
       if (!hasSubmittedReading) {
         const latest = collectCurrentAnswersFromDOM(answersRef.current);
@@ -1344,7 +1344,7 @@ qnum.textContent = `${item.q}`;
       }
 
       activePart = partId;
-      try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch {}
+      try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch (e) {}
       refreshTabUI();
 
       renderPassageForActivePart();
@@ -1354,7 +1354,7 @@ qnum.textContent = `${item.q}`;
       renderQuestionsForActivePart(fresh);
 
       syncReadingHighlights();
-      try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch {}
+      try { window.IELTS?.Highlighting?.restoreReadingPartHighlights?.(activePart); } catch (e) {}
 
       if (hasSubmittedReading) {
         lockReadingUI();
@@ -1442,7 +1442,7 @@ qnum.textContent = `${item.q}`;
 
     buildPartTabs();
     initReadingSplitter();
-    try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch {}
+    try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch (e) {}
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
     syncReadingHighlights();

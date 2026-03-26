@@ -19,7 +19,7 @@
   function getSession() {
     try {
       return S()?.getJSON?.(KEY, null) ?? null;
-    } catch {
+    } catch (e) {
       return null;
     }
   }
@@ -27,13 +27,13 @@
   function setSession(obj) {
     try {
       S()?.setJSON?.(KEY, obj);
-    } catch {}
+    } catch (e) {}
   }
 
   function clearSession() {
     try {
       localStorage.removeItem(KEY);
-    } catch {}
+    } catch (e) {}
     applyViewMode();
   }
 
@@ -53,7 +53,7 @@
       if (h.startsWith("#/admin")) return true;
 
       return false;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
@@ -92,14 +92,14 @@
       document.documentElement.classList.add("notranslate");
       document.body?.setAttribute?.("translate", "no");
       document.body?.classList?.add?.("notranslate");
-    } catch {}
+    } catch (e) {}
   }
 
   function applyViewMode() {
     try {
       if (!document.body) return;
       document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
-    } catch {}
+    } catch (e) {}
 
     try {
       window.dispatchEvent(
@@ -107,7 +107,7 @@
           detail: { isAdmin: isAdmin() },
         })
       );
-    } catch {}
+    } catch (e) {}
   }
 
   function bindStudentLockdownListeners() {

@@ -14,7 +14,7 @@
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
@@ -22,7 +22,7 @@
   function safe(fn) {
     try {
       return fn();
-    } catch {
+    } catch (e) {
       return undefined;
     }
   }
@@ -31,7 +31,7 @@
     return (R()?.getActiveTestId?.() || R()?.TESTS?.defaultTestId || "ielts1");
   }
   function setActiveTestId(id) {
-    try { R()?.setActiveTestId?.(id); } catch {}
+    try { R()?.setActiveTestId?.(id); } catch (e) {}
   }
 
 
@@ -89,7 +89,7 @@
     function applyFontScale(value) {
       const allowed = new Set(["small", "medium", "large"]);
       const next = allowed.has(value) ? value : "medium";
-      try { document.body.setAttribute("data-font-scale", next); } catch {}
+      try { document.body.setAttribute("data-font-scale", next); } catch (e) {}
       return next;
     }
 
@@ -101,7 +101,7 @@
         select.value = active;
         select.addEventListener("change", () => {
           const next = applyFontScale(select.value);
-          try { localStorage.setItem(PREF_KEYS.fontScale, next); } catch {}
+          try { localStorage.setItem(PREF_KEYS.fontScale, next); } catch (e) {}
         });
       }
     }
@@ -151,7 +151,7 @@
           if (prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
         }
         toRemove.forEach((k) => localStorage.removeItem(k));
-      } catch {}
+      } catch (e) {}
     }
 
     // If student lands on "submitted" overlay, do NOT trap them forever.
@@ -424,7 +424,7 @@
       const res = await fetch(url.toString(), { method: "GET" });
       const text = await res.text();
       let data = null;
-      try { data = JSON.parse(text); } catch {}
+      try { data = JSON.parse(text); } catch (e) {}
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (!data || data.ok !== true || !Array.isArray(data.results)) {
         throw new Error((data && data.error) || "Could not load admin results.");
@@ -663,9 +663,9 @@ function requireTestPassword(onOk) {
 
 
     function resetEngineInitFlags() {
-      try { window.__IELTS_LISTENING_INIT__ = false; } catch {}
-      try { window.__IELTS_READING_INIT__ = false; } catch {}
-      try { window.__IELTS_WRITING_INIT__ = false; } catch {}
+      try { window.__IELTS_LISTENING_INIT__ = false; } catch (e) {}
+      try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
+      try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
     }
 
     // stop any playing audio used by exam flows (listening / speaking)

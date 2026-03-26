@@ -10,7 +10,7 @@
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
@@ -75,7 +75,7 @@
       try {
         const el = document.getElementById("listenBody");
         return el && typeof el.innerHTML === "string" ? el.innerHTML : "";
-      } catch {
+      } catch (e) {
         return "";
       }
     })();
@@ -265,7 +265,7 @@ function applyActiveListeningContent() {
 
       const aud = audio();
       if (aud) {
-        try { aud.pause(); } catch {}
+        try { aud.pause(); } catch (e) {}
       }
 
       submitted = true;
@@ -359,7 +359,7 @@ function applyActiveListeningContent() {
         // Student anti-seek protection
         if (strictActive) {
           if (Math.abs(t - lastGoodTime) > 1.25 && !aud.ended) {
-            try { aud.currentTime = lastGoodTime; } catch {}
+            try { aud.currentTime = lastGoodTime; } catch (e) {}
             return;
           }
         }
@@ -393,7 +393,7 @@ function applyActiveListeningContent() {
         const now = Date.now();
         if (now < ignoreSeekUntil) return;
         ignoreSeekUntil = now + 200;
-        try { aud.currentTime = lastGoodTime; } catch {}
+        try { aud.currentTime = lastGoodTime; } catch (e) {}
       });
 
       window.addEventListener(
@@ -472,11 +472,11 @@ function applyActiveListeningContent() {
 
       setStatus("Status: Loading audio...");
 
-      try { aud.pause(); } catch {}
+      try { aud.pause(); } catch (e) {}
       aud.muted = false;
       aud.volume = 1;
 
-      try { aud.currentTime = 0; } catch {}
+      try { aud.currentTime = 0; } catch (e) {}
       aud.load();
 
       try {

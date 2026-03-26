@@ -1,7 +1,25 @@
 #!/usr/bin/env node
 const puppeteer = require('puppeteer-core');
 const pages = ['http://localhost:8001','http://localhost:8002'];
-const chromePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const fs = require('fs');
+function findChrome() {
+  const candidates = [
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    '/Applications/Chromium.app/Contents/MacOS/Chromium'
+  ];
+  for (const p of candidates) if (fs.existsSync(p)) return p;
+  return process.env.CHROME_PATH || null;
+}
+const chromePath = findChrome();
+if (!chromePath) {
+  console.error('No Chrome/Chromium binary found. Set CHROME_PATH or install Chrome.');
+  process.exit(2);
+}
 (async ()=>{
   const browser = await puppeteer.launch({
     executablePath: chromePath,

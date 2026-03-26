@@ -816,7 +816,6 @@ function startFreshExam() {
               return;
             }
             if (id === 'navToListeningBtn') {
-            if (id === 'navToListeningBtn') {
               safeCall('IELTS.UI.setExamStarted', [true]);
               safeCall('IELTS.Engines.Listening.initListeningSystem');
               safeCall('IELTS.UI.showOnly', ['listening']);

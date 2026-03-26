@@ -2,27 +2,39 @@
 (function () {
   "use strict";
 
-  const S = () => window.IELTS.Storage;
-  const R = () => window.IELTS.Registry;
-  const UI = () => window.IELTS.UI;
+  const S = () => window.IELTS?.Storage;
+  const R = () => window.IELTS?.Registry;
+  const UI = () => window.IELTS?.UI;
 
   const KEY = "IELTS:ADMIN:session";
   const DEFAULT_TTL_MIN = 180; // 3 hours
+
+  let listenersBound = false;
+  let initRan = false;
 
   function nowMs() {
     return Date.now();
   }
 
   function getSession() {
-    return S()?.getJSON(KEY, null);
+    try {
+      return S()?.getJSON?.(KEY, null) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   function setSession(obj) {
-    S()?.setJSON(KEY, obj);
+    try {
+      S()?.setJSON?.(KEY, obj);
+    } catch {}
   }
 
   function clearSession() {
-    try { localStorage.removeItem(KEY); } catch {}
+    try {
+      localStorage.removeItem(KEY);
+    } catch {}
+    applyViewMode();
   }
 
   function hasValidSession() {
@@ -33,16 +45,17 @@
   }
 
   function isAdminRequestedByUrl() {
-    // admin entry triggers (choose one):
-    // 1) ?admin=1
-    // 2) #/admin
-    const qs = new URLSearchParams(location.search);
-    if (qs.get("admin") === "1") return true;
+    try {
+      const qs = new URLSearchParams(window.location.search || "");
+      if (qs.get("admin") === "1") return true;
 
-    const h = (location.hash || "").toLowerCase();
-    if (h.startsWith("#/admin")) return true;
+      const h = String(window.location.hash || "").toLowerCase();
+      if (h.startsWith("#/admin")) return true;
 
-    return false;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   function isAdmin() {
@@ -50,36 +63,57 @@
   }
 
   function enterAdmin() {
-    const pass = prompt("Admin passcode:");
-    if (!pass) return false;
+    const pass = window.prompt("Admin passcode:");
+    if (!pass) {
+      applyViewMode();
+      return false;
+    }
 
-    const correct = (R()?.ADMIN_PASSCODE || "");
+    const correct = String(R()?.ADMIN_PASSCODE || "");
     if (!correct || pass !== correct) {
-      alert("Wrong passcode.");
+      window.alert("Wrong passcode.");
+      applyViewMode();
       return false;
     }
 
     const ttlMin = Number(R()?.ADMIN_SESSION_TTL_MIN || DEFAULT_TTL_MIN);
-    setSession({ enabled: true, expiresAtMs: nowMs() + ttlMin * 60 * 1000 });
+    setSession({
+      enabled: true,
+      expiresAtMs: nowMs() + ttlMin * 60 * 1000,
+    });
+
+    applyViewMode();
     return true;
   }
 
-  function init() {
-    // If URL asks for admin, request passcode (unless session already valid)
-    if (isAdminRequestedByUrl() && !hasValidSession()) {
-      enterAdmin();
-    }
-
-    // Extra safety: discourage browser/Google translate overlays inside the test UI.
-    // (Not bulletproof, but helps with Chrome auto-translate + extensions.)
+  function applyNoTranslateFlags() {
     try {
       document.documentElement.setAttribute("translate", "no");
       document.documentElement.classList.add("notranslate");
       document.body?.setAttribute?.("translate", "no");
       document.body?.classList?.add?.("notranslate");
     } catch {}
+  }
 
-    // Student lockdown: block right click except in inputs/textareas (allows copy/paste there)
+  function applyViewMode() {
+    try {
+      if (!document.body) return;
+      document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
+    } catch {}
+
+    try {
+      window.dispatchEvent(
+        new CustomEvent("ielts:viewmodechange", {
+          detail: { isAdmin: isAdmin() },
+        })
+      );
+    } catch {}
+  }
+
+  function bindStudentLockdownListeners() {
+    if (listenersBound) return;
+    listenersBound = true;
+
     document.addEventListener(
       "contextmenu",
       (e) => {
@@ -87,13 +121,14 @@
         const t = e.target;
         const allowed =
           t &&
-          (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable === true);
+          (t.tagName === "INPUT" ||
+            t.tagName === "TEXTAREA" ||
+            t.isContentEditable === true);
         if (!allowed) e.preventDefault();
       },
       true
     );
 
-    // Student lockdown: block Find (Ctrl/Cmd+F), Next/Prev Find (Ctrl/Cmd+G), and F3
     document.addEventListener(
       "keydown",
       (e) => {
@@ -108,17 +143,58 @@
       },
       true
     );
-
-    // Put a flag on <body> for CSS / UI usage
-    try {
-      document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
-    } catch {}
   }
+
+  function maybeEnterAdminFromUrl() {
+    if (isAdminRequestedByUrl() && !hasValidSession()) {
+      enterAdmin();
+    } else {
+      applyViewMode();
+    }
+  }
+
+  function init() {
+    initRan = true;
+    applyNoTranslateFlags();
+    bindStudentLockdownListeners();
+    maybeEnterAdminFromUrl();
+    return isAdmin();
+  }
+
+  function autoInit() {
+    try {
+      init();
+    } catch (e) {
+      console.error("[IELTS] Access init failed", e);
+    }
+  }
+
+  // Run immediately if possible.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", autoInit, { once: true });
+  } else {
+    autoInit();
+  }
+
+  // Also retry once on full page load in case other namespaces were late.
+  window.addEventListener(
+    "load",
+    () => {
+      if (!initRan || !document.body?.dataset?.viewMode) autoInit();
+      else applyViewMode();
+    },
+    { once: true }
+  );
+
+  // If the route changes to an admin route later, handle that too.
+  window.addEventListener("hashchange", maybeEnterAdminFromUrl);
+  window.addEventListener("popstate", maybeEnterAdminFromUrl);
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Access = {
     init,
     isAdmin,
     clearSession,
+    enterAdmin,
   };
 })();

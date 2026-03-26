@@ -328,7 +328,7 @@
         UI().showOnly("listening");
         UI().setExamNavStatus("Status: Viewing Listening");
         try {
-          window.IELTS.Engines.Listening.initListeningSystem();
+          startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
         } catch (e) {
           console.error("Listening failed to open from nav:", e);
           try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
@@ -341,7 +341,7 @@
         if (!isAdmin) return;
         UI().setExamStarted(true);
         window.__IELTS_READING_INIT__ = false;
-        window.IELTS.Engines.Reading.startReadingSystem();
+        startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
         UI().setExamNavStatus("Status: Viewing Reading");
@@ -360,7 +360,7 @@
           return;
         }
         UI().setExamStarted(true);
-        if (!writingStarted) window.IELTS.Engines.Writing.startWritingSystem();
+        if (!writingStarted) startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to start:', e));
         else UI().showOnly("writing");
         UI().setExamNavStatus("Status: Viewing Writing");
       };
@@ -579,7 +579,7 @@
     if (isAdmin && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
-        window.IELTS.Engines.Listening.initListeningSystem();
+        startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
         UI().showOnly("listening");
         UI().setExamNavStatus("Status: Listening in progress");
         return;
@@ -587,7 +587,7 @@
       if (route.view === "reading") {
         UI().setExamStarted(true);
         window.__IELTS_READING_INIT__ = false;
-        window.IELTS.Engines.Reading.startReadingSystem();
+        startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
         UI().showOnly("reading");
         UI().setExamNavStatus("Status: Viewing Reading");
         return;
@@ -595,7 +595,7 @@
       if (route.view === "writing") {
         UI().setExamStarted(true);
         window.__IELTS_WRITING_INIT__ = false;
-        window.IELTS.Engines.Writing.startWritingSystem();
+        startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to start:', e));
         UI().showOnly("writing");
         UI().setExamNavStatus("Status: Viewing Writing");
         return;
@@ -686,7 +686,7 @@ function startFreshExam() {
       try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"); } catch (e) {}
 
       try {
-        window.IELTS.Engines.Listening.initListeningSystem();
+        startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
       } catch (e) {
         console.error("Listening failed to start:", e);
         try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}

@@ -221,6 +221,7 @@ function restoreViewAfterAuth() {
     listening: "listeningSection",
     reading: "readingControls",
     writing: "writingSection",
+    speaking: "speakingSection",
     adminResults: "adminResultsSection",
     history: "historySection"
   };

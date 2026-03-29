@@ -195,6 +195,10 @@
           window.IELTS.UI.showOnly("speaking");
         }
       } catch (e) {}
+      try {
+        const testId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+        window.IELTS?.Router?.setHashRoute?.(testId, "speaking");
+      } catch (e) {}
       if (speakingSection) speakingSection.classList.remove("hidden");
       try {
         window.IELTS?.UI?.setExamNavStatus?.("Status: Speaking module");
@@ -210,6 +214,8 @@
       try {
         if (window.IELTS?.UI?.showOnly) {
           window.IELTS.UI.showOnly("home");
+          const testId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+          window.IELTS?.Router?.setHashRoute?.(testId, "home");
           window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
           return;
         }

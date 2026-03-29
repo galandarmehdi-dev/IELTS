@@ -11,6 +11,15 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
+  async function getAuthHeaders() {
+    try {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -26,7 +35,6 @@
       return undefined;
     }
   }
-  // Active test helpers (multi-test safe defaults)
   function getActiveTestId() {
     return (R()?.getActiveTestId?.() || R()?.TESTS?.defaultTestId || "ielts1");
   }
@@ -34,10 +42,6 @@
     try { R()?.setActiveTestId?.(id); } catch (e) {}
   }
 
-
-
-  // Start engine method when split bundles load out-of-order.
-  // Retries for a short period, and logs failures instead of silently swallowing them.
   function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
     const startAt = Date.now();
     return new Promise((resolve, reject) => {
@@ -66,18 +70,18 @@
   }
 
   document.addEventListener("partials:loaded", () => {
-    // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();
-      // Boot safety: never show modal on first load
       safe(() => Modal().hideModal());
       const m = document.getElementById("modal");
       if (m) m.classList.add("hidden");
     }
 
-    // Init admin/session gate + apply UI lockdown for students
     safe(() => window.IELTS?.Access?.init?.());
     safe(() => UI()?.applyStudentLockdownUI?.());
+    window.addEventListener("ielts:viewmodechange", () => {
+      safe(() => UI()?.applyStudentLockdownUI?.());
+    });
 
     const isAdmin = isAdminView();
     const $ = UI().$;
@@ -107,9 +111,6 @@
     }
 
     initFontPreference();
-    // -----------------------------
-    // Speaking exam (separate)
-    // -----------------------------
     try {
       if (
         window.IELTS &&
@@ -132,14 +133,9 @@
       console.error("Speaking exam init failed", e);
     }
 
-    // Key helpers
     const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };
 
-    // -----------------------------
-    // Always-new attempt behavior
-    // -----------------------------
     function clearAllStudentAttemptKeys() {
-      // Keep admin session, wipe everything else that belongs to attempts.
       try {
         const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId","IELTS:AUTH:user"]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
@@ -154,8 +150,6 @@
       } catch (e) {}
     }
 
-    // If student lands on "submitted" overlay, do NOT trap them forever.
-    // They should be able to start a new attempt.
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
     if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true" && !maybePayload) {
       S().set(R().EXAM.keys.finalSubmitted, "false");
@@ -163,13 +157,9 @@
 
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
     if (finalDone && !isAdmin) {
-      // Student: auto-clear so Start Exam always works
       clearAllStudentAttemptKeys();
     }
 
-    // -----------------------------
-    // Reliable gates (Listening→Reading, Reading→Writing)
-    // -----------------------------
     let showingGate = false;
 
     function showListeningGate() {
@@ -177,10 +167,8 @@
       const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
-      // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
       if (lastView === "reading" || lastView === "writing") return;
-
 
       showingGate = true;
       safe(() => UI().showOnly("listening"));
@@ -192,14 +180,9 @@
           "Your Listening has been submitted. Click Start Reading to continue.",
           {
             mode: "gate",
-                        submitText: "Start Reading",
+            submitText: "Start Reading",
             onConfirm: async () => {
-              // Mark that the user has moved on immediately to prevent any “gate loop” pulling them back.
               try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (e) {}
-
-              // Keep the gate locked until we have attempted to start Reading.
-              // (If listening:submitted fires again for any reason, showListeningGate will ignore it.)
-              // Move to Reading view first, then start the engine (more reliable).
               try { UI().setExamStarted(true); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
@@ -208,10 +191,7 @@
                 try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Reading", "startReadingSystem");
               } catch (e) {
-                // Visible fallback: keep user on Reading screen even if engine failed.
-                try {
-                  window.alert("Reading failed to start. Please refresh the page and try again.");
-                } catch (_) {}
+                try { window.alert("Reading failed to start. Please refresh the page and try again."); } catch (_) {}
               } finally {
                 showingGate = false;
               }
@@ -227,10 +207,8 @@
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
-      // If the user already moved to Writing, do not pull them back to Reading.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
       if (lastView === "writing") return;
-
 
       showingGate = true;
       safe(() => UI().showOnly("reading"));
@@ -242,10 +220,9 @@
           "Your Reading has been submitted. Click Start Writing to continue.",
           {
             mode: "gate",
-                        submitText: "Start Writing",
+            submitText: "Start Writing",
             onConfirm: async () => {
               showingGate = false;
-
               try { UI().setExamStarted(true); } catch (e) {}
               try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
               try { UI().showOnly("writing"); } catch (e) {}
@@ -263,19 +240,15 @@
       );
     }
 
-    // Event-based (preferred)
     document.addEventListener("listening:submitted", showListeningGate);
     document.addEventListener("reading:submitted", showReadingGate);
 
-    // Storage-based fallback polling (in case an event is missed)
     let lastListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdmin) return;
       const curListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
-
-      // If changed to true, run gates
       if (curListen !== lastListen) {
         lastListen = curListen;
         if (curListen === "true") showListeningGate();
@@ -284,26 +257,19 @@
         lastRead = curRead;
         if (curRead === "true") showReadingGate();
       }
-
-      // Also keep checking in case state was already true (refresh)
       showListeningGate();
       showReadingGate();
     }, 800);
 
-    // Attach a direct audio ended fallback for listening
     const aud = document.getElementById("listeningAudio");
     if (aud && !aud.dataset.gateBound) {
       aud.dataset.gateBound = "1";
       aud.addEventListener("ended", () => {
-        // Give engine time to set submitted key
         setTimeout(showListeningGate, 400);
         setTimeout(showListeningGate, 1200);
       });
     }
 
-    // -----------------------------
-    // Admin nav buttons (unchanged)
-    // -----------------------------
     const toHome = $("navToHomeBtn");
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");
@@ -376,9 +342,6 @@
       };
     }
 
-    // -----------------------------
-    // Admin results dashboard
-    // -----------------------------
     const adminState = { rows: [], filtered: [] };
 
     function num(value) {
@@ -413,15 +376,17 @@
     }
 
     async function fetchAdminResults() {
-      const endpoint = String(R()?.ADMIN_ENDPOINT || "").trim();
+      const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint);
       url.searchParams.set("action", "results");
-      url.searchParams.set("adminPasscode", String(R()?.ADMIN_PASSCODE || ""));
       url.searchParams.set("t", String(Date.now()));
 
-      const res = await fetch(url.toString(), { method: "GET" });
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      });
       const text = await res.text();
       let data = null;
       try { data = JSON.parse(text); } catch (e) {}
@@ -571,9 +536,6 @@
       }, 0);
     }
 
-    // -----------------------------
-    // Hash route support (ADMIN ONLY)
-    // -----------------------------
     const route = Router().parseHashRoute();
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
     if (isAdmin && route && route.view) {
@@ -612,15 +574,9 @@
       }
     }
 
-    // -----------------------------
-    // Default to home
-    // -----------------------------
     UI().showOnly("home");
     UI().updateHomeStatusLine();
 
-    // -----------------------------
-    // Home buttons: START ALWAYS = NEW ATTEMPT
-    // -----------------------------
     const startBtn = $("startIelts1Btn");
     const startBtn2 = $("cardStartIelts1Btn");
     const startBtnT2 = $("startIelts2Btn");
@@ -636,31 +592,20 @@
     const adminRefreshBtn = $("adminResultsRefreshBtn");
     const adminExportBtn = $("adminResultsExportBtn");
 
-    
-    // -----------------------------
-    // -----------------------------
-// Student password gate (does NOT affect admin view)
-// -----------------------------
-function requireTestPassword(onOk) {
-  if (isAdmin) { onOk(); return; }
-
-  // Always ask in student view (no "remember" unlock),
-  // so every click on Start Exam requires the password.
-  window.IELTS?.Modal?.showModal?.(
-    "Enter password",
-    "This test is password-protected. Please enter the password to start.",
-    {
-      mode: "password",
-      submitText: "Start exam",
-      onConfirm: () => {
-        onOk();
-      },
+    function requireTestPassword(onOk) {
+      if (isAdmin) { onOk(); return; }
+      window.IELTS?.Modal?.showModal?.(
+        "Enter password",
+        "This test is password-protected. Please enter the password to start.",
+        {
+          mode: "password",
+          submitText: "Start exam",
+          onConfirm: () => {
+            onOk();
+          },
+        }
+      );
     }
-  );
-}
-
-
-
 
     function resetEngineInitFlags() {
       try { window.__IELTS_LISTENING_INIT__ = false; } catch (e) {}
@@ -668,31 +613,26 @@ function requireTestPassword(onOk) {
       try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
     }
 
-    // stop any playing audio used by exam flows (listening / speaking)
     function stopAllAudio() {
       try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
       try { const sp = document.getElementById('speakingPlayback'); if (sp && !sp.paused) { sp.pause(); sp.currentTime = 0; } } catch (e) {}
       try { const remote = document.getElementById('remoteAudio'); if (remote && !remote.paused) { remote.pause(); remote.currentTime = 0; } } catch (e) {}
     }
 
-function startFreshExam() {
+    function startFreshExam() {
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
-
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("listening"); } catch (e) {}
       try { UI().setExamNavStatus("Status: Listening in progress"); } catch (e) {}
       try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"); } catch (e) {}
-
       try {
         startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
       } catch (e) {
         console.error("Listening failed to start:", e);
         try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
       }
-
-      // if audio already bound, ensure fallback ended listener exists
       const a = document.getElementById("listeningAudio");
       if (a && !a.dataset.gateBound) {
         a.dataset.gateBound = "1";
@@ -729,18 +669,12 @@ function startFreshExam() {
       if (row) renderAdminDetail(row);
     });
 
-    // If student refreshes after Listening is already submitted, show gate (not auto-reading)
     if (!isAdmin) {
       showListeningGate();
       showReadingGate();
     }
-
-    // End of main init
   });
 
-  // -----------------------------
-  // Fallback handlers: ensure buttons work even if earlier init threw
-  // -----------------------------
   (function () {
     function safeCall(fnPath, args) {
       try {
@@ -807,7 +741,6 @@ function startFreshExam() {
             return;
           }
           if (id === 'navToHomeBtn' || id === 'navToListeningBtn' || id === 'navToReadingBtn' || id === 'navToWritingBtn') {
-            // best-effort: call the UI navigation helpers
             if (id === 'navToHomeBtn') {
               try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
               try { const sp = document.getElementById('speakingPlayback'); if (sp && !sp.paused) { sp.pause(); sp.currentTime = 0; } } catch (e) {}

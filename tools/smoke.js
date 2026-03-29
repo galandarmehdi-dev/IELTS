@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 const puppeteer = require('puppeteer-core');
-const pages = ['http://localhost:8001','http://localhost:8002'];
 const fs = require('fs');
+
+const pages = String(process.env.SMOKE_URLS || 'http://127.0.0.1:8001/')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
 function findChrome() {
   const candidates = [
     '/usr/bin/google-chrome-stable',
@@ -49,7 +53,6 @@ if (!chromePath) {
     });
     try{
       const r = await page.goto(url, {waitUntil: 'networkidle2', timeout: 20000});
-      // wait a short while for client-side scripts to run
       await new Promise(r => setTimeout(r,1500));
     }catch(e){
       results[url].errors.push('Navigation error: '+String(e));
@@ -57,7 +60,7 @@ if (!chromePath) {
     await page.close();
   }
   await browser.close();
-  // print summary
+  let hasFailures = false;
   for (const url of pages) {
     const r = results[url];
     console.log('\n=== ' + url + ' ===');
@@ -70,6 +73,9 @@ if (!chromePath) {
     r.requestsFailed.forEach(rr=>console.log('  - '+rr.method+' '+rr.url+' -> '+rr.errorText));
     console.log('HTTP errors (>=400): ' + r.badResponses.length);
     r.badResponses.forEach(br=>console.log('  - '+br.status+' '+br.url));
+    if (r.errors.length || r.requestsFailed.length || r.badResponses.length) {
+      hasFailures = true;
+    }
   }
-  process.exit(0);
+  process.exit(hasFailures ? 1 : 0);
 })();

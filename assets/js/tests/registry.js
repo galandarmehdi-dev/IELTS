@@ -2,8 +2,7 @@
 (function () {
   "use strict";
 
-  const ADMIN_ENDPOINT =
-    "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
+  const ADMIN_API_PATH = "/api/admin";
 
   const SPEAKING_UPLOAD_ENDPOINT =
     "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
@@ -11,7 +10,6 @@
   const REALTIME_SESSION_ENDPOINT =
     "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";
 
-  const ADMIN_PASSCODE = "SMOKEY";
   const ADMIN_SESSION_TTL_MIN = 240;
   const TEST_PASSWORD = "ILEZT123";
   const TEMP_STUDENT_AUDIO_SCRUB = true;
@@ -119,10 +117,9 @@
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = {
-    ADMIN_ENDPOINT,
+    ADMIN_API_PATH,
     SPEAKING_UPLOAD_ENDPOINT,
     REALTIME_SESSION_ENDPOINT,
-    ADMIN_PASSCODE,
     ADMIN_SESSION_TTL_MIN,
     TEST_PASSWORD,
     TEMP_STUDENT_AUDIO_SCRUB,

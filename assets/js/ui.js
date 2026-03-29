@@ -14,7 +14,6 @@
     if (el) el.textContent = text;
   }
 
-
   function setExamNavTimer(text) {
     const el = $("examNavTimer");
     if (!el) return;
@@ -24,18 +23,18 @@
   }
 
   function updateExamNavHeightVar() {
-  try {
-    const nav = $("examNav");
-    if (!nav || nav.classList.contains("hidden")) {
-      document.documentElement.style.setProperty("--exam-nav-h", "0px");
-      return;
-    }
-    const h = Math.max(0, nav.offsetHeight || 0);
-    document.documentElement.style.setProperty("--exam-nav-h", `${h}px`);
-  } catch (e) {}
-}
+    try {
+      const nav = $("examNav");
+      if (!nav || nav.classList.contains("hidden")) {
+        document.documentElement.style.setProperty("--exam-nav-h", "0px");
+        return;
+      }
+      const h = Math.max(0, nav.offsetHeight || 0);
+      document.documentElement.style.setProperty("--exam-nav-h", `${h}px`);
+    } catch (e) {}
+  }
 
-function showExamNav(show) {
+  function showExamNav(show) {
     const nav = $("examNav");
     if (!nav) return;
     nav.classList.toggle("hidden", !show);
@@ -43,25 +42,15 @@ function showExamNav(show) {
   }
 
   function showOnly(view) {
-    // Home
     const home = $("homeSection");
-
-    // Listening
     const listening = $("listeningSection");
-
-    // Reading (not wrapped in a section in your HTML)
     const readingControls = $("readingControls");
     const readingContainer = $("container");
-
-    // Writing
     const writing = $("writingSection");
-
-    // History / Speaking / Admin
     const history = $("historySection");
     const speaking = $("speakingSection");
     const adminResults = $("adminResultsSection");
 
-    // Modal should not be auto-hidden here (modal controls itself)
     const isHome = view === "home";
     const isListening = view === "listening";
     const isReading = view === "reading";
@@ -79,11 +68,9 @@ function showExamNav(show) {
     if (speaking) speaking.classList.toggle("hidden", !isSpeaking);
     if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
 
-    // Exam nav hidden on public/supporting views, visible on core exam views
     const showNav = isListening || isReading || isWriting || isAdminResults;
     showExamNav(showNav);
 
-    // Remember last view (optional, used by app.js auto-resume)
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
     } catch (e) {}
@@ -96,22 +83,16 @@ function showExamNav(show) {
   }
 
   function updateHomeStatusLine(text) {
-  const el = $("homeStatusLine");
-  if (!el) return;
-
-  // If text is missing, show a default instead of "undefined"
-  el.textContent = (typeof text === "string" && text.trim())
-    ? text
-    : "Status: Ready";
-}
+    const el = $("homeStatusLine");
+    if (!el) return;
+    el.textContent = (typeof text === "string" && text.trim()) ? text : "Status: Ready";
+  }
 
   function formatTime(seconds) {
     const s = Math.max(0, Number(seconds) || 0);
     const mm = Math.floor(s / 60);
     const ss = s % 60;
-    const m = String(mm).padStart(2, "0");
-    const se = String(ss).padStart(2, "0");
-    return `${m}:${se}`;
+    return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
   }
 
   function wordCount(text) {
@@ -120,13 +101,11 @@ function showExamNav(show) {
     return t.split(/\s+/).filter(Boolean).length;
   }
 
-  // Simple “two words minimum” name check
   function isValidFullName(name) {
     const n = String(name || "").trim().replace(/\s+/g, " ");
     if (n.length < 3) return false;
     const parts = n.split(" ");
     if (parts.length < 2) return false;
-    // avoid single-letter parts like "A B"
     if (parts.some((p) => p.length < 2)) return false;
     return true;
   }
@@ -140,155 +119,105 @@ function showExamNav(show) {
   }
 
   function lockWholeExamAfterFinalSubmit() {
-    // Used after final submit: make everything view-only
-    const listening = $("listeningSection");
-    const readingControls = $("readingControls");
-    const readingContainer = $("container");
-    const writing = $("writingSection");
-
-    listening?.classList.add("view-only");
-    readingControls?.classList.add("view-only");
-    readingContainer?.classList.add("view-only");
-    writing?.classList.add("view-only");
+    $("listeningSection")?.classList.add("view-only");
+    $("readingControls")?.classList.add("view-only");
+    $("container")?.classList.add("view-only");
+    $("writingSection")?.classList.add("view-only");
   }
 
-function resetExamAttempt() {
-  // Students cannot reset
-  const isAdmin =
-    (window.IELTS &&
-      window.IELTS.Access &&
-      typeof window.IELTS.Access.isAdmin === "function" &&
-      window.IELTS.Access.isAdmin() === true) ||
-    false;
+  function resetExamAttempt() {
+    const isAdmin = window.IELTS?.Access?.isAdmin?.() === true;
+    if (!isAdmin) return;
+    try { S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]); } catch (e) {}
+    try {
+      S().remove(R().EXAM.keys.finalSubmission);
+      S().remove(R().EXAM.keys.finalSubmitted);
+      S().remove(R().KEYS.EXAM_STARTED);
+      S().remove(R().KEYS.HOME_LAST_VIEW);
+    } catch (e) {}
+    try { location.hash = ""; } catch (e) {}
+    location.reload();
+  }
 
-  if (!isAdmin) return;
-
-  // Clear everything related to this exam attempt
-  try {
-    // Remove by prefixes (your existing helper)
-    S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]);
-  } catch (e) {}
-
-  try {
-    // Also remove known keys explicitly
-    S().remove(R().EXAM.keys.finalSubmission);
-    S().remove(R().EXAM.keys.finalSubmitted);
-    S().remove(R().KEYS.EXAM_STARTED);
-    S().remove(R().KEYS.HOME_LAST_VIEW);
-  } catch (e) {}
-
-  // Reset route + reload cleanly
-  try {
-    location.hash = "";
-  } catch (e) {}
-
-  location.reload();
-}
-
-  window.IELTS = window.IELTS || {};
   function isAdminView() {
-  try {
-    return window.IELTS?.Access?.isAdmin?.() === true;
-  } catch (e) {
-    return false;
+    try {
+      return window.IELTS?.Access?.isAdmin?.() === true;
+    } catch (e) {
+      return false;
+    }
   }
-}
 
-function applyStudentLockdownUI() {
-    // Hide Copy/Download utility buttons for students
-  if (!isAdminView()) {
+  function applyStudentLockdownUI() {
+    const admin = isAdminView();
     [
-      // Listening
       "downloadListeningBtn",
       "copyListeningBtn",
-
-      // Reading
       "downloadBtn",
       "copyBtn",
-
-      // Listening flow controls (admin-only)
       "submitListeningBtn",
-
-      // Writing
       "downloadWritingBtn",
       "copyWritingBtn",
-
-      // Flow controls (must be admin-only)
       "submitBtn",
       "endExamBtn",
-    ].forEach((id) => $(id)?.classList.add("hidden"));
-  }
-  // Hide global exam navigation actions for students
-  const nav = $("examNav");
-  if (nav && !isAdminView()) {
-    nav.classList.add("student-locked");
-    // hide buttons if they exist
-    ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","navToResultsBtn","resetExamBtn"].forEach((id) => {
-      const b = $(id);
-      if (b) b.classList.add("hidden");
-    });
+    ].forEach((id) => $(id)?.classList.toggle("hidden", !admin));
+    const nav = $("examNav");
+    if (nav) {
+      nav.classList.toggle("student-locked", !admin);
+      ["navToHomeBtn","navToListeningBtn","navToReadingBtn","navToWritingBtn","navToResultsBtn","resetExamBtn"].forEach((id) => {
+        const b = $(id);
+        if (b) b.classList.toggle("hidden", !admin);
+      });
+    }
+    $("homeNewAttemptBtn")?.classList.toggle("hidden", !admin);
+    $("cardResetBtn")?.classList.toggle("hidden", !admin);
+    $("homeAdminResultsBtn")?.classList.toggle("hidden", !admin);
+    $("navToResultsBtn")?.classList.toggle("hidden", !admin);
   }
 
-  // Hide “new attempt / clear browser” from home for students
-  if (!isAdminView()) {
-    $("homeNewAttemptBtn")?.classList.add("hidden");
-    $("cardResetBtn")?.classList.add("hidden");
-    $("homeAdminResultsBtn")?.classList.add("hidden");
-  } else {
-    $("homeAdminResultsBtn")?.classList.remove("hidden");
-    $("navToResultsBtn")?.classList.remove("hidden");
+  function hideAllExamViews() {
+    ["homeSection","listeningSection","readingControls","container","writingSection","examNav"].forEach((id) => $(id)?.classList.add("hidden"));
   }
-}
 
-// Completely hide exam UI (so student cannot see questions after final submit)
-function hideAllExamViews() {
-  const ids = ["homeSection","listeningSection","readingControls","container","writingSection","examNav"];
-  ids.forEach((id) => $(id)?.classList.add("hidden"));
-}
+  function showSubmittedOverlay(text) {
+    hideAllExamViews();
+    try {
+      window.IELTS?.Modal?.showModal?.(
+        "Submitted",
+        text || "Your exam has been submitted. Please wait for your teacher.",
+        { mode: "locked" }
+      );
+    } catch (e) {}
+  }
 
-function showSubmittedOverlay(text) {
-  hideAllExamViews();
   try {
-    window.IELTS?.Modal?.showModal?.(
-      "Submitted",
-      text || "Your exam has been submitted. Please wait for your teacher.",
-      { mode: "locked" }
-    );
+    let __navResizeT = null;
+    window.addEventListener("resize", () => {
+      if (__navResizeT) clearTimeout(__navResizeT);
+      __navResizeT = setTimeout(() => {
+        __navResizeT = null;
+        updateExamNavHeightVar();
+      }, 120);
+    });
+    setTimeout(updateExamNavHeightVar, 0);
   } catch (e) {}
-}
 
-// Keep sticky offsets correct if the top nav changes height (e.g., buttons wrap on small screens)
-try {
-  let __navResizeT = null;
-  window.addEventListener("resize", () => {
-    if (__navResizeT) clearTimeout(__navResizeT);
-    __navResizeT = setTimeout(() => {
-      __navResizeT = null;
-      updateExamNavHeightVar();
-    }, 120);
-  });
-  // initial compute
-  setTimeout(updateExamNavHeightVar, 0);
-} catch (e) {}
-
-window.IELTS.UI = {
-  $,
-  showOnly,
-  setExamNavStatus,
-  setExamNavTimer,
-  setExamStarted,
-  updateHomeStatusLine,
-  formatTime,
-  wordCount,
-  isValidFullName,
-  clearReadingLockStyles,
-  lockWholeExamAfterFinalSubmit,
-  resetExamAttempt,
-
-  // NEW:
-  isAdminView,
-  applyStudentLockdownUI,
-  hideAllExamViews,
-  showSubmittedOverlay,
-};
+  window.IELTS = window.IELTS || {};
+  window.IELTS.UI = {
+    $,
+    showOnly,
+    setExamNavStatus,
+    setExamNavTimer,
+    setExamStarted,
+    updateHomeStatusLine,
+    formatTime,
+    wordCount,
+    isValidFullName,
+    clearReadingLockStyles,
+    lockWholeExamAfterFinalSubmit,
+    resetExamAttempt,
+    isAdminView,
+    applyStudentLockdownUI,
+    hideAllExamViews,
+    showSubmittedOverlay,
+  };
 })();

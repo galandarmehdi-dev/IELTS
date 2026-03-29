@@ -61,7 +61,7 @@
         safeCall('IELTS.History.closeHistory');
         return;
       }
-      if (id === 'openSpeakingExamBtn' || label === 'Speaking') {
+      if (id === 'openSpeakingExamBtn') {
         safeCall('IELTS.Speaking.initSpeakingExam');
         safeCall('IELTS.UI.showOnly', ['speaking']);
         return;

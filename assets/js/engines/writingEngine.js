@@ -318,7 +318,7 @@
       const endpoint = R().ADMIN_API_PATH;
       if (!endpoint) return { ok: false, error: "Missing endpoint" };
 
-      const url = new URL(endpoint);
+      const url = new URL(endpoint, window.location.origin);
       url.searchParams.set("action", "studentResult");
       url.searchParams.set("submittedAt", String(finalPayload?.submittedAt || ""));
       url.searchParams.set("studentFullName", String(finalPayload?.studentFullName || ""));
@@ -486,6 +486,7 @@
           sheetsSaved = true;
         }
 
+        // Save history AFTER Sheets, but do not let history block the submit screen.
         const historyResult = await saveAttemptToSupabase(finalPayload);
 
         if (hasWritingText) {

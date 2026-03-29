@@ -72,7 +72,7 @@
     const endpoint = Registry()?.ADMIN_API_PATH;
     if (!endpoint) return null;
 
-    const url = new URL(endpoint);
+    const url = new URL(endpoint, window.location.origin);
     url.searchParams.set("action", "studentResult");
     url.searchParams.set("submittedAt", String(row.submitted_at || ""));
     url.searchParams.set("studentFullName", String(row.student_full_name || ""));

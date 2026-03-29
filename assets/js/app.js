@@ -427,7 +427,7 @@
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
-      const url = new URL(endpoint);
+      const url = new URL(endpoint, window.location.origin);
       url.searchParams.set("action", "results");
       url.searchParams.set("t", String(Date.now()));
 

@@ -669,6 +669,11 @@
     const openDashboardBtn = $("openDashboardBtn");
     const footerOpenDashboardBtn = $("footerOpenDashboardBtn");
     const footerOpenHistoryBtn = $("footerOpenHistoryBtn");
+    const homeAccountDropdown = $("homeAccountDropdown");
+    const menuDashboardProfileBtn = $("menuDashboardProfileBtn");
+    const menuDashboardSettingsBtn = $("menuDashboardSettingsBtn");
+    const menuHistoryBtn = $("menuHistoryBtn");
+    const menuSpeakingBtn = $("menuSpeakingBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
@@ -702,6 +707,21 @@
       try { window.__IELTS_LISTENING_INIT__ = false; } catch (e) {}
       try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
       try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
+    }
+
+    function closeAccountMenu() {
+      if (homeAccountDropdown) homeAccountDropdown.classList.add("hidden");
+      if (openDashboardBtn) openDashboardBtn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleAccountMenu() {
+      if (!homeAccountDropdown || !openDashboardBtn) {
+        window.IELTS?.Dashboard?.open?.();
+        return;
+      }
+      const nextHidden = !homeAccountDropdown.classList.contains("hidden");
+      homeAccountDropdown.classList.toggle("hidden", nextHidden);
+      openDashboardBtn.setAttribute("aria-expanded", nextHidden ? "false" : "true");
     }
 
     // stop any playing audio used by exam flows (listening / speaking)
@@ -746,9 +766,16 @@ function startFreshExam() {
     if (startBtnT3) startBtnT3.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (openDashboardBtn) openDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
+    if (openDashboardBtn) openDashboardBtn.onclick = (e) => {
+      e.preventDefault();
+      toggleAccountMenu();
+    };
     if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
     if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => $("openHistoryBtn")?.click?.();
+    if (menuDashboardProfileBtn) menuDashboardProfileBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("overview"); };
+    if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("settings"); };
+    if (menuHistoryBtn) menuHistoryBtn.onclick = () => { closeAccountMenu(); $("openHistoryBtn")?.click?.(); };
+    if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => { closeAccountMenu(); $("openSpeakingExamBtn")?.click?.(); };
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
@@ -770,6 +797,13 @@ function startFreshExam() {
       showListeningGate();
       showReadingGate();
     }
+
+    document.addEventListener("click", (e) => {
+      if (!homeAccountDropdown || !openDashboardBtn) return;
+      const trigger = e.target?.closest?.("#openDashboardBtn");
+      const inside = e.target?.closest?.("#homeAccountDropdown");
+      if (!trigger && !inside) closeAccountMenu();
+    });
 
     // End of main init
   });
@@ -823,7 +857,7 @@ function startFreshExam() {
             safeCall('IELTS.History.openHistory');
             return;
           }
-          if (id === 'openDashboardBtn' || id === 'footerOpenDashboardBtn') {
+          if (id === 'footerOpenDashboardBtn') {
             safeCall('IELTS.Dashboard.open');
             return;
           }

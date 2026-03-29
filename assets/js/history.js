@@ -291,7 +291,7 @@
   });
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory };
+  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows };
 
   document.addEventListener("partials:loaded", () => {
     $("openHistoryBtn")?.addEventListener("click", openHistory);

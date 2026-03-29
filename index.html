@@ -116,6 +116,7 @@
 
       <div class="home-top-actions">
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
+        <button class="home-btn ghost" type="button" id="openDashboardBtn">My Dashboard</button>
         <button class="home-btn ghost" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
         <button class="home-btn ghost" type="button" id="openHistoryBtn">My History</button>
         <button class="home-btn ghost hidden" type="button" id="logoutBtn">Log out</button>
@@ -317,10 +318,154 @@
       </div>
       <div class="footer-links">
         <button class="footer-link-btn" type="button" id="footerStartTest1Btn">Start Test 1</button>
+        <button class="footer-link-btn" type="button" id="footerOpenDashboardBtn">Dashboard</button>
         <button class="footer-link-btn" type="button" id="footerOpenHistoryBtn">My History</button>
       </div>
     </div>
   </footer>
+</section>
+
+<section id="dashboardSection" class="dashboard-screen hidden" aria-label="Student dashboard">
+  <div class="dashboard-shell">
+    <div class="dashboard-header">
+      <div>
+        <div class="home-badge">Student dashboard</div>
+        <h1 class="dashboard-title">Your personal training desk</h1>
+        <p class="dashboard-subtitle">Keep your profile, study settings, recent results, and next best actions together in one student-specific workspace.</p>
+      </div>
+      <div class="dashboard-actions">
+        <button class="btn secondary" type="button" id="dashboardRefreshBtn">Refresh</button>
+        <button class="btn secondary" type="button" id="dashboardBackBtn">Back to Home</button>
+      </div>
+    </div>
+
+    <div class="workspace-banner dashboard-banner">
+      <div class="workspace-banner-copy">
+        <span class="workspace-banner-kicker">Personal workspace</span>
+        <strong id="dashboardWelcomeTitle">Welcome back.</strong>
+        <p id="dashboardWelcomeCopy">Use your dashboard to keep your study preferences, track progress, and jump into the right next practice mode.</p>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dashboard-profile-card">
+        <div class="dashboard-card-topline">Student profile</div>
+        <div class="dashboard-profile-row">
+          <div class="dashboard-avatar" id="dashboardAvatar" aria-hidden="true">A</div>
+          <div class="dashboard-profile-copy">
+            <strong id="dashboardName">Student</strong>
+            <span id="dashboardEmail">Signed-in account</span>
+            <span id="dashboardProvider">Secure account</span>
+          </div>
+        </div>
+        <div class="dashboard-profile-meta">
+          <div class="dashboard-meta-chip" id="dashboardMemberSince">Member since —</div>
+          <div class="dashboard-meta-chip" id="dashboardLastActive">Last activity —</div>
+        </div>
+      </div>
+
+      <div class="dashboard-settings-card">
+        <div class="dashboard-card-topline">Study settings</div>
+        <div class="dashboard-settings-grid">
+          <label class="dashboard-field" for="dashboardPreferredName">
+            <span>Preferred name</span>
+            <input id="dashboardPreferredName" type="text" placeholder="How should the dashboard address you?">
+          </label>
+          <label class="dashboard-field" for="dashboardTargetBand">
+            <span>Target band</span>
+            <select id="dashboardTargetBand">
+              <option value="">Select target</option>
+              <option value="6.0">Band 6.0</option>
+              <option value="6.5">Band 6.5</option>
+              <option value="7.0">Band 7.0</option>
+              <option value="7.5">Band 7.5</option>
+              <option value="8.0">Band 8.0</option>
+            </select>
+          </label>
+          <label class="dashboard-field" for="dashboardFocusSkill">
+            <span>Current focus</span>
+            <select id="dashboardFocusSkill">
+              <option value="">Balanced prep</option>
+              <option value="listening">Listening</option>
+              <option value="reading">Reading</option>
+              <option value="writing">Writing</option>
+              <option value="speaking">Speaking</option>
+            </select>
+          </label>
+          <label class="dashboard-field" for="dashboardPreferredTest">
+            <span>Default test</span>
+            <select id="dashboardPreferredTest">
+              <option value="ielts1">IELTS Test 1</option>
+              <option value="ielts2">IELTS Test 2</option>
+              <option value="ielts3">IELTS Test 3</option>
+            </select>
+          </label>
+          <label class="dashboard-field" for="dashboardDailyGoal">
+            <span>Daily study goal</span>
+            <select id="dashboardDailyGoal">
+              <option value="20">20 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">60 minutes</option>
+              <option value="90">90 minutes</option>
+            </select>
+          </label>
+          <label class="dashboard-field" for="dashboardFontSizeSelect">
+            <span>Dashboard font size</span>
+            <select id="dashboardFontSizeSelect">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+        </div>
+        <label class="dashboard-field dashboard-notes-field" for="dashboardStudyNote">
+          <span>Study note</span>
+          <textarea id="dashboardStudyNote" rows="4" placeholder="Keep a short reminder for what to improve next."></textarea>
+        </label>
+        <div class="dashboard-settings-footer">
+          <div class="small" id="dashboardSettingsStatus">Settings save automatically for this student account.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-summary">
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-label">Completed tests</div>
+        <div class="dashboard-stat-value" id="dashboardStatTests">0</div>
+      </div>
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-label">Avg Listening</div>
+        <div class="dashboard-stat-value" id="dashboardStatListening">0.0</div>
+      </div>
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-label">Avg Reading</div>
+        <div class="dashboard-stat-value" id="dashboardStatReading">0.0</div>
+      </div>
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-label">Avg Writing</div>
+        <div class="dashboard-stat-value" id="dashboardStatWriting">0.0</div>
+      </div>
+    </div>
+
+    <div class="dashboard-lower-grid">
+      <div class="dashboard-quick-card">
+        <div class="dashboard-card-topline">Quick actions</div>
+        <div class="dashboard-quick-list">
+          <button class="btn" type="button" id="dashboardStartPreferredBtn">Start preferred test</button>
+          <button class="btn secondary" type="button" id="dashboardOpenHistoryBtn">Open full history</button>
+          <button class="btn secondary" type="button" id="dashboardOpenSpeakingBtn">Open speaking practice</button>
+        </div>
+        <div class="dashboard-recommendation" id="dashboardRecommendation">Recommendation: keep your profile updated and start a fresh mock when you are ready.</div>
+      </div>
+
+      <div class="dashboard-activity-card">
+        <div class="dashboard-card-topline">Recent activity</div>
+        <div class="dashboard-activity-empty hidden" id="dashboardActivityEmpty">No synced attempts yet. Your dashboard will populate after your first completed mock.</div>
+        <div class="dashboard-activity-list" id="dashboardActivityList"></div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section id="historySection" class="history-screen hidden" aria-label="My History">
@@ -1112,6 +1257,7 @@
 <script src="assets/js/engines/writingEngine.js"></script>
 
 <script type="module" src="assets/js/auth.js"></script>
+<script src="assets/js/dashboard.js"></script>
 <script src="assets/js/history.js"></script>
 <script src="assets/js/engines/speakingEngine.js"></script>
 <script src="assets/js/app.js"></script>

@@ -40,13 +40,28 @@ function setMessage(text) {
 }
 
 function saveUser(user) {
+  const metadata = user?.user_metadata || {};
+  const appMetadata = user?.app_metadata || {};
+  const avatar =
+    metadata.avatar_url ||
+    metadata.picture ||
+    metadata.photo_url ||
+    "";
+  const fullName =
+    metadata.full_name ||
+    metadata.name ||
+    "";
   try {
     localStorage.setItem(
       "IELTS:AUTH:user",
       JSON.stringify({
         id: user?.id || "",
         email: user?.email || "",
-        name: user?.user_metadata?.full_name || user?.user_metadata?.name || ""
+        name: fullName,
+        avatarUrl: avatar,
+        provider: appMetadata?.provider || "",
+        createdAt: user?.created_at || "",
+        lastSignInAt: user?.last_sign_in_at || ""
       })
     );
   } catch (e) {}
@@ -104,6 +119,7 @@ function forceHideAllAppSections() {
     "readingControls",
     "container",
     "writingSection",
+    "dashboardSection",
     "speakingSection",
     "examNav",
     "adminResultsSection"
@@ -186,7 +202,7 @@ function getDesiredView() {
 function sanitizeDesiredView(view) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
-  const allowedViews = new Set(["home", "history", "listening", "reading", "writing", "speaking", "adminResults"]);
+  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults"]);
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
@@ -218,6 +234,7 @@ function restoreViewAfterAuth() {
 
   const fallbackIdMap = {
     home: "homeSection",
+    dashboard: "dashboardSection",
     listening: "listeningSection",
     reading: "readingControls",
     writing: "writingSection",

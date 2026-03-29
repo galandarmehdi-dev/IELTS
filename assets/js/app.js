@@ -94,8 +94,13 @@
     const $ = UI().$;
     
     const PREF_KEYS = {
-      fontScale: "IELTSPREF:fontScale",
+      fontScale: "fontScale",
     };
+
+    function getPreferenceStorageKey(key) {
+      const userId = window.IELTS?.Auth?.getSavedUser?.()?.id || "guest";
+      return `IELTSPREF:${userId}:${key}`;
+    }
 
     function applyFontScale(value) {
       const allowed = new Set(["small", "medium", "large"]);
@@ -106,13 +111,24 @@
 
     function initFontPreference() {
       const select = $("fontSizeSelect");
-      const saved = (localStorage.getItem(PREF_KEYS.fontScale) || "medium").trim();
+      const perUserKey = getPreferenceStorageKey(PREF_KEYS.fontScale);
+      const saved = (
+        localStorage.getItem(perUserKey) ||
+        localStorage.getItem("IELTSPREF:fontScale") ||
+        "medium"
+      ).trim();
       const active = applyFontScale(saved);
       if (select) {
         select.value = active;
         select.addEventListener("change", () => {
           const next = applyFontScale(select.value);
-          try { localStorage.setItem(PREF_KEYS.fontScale, next); } catch (e) {}
+          try {
+            localStorage.setItem(perUserKey, next);
+            localStorage.removeItem("IELTSPREF:fontScale");
+          } catch (e) {}
+          try {
+            window.dispatchEvent(new CustomEvent("ielts:fontscalechange", { detail: { value: next } }));
+          } catch (e) {}
         });
       }
     }
@@ -622,6 +638,10 @@
         openAdminResultsView();
         return;
       }
+      if (route.view === "dashboard") {
+        window.IELTS?.Dashboard?.open?.();
+        return;
+      }
       if (route.view === "home") {
         UI().showOnly("home");
         UI().updateHomeStatusLine();
@@ -646,6 +666,8 @@
     const startBtnT3 = $("startIelts3Btn");
     const startBtnT3b = $("cardStartIelts3Btn");
     const footerStartTest1Btn = $("footerStartTest1Btn");
+    const openDashboardBtn = $("openDashboardBtn");
+    const footerOpenDashboardBtn = $("footerOpenDashboardBtn");
     const footerOpenHistoryBtn = $("footerOpenHistoryBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
@@ -724,6 +746,8 @@ function startFreshExam() {
     if (startBtnT3) startBtnT3.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
+    if (openDashboardBtn) openDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
+    if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
     if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => $("openHistoryBtn")?.click?.();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
@@ -797,6 +821,10 @@ function startFreshExam() {
           }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {
             safeCall('IELTS.History.openHistory');
+            return;
+          }
+          if (id === 'openDashboardBtn' || id === 'footerOpenDashboardBtn') {
+            safeCall('IELTS.Dashboard.open');
             return;
           }
           if (id === 'historyBackBtn') {

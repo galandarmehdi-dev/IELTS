@@ -315,7 +315,7 @@
     }
 
     async function fetchStudentResultFromBackend(finalPayload) {
-      const endpoint = R().ADMIN_ENDPOINT;
+      const endpoint = R().ADMIN_API_PATH;
       if (!endpoint) return { ok: false, error: "Missing endpoint" };
 
       const url = new URL(endpoint);
@@ -325,7 +325,12 @@
       url.searchParams.set("examId", String(finalPayload?.examId || ""));
       url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
 
-      const res = await fetchWithTimeout(url.toString(), { method: "GET", cache: "no-store" }, Number(R().TIMEOUTS?.resultFetchMs || 45000));
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const res = await fetchWithTimeout(url.toString(), {
+        method: "GET",
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      }, Number(R().TIMEOUTS?.resultFetchMs || 45000));
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true) {
         throw new Error((data && data.error) || `HTTP ${res.status}`);
@@ -451,7 +456,7 @@
 
         const hasWritingText = hasAnyWritingText(writingPayload);
 
-        const endpoint = String(R().ADMIN_ENDPOINT || "").trim();
+        const endpoint = String(R().ADMIN_API_PATH || "").trim();
         let sheetsSaved = false;
         if (endpoint) {
           const body = new URLSearchParams({
@@ -481,7 +486,6 @@
           sheetsSaved = true;
         }
 
-        // Save history AFTER Sheets, but do not let history block the submit screen.
         const historyResult = await saveAttemptToSupabase(finalPayload);
 
         if (hasWritingText) {

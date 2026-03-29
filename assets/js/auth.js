@@ -63,10 +63,26 @@ function syncAuthExport() {
   window.IELTS.Auth = {
     supabase,
     getSavedUser,
+    getAccessToken,
     showProtectedApp,
     refreshAuthUI,
     logout
   };
+}
+
+async function getAccessToken() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data?.session?.access_token || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function notifyAuthChanged() {
+  try {
+    window.dispatchEvent(new CustomEvent("ielts:authchanged"));
+  } catch (e) {}
 }
 
 function hideBlockingModals() {
@@ -105,9 +121,6 @@ function showProtectedApp(show) {
     forceHideAllAppSections();
     return;
   }
-
-  // IMPORTANT: do not unhide every section here.
-  // Let UI.showOnly() decide which screen should be visible.
 }
 
 function hasOAuthCallbackParams() {
@@ -263,10 +276,12 @@ async function refreshAuthUI({ forceHome = false } = {}) {
       routeHomeAfterLogin();
       clearAuthCallbackArtifacts();
       hasHandledInitialLoginRedirect = true;
+      notifyAuthChanged();
       return true;
     }
 
     restoreViewAfterAuth();
+    notifyAuthChanged();
 
     if (hasOAuthCallbackParams()) {
       clearAuthCallbackArtifacts();
@@ -281,6 +296,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   hideBlockingModals();
   showProtectedApp(false);
   authReady = true;
+  notifyAuthChanged();
   return false;
 }
 
@@ -376,6 +392,7 @@ async function logout() {
   clearSavedUser();
   syncAuthExport();
   setMessage("");
+  notifyAuthChanged();
 
   try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
@@ -401,6 +418,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     showProtectedApp(true);
     setMessage("");
     authReady = true;
+    notifyAuthChanged();
 
     const shouldForceHome = hasOAuthCallbackParams() && !hasHandledInitialLoginRedirect;
     if (shouldForceHome) {
@@ -418,6 +436,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     showProtectedApp(true);
     setMessage("");
     authReady = true;
+    notifyAuthChanged();
     return;
   }
 
@@ -429,6 +448,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     setMessage("");
     authReady = true;
     hasHandledInitialLoginRedirect = false;
+    notifyAuthChanged();
     return;
   }
 });

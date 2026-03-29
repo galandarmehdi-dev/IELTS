@@ -62,28 +62,60 @@
     return hasValidSession();
   }
 
-  function enterAdmin() {
-    const pass = window.prompt("Admin passcode:");
-    if (!pass) {
-      applyViewMode();
-      return false;
+  async function getAccessToken() {
+    try {
+      const session = await window.IELTS?.Auth?.supabase?.auth?.getSession?.();
+      return session?.data?.session?.access_token || null;
+    } catch (e) {
+      return null;
     }
+  }
 
-    const correct = String(R()?.ADMIN_PASSCODE || "");
-    if (!correct || pass !== correct) {
-      window.alert("Wrong passcode.");
-      applyViewMode();
-      return false;
-    }
-
+  async function refreshAdminSession(options = {}) {
+    const interactive = options && options.interactive === true;
+    const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
     const ttlMin = Number(R()?.ADMIN_SESSION_TTL_MIN || DEFAULT_TTL_MIN);
-    setSession({
-      enabled: true,
-      expiresAtMs: nowMs() + ttlMin * 60 * 1000,
-    });
+    const token = await getAccessToken();
 
-    applyViewMode();
-    return true;
+    if (!token) {
+      clearSession();
+      if (interactive) window.alert("Sign in first, then try admin mode again.");
+      return false;
+    }
+
+    try {
+      const res = await fetch(`${endpoint}?action=session`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true || data.authorized !== true) {
+        clearSession();
+        if (interactive) {
+          window.alert((data && data.error) || "Your account is not allowed to use admin tools.");
+        }
+        return false;
+      }
+
+      setSession({
+        enabled: true,
+        email: data.email || "",
+        expiresAtMs: nowMs() + ttlMin * 60 * 1000,
+      });
+      applyViewMode();
+      return true;
+    } catch (e) {
+      clearSession();
+      if (interactive) window.alert("Could not verify admin access right now.");
+      return false;
+    }
+  }
+
+  function enterAdmin() {
+    refreshAdminSession({ interactive: true });
+    return false;
   }
 
   function applyNoTranslateFlags() {
@@ -147,7 +179,7 @@
 
   function maybeEnterAdminFromUrl() {
     if (isAdminRequestedByUrl() && !hasValidSession()) {
-      enterAdmin();
+      refreshAdminSession();
     } else {
       applyViewMode();
     }
@@ -169,14 +201,12 @@
     }
   }
 
-  // Run immediately if possible.
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", autoInit, { once: true });
   } else {
     autoInit();
   }
 
-  // Also retry once on full page load in case other namespaces were late.
   window.addEventListener(
     "load",
     () => {
@@ -186,9 +216,15 @@
     { once: true }
   );
 
-  // If the route changes to an admin route later, handle that too.
   window.addEventListener("hashchange", maybeEnterAdminFromUrl);
   window.addEventListener("popstate", maybeEnterAdminFromUrl);
+  window.addEventListener("ielts:authchanged", () => {
+    if (hasValidSession() || isAdminRequestedByUrl()) {
+      refreshAdminSession();
+      return;
+    }
+    clearSession();
+  });
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Access = {
@@ -196,5 +232,6 @@
     isAdmin,
     clearSession,
     enterAdmin,
+    refreshAdminSession,
   };
 })();

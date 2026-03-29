@@ -2,11 +2,18 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ielts-website",
   "compatibility_date": "2025-09-27",
+  "main": "src/worker.mjs",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "ADMIN_BACKEND_URL": "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec",
+    "SUPABASE_URL": "https://bgujwyknnszwborgbkxq.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z"
   },
   "compatibility_flags": [
     "nodejs_compat"

@@ -11,6 +11,15 @@
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
 
+  async function getAuthHeaders() {
+    try {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -78,8 +87,10 @@
     // Init admin/session gate + apply UI lockdown for students
     safe(() => window.IELTS?.Access?.init?.());
     safe(() => UI()?.applyStudentLockdownUI?.());
+    window.addEventListener("ielts:viewmodechange", () => {
+      safe(() => UI()?.applyStudentLockdownUI?.());
+    });
 
-    const isAdmin = isAdminView();
     const $ = UI().$;
     
     const PREF_KEYS = {
@@ -162,7 +173,7 @@
     }
 
     const finalDone = S().get(R().EXAM.keys.finalSubmitted, "false") === "true";
-    if (finalDone && !isAdmin) {
+    if (finalDone && !isAdminView()) {
       // Student: auto-clear so Start Exam always works
       clearAllStudentAttemptKeys();
     }
@@ -173,7 +184,7 @@
     let showingGate = false;
 
     function showListeningGate() {
-      if (isAdmin || showingGate) return;
+      if (isAdminView() || showingGate) return;
       const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
@@ -222,7 +233,7 @@
     }
 
     function showReadingGate() {
-      if (isAdmin || showingGate) return;
+      if (isAdminView() || showingGate) return;
       const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
@@ -271,7 +282,7 @@
     let lastListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
-      if (isAdmin) return;
+      if (isAdminView()) return;
       const curListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
@@ -312,7 +323,7 @@
 
     if (toHome) {
       toHome.onclick = () => {
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         try { stopAllAudio(); } catch (e) {}
         UI().showOnly("home");
         UI().updateHomeStatusLine();
@@ -322,7 +333,7 @@
 
     if (toL) {
       toL.onclick = () => {
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         UI().setExamStarted(true);
         resetEngineInitFlags();
         UI().showOnly("listening");
@@ -338,7 +349,7 @@
 
     if (toR) {
       toR.onclick = () => {
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         UI().setExamStarted(true);
         window.__IELTS_READING_INIT__ = false;
         startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
@@ -350,7 +361,7 @@
 
     if (toW) {
       toW.onclick = () => {
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
         const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
         if (!writingStarted && !readingSubmitted) {
@@ -368,7 +379,7 @@
 
     if (resetBtn) {
       resetBtn.onclick = () => {
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
         if (!ok) return;
         UI().setExamStarted(false);
@@ -413,15 +424,17 @@
     }
 
     async function fetchAdminResults() {
-      const endpoint = String(R()?.ADMIN_ENDPOINT || "").trim();
+      const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint);
       url.searchParams.set("action", "results");
-      url.searchParams.set("adminPasscode", String(R()?.ADMIN_PASSCODE || ""));
       url.searchParams.set("t", String(Date.now()));
 
-      const res = await fetch(url.toString(), { method: "GET" });
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      });
       const text = await res.text();
       let data = null;
       try { data = JSON.parse(text); } catch (e) {}
@@ -532,7 +545,7 @@
     }
 
     async function openAdminResultsView() {
-      if (!isAdmin) return;
+      if (!isAdminView()) return;
       UI().showOnly("adminResults");
       UI().setExamNavStatus("Status: Admin results");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
@@ -550,7 +563,7 @@
     }
 
     function exportAdminRowsCsv() {
-      if (!isAdmin || !adminState.filtered.length) return;
+      if (!isAdminView() || !adminState.filtered.length) return;
       const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
       const lines = [headers.join(",")].concat(
         adminState.filtered.map((row) =>
@@ -576,7 +589,7 @@
     // -----------------------------
     const route = Router().parseHashRoute();
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
-    if (isAdmin && route && route.view) {
+    if (isAdminView() && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);
         startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
@@ -635,29 +648,27 @@
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
     const adminExportBtn = $("adminResultsExportBtn");
-
-    
-    // -----------------------------
-    // -----------------------------
-// Student password gate (does NOT affect admin view)
-// -----------------------------
-function requireTestPassword(onOk) {
-  if (isAdmin) { onOk(); return; }
-
-  // Always ask in student view (no "remember" unlock),
-  // so every click on Start Exam requires the password.
-  window.IELTS?.Modal?.showModal?.(
-    "Enter password",
-    "This test is password-protected. Please enter the password to start.",
-    {
-      mode: "password",
-      submitText: "Start exam",
-      onConfirm: () => {
+    // Student password gate (does NOT affect admin view)
+    function requireTestPassword(onOk) {
+      if (isAdminView()) {
         onOk();
-      },
+        return;
+      }
+
+      // Always ask in student view (no "remember" unlock),
+      // so every click on Start Exam requires the password.
+      window.IELTS?.Modal?.showModal?.(
+        "Enter password",
+        "This test is password-protected. Please enter the password to start.",
+        {
+          mode: "password",
+          submitText: "Start exam",
+          onConfirm: () => {
+            onOk();
+          },
+        }
+      );
     }
-  );
-}
 
 
 
@@ -730,7 +741,7 @@ function startFreshExam() {
     });
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)
-    if (!isAdmin) {
+    if (!isAdminView()) {
       showListeningGate();
       showReadingGate();
     }

@@ -22,11 +22,10 @@ if (!chromePath) {
 (async ()=>{
   const browser = await puppeteer.launch({executablePath: chromePath, headless: 'new', args:['--no-sandbox','--disable-setuid-sandbox']});
   const page = await browser.newPage();
-  const url = 'http://localhost:8001';
+  const url = process.env.AXE_URL || 'http://127.0.0.1:8001/';
   try{
     await page.goto(url, {waitUntil:'networkidle2', timeout:20000});
-    // inject axe-core from CDN
-    await page.addScriptTag({url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.2/axe.min.js'});
+    await page.addScriptTag({path: require.resolve('axe-core/axe.min.js')});
     const results = await page.evaluate(async () => {
       return await axe.run(document, {runOnly: {type: 'tag', values: ['wcag2a','wcag2aa']}});
     });

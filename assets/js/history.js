@@ -69,7 +69,7 @@
 
 
   async function fetchStudentResultForRow(row) {
-    const endpoint = Registry()?.ADMIN_ENDPOINT;
+    const endpoint = Registry()?.ADMIN_API_PATH;
     if (!endpoint) return null;
 
     const url = new URL(endpoint);
@@ -87,9 +87,11 @@
     }, timeoutMs);
 
     try {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
       const res = await fetch(url.toString(), {
         method: "GET",
         cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         signal: controller ? controller.signal : undefined
       });
       const data = await res.json().catch(() => null);

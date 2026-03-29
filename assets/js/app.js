@@ -798,7 +798,7 @@ function startFreshExam() {
             safeCall('IELTS.History.openHistory');
             return;
           }
-          if (id === 'historyBackBtn' || /Back to Home/i.test(id)) {
+          if (id === 'historyBackBtn') {
             safeCall('IELTS.History.closeHistory');
             safeCall('IELTS.UI.showOnly', ['home']);
             return;
@@ -807,12 +807,12 @@ function startFreshExam() {
             safeCall('IELTS.History.closeHistory');
             return;
           }
-          if (id === 'openSpeakingExamBtn' || /Speaking/i.test(id)) {
+          if (id === 'openSpeakingExamBtn') {
             safeCall('IELTS.Speaking.initSpeakingExam');
             safeCall('IELTS.UI.showOnly', ['speaking']);
             return;
           }
-          if (id === 'backFromSpeakingBtn' || /Back to Home/i.test(id)) {
+          if (id === 'backFromSpeakingBtn') {
             safeCall('IELTS.UI.showOnly', ['home']);
             safeCall('IELTS.UI.setExamNavStatus', ['Status: Home']);
             return;

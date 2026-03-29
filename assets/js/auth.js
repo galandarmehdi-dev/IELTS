@@ -104,6 +104,7 @@ function forceHideAllAppSections() {
     "readingControls",
     "container",
     "writingSection",
+    "speakingSection",
     "examNav",
     "adminResultsSection"
   ].forEach((id) => {

@@ -24,7 +24,8 @@
     var el = e.target;
     while (el && el.nodeName !== 'BUTTON') el = el.parentNode;
     if (!el) return;
-    var id = el.id || (el.textContent || '').trim();
+    var label = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    var id = el.id || label;
     try {
       if (id === 'startIelts1Btn' || /Start Test 1|Open Test 1/i.test(id)) {
         safeCall('IELTS.Registry.setActiveTestId', ['ielts1']);
@@ -51,7 +52,7 @@
         safeCall('IELTS.History.openHistory');
         return;
       }
-      if (id === 'historyBackBtn' || /Back to Home/i.test(id)) {
+      if (id === 'historyBackBtn') {
         safeCall('IELTS.History.closeHistory');
         safeCall('IELTS.UI.showOnly', ['home']);
         return;
@@ -60,12 +61,12 @@
         safeCall('IELTS.History.closeHistory');
         return;
       }
-      if (id === 'openSpeakingExamBtn' || /Speaking/i.test(id)) {
+      if (id === 'openSpeakingExamBtn' || label === 'Speaking') {
         safeCall('IELTS.Speaking.initSpeakingExam');
         safeCall('IELTS.UI.showOnly', ['speaking']);
         return;
       }
-      if (id === 'backFromSpeakingBtn' || /Back to Home/i.test(id)) {
+      if (id === 'backFromSpeakingBtn') {
         pauseAudioById('listeningAudio');
         pauseAudioById('speakingPlayback');
         safeCall('IELTS.UI.showOnly', ['home']);

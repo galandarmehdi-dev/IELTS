@@ -18,12 +18,14 @@
     preferredTest: "ielts1",
     dailyGoal: "30",
     studyNote: "",
+    bio: "",
     fontScale: "medium",
   };
 
   const state = {
     rows: [],
     settings: { ...DEFAULT_SETTINGS },
+    activeTab: "overview",
   };
 
   function getUser() {
@@ -87,6 +89,46 @@
     return Number(row?.task1_words || 0) + Number(row?.task2_words || 0);
   }
 
+  function averageNumber(rows, key) {
+    const nums = (rows || [])
+      .map((row) => Number(row?.[key]))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    if (!nums.length) return 0;
+    return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+  }
+
+  function computeStreak(rows) {
+    const keys = Array.from(new Set((rows || [])
+      .map((row) => {
+        const value = row?.submitted_at;
+        if (!value) return null;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return null;
+        return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+      })
+      .filter(Boolean)))
+      .sort((a, b) => b - a);
+
+    if (!keys.length) return 0;
+    let streak = 1;
+    for (let i = 1; i < keys.length; i += 1) {
+      const diffDays = Math.round((keys[i - 1] - keys[i]) / 86400000);
+      if (diffDays === 1) streak += 1;
+      else break;
+    }
+    return streak;
+  }
+
+  function examDisplayName(testId) {
+    const value = String(testId || "ielts1");
+    return value.replace("ielts", "IELTS Test ");
+  }
+
+  function setText(id, value) {
+    const el = $(id);
+    if (el) el.textContent = String(value);
+  }
+
   async function loadRows() {
     if (typeof History()?.loadRows === "function") {
       return await History().loadRows();
@@ -99,6 +141,8 @@
     const avatar = $("dashboardAvatar");
     const preferredName = String(state.settings.preferredName || "").trim();
     const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
+    const focusSkill = String(state.settings.focusSkill || "").trim();
+    const targetBand = String(state.settings.targetBand || "").trim();
     const provider = String(user?.provider || "email").trim();
     const providerLabel = provider === "google"
       ? "Google account"
@@ -112,8 +156,18 @@
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
+    if ($("dashboardIdentityName")) $("dashboardIdentityName").textContent = displayName;
+    if ($("dashboardIdentityFocus")) {
+      $("dashboardIdentityFocus").textContent = focusSkill
+        ? focusSkill.charAt(0).toUpperCase() + focusSkill.slice(1)
+        : "Balanced prep";
+    }
+    if ($("dashboardIdentityTarget")) {
+      $("dashboardIdentityTarget").textContent = targetBand ? `Band ${targetBand}` : "Set your target";
+    }
+    setText("dashboardBio", state.settings.bio || "Add a short study bio so this profile feels more personal and easier to return to.");
     if ($("dashboardWelcomeCopy")) {
-      const target = state.settings.targetBand ? ` Your current target is Band ${state.settings.targetBand}.` : "";
+      const target = targetBand ? ` Your current target is Band ${targetBand}.` : "";
       $("dashboardWelcomeCopy").textContent = `Use your dashboard to keep your study preferences, track progress, and jump into the right next practice mode.${target}`;
     }
 
@@ -141,6 +195,7 @@
       ["dashboardPreferredTest", settings.preferredTest],
       ["dashboardDailyGoal", settings.dailyGoal],
       ["dashboardStudyNote", settings.studyNote],
+      ["dashboardBioInput", settings.bio],
       ["dashboardFontSizeSelect", settings.fontScale],
     ];
 
@@ -154,7 +209,6 @@
   function renderSummary() {
     const rows = state.rows;
     const latest = rows[0];
-    const setText = (id, value) => { const el = $(id); if (el) el.textContent = String(value); };
     setText("dashboardStatTests", rows.length);
     setText("dashboardStatListening", average(rows, "listening_band"));
     setText("dashboardStatReading", average(rows, "reading_band"));
@@ -170,6 +224,43 @@
     const nextTest = state.settings.preferredTest ? state.settings.preferredTest.replace("ielts", "IELTS Test ") : examLabel(latest);
     const latestWords = totalWords(latest);
     recommendation.textContent = `Recommendation: continue with ${nextTest}, keep your ${focus} focus active, and compare against your latest writing total of ${latestWords} words.`;
+  }
+
+  function renderGoals() {
+    const rows = state.rows;
+    const latest = rows[0];
+    const targetBand = Number(state.settings.targetBand || 0);
+    const currentAverage = Math.max(
+      averageNumber(rows, "listening_band"),
+      averageNumber(rows, "reading_band"),
+      averageNumber(rows, "final_writing_band")
+    );
+    const gap = targetBand > 0 && currentAverage > 0
+      ? Math.max(0, targetBand - currentAverage).toFixed(1)
+      : "";
+    const focus = state.settings.focusSkill
+      ? state.settings.focusSkill.charAt(0).toUpperCase() + state.settings.focusSkill.slice(1)
+      : "Balanced prep";
+    const dailyGoal = `${state.settings.dailyGoal || "30"} minutes`;
+    const latestWords = latest ? totalWords(latest) : 0;
+    const streak = computeStreak(rows);
+
+    setText("dashboardGoalTarget", targetBand ? `Band ${targetBand.toFixed(1)}` : "Not set");
+    setText("dashboardGoalGap", gap ? `${gap} band to go` : "Set a target to track progress.");
+    setText("dashboardGoalStreak", `${streak} ${streak === 1 ? "day" : "days"}`);
+    setText("dashboardGoalExam", examDisplayName(state.settings.preferredTest));
+    setText("dashboardGoalFocus", focus);
+    setText("dashboardGoalDaily", dailyGoal);
+    setText("dashboardGoalDailyStatus", rows.length ? "Your rhythm is saved per student profile." : "Build a daily routine by completing your first test.");
+
+    setText("dashboardGoalsAverage", currentAverage ? currentAverage.toFixed(1) : "0.0");
+    setText("dashboardGoalsAverageDetail", currentAverage ? "Best current average across scored sections." : "Your strongest score will appear here.");
+    setText("dashboardGoalsGap", gap ? `${gap} band` : "—");
+    setText("dashboardGoalsGapDetail", gap ? `You are ${gap} band away from your target.` : "Choose a target band to measure progress.");
+    setText("dashboardGoalsAction", rows.length ? `Push ${focus}` : "Start a new mock");
+    setText("dashboardGoalsActionDetail", rows.length ? `Use ${examDisplayName(state.settings.preferredTest)} as your next benchmark.` : "The dashboard will refine this as your history grows.");
+    setText("dashboardGoalsWords", `${latestWords} words`);
+    setText("dashboardGoalsWordsDetail", latestWords ? "Latest completed writing total." : "Latest completed writing total.");
   }
 
   function renderActivity() {
@@ -218,6 +309,7 @@
       dashboardPreferredTest: "preferredTest",
       dashboardDailyGoal: "dailyGoal",
       dashboardStudyNote: "studyNote",
+      dashboardBioInput: "bio",
       dashboardFontSizeSelect: "fontScale",
     };
 
@@ -249,7 +341,22 @@
 
     renderProfile();
     renderSummary();
+    renderGoals();
     renderActivity();
+    setActiveTab(state.activeTab || "overview");
+  }
+
+  function setActiveTab(tab) {
+    state.activeTab = tab || "overview";
+    Array.from(document.querySelectorAll("[data-dashboard-tab]")).forEach((button) => {
+      const isActive = button.getAttribute("data-dashboard-tab") === state.activeTab;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    Array.from(document.querySelectorAll("[data-dashboard-panel]")).forEach((panel) => {
+      const isActive = panel.getAttribute("data-dashboard-panel") === state.activeTab;
+      panel.classList.toggle("hidden", !isActive);
+    });
   }
 
   async function openDashboard() {
@@ -288,6 +395,11 @@
 
   function init() {
     bindSettings();
+    Array.from(document.querySelectorAll("[data-dashboard-tab]")).forEach((button) => {
+      if (button.dataset.bound === "1") return;
+      button.dataset.bound = "1";
+      button.addEventListener("click", () => setActiveTab(button.getAttribute("data-dashboard-tab")));
+    });
     $("dashboardRefreshBtn")?.addEventListener("click", openDashboard);
     $("dashboardBackBtn")?.addEventListener("click", closeDashboard);
     $("dashboardOpenHistoryBtn")?.addEventListener("click", () => $("openHistoryBtn")?.click?.());

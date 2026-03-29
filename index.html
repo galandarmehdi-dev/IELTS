@@ -389,95 +389,173 @@
             </div>
           </div>
         </div>
+
+        <div class="dashboard-profile-card">
+          <div class="dashboard-card-topline">About</div>
+          <div class="dashboard-about-copy" id="dashboardBio">Add a short study bio so this profile feels more personal and easier to return to.</div>
+        </div>
       </aside>
 
       <div class="dashboard-main-column">
-        <div class="dashboard-summary">
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-label">Completed tests</div>
-            <div class="dashboard-stat-value" id="dashboardStatTests">0</div>
-          </div>
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-label">Avg Listening</div>
-            <div class="dashboard-stat-value" id="dashboardStatListening">0.0</div>
-          </div>
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-label">Avg Reading</div>
-            <div class="dashboard-stat-value" id="dashboardStatReading">0.0</div>
-          </div>
-          <div class="dashboard-stat-card">
-            <div class="dashboard-stat-label">Avg Writing</div>
-            <div class="dashboard-stat-value" id="dashboardStatWriting">0.0</div>
-          </div>
+        <div class="dashboard-tabbar" role="tablist" aria-label="Student dashboard sections">
+          <button class="dashboard-tab is-active" type="button" id="dashboardTabOverview" data-dashboard-tab="overview" aria-selected="true">Overview</button>
+          <button class="dashboard-tab" type="button" id="dashboardTabActivity" data-dashboard-tab="activity" aria-selected="false">Activity</button>
+          <button class="dashboard-tab" type="button" id="dashboardTabSettings" data-dashboard-tab="settings" aria-selected="false">Settings</button>
+          <button class="dashboard-tab" type="button" id="dashboardTabGoals" data-dashboard-tab="goals" aria-selected="false">Goals</button>
         </div>
 
-        <div class="dashboard-activity-card">
-          <div class="dashboard-card-topline">Recent activity</div>
-          <div class="dashboard-activity-empty hidden" id="dashboardActivityEmpty">No synced attempts yet. Your dashboard will populate after your first completed mock.</div>
-          <div class="dashboard-activity-list" id="dashboardActivityList"></div>
-        </div>
+        <div class="dashboard-panel-group">
+          <div class="dashboard-panel" data-dashboard-panel="overview">
+            <div class="dashboard-summary">
+              <div class="dashboard-stat-card">
+                <div class="dashboard-stat-label">Completed tests</div>
+                <div class="dashboard-stat-value" id="dashboardStatTests">0</div>
+              </div>
+              <div class="dashboard-stat-card">
+                <div class="dashboard-stat-label">Avg Listening</div>
+                <div class="dashboard-stat-value" id="dashboardStatListening">0.0</div>
+              </div>
+              <div class="dashboard-stat-card">
+                <div class="dashboard-stat-label">Avg Reading</div>
+                <div class="dashboard-stat-value" id="dashboardStatReading">0.0</div>
+              </div>
+              <div class="dashboard-stat-card">
+                <div class="dashboard-stat-label">Avg Writing</div>
+                <div class="dashboard-stat-value" id="dashboardStatWriting">0.0</div>
+              </div>
+            </div>
 
-        <div class="dashboard-settings-card">
-          <div class="dashboard-card-topline">Profile settings</div>
-          <div class="dashboard-settings-grid">
-            <label class="dashboard-field" for="dashboardPreferredName">
-              <span>Preferred name</span>
-              <input id="dashboardPreferredName" type="text" placeholder="How should the dashboard address you?">
-            </label>
-            <label class="dashboard-field" for="dashboardTargetBand">
-              <span>Target band</span>
-              <select id="dashboardTargetBand">
-                <option value="">Select target</option>
-                <option value="6.0">Band 6.0</option>
-                <option value="6.5">Band 6.5</option>
-                <option value="7.0">Band 7.0</option>
-                <option value="7.5">Band 7.5</option>
-                <option value="8.0">Band 8.0</option>
-              </select>
-            </label>
-            <label class="dashboard-field" for="dashboardFocusSkill">
-              <span>Current focus</span>
-              <select id="dashboardFocusSkill">
-                <option value="">Balanced prep</option>
-                <option value="listening">Listening</option>
-                <option value="reading">Reading</option>
-                <option value="writing">Writing</option>
-                <option value="speaking">Speaking</option>
-              </select>
-            </label>
-            <label class="dashboard-field" for="dashboardPreferredTest">
-              <span>Default test</span>
-              <select id="dashboardPreferredTest">
-                <option value="ielts1">IELTS Test 1</option>
-                <option value="ielts2">IELTS Test 2</option>
-                <option value="ielts3">IELTS Test 3</option>
-              </select>
-            </label>
-            <label class="dashboard-field" for="dashboardDailyGoal">
-              <span>Daily study goal</span>
-              <select id="dashboardDailyGoal">
-                <option value="20">20 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
-                <option value="90">90 minutes</option>
-              </select>
-            </label>
-            <label class="dashboard-field" for="dashboardFontSizeSelect">
-              <span>Dashboard font size</span>
-              <select id="dashboardFontSizeSelect">
-                <option value="small">Small</option>
-                <option value="medium">Medium</option>
-                <option value="large">Large</option>
-              </select>
-            </label>
+            <div class="dashboard-goals-card">
+              <div class="dashboard-card-topline">Progress at a glance</div>
+              <div class="dashboard-goals-grid">
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Target band</span>
+                  <strong id="dashboardGoalTarget">Not set</strong>
+                  <small id="dashboardGoalGap">Set a target to track progress.</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Study streak</span>
+                  <strong id="dashboardGoalStreak">0 days</strong>
+                  <small>Keep activity going to build momentum.</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Preferred exam</span>
+                  <strong id="dashboardGoalExam">IELTS Test 1</strong>
+                  <small id="dashboardGoalFocus">Balanced prep</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Daily goal</span>
+                  <strong id="dashboardGoalDaily">30 minutes</strong>
+                  <small id="dashboardGoalDailyStatus">A manageable daily rhythm.</small>
+                </div>
+              </div>
+            </div>
           </div>
-          <label class="dashboard-field dashboard-notes-field" for="dashboardStudyNote">
-            <span>Study note</span>
-            <textarea id="dashboardStudyNote" rows="4" placeholder="Keep a short reminder for what to improve next."></textarea>
-          </label>
-          <div class="dashboard-settings-footer">
-            <div class="small" id="dashboardSettingsStatus">Settings save automatically for this student account.</div>
+
+          <div class="dashboard-panel hidden" data-dashboard-panel="activity">
+            <div class="dashboard-activity-card">
+              <div class="dashboard-card-topline">Recent activity</div>
+              <div class="dashboard-activity-empty hidden" id="dashboardActivityEmpty">No synced attempts yet. Your dashboard will populate after your first completed mock.</div>
+              <div class="dashboard-activity-list" id="dashboardActivityList"></div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel hidden" data-dashboard-panel="settings">
+            <div class="dashboard-settings-card">
+              <div class="dashboard-card-topline">Profile settings</div>
+              <div class="dashboard-settings-grid">
+                <label class="dashboard-field" for="dashboardPreferredName">
+                  <span>Preferred name</span>
+                  <input id="dashboardPreferredName" type="text" placeholder="How should the dashboard address you?">
+                </label>
+                <label class="dashboard-field" for="dashboardTargetBand">
+                  <span>Target band</span>
+                  <select id="dashboardTargetBand">
+                    <option value="">Select target</option>
+                    <option value="6.0">Band 6.0</option>
+                    <option value="6.5">Band 6.5</option>
+                    <option value="7.0">Band 7.0</option>
+                    <option value="7.5">Band 7.5</option>
+                    <option value="8.0">Band 8.0</option>
+                  </select>
+                </label>
+                <label class="dashboard-field" for="dashboardFocusSkill">
+                  <span>Current focus</span>
+                  <select id="dashboardFocusSkill">
+                    <option value="">Balanced prep</option>
+                    <option value="listening">Listening</option>
+                    <option value="reading">Reading</option>
+                    <option value="writing">Writing</option>
+                    <option value="speaking">Speaking</option>
+                  </select>
+                </label>
+                <label class="dashboard-field" for="dashboardPreferredTest">
+                  <span>Default test</span>
+                  <select id="dashboardPreferredTest">
+                    <option value="ielts1">IELTS Test 1</option>
+                    <option value="ielts2">IELTS Test 2</option>
+                    <option value="ielts3">IELTS Test 3</option>
+                  </select>
+                </label>
+                <label class="dashboard-field" for="dashboardDailyGoal">
+                  <span>Daily study goal</span>
+                  <select id="dashboardDailyGoal">
+                    <option value="20">20 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="45">45 minutes</option>
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                  </select>
+                </label>
+                <label class="dashboard-field" for="dashboardFontSizeSelect">
+                  <span>Dashboard font size</span>
+                  <select id="dashboardFontSizeSelect">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </label>
+              </div>
+              <label class="dashboard-field dashboard-notes-field" for="dashboardStudyNote">
+                <span>Study note</span>
+                <textarea id="dashboardStudyNote" rows="4" placeholder="Keep a short reminder for what to improve next."></textarea>
+              </label>
+              <label class="dashboard-field dashboard-notes-field" for="dashboardBioInput">
+                <span>Profile bio</span>
+                <textarea id="dashboardBioInput" rows="3" placeholder="Write a short bio about your IELTS journey, current level, or motivation."></textarea>
+              </label>
+              <div class="dashboard-settings-footer">
+                <div class="small" id="dashboardSettingsStatus">Settings save automatically for this student account.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel hidden" data-dashboard-panel="goals">
+            <div class="dashboard-goals-card">
+              <div class="dashboard-card-topline">Goal tracker</div>
+              <div class="dashboard-goals-grid dashboard-goals-grid-expanded">
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Current average</span>
+                  <strong id="dashboardGoalsAverage">0.0</strong>
+                  <small id="dashboardGoalsAverageDetail">Your strongest score will appear here.</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Gap to target</span>
+                  <strong id="dashboardGoalsGap">—</strong>
+                  <small id="dashboardGoalsGapDetail">Choose a target band to measure progress.</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Best next action</span>
+                  <strong id="dashboardGoalsAction">Start a new mock</strong>
+                  <small id="dashboardGoalsActionDetail">The dashboard will refine this as your history grows.</small>
+                </div>
+                <div class="dashboard-goal-tile">
+                  <span class="dashboard-goal-label">Writing volume</span>
+                  <strong id="dashboardGoalsWords">0 words</strong>
+                  <small id="dashboardGoalsWordsDetail">Latest completed writing total.</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -57,6 +57,7 @@
     const startBtn = document.getElementById("startSpeakingBtn");
     const stopBtn = document.getElementById("stopSpeakingBtn");
     const downloadBtn = document.getElementById("downloadSpeakingBtn");
+    const homeBtn = document.getElementById("speakingHomeBtn");
     const backBtn = document.getElementById("backFromSpeakingBtn");
     const playback = document.getElementById("speakingPlayback");
     const statusEl = document.getElementById("speakingStatus");
@@ -806,6 +807,7 @@ mediaRecorder.ondataavailable = function (event) {
     setRealtimeStatus("Not connected");
 
     if (openBtn) openBtn.onclick = showSpeaking;
+    if (homeBtn) homeBtn.onclick = showHome;
     if (backBtn) backBtn.onclick = showHome;
     if (startBtn) startBtn.onclick = startRecordingAndExam;
     if (stopBtn) stopBtn.onclick = stopRecordingManually;

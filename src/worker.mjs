@@ -32,6 +32,9 @@ async function handleAdminApi(request, env) {
   }
 
   if (request.method === "GET" && action === "studentResult") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
     return proxy(request, backendUrl.toString());
@@ -45,6 +48,9 @@ async function handleAdminApi(request, env) {
 }
 
 async function authenticateAdmin(request, env) {
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return auth;
+
   const allowedEmails = String(env.ADMIN_ALLOWED_EMAILS || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
@@ -54,6 +60,15 @@ async function authenticateAdmin(request, env) {
     return { ok: false, status: 503, error: "Admin access is not configured." };
   }
 
+  const email = String(auth.user?.email || "").trim().toLowerCase();
+  if (!allowedEmails.includes(email)) {
+    return { ok: false, status: 403, error: "Your account is not allowed to use admin tools." };
+  }
+
+  return auth;
+}
+
+async function authenticateUser(request, env) {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return { ok: false, status: 401, error: "Missing access token." };
@@ -71,10 +86,6 @@ async function authenticateAdmin(request, env) {
   const email = String(user?.email || "").trim().toLowerCase();
   if (!response.ok || !email) {
     return { ok: false, status: 401, error: "Invalid access token." };
-  }
-
-  if (!allowedEmails.includes(email)) {
-    return { ok: false, status: 403, error: "Your account is not allowed to use admin tools." };
   }
 
   return { ok: true, status: 200, user };

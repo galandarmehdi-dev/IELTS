@@ -326,6 +326,7 @@
         if (!isAdminView()) return;
         try { stopAllAudio(); } catch (e) {}
         UI().showOnly("home");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "home"); } catch (e) {}
         UI().updateHomeStatusLine();
         UI().setExamNavStatus("Status: Home");
       };
@@ -337,6 +338,7 @@
         UI().setExamStarted(true);
         resetEngineInitFlags();
         UI().showOnly("listening");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "listening"); } catch (e) {}
         UI().setExamNavStatus("Status: Viewing Listening");
         try {
           startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
@@ -355,6 +357,7 @@
         startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
         UI().setExamNavStatus("Status: Viewing Reading");
       };
     }
@@ -367,12 +370,14 @@
         if (!writingStarted && !readingSubmitted) {
           Modal().showModal("Writing locked", "You must submit Reading before opening Writing.", { mode: "confirm" });
           UI().showOnly("reading");
+          try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
           UI().setExamNavStatus("Status: Viewing Reading");
           return;
         }
         UI().setExamStarted(true);
         if (!writingStarted) startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to start:', e));
         else UI().showOnly("writing");
+        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
         UI().setExamNavStatus("Status: Viewing Writing");
       };
     }
@@ -647,7 +652,7 @@
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
-    const adminExportBtn = $("adminResultsExportBtn");
+    const adminExportBtn = $("adminExportBtn");
     // Student password gate (does NOT affect admin view)
     function requireTestPassword(onOk) {
       if (isAdminView()) {

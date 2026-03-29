@@ -8,6 +8,7 @@
   const UI = () => window.IELTS?.UI;
   const Auth = () => window.IELTS?.Auth;
   const Registry = () => window.IELTS?.Registry;
+  const Router = () => window.IELTS?.Router;
 
   const state = { rows: [] };
 
@@ -243,6 +244,10 @@
     try {
       if (!Auth()?.getSavedUser?.()) return;
       UI()?.showOnly?.("history");
+      try {
+        const testId = Registry()?.getActiveTestId?.() || Registry()?.TESTS?.defaultTestId || "ielts1";
+        Router()?.setHashRoute?.(testId, "history");
+      } catch (e) {}
       if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       let rows = await loadRows();
       state.rows = rows;
@@ -272,6 +277,10 @@
     $("historyDetail")?.classList.add("hidden");
     UI()?.showOnly?.("home");
     UI()?.updateHomeStatusLine?.("Status: Signed in");
+    try {
+      const testId = Registry()?.getActiveTestId?.() || Registry()?.TESTS?.defaultTestId || "ielts1";
+      Router()?.setHashRoute?.(testId, "home");
+    } catch (e) {}
   }
 
   document.addEventListener("click", (e) => {

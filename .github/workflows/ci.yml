@@ -17,6 +17,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: npm install
+      - name: Run syntax checks
+        run: npm run check:syntax
       - name: Start local test server
         run: |
           node tools/serve-static.js > /tmp/ielts-static-server.log 2>&1 &

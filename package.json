@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "check:syntax": "node --check assets/js/app.js && node --check assets/js/access.js && node --check assets/js/history.js && node --check assets/js/ui.js && node --check assets/js/engines/listeningEngine.js && node --check assets/js/engines/readingEngine.js && node --check assets/js/engines/speakingEngine.js && node --check assets/js/engines/writingEngine.js && node --check src/worker.mjs && node --check tools/smoke.js && node --check tools/axe-check.js && node --check tools/serve-static.js",
     "serve:test": "node tools/serve-static.js",
     "smoke": "node tools/smoke.js",
     "axe": "node tools/axe-check.js"

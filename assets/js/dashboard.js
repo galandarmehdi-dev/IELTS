@@ -99,6 +99,8 @@
     const avatar = $("dashboardAvatar");
     const preferredName = String(state.settings.preferredName || "").trim();
     const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
+    const focusSkill = String(state.settings.focusSkill || "").trim();
+    const targetBand = String(state.settings.targetBand || "").trim();
     const provider = String(user?.provider || "email").trim();
     const providerLabel = provider === "google"
       ? "Google account"
@@ -112,8 +114,17 @@
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
+    if ($("dashboardIdentityName")) $("dashboardIdentityName").textContent = displayName;
+    if ($("dashboardIdentityFocus")) {
+      $("dashboardIdentityFocus").textContent = focusSkill
+        ? focusSkill.charAt(0).toUpperCase() + focusSkill.slice(1)
+        : "Balanced prep";
+    }
+    if ($("dashboardIdentityTarget")) {
+      $("dashboardIdentityTarget").textContent = targetBand ? `Band ${targetBand}` : "Set your target";
+    }
     if ($("dashboardWelcomeCopy")) {
-      const target = state.settings.targetBand ? ` Your current target is Band ${state.settings.targetBand}.` : "";
+      const target = targetBand ? ` Your current target is Band ${targetBand}.` : "";
       $("dashboardWelcomeCopy").textContent = `Use your dashboard to keep your study preferences, track progress, and jump into the right next practice mode.${target}`;
     }
 

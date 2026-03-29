@@ -720,11 +720,17 @@
 .dashboard-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .dashboard-profile-hero{
   display:grid;
-  grid-template-columns:auto 1fr;
+  grid-template-columns:104px minmax(0, 1fr);
   gap:18px;
   align-items:center;
   padding:0 28px 24px;
   margin-top:-44px;
+}
+.dashboard-profile-hero-details{
+  display:grid;
+  gap:10px;
+  align-content:center;
+  min-width:0;
 }
 .dashboard-avatar-hero{
   width:104px;
@@ -737,6 +743,7 @@
   display:grid;
   grid-template-columns:280px minmax(0, 1fr);
   gap:16px;
+  align-items:start;
 }
 .dashboard-sidebar,
 .dashboard-main-column{
@@ -796,7 +803,7 @@
   flex-wrap:wrap;
   gap:10px;
   align-items:center;
-  margin-top:12px;
+  margin-top:2px;
 }
 .dashboard-profile-prompt{
   max-width:none;
@@ -923,7 +930,7 @@
   border-radius:28px;
   padding:18px;
   display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
+  grid-template-columns:repeat(4, minmax(0,1fr));
   gap:16px;
   background:rgba(255,253,249,.96);
   border:1px solid rgba(255,255,255,.78);
@@ -940,7 +947,7 @@
 }
 .dashboard-goals-grid{
   display:grid;
-  grid-template-columns:repeat(2, minmax(0,1fr));
+  grid-template-columns:repeat(4, minmax(0,1fr));
   gap:14px;
 }
 .dashboard-goals-grid-expanded{
@@ -1290,6 +1297,8 @@
   .history-detail-grid,
   .admin-detail-grid{ grid-template-columns:1fr; }
   .dashboard-profile-hero{ grid-template-columns:1fr; align-items:flex-start; }
+  .dashboard-summary,
+  .dashboard-goals-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
 }
 
 @media (max-width: 760px){
@@ -1317,6 +1326,7 @@
     justify-items:flex-start;
   }
   .dashboard-profile-hero{ margin-top:-36px; }
+  .dashboard-profile-hero-details{ width:100%; }
   .dashboard-profile-prompt{ text-align:left; max-width:none; }
   .dashboard-settings-grid{ grid-template-columns:1fr; }
   .workspace-banner,
@@ -1338,6 +1348,9 @@
   .admin-results-title{ font-size:36px; }
   .dashboard-tabbar{ width:100%; }
   .dashboard-tab{ flex:1 1 calc(50% - 10px); }
+  .dashboard-summary,
+  .dashboard-goals-grid,
+  .dashboard-goals-grid-expanded{ grid-template-columns:1fr; }
   .dashboard-avatar-hero{
     width:92px;
     height:92px;

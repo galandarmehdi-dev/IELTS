@@ -10,6 +10,7 @@
   const History = () => window.IELTS?.History;
   const Router = () => window.IELTS?.Router;
   const Registry = () => window.IELTS?.Registry;
+  const Speaking = () => window.IELTS?.Speaking;
 
   const DEFAULT_SETTINGS = {
     preferredName: "",
@@ -400,6 +401,28 @@
     $(btnId)?.click?.();
   }
 
+  function openHistoryView() {
+    try {
+      if (typeof History()?.openHistory === "function") {
+        History().openHistory();
+        return;
+      }
+    } catch (e) {}
+    $("openHistoryBtn")?.click?.();
+  }
+
+  function openSpeakingView() {
+    try {
+      if (typeof Speaking()?.initSpeakingExam === "function") {
+        Speaking().initSpeakingExam();
+      }
+      UI()?.showOnly?.("speaking");
+      UI()?.setExamNavStatus?.("Status: Speaking practice");
+      return;
+    } catch (e) {}
+    $("openSpeakingExamBtn")?.click?.();
+  }
+
   function init() {
     bindSettings();
     Array.from(document.querySelectorAll("[data-dashboard-tab]")).forEach((button) => {
@@ -409,8 +432,8 @@
     });
     $("dashboardRefreshBtn")?.addEventListener("click", openDashboard);
     $("dashboardBackBtn")?.addEventListener("click", closeDashboard);
-    $("dashboardOpenHistoryBtn")?.addEventListener("click", () => $("openHistoryBtn")?.click?.());
-    $("dashboardOpenSpeakingBtn")?.addEventListener("click", () => $("openSpeakingExamBtn")?.click?.());
+    $("dashboardOpenHistoryBtn")?.addEventListener("click", openHistoryView);
+    $("dashboardOpenSpeakingBtn")?.addEventListener("click", openSpeakingView);
     $("dashboardStartPreferredBtn")?.addEventListener("click", startPreferredTest);
 
     window.addEventListener("ielts:authchanged", () => {

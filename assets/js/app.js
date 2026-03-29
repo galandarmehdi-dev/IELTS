@@ -724,6 +724,30 @@
       openDashboardBtn.setAttribute("aria-expanded", nextHidden ? "false" : "true");
     }
 
+    function openHistoryFromMenu() {
+      closeAccountMenu();
+      try {
+        if (typeof window.IELTS?.History?.openHistory === "function") {
+          window.IELTS.History.openHistory();
+          return;
+        }
+      } catch (e) {}
+      $("openHistoryBtn")?.click?.();
+    }
+
+    function openSpeakingFromMenu() {
+      closeAccountMenu();
+      try {
+        if (typeof window.IELTS?.Speaking?.initSpeakingExam === "function") {
+          window.IELTS.Speaking.initSpeakingExam();
+        }
+        UI().showOnly("speaking");
+        UI().setExamNavStatus("Status: Speaking practice");
+        return;
+      } catch (e) {}
+      $("openSpeakingExamBtn")?.click?.();
+    }
+
     // stop any playing audio used by exam flows (listening / speaking)
     function stopAllAudio() {
       try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
@@ -771,11 +795,11 @@ function startFreshExam() {
       toggleAccountMenu();
     };
     if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
-    if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => $("openHistoryBtn")?.click?.();
+    if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => openHistoryFromMenu();
     if (menuDashboardProfileBtn) menuDashboardProfileBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("overview"); };
     if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("settings"); };
-    if (menuHistoryBtn) menuHistoryBtn.onclick = () => { closeAccountMenu(); $("openHistoryBtn")?.click?.(); };
-    if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => { closeAccountMenu(); $("openSpeakingExamBtn")?.click?.(); };
+    if (menuHistoryBtn) menuHistoryBtn.onclick = () => openHistoryFromMenu();
+    if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();

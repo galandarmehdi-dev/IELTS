@@ -116,10 +116,23 @@
 
       <div class="home-top-actions">
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
-        <button class="home-btn ghost" type="button" id="openDashboardBtn">My Dashboard</button>
         <button class="home-btn ghost" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
-        <button class="home-btn ghost" type="button" id="openHistoryBtn">My History</button>
-        <button class="home-btn ghost hidden" type="button" id="logoutBtn">Log out</button>
+        <div class="home-account-menu">
+          <button class="home-account-trigger" type="button" id="openDashboardBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="homeAccountDropdown">
+            <span class="home-account-avatar" id="homeAccountAvatar" aria-hidden="true">S</span>
+            <span class="home-account-copy">
+              <span class="home-account-label">Profile</span>
+              <strong id="homeAccountName">Student</strong>
+            </span>
+          </button>
+          <div class="home-account-dropdown hidden" id="homeAccountDropdown" role="menu" aria-label="Student menu">
+            <button class="home-account-item" type="button" id="menuDashboardProfileBtn" role="menuitem">Profile overview</button>
+            <button class="home-account-item" type="button" id="menuDashboardSettingsBtn" role="menuitem">Settings</button>
+            <button class="home-account-item" type="button" id="menuHistoryBtn" role="menuitem">History</button>
+            <button class="home-account-item" type="button" id="menuSpeakingBtn" role="menuitem">Speaking practice</button>
+            <button class="home-account-item hidden" type="button" id="logoutBtn" role="menuitem">Log out</button>
+          </div>
+        </div>
       </div>
     </div>
 

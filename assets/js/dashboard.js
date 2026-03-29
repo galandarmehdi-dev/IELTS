@@ -129,6 +129,17 @@
     if (el) el.textContent = String(value);
   }
 
+  function setAvatar(el, displayName, email, avatarUrl) {
+    if (!el) return;
+    if (avatarUrl) {
+      el.textContent = "";
+      el.style.backgroundImage = `linear-gradient(135deg, rgba(23,50,77,.18), rgba(196,69,54,.22)), url(${JSON.stringify(avatarUrl).slice(1, -1)})`;
+    } else {
+      el.textContent = initialsFor(displayName, email);
+      el.style.backgroundImage = "";
+    }
+  }
+
   async function loadRows() {
     if (typeof History()?.loadRows === "function") {
       return await History().loadRows();
@@ -139,6 +150,7 @@
   function renderProfile() {
     const user = getUser();
     const avatar = $("dashboardAvatar");
+    const homeAvatar = $("homeAccountAvatar");
     const preferredName = String(state.settings.preferredName || "").trim();
     const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
     const focusSkill = String(state.settings.focusSkill || "").trim();
@@ -155,6 +167,7 @@
     if ($("dashboardName")) $("dashboardName").textContent = displayName;
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
+    setText("homeAccountName", displayName);
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
     if ($("dashboardIdentityName")) $("dashboardIdentityName").textContent = displayName;
     if ($("dashboardIdentityFocus")) {
@@ -171,15 +184,8 @@
       $("dashboardWelcomeCopy").textContent = `Use your dashboard to keep your study preferences, track progress, and jump into the right next practice mode.${target}`;
     }
 
-    if (avatar) {
-      if (user?.avatarUrl) {
-        avatar.textContent = "";
-        avatar.style.backgroundImage = `linear-gradient(135deg, rgba(23,50,77,.18), rgba(196,69,54,.22)), url(${JSON.stringify(user.avatarUrl).slice(1, -1)})`;
-      } else {
-        avatar.textContent = initialsFor(displayName, user?.email);
-        avatar.style.backgroundImage = "";
-      }
-    }
+    setAvatar(avatar, displayName, user?.email, user?.avatarUrl);
+    setAvatar(homeAvatar, displayName, user?.email, user?.avatarUrl);
 
     if ($("dashboardMemberSince")) $("dashboardMemberSince").textContent = `Member since ${formatDate(user?.createdAt)}`;
     const latestActivity = state.rows[0]?.submitted_at || user?.lastSignInAt || "";
@@ -359,9 +365,10 @@
     });
   }
 
-  async function openDashboard() {
+  async function openDashboard(tab) {
     const user = getUser();
     if (!user?.id) return;
+    if (tab) state.activeTab = tab;
     UI()?.showOnly?.("dashboard");
     try {
       const testId = Registry()?.getActiveTestId?.() || Registry()?.TESTS?.defaultTestId || "ielts1";
@@ -407,6 +414,7 @@
     $("dashboardStartPreferredBtn")?.addEventListener("click", startPreferredTest);
 
     window.addEventListener("ielts:authchanged", () => {
+      renderProfile();
       if (!$("dashboardSection")?.classList.contains("hidden")) {
         openDashboard();
       }
@@ -416,12 +424,15 @@
       state.settings = { ...state.settings, fontScale: next };
       try { localStorage.setItem(getSettingsKey(), JSON.stringify(state.settings)); } catch (e) {}
       renderSettings();
+      renderProfile();
     });
+    renderProfile();
   }
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Dashboard = {
     open: openDashboard,
+    openTab: openDashboard,
     close: closeDashboard,
     refresh: render,
   };

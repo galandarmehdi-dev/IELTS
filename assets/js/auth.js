@@ -182,10 +182,20 @@ function getDesiredView() {
   return "home";
 }
 
+function sanitizeDesiredView(view) {
+  const raw = String(view || "").trim();
+  const normalized = raw === "results" ? "adminResults" : raw;
+  const allowedViews = new Set(["home", "history", "listening", "reading", "writing", "speaking", "adminResults"]);
+
+  if (!allowedViews.has(normalized)) return "home";
+  if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
+  return normalized;
+}
+
 function restoreViewAfterAuth() {
   hideBlockingModals();
 
-  const view = getDesiredView();
+  const view = sanitizeDesiredView(getDesiredView());
   const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
 
   try {

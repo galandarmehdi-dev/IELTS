@@ -315,15 +315,14 @@
     }
 
     async function fetchStudentResultFromBackend(finalPayload) {
-      const endpoint = R().ADMIN_API_PATH;
-      if (!endpoint) return { ok: false, error: "Missing endpoint" };
-
-      const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("action", "studentResult");
-      url.searchParams.set("submittedAt", String(finalPayload?.submittedAt || ""));
-      url.searchParams.set("studentFullName", String(finalPayload?.studentFullName || ""));
-      url.searchParams.set("examId", String(finalPayload?.examId || ""));
-      url.searchParams.set("reason", String(finalPayload?.writing?.reason || ""));
+      const url = R().buildAdminApiUrl?.({
+        action: "studentResult",
+        submittedAt: finalPayload?.submittedAt || "",
+        studentFullName: finalPayload?.studentFullName || "",
+        examId: finalPayload?.examId || "",
+        reason: finalPayload?.writing?.reason || "",
+      });
+      if (!url) return { ok: false, error: "Missing endpoint" };
 
       const token = await window.IELTS?.Auth?.getAccessToken?.();
       const res = await fetchWithTimeout(url.toString(), {

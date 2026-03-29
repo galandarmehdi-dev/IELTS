@@ -73,9 +73,15 @@
 
   async function refreshAdminSession(options = {}) {
     const interactive = options && options.interactive === true;
-    const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
     const ttlMin = Number(R()?.ADMIN_SESSION_TTL_MIN || DEFAULT_TTL_MIN);
     const token = await getAccessToken();
+    const url = R()?.buildAdminApiUrl?.({ action: "session" });
+
+    if (!url) {
+      clearSession();
+      if (interactive) window.alert("Admin access is not configured right now.");
+      return false;
+    }
 
     if (!token) {
       clearSession();
@@ -84,7 +90,7 @@
     }
 
     try {
-      const res = await fetch(`${endpoint}?action=session`, {
+      const res = await fetch(url.toString(), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

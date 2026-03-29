@@ -115,6 +115,17 @@
     return getTestConfig(active)?.content || {};
   }
 
+  function buildAdminApiUrl(params = {}) {
+    const endpoint = String(ADMIN_API_PATH || "").trim();
+    if (!endpoint) return null;
+    const url = new URL(endpoint, window.location.origin);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === "") return;
+      url.searchParams.set(key, String(value));
+    });
+    return url;
+  }
+
   window.IELTS = window.IELTS || {};
   window.IELTS.Registry = {
     ADMIN_API_PATH,
@@ -135,5 +146,6 @@
     getTestConfig,
     keysFor,
     getActiveTestContent,
+    buildAdminApiUrl,
   };
 })();

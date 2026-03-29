@@ -69,16 +69,15 @@
 
 
   async function fetchStudentResultForRow(row) {
-    const endpoint = Registry()?.ADMIN_API_PATH;
-    if (!endpoint) return null;
-
-    const url = new URL(endpoint, window.location.origin);
-    url.searchParams.set("action", "studentResult");
-    url.searchParams.set("submittedAt", String(row.submitted_at || ""));
-    url.searchParams.set("studentFullName", String(row.student_full_name || ""));
-    url.searchParams.set("examId", String(row.exam_id || row.active_test_id || ""));
-    url.searchParams.set("reason", String(row.reason || ""));
-    url.searchParams.set("t", String(Date.now()));
+    const url = Registry()?.buildAdminApiUrl?.({
+      action: "studentResult",
+      submittedAt: row.submitted_at || "",
+      studentFullName: row.student_full_name || "",
+      examId: row.exam_id || row.active_test_id || "",
+      reason: row.reason || "",
+      t: Date.now(),
+    });
+    if (!url) return null;
 
     const timeoutMs = Number(Registry()?.TIMEOUTS?.historySyncMs || 45000);
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;

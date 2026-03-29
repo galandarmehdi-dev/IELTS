@@ -195,6 +195,10 @@
           window.IELTS.UI.showOnly("speaking");
         }
       } catch (e) {}
+      try {
+        const testId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+        window.IELTS?.Router?.setHashRoute?.(testId, "speaking");
+      } catch (e) {}
       if (speakingSection) speakingSection.classList.remove("hidden");
       try {
         window.IELTS?.UI?.setExamNavStatus?.("Status: Speaking module");
@@ -210,6 +214,8 @@
       try {
         if (window.IELTS?.UI?.showOnly) {
           window.IELTS.UI.showOnly("home");
+          const testId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+          window.IELTS?.Router?.setHashRoute?.(testId, "home");
           window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
           return;
         }
@@ -258,25 +264,22 @@
           <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
             <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
             <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
+              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((item) => `<li>${item}</li>`).join("")}
             </ul>
           </div>
         `;
       }
     }
 
-    function renderPart2Speak() {
+    function renderPart2Speaking() {
       if (partBox) partBox.textContent = "Current stage: Part 2 — Long turn";
       setStatus("Part 2 speaking time");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
-          <div style="margin-bottom:12px;">Please speak for up to 2 minutes on this topic:</div>
-          <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
-            <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
-            <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
-            </ul>
+          <div style="line-height:1.7;">
+            Speak for up to 2 minutes about the cue card topic.<br>
+            The examiner may stop you when the time is over.
           </div>
         `;
       }
@@ -284,14 +287,13 @@
 
     function renderPart3() {
       if (partBox) partBox.textContent = "Current stage: Part 3 — Discussion";
-      setStatus("Part 3 in progress");
+      setStatus("Part 3 discussion");
       setTimerText(stageSecondsLeft);
       if (bodyBox) {
         bodyBox.innerHTML = `
           <div style="line-height:1.7;">
-            The examiner is asking Part 3 questions.<br>
-            Listen carefully and answer in detail.<br>
-            <div style="margin-top:12px;color:#667085;">Questions are spoken only and are not shown on the screen.</div>
+            The examiner is asking follow-up discussion questions.<br>
+            Listen carefully and answer in detail.
           </div>
         `;
       }
@@ -299,513 +301,498 @@
 
     function renderFinished() {
       if (partBox) partBox.textContent = "Current stage: Finished";
-      setStatus("Exam finished");
+      setStatus("Speaking exam complete");
       setTimerText(0);
       if (bodyBox) {
         bodyBox.innerHTML = `
           <div style="line-height:1.7;">
             The speaking exam is complete.<br>
-            Your recording is being saved automatically.
+            You can now review, download, or upload the recording.
           </div>
         `;
       }
     }
 
-    function stopStageTimer() {
+    function updateStageUI() {
+      if (currentStage === "part1") return renderPart1();
+      if (currentStage === "part2prep") return renderPart2Prep();
+      if (currentStage === "part2speak") return renderPart2Speaking();
+      if (currentStage === "part3") return renderPart3();
+      if (currentStage === "finished") return renderFinished();
+      if (partBox) partBox.textContent = "Current stage: Not started";
+      setStatus("Ready to begin");
+      setTimerText(0);
+      if (bodyBox) {
+        bodyBox.innerHTML = `
+          <div style="line-height:1.7;">
+            This module records a full IELTS-style speaking test.<br>
+            Enter the student's full name, then click <strong>Start Recording</strong>.
+          </div>
+        `;
+      }
+    }
+
+    function clearStageTimer() {
       if (timer) {
         clearInterval(timer);
         timer = null;
       }
     }
 
-    function clearPendingStagePrompt() {
+    function setStage(nextStage, seconds) {
+      currentStage = nextStage;
+      stageSecondsLeft = Math.max(0, Number(seconds) || 0);
+      updateStageUI();
+      clearStageTimer();
+      if (stageSecondsLeft <= 0) {
+        advanceStage();
+        return;
+      }
+      timer = setInterval(() => {
+        stageSecondsLeft -= 1;
+        if (stageSecondsLeft <= 0) {
+          clearStageTimer();
+          stageSecondsLeft = 0;
+          updateStageUI();
+          advanceStage();
+          return;
+        }
+        updateStageUI();
+      }, 1000);
+    }
+
+    function getPromptForStage(stage) {
+      if (stage === "part1") {
+        return [
+          "You are an IELTS speaking examiner.",
+          "Run Part 1 naturally using short, spoken questions only.",
+          "Ask questions one by one and wait for the candidate after each.",
+          "Use these possible topics if needed:",
+          ...SPEAKING_CONFIG.part1.questions.map((q) => `- ${q}`),
+        ].join("\n");
+      }
+      if (stage === "part2prep") {
+        return [
+          "You are an IELTS speaking examiner.",
+          "Tell the candidate they now have one minute to prepare.",
+          "Read the cue card briefly once and then stop speaking.",
+          `Cue card: ${SPEAKING_CONFIG.part2.cueCard.topic}`,
+          ...SPEAKING_CONFIG.part2.cueCard.prompts.map((q) => `- ${q}`),
+        ].join("\n");
+      }
+      if (stage === "part2speak") {
+        return [
+          "You are an IELTS speaking examiner.",
+          "Tell the candidate to start speaking now.",
+          "Do not interrupt unless the candidate goes fully silent for a long time.",
+          "At the natural end, say one short acknowledgment only.",
+        ].join("\n");
+      }
+      if (stage === "part3") {
+        return [
+          "You are an IELTS speaking examiner.",
+          "Run Part 3 as a natural discussion.",
+          "Ask one question at a time and wait for the candidate after each.",
+          "Possible questions:",
+          ...SPEAKING_CONFIG.part3.questions.map((q) => `- ${q}`),
+        ].join("\n");
+      }
+      if (stage === "finished") {
+        return "The speaking test has ended. Thank the candidate briefly in one short sentence and stop.";
+      }
+      return "";
+    }
+
+    function queueStagePrompt(stage) {
+      pendingStagePrompt = getPromptForStage(stage);
+      flushPendingStagePrompt();
+    }
+
+    function flushPendingStagePrompt() {
+      if (!pendingStagePrompt || !sessionReady || !dataChannel || dataChannel.readyState !== "open") return;
+
+      const prompt = pendingStagePrompt;
+      pendingStagePrompt = null;
+
+      try {
+        dataChannel.send(JSON.stringify({
+          type: "response.create",
+          response: {
+            modalities: ["audio", "text"],
+            instructions: prompt,
+          },
+        }));
+      } catch (e) {
+        console.error("[Speaking] Could not send stage prompt", e);
+      }
+    }
+
+    function scheduleStagePrompt(stage) {
       if (pushStageTimeout) {
         clearTimeout(pushStageTimeout);
         pushStageTimeout = null;
       }
-    }
-
-    function sendRealtimeEvent(payload) {
-      if (!dataChannel || dataChannel.readyState !== "open") return false;
-      dataChannel.send(JSON.stringify(payload));
-      return true;
-    }
-
-    function createStageInstruction(stage) {
-      if (stage === "part1") {
-        return [
-          "Start the IELTS Speaking test now.",
-          "You are in Part 1.",
-          "First greet the candidate briefly, ask for their full name, and immediately continue with short Part 1 questions.",
-          "Ask one question at a time and keep your turns short.",
-          "Stay within Part 1 only until the app changes the stage.",
-          "Use only these Part 1 questions as your pool:",
-          ...SPEAKING_CONFIG.part1.questions.map((q, i) => `${i + 1}. ${q}`),
-          "Do not give feedback or scores. Do not chat casually."
-        ].join("\n");
-      }
-
-      if (stage === "part2prep") {
-        return [
-          "Part 2 preparation starts now.",
-          "Tell the candidate they now have one minute to prepare.",
-          "Read the cue card briefly once and then stop speaking.",
-          `Cue card topic: ${SPEAKING_CONFIG.part2.cueCard.topic}`,
-          ...SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `- ${p}`),
-          "After giving the cue card, remain silent unless the app changes the stage."
-        ].join("\n");
-      }
-
-      if (stage === "part2speak") {
-        return [
-          "The one-minute preparation time is over.",
-          "Tell the candidate to start speaking now.",
-          "After that, remain silent and let the candidate speak for the long turn.",
-          "Do not interrupt unless absolutely necessary."
-        ].join("\n");
-      }
-
-      if (stage === "part3") {
-        return [
-          "Part 3 starts now.",
-          "Ask deeper discussion questions one at a time.",
-          "Stay within Part 3 only until the app ends the exam.",
-          "Use only these Part 3 questions as your pool:",
-          ...SPEAKING_CONFIG.part3.questions.map((q, i) => `${i + 1}. ${q}`),
-          "Keep examiner turns short and natural.",
-          "Do not give feedback or scores."
-        ].join("\n");
-      }
-
-      if (stage === "finished") {
-        return "The speaking test has ended. Thank the candidate briefly in one short sentence and stop.";
-      }
-
-      return "";
-    }
-
-    function sendStagePromptNow(stage) {
-      const promptText = createStageInstruction(stage);
-      if (!promptText) return false;
-
-      const created = sendRealtimeEvent({
-        type: "conversation.item.create",
-        item: {
-          type: "message",
-          role: "user",
-          content: [
-            { type: "input_text", text: promptText }
-          ]
-        }
-      });
-
-      if (!created) return false;
-
-      return sendRealtimeEvent({
-        type: "response.create",
-        response: {
-          output_modalities: ["audio"]
-        }
-      });
-    }
-
-    function queueOrSendStagePrompt(stage) {
-      pendingStagePrompt = stage;
-      clearPendingStagePrompt();
-
-      if (!sessionReady) return;
-
+      queueStagePrompt(stage);
       pushStageTimeout = setTimeout(() => {
-        if (pendingStagePrompt) {
-          sendStagePromptNow(pendingStagePrompt);
-          pendingStagePrompt = null;
-        }
-      }, 700);
+        flushPendingStagePrompt();
+      }, 600);
     }
 
-    function beginStage(stageName) {
-      currentStage = stageName;
-      stopStageTimer();
+    function advanceStage() {
+      if (!examRunning && currentStage !== "finished") return;
 
-      if (stageName === "part1") {
-        stageSecondsLeft = SPEAKING_CONFIG.part1.duration;
-        renderPart1();
-      } else if (stageName === "part2prep") {
-        stageSecondsLeft = SPEAKING_CONFIG.part2.prepDuration;
-        renderPart2Prep();
-      } else if (stageName === "part2speak") {
-        stageSecondsLeft = SPEAKING_CONFIG.part2.speakDuration;
-        renderPart2Speak();
-      } else if (stageName === "part3") {
-        stageSecondsLeft = SPEAKING_CONFIG.part3.duration;
-        renderPart3();
-      } else {
-        renderFinished();
+      if (currentStage === null) {
+        setStage("part1", SPEAKING_CONFIG.part1.duration);
+        scheduleStagePrompt("part1");
         return;
       }
 
-      queueOrSendStagePrompt(stageName);
-
-      timer = setInterval(() => {
-        stageSecondsLeft -= 1;
-        if (stageSecondsLeft < 0) stageSecondsLeft = 0;
-        setTimerText(stageSecondsLeft);
-
-        if (stageSecondsLeft <= 0) {
-          stopStageTimer();
-          if (currentStage === "part1") beginStage("part2prep");
-          else if (currentStage === "part2prep") beginStage("part2speak");
-          else if (currentStage === "part2speak") beginStage("part3");
-          else if (currentStage === "part3") finishExamAutomatically();
-        }
-      }, 1000);
-    }
-
-    async function connectRealtime(stream) {
-      const sessionEndpoint = getRealtimeSessionEndpoint();
-      if (!sessionEndpoint) throw new Error("Realtime session endpoint is missing.");
-
-      setRealtimeStatus("Connecting...");
-      sessionReady = false;
-      pendingStagePrompt = null;
-      clearPendingStagePrompt();
-
-      peerConnection = new RTCPeerConnection();
-
-      if (remoteAudioEl) {
-        remoteAudioEl.autoplay = true;
-        remoteAudioEl.playsInline = true;
+      if (currentStage === "part1") {
+        setStage("part2prep", SPEAKING_CONFIG.part2.prepDuration);
+        scheduleStagePrompt("part2prep");
+        return;
       }
 
+      if (currentStage === "part2prep") {
+        setStage("part2speak", SPEAKING_CONFIG.part2.speakDuration);
+        scheduleStagePrompt("part2speak");
+        return;
+      }
+
+      if (currentStage === "part2speak") {
+        setStage("part3", SPEAKING_CONFIG.part3.duration);
+        scheduleStagePrompt("part3");
+        return;
+      }
+
+      if (currentStage === "part3") {
+        examRunning = false;
+        examFinished = true;
+        setStage("finished", 0);
+        scheduleStagePrompt("finished");
+        if (stopBtn) stopBtn.disabled = false;
+        if (uploadBtn) uploadBtn.disabled = false;
+        return;
+      }
+    }
+
+    async function requestMicrophone() {
+      if (micStream) return micStream;
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      return micStream;
+    }
+
+    async function setupRealtimeExaminer() {
+      const endpoint = getRealtimeSessionEndpoint();
+      if (!endpoint) {
+        setRealtimeStatus("disabled");
+        return;
+      }
+
+      const examinerCard = document.getElementById("speakingExaminerCard");
+      if (examinerCard) examinerCard.style.display = "block";
+      const realtimeStatusEl = document.getElementById("speakingRealtimeStatus");
+      if (realtimeStatusEl) realtimeStatusEl.style.display = "block";
+
+      setRealtimeStatus("requesting session...");
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: SPEAKING_CONFIG.realtimeModel,
+          voice: SPEAKING_CONFIG.voice,
+        }),
+      });
+      if (!res.ok) throw new Error(`Realtime session failed: HTTP ${res.status}`);
+      const payload = await res.json().catch(() => ({}));
+      const secret = payload?.client_secret?.value;
+      if (!secret) throw new Error("Realtime session missing client secret");
+
+      const stream = await requestMicrophone();
+      peerConnection = new RTCPeerConnection();
+
+      stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
+
       peerConnection.ontrack = (event) => {
-        if (remoteAudioEl) remoteAudioEl.srcObject = event.streams[0];
+        if (remoteAudioEl) {
+          remoteAudioEl.srcObject = event.streams[0];
+        }
       };
 
-      stream.getTracks().forEach((track) => {
-        peerConnection.addTrack(track, stream);
-      });
-
       dataChannel = peerConnection.createDataChannel("oai-events");
-
-      dataChannel.addEventListener("open", () => {
-        setRealtimeStatus("Connected");
-
-        sendRealtimeEvent({
-          type: "session.update",
-          session: {
-            type: "realtime",
-            model: SPEAKING_CONFIG.realtimeModel,
-            output_modalities: ["audio"],
-            audio: {
-              input: {
-                turn_detection: { type: "semantic_vad" }
-              },
-              output: {
-                voice: SPEAKING_CONFIG.voice
-              }
-            },
-            instructions: [
-              "You are an IELTS Speaking examiner for a mock exam.",
-              "Follow the app's stage instructions exactly.",
-              "Act only as an examiner, not as a casual chatbot.",
-              "Speak naturally, clearly, and briefly.",
-              "Ask one question at a time.",
-              "Do not provide scores, feedback, explanations, or transcripts.",
-              "Do not move to another part unless the app tells you to.",
-              "If the app tells you to remain silent, remain silent."
-            ].join(" ")
-          }
-        });
-
-        setTimeout(() => {
-          sessionReady = true;
-          if (currentStage) queueOrSendStagePrompt(currentStage);
-        }, 500);
-      });
-
-      dataChannel.addEventListener("message", (event) => {
+      dataChannel.onopen = () => {
+        sessionReady = true;
+        setRealtimeStatus("connected");
         try {
-          const serverEvent = JSON.parse(event.data);
-          if (serverEvent.type === "error") {
-            console.error("Realtime server event error", serverEvent);
-            setRealtimeStatus("Error");
-          }
-        } catch (err) {
-          console.error("Failed to parse realtime event", err);
+          dataChannel.send(JSON.stringify({
+            type: "session.update",
+            session: {
+              instructions: [
+                "You are a strict but polite IELTS speaking examiner.",
+                "Keep the interaction natural and voice-friendly.",
+                "Do not show scoring or give detailed feedback during the live test.",
+                "Only ask questions and brief transitions unless explicitly told otherwise.",
+              ].join(" "),
+            },
+          }));
+        } catch (e) {
+          console.error("[Speaking] Could not send session.update", e);
         }
-      });
+        flushPendingStagePrompt();
+      };
+      dataChannel.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(String(event.data || "{}"));
+          if (msg.type === "response.done") {
+            // no-op, but useful for debugging later
+          }
+        } catch (e) {}
+      };
+      dataChannel.onerror = (event) => {
+        console.error("[Speaking] dataChannel error", event);
+        setRealtimeStatus("error");
+      };
+      dataChannel.onclose = () => {
+        sessionReady = false;
+        setRealtimeStatus("closed");
+      };
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      await waitForIceGatheringComplete(peerConnection);
 
-      const localSdp = peerConnection.localDescription?.sdp || "";
-      if (!localSdp.trim()) throw new Error("Local SDP offer is empty.");
-
-      const response = await fetch(sessionEndpoint, {
+      const sdpRes = await fetch(`https://api.openai.com/v1/realtime?model=${encodeURIComponent(SPEAKING_CONFIG.realtimeModel)}`, {
         method: "POST",
+        body: offer.sdp,
         headers: {
-          "Content-Type": "application/sdp"
+          Authorization: `Bearer ${secret}`,
+          "Content-Type": "application/sdp",
         },
-        body: localSdp
       });
-
-      const answerSdp = await response.text();
-      if (!response.ok) {
-        throw new Error(answerSdp || `Realtime session failed (${response.status})`);
+      const answerSdp = await sdpRes.text();
+      if (!sdpRes.ok || !answerSdp) {
+        throw new Error("Realtime SDP exchange failed");
       }
-
-      await peerConnection.setRemoteDescription({
-        type: "answer",
-        sdp: answerSdp
-      });
+      await peerConnection.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      setRealtimeStatus("ready");
     }
 
-    function waitForIceGatheringComplete(pc) {
-      return new Promise((resolve) => {
-        if (pc.iceGatheringState === "complete") {
-          resolve();
-          return;
-        }
-
-        function checkState() {
-          if (pc.iceGatheringState === "complete") {
-            pc.removeEventListener("icegatheringstatechange", checkState);
-            resolve();
-          }
-        }
-
-        pc.addEventListener("icegatheringstatechange", checkState);
-
-        setTimeout(() => {
-          pc.removeEventListener("icegatheringstatechange", checkState);
-          resolve();
-        }, 2000);
-      });
-    }
-
-    function disconnectRealtime() {
+    function cleanupRealtimeExaminer() {
       sessionReady = false;
       pendingStagePrompt = null;
-      clearPendingStagePrompt();
-
+      if (pushStageTimeout) {
+        clearTimeout(pushStageTimeout);
+        pushStageTimeout = null;
+      }
       try {
         if (dataChannel) dataChannel.close();
       } catch (e) {}
       dataChannel = null;
-
       try {
         if (peerConnection) peerConnection.close();
       } catch (e) {}
       peerConnection = null;
+      if (remoteAudioEl) {
+        try { remoteAudioEl.srcObject = null; } catch (e) {}
+      }
+      setRealtimeStatus("not connected");
+    }
 
-      setRealtimeStatus("Disconnected");
+    function resetRecordingState() {
+      clearStageTimer();
+      currentStage = null;
+      stageSecondsLeft = 0;
+      examRunning = false;
+      examFinished = false;
+      updateStageUI();
+      cleanupRealtimeExaminer();
+      recordedChunks = [];
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        audioUrl = "";
+      }
+      audioBlob = null;
+      if (playback) {
+        playback.src = "";
+        playback.load();
+      }
+      if (downloadBtn) downloadBtn.disabled = true;
+      if (uploadBtn) uploadBtn.disabled = true;
+      if (stopBtn) stopBtn.disabled = true;
+    }
+
+    async function startExam() {
+      const name = getStudentName();
+      if (!name) {
+        alert("Please enter the student's full name first.");
+        return;
+      }
+      if (uploadInProgress) return;
+
+      resetRecordingState();
+      showSpeaking();
+
+      try {
+        const stream = await requestMicrophone();
+        mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      } catch (e) {
+        console.error("[Speaking] Could not access microphone", e);
+        alert("Could not access the microphone. Please allow microphone access and try again.");
+        return;
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) recordedChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        audioUrl = URL.createObjectURL(audioBlob);
+        if (playback) {
+          playback.src = audioUrl;
+          playback.style.display = "block";
+          playback.load();
+        }
+        if (downloadBtn) downloadBtn.disabled = !audioBlob;
+        if (uploadBtn) uploadBtn.disabled = !audioBlob;
+        setStatus("Recording ready for review or upload");
+      };
+
+      try {
+        mediaRecorder.start(1000);
+      } catch (e) {
+        console.error("[Speaking] MediaRecorder start failed", e);
+        alert("Could not start recording. Please refresh and try again.");
+        return;
+      }
+
+      try {
+        await setupRealtimeExaminer();
+      } catch (e) {
+        console.error("[Speaking] Realtime examiner unavailable", e);
+        setRealtimeStatus("offline");
+      }
+
+      examRunning = true;
+      examFinished = false;
+      if (stopBtn) stopBtn.disabled = false;
+      if (downloadBtn) downloadBtn.disabled = true;
+      if (uploadBtn) uploadBtn.disabled = true;
+      advanceStage();
+    }
+
+    function stopExam() {
+      if (!mediaRecorder) return;
+      if (mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+      examRunning = false;
+      examFinished = true;
+      clearStageTimer();
+      setStage("finished", 0);
+      cleanupRealtimeExaminer();
+      if (stopBtn) stopBtn.disabled = true;
+    }
+
+    function downloadRecording() {
+      if (!audioBlob) return;
+      const a = document.createElement("a");
+      a.href = audioUrl;
+      a.download = "ielts-speaking-exam.webm";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 0);
     }
 
     async function uploadRecording() {
-      if (uploadInProgress) return;
-      if (!audioBlob) {
-        alert("No recording available yet.");
-        return;
-      }
-
-      const studentFullName = getStudentName();
-      if (!studentFullName) {
-        alert("Please enter the student full name before uploading.");
-        return;
-      }
-
+      if (!audioBlob || uploadInProgress) return;
       const endpoint = getUploadEndpoint();
       if (!endpoint) {
-        alert("Speaking upload endpoint is missing.");
+        alert("Speaking upload endpoint is not configured.");
+        return;
+      }
+
+      const studentName = getStudentName();
+      if (!studentName) {
+        alert("Please enter the student's full name first.");
         return;
       }
 
       uploadInProgress = true;
+      if (uploadBtn) uploadBtn.disabled = true;
       if (uploadInfo) uploadInfo.textContent = "Uploading recording...";
 
       try {
         const base64Audio = await blobToBase64(audioBlob);
         const payload = {
-          action: "uploadSpeaking",
-          studentFullName,
-          submittedAt: new Date().toISOString(),
-          part1DurationSec: SPEAKING_CONFIG.part1.duration,
-          part2PrepSec: SPEAKING_CONFIG.part2.prepDuration,
-          part2SpeakSec: SPEAKING_CONFIG.part2.speakDuration,
-          part3DurationSec: SPEAKING_CONFIG.part3.duration,
+          studentName,
           mimeType: audioBlob.type || "audio/webm",
-          base64Audio
+          fileName: "ielts-speaking-exam.webm",
+          audioBase64: base64Audio,
+          examType: "IELTS Speaking",
+          submittedAt: new Date().toISOString(),
         };
 
-        const response = await fetch(endpoint, {
+        const res = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify(payload)
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
-
-        const json = await response.json();
-        if (!json.ok) throw new Error(json.error || "Upload failed");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data?.ok) {
+          throw new Error(data?.error || `HTTP ${res.status}`);
+        }
 
         if (uploadInfo) {
-          uploadInfo.innerHTML = `
-            <div>Upload complete.</div>
-            <div><a href="${json.fileUrl}" target="_blank" rel="noopener">Open recording file</a></div>
-          `;
+          uploadInfo.innerHTML = `Uploaded successfully. <a href="${String(data.url || "#")}" target="_blank" rel="noopener">Open file</a>`;
         }
-      } catch (err) {
-        console.error(err);
-        if (uploadInfo) uploadInfo.textContent = "Upload failed: " + String(err.message || err);
+        setStatus("Recording uploaded successfully");
+      } catch (e) {
+        console.error("[Speaking] Upload failed", e);
+        if (uploadInfo) uploadInfo.textContent = `Upload failed: ${e.message || e}`;
       } finally {
         uploadInProgress = false;
+        if (uploadBtn) uploadBtn.disabled = !audioBlob;
       }
     }
 
-    async function startRecordingAndExam() {
-      if (examRunning) return;
-
-      const studentFullName = getStudentName();
-      if (!studentFullName) {
-        alert("Please enter the student full name before starting the exam.");
-        return;
-      }
-
-      try {
-        examRunning = true;
-        examFinished = false;
-        recordedChunks = [];
-        audioBlob = null;
-        audioUrl = "";
-        if (uploadInfo) uploadInfo.textContent = "";
-        if (playback) playback.src = "";
-        setStatus("Requesting microphone...");
-
-micStream = await navigator.mediaDevices.getUserMedia({
-  audio: {
-    noiseSuppression: true,
-    echoCancellation: true,
-    autoGainControl: true,
-    channelCount: 1,
-    sampleRate: 48000
-  }
-});
-
-// audio processing (reduces sensitivity to background noise)
-const audioContext = new AudioContext();
-const source = audioContext.createMediaStreamSource(micStream);
-
-const gainNode = audioContext.createGain();
-gainNode.gain.value = 0.85;
-
-source.connect(gainNode);
-
-// create a new processed stream
-const processedStream = audioContext.createMediaStreamDestination();
-gainNode.connect(processedStream);
-
-// use the processed stream for recording
-mediaRecorder = new MediaRecorder(processedStream.stream);
-
-mediaRecorder.ondataavailable = function (event) {
-  if (event.data && event.data.size > 0) {
-    recordedChunks.push(event.data);
-  }
-};
-
-        mediaRecorder.onstop = function () {
-          audioBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
-          audioUrl = URL.createObjectURL(audioBlob);
-
-          if (playback) playback.src = audioUrl;
-
-          stopStageTimer();
-          currentStage = "finished";
-          examRunning = false;
-          examFinished = true;
-          window.onbeforeunload = null;
-
-          queueOrSendStagePrompt("finished");
-          setTimeout(() => disconnectRealtime(), 250);
-
-          if (micStream) {
-            micStream.getTracks().forEach((track) => track.stop());
-            micStream = null;
-          }
-
-          renderFinished();
-          uploadRecording();
-        };
-
-        mediaRecorder.start();
-        await connectRealtime(micStream);
-
-        window.onbeforeunload = function () {
-          return "Speaking exam is in progress. Are you sure you want to leave?";
-        };
-
-        beginStage("part1");
-      } catch (err) {
-        console.error(err);
-        examRunning = false;
-        setStatus("Microphone / Realtime connection failed");
-        setRealtimeStatus("Failed");
-        disconnectRealtime();
-        if (micStream) {
-          micStream.getTracks().forEach((track) => track.stop());
-          micStream = null;
-        }
-      }
+    if (openBtn && !openBtn.dataset.boundSpeakingOpen) {
+      openBtn.dataset.boundSpeakingOpen = "1";
+      openBtn.addEventListener("click", showSpeaking);
+    }
+    if (backBtn && !backBtn.dataset.boundSpeakingBack) {
+      backBtn.dataset.boundSpeakingBack = "1";
+      backBtn.addEventListener("click", showHome);
+    }
+    if (startBtn && !startBtn.dataset.boundSpeakingStart) {
+      startBtn.dataset.boundSpeakingStart = "1";
+      startBtn.addEventListener("click", startExam);
+    }
+    if (stopBtn && !stopBtn.dataset.boundSpeakingStop) {
+      stopBtn.dataset.boundSpeakingStop = "1";
+      stopBtn.addEventListener("click", stopExam);
+      stopBtn.disabled = true;
+    }
+    if (downloadBtn && !downloadBtn.dataset.boundSpeakingDownload) {
+      downloadBtn.dataset.boundSpeakingDownload = "1";
+      downloadBtn.addEventListener("click", downloadRecording);
+      downloadBtn.disabled = true;
+    }
+    if (uploadBtn && !uploadBtn.dataset.boundSpeakingUpload) {
+      uploadBtn.dataset.boundSpeakingUpload = "1";
+      uploadBtn.addEventListener("click", uploadRecording);
+      uploadBtn.disabled = true;
     }
 
-    function stopRecordingManually() {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") return;
-      stopStageTimer();
-      setStatus("Stopping exam...");
-      mediaRecorder.stop();
-    }
-
-    function finishExamAutomatically() {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        renderFinished();
-        return;
-      }
-      setStatus("Time is up. Finishing exam...");
-      mediaRecorder.stop();
-    }
-
-    function downloadRecording() {
-      if (!audioUrl) {
-        alert("No recording available yet.");
-        return;
-      }
-      const a = document.createElement("a");
-      a.href = audioUrl;
-      a.download = "ielts-speaking-exam.webm";
-      a.click();
-    }
-
-    if (partBox) partBox.textContent = "Current stage: Not started";
-    if (bodyBox) {
-      bodyBox.innerHTML = `
-        <div style="line-height:1.7;">
-          <div><strong>Part 1:</strong> ${Math.floor(SPEAKING_CONFIG.part1.duration / 60)} min ${SPEAKING_CONFIG.part1.duration % 60} sec</div>
-          <div><strong>Part 2 Prep:</strong> ${Math.floor(SPEAKING_CONFIG.part2.prepDuration / 60)} min ${SPEAKING_CONFIG.part2.prepDuration % 60} sec</div>
-          <div><strong>Part 2 Speaking:</strong> ${Math.floor(SPEAKING_CONFIG.part2.speakDuration / 60)} min ${SPEAKING_CONFIG.part2.speakDuration % 60} sec</div>
-          <div><strong>Part 3:</strong> ${Math.floor(SPEAKING_CONFIG.part3.duration / 60)} min ${SPEAKING_CONFIG.part3.duration % 60} sec</div>
-          <div style="margin-top:12px;">Click <strong>Start Recording</strong> to begin the full speaking exam.</div>
-        </div>
-      `;
-    }
-    setTimerText(0);
-    setRealtimeStatus("Not connected");
-
-    if (openBtn) openBtn.onclick = showSpeaking;
-    if (backBtn) backBtn.onclick = showHome;
-    if (startBtn) startBtn.onclick = startRecordingAndExam;
-    if (stopBtn) stopBtn.onclick = stopRecordingManually;
-    if (downloadBtn) downloadBtn.onclick = downloadRecording;
-    if (uploadBtn) uploadBtn.onclick = uploadRecording;
+    updateStageUI();
   }
 
   window.IELTS.Speaking.initSpeakingExam = initSpeakingExam;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initSpeakingExam, { once: true });
+  } else {
+    initSpeakingExam();
+  }
 })();

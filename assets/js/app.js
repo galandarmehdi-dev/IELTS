@@ -647,7 +647,6 @@
     const startBtnT3b = $("cardStartIelts3Btn");
     const footerStartTest1Btn = $("footerStartTest1Btn");
     const footerOpenHistoryBtn = $("footerOpenHistoryBtn");
-    const footerOpenSpeakingBtn = $("footerOpenSpeakingBtn");
     const contBtn = $("homeContinueBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
@@ -727,7 +726,6 @@ function startFreshExam() {
     if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
     if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => $("openHistoryBtn")?.click?.();
-    if (footerOpenSpeakingBtn) footerOpenSpeakingBtn.onclick = () => $("openSpeakingExamBtn")?.click?.();
     if (contBtn) contBtn.onclick = () => requireTestPassword(startFreshExam);
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();

@@ -416,5 +416,8 @@ th, td{ text-align:left; }
   .auth-buttons,
   .auth-code-row{ grid-template-columns:1fr; }
   .auth-code-btn{ min-width:0; }
-  .btn, .home-btn{ width:100%; justify-content:center; }
+  .auth-buttons .btn,
+  .auth-buttons .home-btn,
+  .auth-full-btn,
+  .auth-code-btn{ width:100%; justify-content:center; }
 }

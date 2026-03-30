@@ -192,6 +192,67 @@
     }).join(" ");
   }
 
+  function latestNonZero(rows, key) {
+    for (let i = 0; i < (rows || []).length; i += 1) {
+      const value = Number(rows[i]?.[key]);
+      if (Number.isFinite(value) && value > 0) return value;
+    }
+    return 0;
+  }
+
+  function buildRecommendation(rows) {
+    if (!rows.length) {
+      return {
+        summary: "Recommendation: start your first mock exam to build a baseline for the dashboard.",
+        action: "Start a new mock",
+        detail: "The dashboard will refine this as your history grows.",
+      };
+    }
+
+    const preferredExam = examDisplayName(state.settings.preferredTest);
+    const targetBand = Number(state.settings.targetBand || 0);
+    const averages = skillAverages(rows).sort((a, b) => a.value - b.value);
+    const weakest = averages[0] || null;
+    const strongest = averages[averages.length - 1] || null;
+    const latestListening = latestNonZero(rows, "listening_band");
+    const latestReading = latestNonZero(rows, "reading_band");
+    const latestWriting = latestNonZero(rows, "final_writing_band");
+    const latestBest = Math.max(latestListening, latestReading, latestWriting);
+    const gap = targetBand > 0 && latestBest > 0 ? round1(targetBand - latestBest) : 0;
+    const latest = rows[0];
+    const latestWords = latest ? totalWords(latest) : 0;
+
+    if (gap > 0.7 && weakest) {
+      return {
+        summary: `Recommendation: prioritize ${weakest.label.toLowerCase()} this week, then use ${preferredExam} as your next benchmark.`,
+        action: `Lift ${weakest.label}`,
+        detail: `You are about ${gap.toFixed(1)} band away from your target. Bring ${weakest.label.toLowerCase()} closer to your strongest section before your next full mock.`,
+      };
+    }
+
+    if (weakest && strongest && strongest.value - weakest.value >= 1) {
+      return {
+        summary: `Recommendation: rebalance your scores by drilling ${weakest.label.toLowerCase()} before taking another full exam.`,
+        action: `Rebalance ${weakest.label}`,
+        detail: `${weakest.label} is trailing ${strongest.label} by ${round1(strongest.value - weakest.value).toFixed(1)} band. A focused review there should have the biggest payoff.`,
+      };
+    }
+
+    if (latestWords > 0 && latestWords < 420) {
+      return {
+        summary: `Recommendation: keep writing practice active and push your response volume before the next scored attempt.`,
+        action: "Expand writing output",
+        detail: `Your latest writing total was ${latestWords} words. Aim for a fuller Task 2 response, then check the impact in ${preferredExam}.`,
+      };
+    }
+
+    return {
+      summary: `Recommendation: take another full mock in ${preferredExam} and keep your strongest momentum moving.`,
+      action: "Run a full benchmark",
+      detail: `Your recent scores are stable enough for another timed benchmark. The next completed mock will sharpen your trend line and target progress.`,
+    };
+  }
+
   function computeStreak(rows) {
     const keys = Array.from(new Set((rows || [])
       .map((row) => {
@@ -373,7 +434,6 @@
 
   function renderSummary() {
     const rows = state.rows;
-    const latest = rows[0];
     setText("dashboardStatTests", rows.length);
     setText("dashboardStatListening", average(rows, "listening_band"));
     setText("dashboardStatReading", average(rows, "reading_band"));
@@ -381,14 +441,7 @@
 
     const recommendation = $("dashboardRecommendation");
     if (!recommendation) return;
-    if (!rows.length) {
-      recommendation.textContent = "Recommendation: start your first mock exam to build a baseline for the dashboard.";
-      return;
-    }
-    const focus = state.settings.focusSkill || "balanced prep";
-    const nextTest = state.settings.preferredTest ? state.settings.preferredTest.replace("ielts", "IELTS Test ") : examLabel(latest);
-    const latestWords = totalWords(latest);
-    recommendation.textContent = `Recommendation: continue with ${nextTest}, keep your ${focus} focus active, and compare against your latest writing total of ${latestWords} words.`;
+    recommendation.textContent = buildRecommendation(rows).summary;
   }
 
   function renderAnalytics() {
@@ -525,6 +578,7 @@
     const dailyGoal = `${state.settings.dailyGoal || "30"} minutes`;
     const latestWords = latest ? totalWords(latest) : 0;
     const streak = computeStreak(rows);
+    const recommendation = buildRecommendation(rows);
 
     setText("dashboardGoalTarget", targetBand ? `Band ${targetBand.toFixed(1)}` : "Not set");
     setText("dashboardGoalGap", gap ? `${gap} band to go` : "Set a target to track progress.");
@@ -538,8 +592,8 @@
     setText("dashboardGoalsAverageDetail", currentAverage ? "Best current average across scored sections." : "Your strongest score will appear here.");
     setText("dashboardGoalsGap", gap ? `${gap} band` : "—");
     setText("dashboardGoalsGapDetail", gap ? `You are ${gap} band away from your target.` : "Choose a target band to measure progress.");
-    setText("dashboardGoalsAction", rows.length ? `Push ${focus}` : "Start a new mock");
-    setText("dashboardGoalsActionDetail", rows.length ? `Use ${examDisplayName(state.settings.preferredTest)} as your next benchmark.` : "The dashboard will refine this as your history grows.");
+    setText("dashboardGoalsAction", recommendation.action);
+    setText("dashboardGoalsActionDetail", recommendation.detail);
     setText("dashboardGoalsWords", `${latestWords} words`);
     setText("dashboardGoalsWordsDetail", latestWords ? "Latest completed writing total." : "Latest completed writing total.");
   }

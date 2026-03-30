@@ -22,7 +22,7 @@
 </head>
   
 <body translate="no">
-<section id="authGate" class="auth-gate">
+<section id="authGate" class="auth-gate hidden" aria-label="Sign in">
   <div class="auth-shell">
     <div class="auth-showcase">
       <div class="auth-kicker">Exam training workspace</div>
@@ -54,7 +54,10 @@
     </div>
 
     <div class="auth-card">
-      <div class="auth-card-topline">Secure access</div>
+      <div class="auth-card-header">
+        <div class="auth-card-topline">Secure access</div>
+        <button type="button" class="auth-close-btn" id="closeAuthGateBtn" aria-label="Close sign in">Close</button>
+      </div>
       <h2 class="auth-title">Continue into your training dashboard</h2>
       <p class="auth-subtitle">Use Google, Microsoft, or email to enter the IELTS workspace and resume where you left off.</p>
 

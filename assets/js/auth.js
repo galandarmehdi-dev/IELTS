@@ -22,6 +22,7 @@ const authMessage = document.getElementById("authMessage");
 let authReady = false;
 let loggingOut = false;
 let hasHandledInitialLoginRedirect = false;
+let loginGateOpen = false;
 
 function getEl(id) {
   return document.getElementById(id);
@@ -98,12 +99,20 @@ function syncAuthExport() {
   window.IELTS.Auth = {
     supabase,
     getSavedUser,
+    isSignedIn,
     getAccessToken,
     updateProfileMetadata,
     showProtectedApp,
+    openLoginGate,
+    closeLoginGate,
     refreshAuthUI,
     logout
   };
+}
+
+function isSignedIn() {
+  const user = getSavedUser();
+  return !!(user && user.id);
 }
 
 async function getAccessToken() {
@@ -176,15 +185,30 @@ function forceHideAllAppSections() {
   });
 }
 
+function closeLoginGate() {
+  loginGateOpen = false;
+  if (authGate) authGate.classList.add("hidden");
+  setMessage("");
+}
+
+function openLoginGate(message) {
+  loginGateOpen = true;
+  if (authGate) authGate.classList.remove("hidden");
+  if (message) setMessage(message);
+}
+
 function showProtectedApp(show) {
   const logoutBtn = getEl("logoutBtn");
-  if (authGate) authGate.classList.toggle("hidden", show);
   if (logoutBtn) logoutBtn.classList.toggle("hidden", !show);
 
   if (!show) {
     forceHideAllAppSections();
+    getEl("homeSection")?.classList.remove("hidden");
+    closeLoginGate();
     return;
   }
+
+  closeLoginGate();
 }
 
 function hasOAuthCallbackParams() {
@@ -377,6 +401,11 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   hideBlockingModals();
   showProtectedApp(false);
   authReady = true;
+  try {
+    window.IELTS?.UI?.showOnly?.("home");
+    window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
+    window.IELTS?.UI?.updateHomeStatusLine?.("Status: Browse the platform or log in to start a test");
+  } catch (e) {}
   notifyAuthChanged();
   return false;
 }
@@ -487,6 +516,10 @@ getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
+getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);
+authGate?.addEventListener("click", (e) => {
+  if (e.target === authGate) closeLoginGate();
+});
 document.addEventListener("partials:loaded", () => {
   getEl("logoutBtn")?.addEventListener("click", logout);
 }, { once: true });

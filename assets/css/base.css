@@ -310,6 +310,12 @@ body[data-view-mode="student"] #resetExamBtn{
   padding:32px;
   backdrop-filter:blur(20px);
 }
+.auth-card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
 .auth-card::before{
   content:"";
   position:absolute;
@@ -329,6 +335,20 @@ body[data-view-mode="student"] #resetExamBtn{
   font-weight:900;
   text-transform:uppercase;
   letter-spacing:.08em;
+}
+.auth-close-btn{
+  appearance:none;
+  border:none;
+  background:rgba(18,59,109,.08);
+  color:var(--navy);
+  min-height:38px;
+  padding:0 14px;
+  border-radius:999px;
+  font-weight:800;
+  cursor:pointer;
+}
+.auth-close-btn:hover{
+  background:rgba(18,59,109,.14);
 }
 .auth-title{
   margin:16px 0 8px;

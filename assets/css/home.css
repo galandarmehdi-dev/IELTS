@@ -415,6 +415,30 @@
   border-color:rgba(23,50,77,.26);
   box-shadow:0 20px 38px rgba(23,50,77,.16);
 }
+.home-account-trigger.is-login{
+  min-width:auto;
+  padding:0 18px;
+  background:var(--ink);
+  color:#fff;
+  border-color:rgba(18,26,36,.9);
+  box-shadow:0 16px 34px rgba(18,26,36,.18);
+}
+.home-account-trigger.is-login:hover{
+  border-color:rgba(18,26,36,.9);
+  box-shadow:0 20px 38px rgba(18,26,36,.24);
+}
+.home-account-trigger.is-login .home-account-avatar{
+  display:none;
+}
+.home-account-trigger.is-login .home-account-copy{
+  display:block;
+}
+.home-account-trigger.is-login .home-account-label{
+  display:none;
+}
+.home-account-trigger.is-login #homeAccountName{
+  color:#fff;
+}
 .home-account-avatar{
   width:40px;
   height:40px;

@@ -1345,10 +1345,62 @@
           });
           return grid;
         });
-        addSection("listening-tips", "Listening tips", "Quick reminders students can use before or between listening attempts.", () => renderStaticTips([
-          createNoteCard("Read ahead", ["Use the setup time to predict word class, number, or likely distractors before the audio reaches the gap."], "Tip 1"),
-          createNoteCard("Expect distractors", ["Do not commit too early. Speakers often correct themselves or change direction mid-sentence."], "Tip 2"),
-          createNoteCard("Follow section difficulty", ["Section 1 is usually easier and Section 4 often demands closer note tracking and focus."], "Tip 3"),
+        addSection("listening-tips", "Listening tips", "General listening strategy plus task-specific reminders students can use before or between attempts.", () => renderStaticTips([
+          createNoteCard("Know the listening flow", [
+            "The recording is played once only, but the questions follow the same order as the information in the audio.",
+            "Use the short pauses to move your eyes forward and predict what is coming next.",
+            "If you miss one answer, keep moving so one gap does not cost you the next three."
+          ], "General"),
+          createNoteCard("Read ahead before the audio starts", [
+            "Use the preparation time to circle keywords, names, numbers, dates, and signpost words.",
+            "Predict the answer type before you listen: number, place, noun, adjective, or verb.",
+            "The better your prediction, the easier it is to catch the answer when the audio arrives."
+          ], "Prep"),
+          createNoteCard("Track paraphrase and synonyms", [
+            "The speaker may not repeat the same words from the question sheet.",
+            "Train yourself to hear paraphrase, especially for common nouns, verbs, and time expressions.",
+            "A wider vocabulary helps you catch answers that sound different from the printed question."
+          ], "General"),
+          createNoteCard("Expect distractors", [
+            "Speakers often say one answer, then correct themselves or add a detail that changes it.",
+            "Wait for the final confirmed information before writing your answer.",
+            "This matters especially in conversations, bookings, prices, times, and directions."
+          ], "Distractors"),
+          createNoteCard("Form / Note / Table / Summary Completion", [
+            "Read the sentence around each gap so you know what kind of word will fit.",
+            "Check word limits carefully because a correct idea can still be marked wrong if it is too long.",
+            "Watch spelling, plurals, and singular forms because Listening answers must be exact."
+          ], "Completion"),
+          createNoteCard("Multiple Choice", [
+            "Read the question before the options if possible so you know what main idea you are listening for.",
+            "Eliminate options that mention details from the recording but do not answer the real question.",
+            "Stay alert for contrast language like 'however', 'actually', 'in fact', or 'we decided instead'."
+          ], "Multiple Choice"),
+          createNoteCard("Matching tasks", [
+            "Understand each option first so you know what differences you are listening for.",
+            "Tick off options that are already used if the task instructions allow each answer only once.",
+            "In matching sections, keep your place carefully because the speakers may move through choices quickly."
+          ], "Matching"),
+          createNoteCard("Map / Plan / Diagram Labelling", [
+            "Before the recording starts, study the layout and identify landmarks, doors, corners, and directions.",
+            "Listen for movement language such as 'opposite', 'next to', 'at the end of', 'to the left of', and 'beyond'.",
+            "Follow the route step by step instead of trying to imagine the whole map at once."
+          ], "Map / Plan"),
+          createNoteCard("Use section difficulty wisely", [
+            "Section 1 is usually more everyday and concrete, while Sections 3 and 4 demand stronger concentration and note tracking.",
+            "Do not relax too much after an easier opening section because later sections usually move faster and feel denser.",
+            "Save mental energy for Section 4, where one speaker may give many answer points in a short stretch."
+          ], "Sections"),
+          createNoteCard("Stay calm after a missed answer", [
+            "Do not stop listening just because one item slipped away.",
+            "Make a quick guess later if needed, but protect the questions that are still coming.",
+            "Calm recovery is often worth more than chasing one lost answer."
+          ], "Mindset"),
+          createNoteCard("Final listening checklist", [
+            "Recheck spelling, capital letters if needed, numbers, and singular/plural form.",
+            "Make sure every answer respects the word limit printed in the instructions.",
+            "If an answer feels too easy, ask whether the speaker later changed or corrected it."
+          ], "Review"),
         ]));
       }
 

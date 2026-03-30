@@ -1444,6 +1444,68 @@
           createNoteCard("Band 7.0 sample hallmarks", ["Good response to the task, stronger cohesion, and more flexible vocabulary with fewer slips."], "Band 7.0"),
           createNoteCard("Band 8.0 sample hallmarks", ["Well-controlled structure, concise support, accurate tone, and strong grammar range."], "Band 8.0"),
         ]));
+        addSection("writing-tips", "Writing tips", "General writing guidance plus separate reminders for Task 1 and Task 2.", () => renderStaticTips([
+          createNoteCard("Plan before you write", [
+            "Spend a few minutes deciding your structure before you begin typing.",
+            "A short plan usually saves time because your ideas come out in a cleaner order.",
+            "Good planning improves Task Response and Coherence together."
+          ], "General"),
+          createNoteCard("Write for the task, not just the topic", [
+            "Always match what the question asks: describe, compare, explain, discuss, or give an opinion.",
+            "A strong answer can still lose marks if it answers the wrong task.",
+            "Underline the instruction words before you start."
+          ], "Task Response"),
+          createNoteCard("Use clear paragraph roles", [
+            "Each paragraph should have a job: overview, detail group, argument, explanation, or conclusion.",
+            "Do not add paragraphs just to look academic; build them around clear ideas.",
+            "Strong paragraph control makes the essay easier to follow and easier to score well."
+          ], "Structure"),
+          createNoteCard("Writing Task 1: overview first", [
+            "In Task 1, the overview is one of the most important scoring features.",
+            "After reading the visual, identify the biggest trends, highest and lowest points, or key comparisons.",
+            "Save minor details for body paragraphs and keep the overview broad."
+          ], "Task 1"),
+          createNoteCard("Writing Task 1: group data logically", [
+            "Do not describe every number one by one in random order.",
+            "Group similar trends, similar categories, or time periods together.",
+            "This makes the report feel analytical instead of mechanical."
+          ], "Task 1"),
+          createNoteCard("Writing Task 1: compare, do not list", [
+            "IELTS rewards comparison language more than simple reporting.",
+            "Show relationships such as higher than, lower than, similar to, doubled, or remained stable.",
+            "Use figures as evidence, not as the whole paragraph."
+          ], "Task 1"),
+          createNoteCard("Writing Task 2: answer the exact question", [
+            "If the essay asks for your opinion, make your position clear and keep it clear throughout.",
+            "If it asks for both views, cover both fairly before you conclude.",
+            "Never rely on a memorised essay shape without checking what the prompt really wants."
+          ], "Task 2"),
+          createNoteCard("Writing Task 2: develop ideas deeply", [
+            "One well-explained idea is stronger than three shallow ideas.",
+            "After each main point, add a reason, explanation, or realistic example.",
+            "Ask yourself: why is this true, and what does it lead to?"
+          ], "Task 2"),
+          createNoteCard("Use examples that feel plausible", [
+            "Your examples do not need to be personal or factual, but they should sound believable.",
+            "Keep them short and useful; do not let one example become half the paragraph.",
+            "Examples should support the main idea, not replace it."
+          ], "Support"),
+          createNoteCard("Control vocabulary and grammar", [
+            "Do not force rare words if you cannot use them naturally.",
+            "Accurate, flexible language scores better than ambitious but unstable language.",
+            "Vary sentence structure, but stay readable and controlled."
+          ], "Language"),
+          createNoteCard("Manage time across both tasks", [
+            "Task 2 normally deserves more time because it carries more weight.",
+            "Leave a short final review window to catch grammar slips, missing articles, or repeated wording.",
+            "Do not let Task 1 expand so much that Task 2 loses quality."
+          ], "Timing"),
+          createNoteCard("Final writing checklist", [
+            "Check that every paragraph has a clear purpose and that your ideas answer the task directly.",
+            "Look for repeated words, missing verbs, article mistakes, and punctuation slips.",
+            "If your conclusion says something new, rewrite it to summarize your real position instead."
+          ], "Review"),
+        ]));
       }
 
       if (kind === "speaking") {

@@ -522,7 +522,11 @@
 
 .home-main{ padding:18px 0 34px; }
 .home-nav-shell{
-  margin-bottom:28px;
+  border-radius:30px;
+  padding:22px;
+  background:rgba(255,253,249,.96);
+  border:1px solid rgba(255,255,255,.84);
+  box-shadow:0 24px 52px rgba(18,26,36,.1);
 }
 .home-explore-menus{
   display:grid;
@@ -547,6 +551,10 @@
   color:var(--ink);
   font-weight:900;
   cursor:pointer;
+}
+.home-skill-trigger:hover{
+  border-color:rgba(23,50,77,.2);
+  box-shadow:0 20px 44px rgba(18,26,36,.11);
 }
 .home-skill-trigger small{
   display:block;
@@ -600,6 +608,9 @@
 }
 .home-skill-item:hover{
   background:rgba(23,50,77,.06);
+}
+.compact-grid{
+  margin-top:24px;
 }
 .home-catalog-section{
   margin-top:34px;

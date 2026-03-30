@@ -194,19 +194,26 @@
           <div class="command-copy">Start a full mock, resume from your account, or shift into speaking practice without leaving the same workspace.</div>
 
           <div class="command-list">
-            <div class="command-row">
-              <div>
-                <strong>Full mock simulation</strong>
+          <div class="command-row">
+            <div>
+              <strong>Full mock simulation</strong>
                 <span>Listening, Reading, and Writing in sequence</span>
               </div>
               <b>Core</b>
             </div>
             <div class="command-row">
               <div>
-                <strong>Speaking practice</strong>
-                <span>Separate recording flow with guided stages</span>
+                <strong>Section-only practice</strong>
+                <span>Open Listening, Reading, Writing, or Speaking on their own</span>
               </div>
-              <b>Voice</b>
+              <b>Skill</b>
+            </div>
+            <div class="command-row">
+              <div>
+                <strong>Task-type practice</strong>
+                <span>Group question types like TFNG into focused drills</span>
+              </div>
+              <b>Drill</b>
             </div>
             <div class="command-row">
               <div>
@@ -274,7 +281,7 @@
         </div>
 
         <div class="home-mini">
-          Sign in once, choose the test you want, and keep moving through practice, history, and speaking from one cleaner environment.
+          Sign in once, then choose between full exams, section-only attempts, and practice drills grouped by task type.
         </div>
       </div>
     </div>
@@ -308,19 +315,73 @@
     <div class="home-grid compact-grid">
       <div class="home-info">
         <div class="home-info-h">Real exam order</div>
-        <div class="home-info-p">Listening first, then Reading, then Writing.</div>
+        <div class="home-info-p">Full exams still follow Listening, then Reading, then Writing.</div>
       </div>
 
       <div class="home-info">
-        <div class="home-info-h">Timed practice</div>
-        <div class="home-info-p">Reading and Writing are timed to feel more like the real test.</div>
+        <div class="home-info-h">Section-only access</div>
+        <div class="home-info-p">Students can open Listening, Reading, Writing, or Speaking independently.</div>
       </div>
 
       <div class="home-info">
-        <div class="home-info-h">Saved progress</div>
-        <div class="home-info-p">Your work is saved so you can continue from where you left off.</div>
+        <div class="home-info-h">Task-type practice</div>
+        <div class="home-info-p">Reading question types are grouped automatically into focused practice buckets.</div>
       </div>
     </div>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Full exam</div>
+        <h2 class="home-section-title">Take the complete IELTS mock first</h2>
+        <p class="home-section-copy">Each uploaded exam still works as a full mock. The same uploaded content also feeds the skill sections below automatically.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeFullExamCatalog"></div>
+    </section>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Listening</div>
+        <h2 class="home-section-title">Practice listening only</h2>
+        <p class="home-section-copy">Open the listening section from any uploaded exam without continuing into reading or writing.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeListeningCatalog"></div>
+    </section>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Reading</div>
+        <h2 class="home-section-title">Practice reading only</h2>
+        <p class="home-section-copy">Take the reading section on its own when you want focused timing and question work.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeReadingCatalog"></div>
+    </section>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Writing</div>
+        <h2 class="home-section-title">Practice writing only</h2>
+        <p class="home-section-copy">Jump straight into task 1 and task 2 without running the full mock sequence first.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeWritingCatalog"></div>
+    </section>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Speaking</div>
+        <h2 class="home-section-title">Open speaking directly</h2>
+        <p class="home-section-copy">Keep speaking as its own independent path for quick voice practice and recording flows.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeSpeakingCatalog"></div>
+    </section>
+
+    <section class="home-catalog-section">
+      <div class="home-section-head">
+        <div class="home-card-topline">Practice by task</div>
+        <h2 class="home-section-title">Train one question type at a time</h2>
+        <p class="home-section-copy">Reading task types are grouped automatically, so every uploaded test contributes its TFNG, headings, completion, and matching tasks to the right drill bucket.</p>
+      </div>
+      <div class="home-catalog-grid" id="homeReadingPracticeCatalog"></div>
+    </section>
   </main>
 
   <footer class="home-footer premium-footer">

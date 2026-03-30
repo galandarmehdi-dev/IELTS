@@ -20,7 +20,7 @@
     window.__IELTS_LISTENING_INIT__ = true;
 
     const testId = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
-    const L_KEYS = (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
+    const L_KEYS = (R().getScopedKeys?.(testId)?.listening) || (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
 
     // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
     const LEG = R().LEGACY?.listeningKeys;

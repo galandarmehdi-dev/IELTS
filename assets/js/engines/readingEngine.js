@@ -15,7 +15,8 @@
 
     // SETTINGS
     const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
-    const TEST_ID = (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
+    const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
+    const TEST_ID = (R().getScopedReadingTestId?.(ACTIVE_TEST_ID)) || (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
     const DURATION_MINUTES = 60;
 
     // TIMER/STATE
@@ -471,6 +472,17 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       return getFallbackPartConfig(activePart);
     }
 
+    function getAvailablePartDescriptors() {
+      const dynamicParts = getDynamicReadingParts();
+      if (dynamicParts) {
+        return dynamicParts.map((part, index) => ({
+          id: String(part?.id || `part${index + 1}`),
+          label: String(part?.shortLabel || part?.title || `Part ${index + 1}`),
+        }));
+      }
+      return PARTS.map((id, index) => ({ id, label: `Part ${index + 1}` }));
+    }
+
     function renderOptionalHeadingsExample(panel, cfg) {
       if (!cfg || !cfg.example || !cfg.example.paragraph) return;
       const ex = document.createElement("div");
@@ -689,6 +701,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     }
 
     function transitionToWritingOnce() {
+      if (LAUNCH_CONTEXT && LAUNCH_CONTEXT.mode !== "full") return;
       if (hasTransitionedToWriting) return;
       hasTransitionedToWriting = true;
 
@@ -1291,7 +1304,8 @@ qnum.textContent = `${item.q}`;
     function buildPartTabs() {
       const controls = $("readingControls") || document.querySelector(".controls");
       if (!controls) return;
-      if (controls.querySelector(".partTabs")) return;
+      const existing = controls.querySelector(".partTabs");
+      if (existing) existing.remove();
 
       const tabs = document.createElement("div");
       tabs.className = "partTabs";
@@ -1306,9 +1320,9 @@ qnum.textContent = `${item.q}`;
         return b;
       };
 
-      tabs.appendChild(makeBtn("part1", "Part 1"));
-      tabs.appendChild(makeBtn("part2", "Part 2"));
-      tabs.appendChild(makeBtn("part3", "Part 3"));
+      getAvailablePartDescriptors().forEach((part) => {
+        tabs.appendChild(makeBtn(part.id, part.label));
+      });
 
       controls.appendChild(tabs);
       refreshTabUI();
@@ -1317,8 +1331,7 @@ qnum.textContent = `${item.q}`;
     function refreshTabUI() {
       const tabs = document.querySelectorAll(".partTab");
       tabs.forEach((btn) => {
-        const txt = (btn.textContent || "").toLowerCase();
-        const id = txt.includes("1") ? "part1" : txt.includes("2") ? "part2" : "part3";
+        const id = String(btn.dataset.part || "");
         btn.classList.toggle("active", id === activePart);
       });
     }
@@ -1333,7 +1346,8 @@ qnum.textContent = `${item.q}`;
     }
 
     function switchPart(partId) {
-      if (!PARTS.includes(partId)) return;
+      const allowed = new Set(getAvailablePartDescriptors().map((part) => part.id));
+      if (!allowed.has(partId)) return;
       if (partId === activePart) return;
 
       try { window.IELTS?.Highlighting?.saveReadingPartHighlights?.(activePart); } catch (e) {}
@@ -1438,6 +1452,10 @@ qnum.textContent = `${item.q}`;
 
     // INIT
     injectStyles();
+    const availableParts = getAvailablePartDescriptors();
+    if (!availableParts.some((part) => part.id === activePart)) {
+      activePart = availableParts[0]?.id || "part1";
+    }
     const answersRef = { current: loadState().answers };
 
     buildPartTabs();

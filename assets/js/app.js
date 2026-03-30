@@ -1530,10 +1530,62 @@
           createNoteCard("Places and experiences", ["Describe a place you would like to revisit.", "Describe a crowded place you have been to."], "Likely theme"),
           createNoteCard("Habits and routines", ["Describe a skill you want to improve.", "Describe something you do to stay focused."], "Likely theme"),
         ]));
-        addSection("speaking-tips", "Tips for speaking", "Small reminders students can read right before speaking practice.", () => renderStaticTips([
-          createNoteCard("Keep speaking through small mistakes", ["Fluency matters. Correcting every tiny slip can break rhythm and confidence."], "Tip 1"),
-          createNoteCard("Add one layer of detail", ["If you answer with one idea, add an example, feeling, or short explanation after it."], "Tip 2"),
-          createNoteCard("Use natural signposting", ["Phrases like 'first', 'for example', and 'what I mean is' help extend answers naturally."], "Tip 3"),
+        addSection("speaking-tips", "Tips for speaking", "General speaking strategy plus part-specific reminders students can use before practice.", () => renderStaticTips([
+          createNoteCard("Keep fluency moving", [
+            "A small mistake is usually less damaging than stopping completely.",
+            "If you lose a word, explain the idea another way and keep going.",
+            "The examiner is listening for communication, not perfection in every second."
+          ], "General"),
+          createNoteCard("Expand every answer once", [
+            "After your first answer, add one more layer: an example, a reason, a feeling, or a short story.",
+            "This helps answers sound natural instead of too short.",
+            "Think in patterns like point plus support, not just point alone."
+          ], "Development"),
+          createNoteCard("Use natural signposting", [
+            "Simple phrases like 'for example', 'actually', 'to be honest', and 'the main reason is' help you sound organized.",
+            "Use signposting to connect ideas, not to fill silence mechanically.",
+            "Natural transitions usually score better than memorised templates."
+          ], "Coherence"),
+          createNoteCard("Part 1: stay direct and personal", [
+            "Answer the question first, then add a short detail from your own experience.",
+            "Do not turn Part 1 into a mini-essay; keep it conversational.",
+            "Aim for 2 to 4 developed sentences rather than one-word answers."
+          ], "Part 1"),
+          createNoteCard("Part 2: plan the cue card fast", [
+            "Use the one-minute preparation time to note keywords, not full sentences.",
+            "Make a simple beginning, middle, and ending so the talk keeps moving.",
+            "Cover every bullet point, but do not sound like you are reading a checklist."
+          ], "Part 2"),
+          createNoteCard("Part 2: keep speaking for the full time", [
+            "If you finish the main story early, add details about how you felt, why it mattered, or what happened after.",
+            "Extra detail is usually safer than stopping too soon.",
+            "Think of who, where, when, what, why, and how to extend naturally."
+          ], "Part 2"),
+          createNoteCard("Part 3: think bigger than yourself", [
+            "These questions often need broader opinions, comparisons, or social ideas, not just personal examples.",
+            "State your view clearly, then explain why and support it.",
+            "If the topic feels abstract, compare past and present or individual and society."
+          ], "Part 3"),
+          createNoteCard("Pronunciation is clarity first", [
+            "You do not need a British or American accent to score well.",
+            "Clear word stress, clear endings, and natural pacing matter more than accent imitation.",
+            "Slow down slightly if clarity drops when you speak quickly."
+          ], "Pronunciation"),
+          createNoteCard("Lexical resource without overreaching", [
+            "Use vocabulary you truly control instead of forcing rare words.",
+            "Paraphrase naturally when a perfect word does not come immediately.",
+            "Flexible everyday language often sounds stronger than memorised 'high-band' phrases."
+          ], "Vocabulary"),
+          createNoteCard("Recover smoothly when you get stuck", [
+            "If you freeze, use a bridge like 'let me think for a second' or 'what I mean is'.",
+            "Then restart with a simpler version of the same idea.",
+            "A calm recovery usually sounds better than a long silence."
+          ], "Recovery"),
+          createNoteCard("Final speaking checklist", [
+            "Answer the question directly, then extend once.",
+            "Keep a steady pace and make sure your words stay clear.",
+            "Sound natural, engaged, and willing to communicate, not memorised."
+          ], "Review"),
         ]));
         addSection("speaking-samples", "Sample answers", "Use sample structures as models for pacing and development, not scripts to memorize.", () => renderStaticTips([
           createNoteCard("Short sample structure", ["Answer directly.", "Add one concrete detail.", "Finish with a feeling or conclusion."], "Part 1"),

@@ -270,6 +270,100 @@
     }
   }
 
+  function toHeadlineCase(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/\b\w/g, (match) => match.toUpperCase())
+      .trim();
+  }
+
+  function normalizeWritingTopic(value, fallback) {
+    const cleaned = String(value || "")
+      .replace(/^the\s+/i, "")
+      .replace(/\s+/g, " ")
+      .replace(/[.]+$/g, "")
+      .trim();
+    return cleaned ? toHeadlineCase(cleaned) : fallback;
+  }
+
+  function inferTask1ChartType(promptText) {
+    const raw = String(promptText || "").toLowerCase();
+    const hits = [];
+    if (/\bbar charts?\b|\bbar graphs?\b/.test(raw)) hits.push("Bar chart");
+    if (/\bpie charts?\b/.test(raw)) hits.push("Pie chart");
+    if (/\bline graphs?\b|\bline charts?\b/.test(raw)) hits.push("Line graph");
+    if (/\btables?\b/.test(raw)) hits.push("Table");
+    if (/\bmaps?\b/.test(raw)) hits.push("Map");
+    if (/\bprocess\b|\bflow charts?\b|\bdiagram\b/.test(raw)) hits.push("Process diagram");
+    if (hits.length > 1) return "Mixed chart";
+    if (hits.length === 1) return hits[0];
+    if (/\bgraphs?\b|\bcharts?\b/.test(raw)) return "Chart";
+    return "Task 1 report";
+  }
+
+  function inferTask1Topic(promptText) {
+    const text = String(promptText || "").replace(/\s+/g, " ").trim();
+    const patterns = [
+      /(?:give information|provides information|show|shows|compare|compares|illustrate|illustrates)\s+about\s+(.+?)(?:,|\s+between\b|\s+for\b|\.)/i,
+      /(?:give information|provides information|show|shows|compare|compares|illustrate|illustrates)\s+the\s+(.+?)(?:,|\s+between\b|\s+for\b|\.)/i,
+      /(?:distribution|proportion)\s+of\s+(.+?)(?:,|\s+between\b|\s+for\b|\.)/i,
+    ];
+    for (let i = 0; i < patterns.length; i += 1) {
+      const match = text.match(patterns[i]);
+      if (match && match[1]) return normalizeWritingTopic(match[1], "Writing Task 1 prompt");
+    }
+    const firstSentence = text.split(/[.?!]/)[0] || "";
+    return normalizeWritingTopic(firstSentence, "Writing Task 1 prompt");
+  }
+
+  function inferTask2EssayType(promptText) {
+    const raw = String(promptText || "").toLowerCase();
+    if (/discuss both views/i.test(raw)) return "Discussion essay";
+    if (/agree or disagree|to what extent/i.test(raw)) return "Opinion essay";
+    if (/advantages.*disadvantages|outweigh/i.test(raw)) return "Advantages and disadvantages";
+    if (/positive or negative development/i.test(raw)) return "Positive or negative development";
+    if (/problem[s]?.*solution|cause[s]?.*solution/i.test(raw)) return "Problem and solution";
+    const questionMarks = (raw.match(/\?/g) || []).length;
+    if (questionMarks > 1) return "Two-part question";
+    return "Essay";
+  }
+
+  function inferTask2Topic(promptText) {
+    const text = String(promptText || "").replace(/\s+/g, " ").trim();
+    const firstSentence = text.split(/[.?!]/)[0] || "";
+    const lowered = firstSentence.toLowerCase();
+    const judgedMatch = firstSentence.match(/judged according to\s+(.+)$/i);
+    if (judgedMatch && judgedMatch[1]) return normalizeWritingTopic(judgedMatch[1], "Writing Task 2 topic");
+    if (/private information/.test(lowered)) return "Private information online";
+    if (/children'?s behavior/.test(lowered)) return "Children's behavior";
+    const cleaned = firstSentence
+      .replace(/^some\s+(people|parents|teachers)\s+(think|believe)\s+that\s+/i, "")
+      .replace(/^today\s+/i, "")
+      .replace(/^nowadays\s+/i, "")
+      .replace(/^more people\s+/i, "")
+      .trim();
+    return normalizeWritingTopic(cleaned, "Writing Task 2 topic");
+  }
+
+  function normalizeWritingSamples(sampleValue, taskLabel) {
+    const rawItems = Array.isArray(sampleValue)
+      ? sampleValue
+      : (sampleValue && typeof sampleValue === "object" ? [sampleValue] : []);
+    const items = rawItems.length ? rawItems : [{}];
+    return items.map((sample, index) => {
+      const band = String(sample.bandScore || "Coming soon");
+      return {
+        id: `${taskLabel.toLowerCase().replace(/\s+/g, "-")}-sample-${index + 1}`,
+        label: String(sample.label || `${band} sample ${index + 1}`),
+        bandScore: band,
+        explanation: String(sample.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded."),
+        sampleAnswer: String(sample.sampleAnswer || "Sample answer coming soon."),
+        correctedForm: String(sample.correctedForm || "Corrected form coming soon."),
+        hasSample: Boolean(sample.sampleAnswer && sample.correctedForm && sample.bandScore),
+      };
+    });
+  }
+
   function getStructuredReadingParts(testId) {
     const reading = getTestConfig(testId)?.content?.reading;
     return Array.isArray(reading?.parts) ? reading.parts : [];
@@ -392,21 +486,34 @@
         return ["task1", "task2"].map((taskKey) => {
           const taskLabel = taskKey === "task1" ? "Task 1" : "Task 2";
           const promptHtml = writing[`${taskKey}Html`] || "";
-          const sample = samples[taskKey] || {};
+          const promptText = stripHtmlToText(promptHtml);
+          const groupType = taskKey === "task1"
+            ? inferTask1ChartType(promptText)
+            : inferTask2EssayType(promptText);
+          const topic = taskKey === "task1"
+            ? inferTask1Topic(promptText)
+            : inferTask2Topic(promptText);
+          const sampleItems = normalizeWritingSamples(samples[taskKey], taskLabel);
           return {
             id: `${cfg.id}-${taskKey}`,
             testId: cfg.id,
             taskKey,
             taskLabel,
-            title: `${getTestLabel(cfg.id)} · ${taskLabel}`,
+            title: `${groupType} - ${topic}`,
+            shortTitle: `${groupType} - ${topic}`,
+            sourceTitle: `${getTestLabel(cfg.id)} · ${taskLabel}`,
+            groupType,
+            topic,
             promptHtml,
-            promptText: stripHtmlToText(promptHtml),
+            promptText,
             imageSrc: taskKey === "task1" ? (writing.task1ImageSrc || "") : "",
-            bandScore: String(sample.bandScore || "Coming soon"),
-            explanation: String(sample.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded."),
-            sampleAnswer: String(sample.sampleAnswer || "Sample answer coming soon."),
-            correctedForm: String(sample.correctedForm || "Corrected form coming soon."),
-            hasSample: Boolean(sample.sampleAnswer && sample.correctedForm && sample.bandScore),
+            sampleCount: sampleItems.length,
+            samples: sampleItems,
+            bandScore: sampleItems[0]?.bandScore || "Coming soon",
+            explanation: sampleItems[0]?.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded.",
+            sampleAnswer: sampleItems[0]?.sampleAnswer || "Sample answer coming soon.",
+            correctedForm: sampleItems[0]?.correctedForm || "Corrected form coming soon.",
+            hasSample: sampleItems.some((item) => item.hasSample),
           };
         });
       });

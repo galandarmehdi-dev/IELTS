@@ -1246,10 +1246,62 @@
           });
           return grid;
         });
-        addSection("reading-tips", "Reading tips", "Keep a small bank of reminders students can return to before practice.", () => renderStaticTips([
-          createNoteCard("Skim with intent", ["Read the title, first lines, and topic shifts before diving into every detail."], "Tip 1"),
-          createNoteCard("Prove every answer", ["For TFNG and headings, force yourself to point to the exact evidence before locking in the answer."], "Tip 2"),
-          createNoteCard("Time by passage", ["Do not spend too long on one question cluster. Move on and come back if needed."], "Tip 3"),
+        addSection("reading-tips", "Reading tips", "General reading strategy and task-by-task guidance students can return to before practice.", () => renderStaticTips([
+          createNoteCard("Start with the passage map", [
+            "Read the title, intro, and first line of each paragraph before attacking the questions.",
+            "Mark topic shifts, names, dates, and repeated keywords so the passage becomes easier to scan later.",
+            "Do not try to understand every word on the first pass; build orientation first."
+          ], "General"),
+          createNoteCard("Manage time by section, not by panic", [
+            "Keep moving if one question cluster is taking too long; come back after easier marks are secured.",
+            "Leave a short buffer at the end to transfer or recheck uncertain answers.",
+            "Use the earlier passages efficiently so Passage 3 still gets enough attention."
+          ], "Timing"),
+          createNoteCard("Hunt synonyms, not only exact words", [
+            "IELTS often paraphrases the question using synonyms, opposites, or slightly different grammar.",
+            "Underline the key idea in the question, then think of two or three alternative ways that idea might appear.",
+            "If the exact words are missing, that does not mean the answer is missing."
+          ], "General"),
+          createNoteCard("True / False / Not Given", [
+            "Turn the statement into a yes/no question, then check whether the passage clearly supports it, contradicts it, or stays silent.",
+            "FALSE means the text says the opposite, while NOT GIVEN means the text does not give enough information.",
+            "Base the answer on the passage only, never on your own knowledge."
+          ], "TFNG"),
+          createNoteCard("Matching Headings", [
+            "Focus on the main idea of the whole paragraph, not a striking detail from one sentence.",
+            "Read the heading list quickly, then summarise each paragraph in a few words before matching.",
+            "If two headings both look possible, ask which one covers the paragraph as a whole."
+          ], "Headings"),
+          createNoteCard("Sentence / Summary Completion", [
+            "Predict the missing word type first: noun, verb, adjective, number, or name.",
+            "Check the word limit carefully before writing anything down.",
+            "Make sure the completed sentence is grammatically correct as well as factually correct."
+          ], "Completion"),
+          createNoteCard("Short Answer", [
+            "Find the relevant part of the text first, then lift only the exact words needed for the answer.",
+            "Use the wording from the passage where possible instead of rewriting it in your own style.",
+            "Keep checking the word limit because many correct ideas still become wrong answers if they are too long."
+          ], "Short Answer"),
+          createNoteCard("Matching Endings / Matching Information", [
+            "Read the stem first and identify the core meaning before you look at the endings or options.",
+            "Eliminate endings that repeat vocabulary but break the meaning when joined to the stem.",
+            "For matching-information tasks, remember that the order is often not the same as the passage order."
+          ], "Matching"),
+          createNoteCard("Multiple Choice", [
+            "Read the question stem before the options so you know what evidence you are hunting for.",
+            "Expect distractors: one option may use familiar words but miss the writer's real point.",
+            "Eliminate aggressively and confirm the surviving answer with exact evidence from the passage."
+          ], "Multiple Choice"),
+          createNoteCard("Summary Selection", [
+            "Read the full summary first so you understand its overall meaning before choosing a word or option.",
+            "Check grammar and meaning together; a word can look related to the passage but still not fit the sentence.",
+            "If options are provided, compare them against the exact sentence in the text instead of relying on memory."
+          ], "Summary"),
+          createNoteCard("Final reading checklist", [
+            "Check every answer against the question instructions and word limits.",
+            "Revisit headings, TFNG, and multiple choice carefully because these are common trap areas.",
+            "If you cannot prove an answer from the passage, it probably needs another look."
+          ], "Review"),
         ]));
       }
 

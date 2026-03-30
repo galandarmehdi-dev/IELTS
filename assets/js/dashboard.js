@@ -104,6 +104,7 @@
     } catch (e) {}
     renderProfile();
     renderSummary();
+    renderAnalytics();
     renderGoals();
     if (shouldSync) {
       setStatus("Saving to your student profile...");
@@ -151,6 +152,44 @@
       .filter((value) => Number.isFinite(value) && value > 0);
     if (!nums.length) return 0;
     return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+  }
+
+  function round1(value) {
+    return Math.round(Number(value || 0) * 10) / 10;
+  }
+
+  function scoreSeries(rows, key) {
+    return (rows || [])
+      .slice()
+      .reverse()
+      .map((row, index) => ({
+        x: index,
+        label: examLabel(row),
+        value: round1(row?.[key]),
+      }))
+      .filter((point) => Number.isFinite(point.value) && point.value > 0);
+  }
+
+  function skillAverages(rows) {
+    return [
+      { label: "Listening", value: averageNumber(rows, "listening_band") },
+      { label: "Reading", value: averageNumber(rows, "reading_band") },
+      { label: "Writing", value: averageNumber(rows, "final_writing_band") },
+    ].filter((item) => item.value > 0);
+  }
+
+  function buildLinePath(points, width, height, minY, maxY, padding) {
+    if (!points.length) return "";
+    const usableWidth = width - padding.left - padding.right;
+    const usableHeight = height - padding.top - padding.bottom;
+    const denomX = Math.max(1, points.length - 1);
+    const denomY = Math.max(0.1, maxY - minY);
+
+    return points.map((point, index) => {
+      const x = padding.left + (usableWidth * (index / denomX));
+      const y = padding.top + usableHeight - (((point.value - minY) / denomY) * usableHeight);
+      return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+    }).join(" ");
   }
 
   function computeStreak(rows) {
@@ -352,6 +391,122 @@
     recommendation.textContent = `Recommendation: continue with ${nextTest}, keep your ${focus} focus active, and compare against your latest writing total of ${latestWords} words.`;
   }
 
+  function renderAnalytics() {
+    const rows = state.rows;
+    const listening = scoreSeries(rows, "listening_band");
+    const reading = scoreSeries(rows, "reading_band");
+    const writing = scoreSeries(rows, "final_writing_band");
+    const hasTrend = [listening, reading, writing].some((series) => series.length >= 2);
+    const width = 520;
+    const height = 240;
+    const padding = { top: 20, right: 18, bottom: 32, left: 28 };
+    const grid = $("dashboardTrendGrid");
+    const axis = $("dashboardTrendAxis");
+    const pointsRoot = $("dashboardTrendPoints");
+    const empty = $("dashboardTrendEmpty");
+    const averages = skillAverages(rows).sort((a, b) => b.value - a.value);
+    const strongest = averages[0] || null;
+    const weakest = averages[averages.length - 1] || null;
+    const maxAverage = strongest?.value || 0;
+    const minAverage = weakest?.value || 0;
+    const spread = maxAverage && minAverage ? round1(maxAverage - minAverage) : 0;
+    const listeningLatest = listening[listening.length - 1]?.value || 0;
+    const readingLatest = reading[reading.length - 1]?.value || 0;
+    const writingLatest = writing[writing.length - 1]?.value || 0;
+    const currentBest = Math.max(listeningLatest, readingLatest, writingLatest);
+    const targetBand = Number(state.settings.targetBand || 0);
+    const targetGap = targetBand > 0 && currentBest > 0 ? round1(targetBand - currentBest) : 0;
+
+    setText("dashboardInsightStrongest", strongest ? `${strongest.label} · Band ${strongest.value.toFixed(1)}` : "Build your baseline");
+    setText(
+      "dashboardInsightStrongestDetail",
+      strongest ? `${strongest.label} is currently your strongest scoring section.` : "Finish a scored mock to see your strongest section here."
+    );
+    setText("dashboardInsightWeakest", weakest ? `${weakest.label} · Band ${weakest.value.toFixed(1)}` : "No gaps yet");
+    setText(
+      "dashboardInsightWeakestDetail",
+      weakest ? `Focus extra review on ${weakest.label.toLowerCase()} to lift your overall balance.` : "Your dashboard will surface the section that needs the most attention."
+    );
+    setText("dashboardInsightConsistency", spread ? `${spread.toFixed(1)} band spread` : "Steady practice starts here");
+    setText(
+      "dashboardInsightConsistencyDetail",
+      spread ? `The gap between your strongest and weakest sections is ${spread.toFixed(1)} band.` : "Your score spread will narrow as you practice more consistently."
+    );
+    setText("dashboardInsightMomentum", targetGap > 0 ? `${targetGap.toFixed(1)} band to target` : rows.length ? "Keep the momentum going" : "Start your next mock");
+    setText(
+      "dashboardInsightMomentumDetail",
+      targetGap > 0 ? `Your highest recent section is ${currentBest.toFixed(1)}. Another focused attempt can close the gap.` : rows.length ? "Your dashboard has enough data now to guide your next study decision." : "The next completed test will sharpen your progress signal."
+    );
+
+    const title = $("dashboardTrendTitle");
+    const meta = $("dashboardTrendMeta");
+    if (title) {
+      title.textContent = hasTrend
+        ? "Your latest progress is starting to take shape."
+        : "Your progress line will appear after more completed mocks.";
+    }
+    if (meta) {
+      meta.textContent = hasTrend
+        ? `Recent scored mocks are now drawing a live trend across Listening, Reading, and Writing.`
+        : "Listening, Reading, and Writing trends update as your history grows.";
+    }
+
+    if (!grid || !axis || !pointsRoot || !empty) return;
+
+    if (!hasTrend) {
+      empty.classList.remove("hidden");
+      grid.innerHTML = "";
+      axis.innerHTML = "";
+      pointsRoot.innerHTML = "";
+      $("dashboardTrendListening").setAttribute("d", "");
+      $("dashboardTrendReading").setAttribute("d", "");
+      $("dashboardTrendWriting").setAttribute("d", "");
+      return;
+    }
+
+    empty.classList.add("hidden");
+
+    const allPoints = listening.concat(reading, writing);
+    const minY = Math.max(0, Math.floor((Math.min.apply(null, allPoints.map((point) => point.value)) - 0.5) * 2) / 2);
+    const maxY = Math.min(9, Math.ceil((Math.max.apply(null, allPoints.map((point) => point.value)) + 0.5) * 2) / 2);
+    const chartLevels = [minY, minY + ((maxY - minY) / 2), maxY].map((value) => round1(value));
+    const usableHeight = height - padding.top - padding.bottom;
+    const usableWidth = width - padding.left - padding.right;
+
+    grid.innerHTML = chartLevels.map((value) => {
+      const y = padding.top + usableHeight - (((value - minY) / Math.max(0.1, maxY - minY)) * usableHeight);
+      return `<line class="dashboard-chart-grid-line" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${width - padding.right}" y2="${y.toFixed(2)}"></line>`;
+    }).join("");
+
+    const referenceSeries = [listening, reading, writing].sort((a, b) => b.length - a.length)[0];
+    axis.innerHTML = chartLevels.map((value) => {
+      const y = padding.top + usableHeight - (((value - minY) / Math.max(0.1, maxY - minY)) * usableHeight);
+      return `<text class="dashboard-chart-axis-label" x="2" y="${(y + 4).toFixed(2)}">${value.toFixed(1)}</text>`;
+    }).join("") + referenceSeries.map((point, index) => {
+      const x = padding.left + (usableWidth * (index / Math.max(1, referenceSeries.length - 1)));
+      return `<text class="dashboard-chart-axis-label" x="${x.toFixed(2)}" y="${height - 6}" text-anchor="${index === 0 ? "start" : index === referenceSeries.length - 1 ? "end" : "middle"}">${index + 1}</text>`;
+    }).join("");
+
+    $("dashboardTrendListening").setAttribute("d", buildLinePath(listening, width, height, minY, maxY, padding));
+    $("dashboardTrendReading").setAttribute("d", buildLinePath(reading, width, height, minY, maxY, padding));
+    $("dashboardTrendWriting").setAttribute("d", buildLinePath(writing, width, height, minY, maxY, padding));
+
+    const pointMarkup = [
+      ["is-listening", listening],
+      ["is-reading", reading],
+      ["is-writing", writing],
+    ].map(([klass, series]) => {
+      const denomX = Math.max(1, series.length - 1);
+      const denomY = Math.max(0.1, maxY - minY);
+      return series.map((point, index) => {
+        const x = padding.left + (usableWidth * (index / denomX));
+        const y = padding.top + usableHeight - (((point.value - minY) / denomY) * usableHeight);
+        return `<circle class="dashboard-chart-point ${klass}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="5"></circle>`;
+      }).join("");
+    }).join("");
+    pointsRoot.innerHTML = pointMarkup;
+  }
+
   function renderGoals() {
     const rows = state.rows;
     const latest = rows[0];
@@ -513,6 +668,7 @@
 
     renderProfile();
     renderSummary();
+    renderAnalytics();
     renderGoals();
     renderActivity();
     setActiveTab(state.activeTab || "overview");

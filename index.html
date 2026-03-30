@@ -442,6 +442,58 @@
               </div>
             </div>
 
+            <div class="dashboard-analytics-grid">
+              <div class="dashboard-chart-card">
+                <div class="dashboard-card-topline">Score trend</div>
+                <div class="dashboard-chart-header">
+                  <strong id="dashboardTrendTitle">Your progress line will appear after more completed mocks.</strong>
+                  <span id="dashboardTrendMeta">Listening, Reading, and Writing trends update as your history grows.</span>
+                </div>
+                <div class="dashboard-chart-surface">
+                  <svg id="dashboardTrendChart" class="dashboard-trend-chart" viewBox="0 0 520 240" role="img" aria-label="Score trend chart">
+                    <g id="dashboardTrendGrid"></g>
+                    <g id="dashboardTrendAxis"></g>
+                    <path id="dashboardTrendListening" class="dashboard-trend-line is-listening" d=""></path>
+                    <path id="dashboardTrendReading" class="dashboard-trend-line is-reading" d=""></path>
+                    <path id="dashboardTrendWriting" class="dashboard-trend-line is-writing" d=""></path>
+                    <g id="dashboardTrendPoints"></g>
+                  </svg>
+                  <div class="dashboard-chart-empty hidden" id="dashboardTrendEmpty">Complete at least two scored mocks to unlock a meaningful trend line.</div>
+                </div>
+                <div class="dashboard-chart-legend" aria-label="Chart legend">
+                  <span><i class="dashboard-legend-swatch is-listening"></i>Listening</span>
+                  <span><i class="dashboard-legend-swatch is-reading"></i>Reading</span>
+                  <span><i class="dashboard-legend-swatch is-writing"></i>Writing</span>
+                </div>
+              </div>
+
+              <div class="dashboard-insights-card">
+                <div class="dashboard-card-topline">Performance insights</div>
+                <div class="dashboard-insights-grid">
+                  <div class="dashboard-insight-tile">
+                    <span class="dashboard-goal-label">Strongest skill</span>
+                    <strong id="dashboardInsightStrongest">Build your baseline</strong>
+                    <small id="dashboardInsightStrongestDetail">Finish a scored mock to see your strongest section here.</small>
+                  </div>
+                  <div class="dashboard-insight-tile">
+                    <span class="dashboard-goal-label">Weakest skill</span>
+                    <strong id="dashboardInsightWeakest">No gaps yet</strong>
+                    <small id="dashboardInsightWeakestDetail">Your dashboard will surface the section that needs the most attention.</small>
+                  </div>
+                  <div class="dashboard-insight-tile">
+                    <span class="dashboard-goal-label">Consistency</span>
+                    <strong id="dashboardInsightConsistency">Steady practice starts here</strong>
+                    <small id="dashboardInsightConsistencyDetail">Your score spread will narrow as you practice more consistently.</small>
+                  </div>
+                  <div class="dashboard-insight-tile">
+                    <span class="dashboard-goal-label">Momentum</span>
+                    <strong id="dashboardInsightMomentum">Start your next mock</strong>
+                    <small id="dashboardInsightMomentumDetail">The next completed test will sharpen your progress signal.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="dashboard-goals-card">
               <div class="dashboard-card-topline">Progress at a glance</div>
               <div class="dashboard-goals-grid">

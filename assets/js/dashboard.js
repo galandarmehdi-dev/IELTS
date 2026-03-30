@@ -13,7 +13,10 @@
   const Speaking = () => window.IELTS?.Speaking;
 
   const DEFAULT_SETTINGS = {
+    username: "",
     preferredName: "",
+    headline: "",
+    avatarUrl: "",
     targetBand: "",
     focusSkill: "",
     preferredTest: "ielts1",
@@ -27,6 +30,7 @@
     rows: [],
     settings: { ...DEFAULT_SETTINGS },
     activeTab: "overview",
+    syncTimer: null,
   };
 
   function getUser() {
@@ -38,24 +42,75 @@
     return `IELTS:DASHBOARD:${user?.id || "guest"}:settings`;
   }
 
+  function getRemoteSettings() {
+    const user = getUser();
+    return { ...DEFAULT_SETTINGS, ...(user?.profile || {}) };
+  }
+
   function readSettings() {
     try {
       const raw = JSON.parse(localStorage.getItem(getSettingsKey()) || "null") || {};
-      return { ...DEFAULT_SETTINGS, ...raw };
+      return { ...DEFAULT_SETTINGS, ...raw, ...getRemoteSettings() };
     } catch (e) {
-      return { ...DEFAULT_SETTINGS };
+      return getRemoteSettings();
     }
   }
 
-  function saveSettings(next) {
+  function setStatus(text) {
+    const status = $("dashboardSettingsStatus");
+    if (status) status.textContent = text || "";
+  }
+
+  function toMetadataPatch(settings) {
+    return {
+      username: String(settings.username || "").trim(),
+      preferred_name: String(settings.preferredName || "").trim(),
+      profile_headline: String(settings.headline || "").trim(),
+      profile_bio: String(settings.bio || "").trim(),
+      profile_avatar_url: String(settings.avatarUrl || "").trim(),
+      target_band: String(settings.targetBand || "").trim(),
+      focus_skill: String(settings.focusSkill || "").trim(),
+      preferred_test: String(settings.preferredTest || "").trim(),
+      daily_goal: String(settings.dailyGoal || "").trim(),
+      study_note: String(settings.studyNote || "").trim(),
+      font_scale: String(settings.fontScale || "").trim(),
+    };
+  }
+
+  async function syncSettingsToProfile(nextSettings) {
+    if (typeof Auth()?.updateProfileMetadata !== "function") return;
+    try {
+      setStatus("Saving to your student profile...");
+      await Auth().updateProfileMetadata(toMetadataPatch(nextSettings));
+      setStatus("Saved to your student profile across devices.");
+    } catch (e) {
+      console.error("Dashboard profile sync failed:", e);
+      setStatus("Saved on this device, but profile sync did not finish.");
+    }
+  }
+
+  function queueProfileSync(nextSettings) {
+    if (state.syncTimer) clearTimeout(state.syncTimer);
+    state.syncTimer = setTimeout(() => {
+      syncSettingsToProfile(nextSettings);
+    }, 450);
+  }
+
+  function saveSettings(next, options) {
+    const shouldSync = options?.sync !== false;
     state.settings = { ...DEFAULT_SETTINGS, ...next };
     try {
       localStorage.setItem(getSettingsKey(), JSON.stringify(state.settings));
     } catch (e) {}
     renderProfile();
     renderSummary();
-    const status = $("dashboardSettingsStatus");
-    if (status) status.textContent = "Settings saved for this student account.";
+    renderGoals();
+    if (shouldSync) {
+      setStatus("Saving to your student profile...");
+      queueProfileSync(state.settings);
+    } else {
+      setStatus("Settings loaded from your student profile.");
+    }
   }
 
   function initialsFor(name, email) {
@@ -152,11 +207,14 @@
     const user = getUser();
     const avatar = $("dashboardAvatar");
     const homeAvatar = $("homeAccountAvatar");
+    const username = String(state.settings.username || "").trim().replace(/^@+/, "");
     const preferredName = String(state.settings.preferredName || "").trim();
+    const headline = String(state.settings.headline || "").trim();
     const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
     const focusSkill = String(state.settings.focusSkill || "").trim();
     const targetBand = String(state.settings.targetBand || "").trim();
     const provider = String(user?.provider || "email").trim();
+    const avatarUrl = String(state.settings.avatarUrl || user?.avatarUrl || "").trim();
     const providerLabel = provider === "google"
       ? "Google account"
       : provider === "azure"
@@ -166,9 +224,13 @@
           : "Secure account";
 
     if ($("dashboardName")) $("dashboardName").textContent = displayName;
+    setText("dashboardUsernameDisplay", username ? `@${username}` : `@${displayName.toLowerCase().replace(/[^a-z0-9]+/g, "") || "student"}`);
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
+    setText("dashboardHeadline", headline || "Focused on steady IELTS progress.");
     setText("homeAccountName", displayName);
+    setText("homeAccountLabel", username ? `@${username}` : "Profile");
+    $("homeAccountLabel")?.classList?.toggle("is-username", !!username);
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
     if ($("dashboardIdentityName")) $("dashboardIdentityName").textContent = displayName;
     if ($("dashboardIdentityFocus")) {
@@ -185,8 +247,8 @@
       $("dashboardWelcomeCopy").textContent = `Use your dashboard to keep your study preferences, track progress, and jump into the right next practice mode.${target}`;
     }
 
-    setAvatar(avatar, displayName, user?.email, user?.avatarUrl);
-    setAvatar(homeAvatar, displayName, user?.email, user?.avatarUrl);
+    setAvatar(avatar, displayName, user?.email, avatarUrl);
+    setAvatar(homeAvatar, displayName, user?.email, avatarUrl);
 
     if ($("dashboardMemberSince")) $("dashboardMemberSince").textContent = `Member since ${formatDate(user?.createdAt)}`;
     const latestActivity = state.rows[0]?.submitted_at || user?.lastSignInAt || "";
@@ -196,7 +258,10 @@
   function renderSettings() {
     const settings = state.settings;
     const pairs = [
+      ["dashboardUsernameInput", settings.username],
       ["dashboardPreferredName", settings.preferredName],
+      ["dashboardHeadlineInput", settings.headline],
+      ["dashboardAvatarUrl", settings.avatarUrl],
       ["dashboardTargetBand", settings.targetBand],
       ["dashboardFocusSkill", settings.focusSkill],
       ["dashboardPreferredTest", settings.preferredTest],
@@ -310,7 +375,10 @@
 
   function bindSettings() {
     const mappings = {
+      dashboardUsernameInput: "username",
       dashboardPreferredName: "preferredName",
+      dashboardHeadlineInput: "headline",
+      dashboardAvatarUrl: "avatarUrl",
       dashboardTargetBand: "targetBand",
       dashboardFocusSkill: "focusSkill",
       dashboardPreferredTest: "preferredTest",
@@ -378,7 +446,7 @@
     const status = $("dashboardSettingsStatus");
     if (status) status.textContent = "Loading your student dashboard...";
     await render();
-    if (status) status.textContent = "Settings save automatically for this student account.";
+    if (status) status.textContent = "Settings sync with your student profile automatically.";
   }
 
   function closeDashboard() {
@@ -448,6 +516,7 @@
       try { localStorage.setItem(getSettingsKey(), JSON.stringify(state.settings)); } catch (e) {}
       renderSettings();
       renderProfile();
+      queueProfileSync(state.settings);
     });
     renderProfile();
   }

@@ -35,6 +35,22 @@ function getSavedUser() {
   }
 }
 
+function buildProfileFromMetadata(metadata) {
+  return {
+    username: String(metadata.username || "").trim(),
+    preferredName: String(metadata.preferred_name || "").trim(),
+    headline: String(metadata.profile_headline || "").trim(),
+    bio: String(metadata.profile_bio || "").trim(),
+    targetBand: String(metadata.target_band || "").trim(),
+    focusSkill: String(metadata.focus_skill || "").trim(),
+    preferredTest: String(metadata.preferred_test || "").trim(),
+    dailyGoal: String(metadata.daily_goal || "").trim(),
+    studyNote: String(metadata.study_note || "").trim(),
+    fontScale: String(metadata.font_scale || "").trim(),
+    avatarUrl: String(metadata.profile_avatar_url || "").trim(),
+  };
+}
+
 function setMessage(text) {
   if (authMessage) authMessage.textContent = text || "";
 }
@@ -42,12 +58,15 @@ function setMessage(text) {
 function saveUser(user) {
   const metadata = user?.user_metadata || {};
   const appMetadata = user?.app_metadata || {};
+  const profile = buildProfileFromMetadata(metadata);
   const avatar =
+    profile.avatarUrl ||
     metadata.avatar_url ||
     metadata.picture ||
     metadata.photo_url ||
     "";
   const fullName =
+    profile.preferredName ||
     metadata.full_name ||
     metadata.name ||
     "";
@@ -61,7 +80,8 @@ function saveUser(user) {
         avatarUrl: avatar,
         provider: appMetadata?.provider || "",
         createdAt: user?.created_at || "",
-        lastSignInAt: user?.last_sign_in_at || ""
+        lastSignInAt: user?.last_sign_in_at || "",
+        profile
       })
     );
   } catch (e) {}
@@ -79,6 +99,7 @@ function syncAuthExport() {
     supabase,
     getSavedUser,
     getAccessToken,
+    updateProfileMetadata,
     showProtectedApp,
     refreshAuthUI,
     logout
@@ -92,6 +113,31 @@ async function getAccessToken() {
   } catch (e) {
     return null;
   }
+}
+
+async function updateProfileMetadata(patch) {
+  const nextPatch = patch && typeof patch === "object" ? patch : {};
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  const user = data?.user || null;
+  if (!user) throw new Error("You need to be signed in to update your profile.");
+
+  const metadata = { ...(user.user_metadata || {}) };
+  Object.entries(nextPatch).forEach(([key, value]) => {
+    if (value == null || value === "") delete metadata[key];
+    else metadata[key] = value;
+  });
+
+  const response = await supabase.auth.updateUser({ data: metadata });
+  if (response.error) throw response.error;
+
+  if (response.data?.user) {
+    saveUser(response.data.user);
+    syncAuthExport();
+    notifyAuthChanged();
+  }
+
+  return response.data?.user || null;
 }
 
 function notifyAuthChanged() {

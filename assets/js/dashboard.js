@@ -196,6 +196,57 @@
     }
   }
 
+  function updateAvatarControls() {
+    const hasAvatar = !!String(state.settings.avatarUrl || "").trim();
+    $("dashboardRemoveAvatarBtn")?.classList.toggle("hidden", !hasAvatar);
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Could not load that image."));
+      img.src = src;
+    });
+  }
+
+  async function toAvatarDataUrl(file) {
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const img = await loadImage(objectUrl);
+      const size = 192;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Avatar processing is not available in this browser.");
+
+      const sourceSize = Math.min(img.naturalWidth || img.width, img.naturalHeight || img.height);
+      const sx = Math.max(0, ((img.naturalWidth || img.width) - sourceSize) / 2);
+      const sy = Math.max(0, ((img.naturalHeight || img.height) - sourceSize) / 2);
+
+      ctx.drawImage(
+        img,
+        sx,
+        sy,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        size,
+        size
+      );
+
+      let dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      if (dataUrl.length > 140000) {
+        dataUrl = canvas.toDataURL("image/jpeg", 0.68);
+      }
+      return dataUrl;
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+
   async function loadRows() {
     if (typeof History()?.loadRows === "function") {
       return await History().loadRows();
@@ -249,6 +300,8 @@
 
     setAvatar(avatar, displayName, user?.email, avatarUrl);
     setAvatar(homeAvatar, displayName, user?.email, avatarUrl);
+    setAvatar($("dashboardAvatarSettingsPreview"), displayName, user?.email, avatarUrl);
+    updateAvatarControls();
 
     if ($("dashboardMemberSince")) $("dashboardMemberSince").textContent = `Member since ${formatDate(user?.createdAt)}`;
     const latestActivity = state.rows[0]?.submitted_at || user?.lastSignInAt || "";
@@ -276,6 +329,7 @@
       if (!el) return;
       el.value = value == null ? "" : String(value);
     });
+    updateAvatarControls();
   }
 
   function renderSummary() {
@@ -399,6 +453,49 @@
         if (key === "fontScale") syncFontSelectors(el.value);
       });
     });
+
+    const avatarInput = $("dashboardAvatarFileInput");
+    const uploadBtn = $("dashboardUploadAvatarBtn");
+    const removeBtn = $("dashboardRemoveAvatarBtn");
+
+    if (uploadBtn && uploadBtn.dataset.bound !== "1") {
+      uploadBtn.dataset.bound = "1";
+      uploadBtn.addEventListener("click", () => avatarInput?.click?.());
+    }
+
+    if (avatarInput && avatarInput.dataset.bound !== "1") {
+      avatarInput.dataset.bound = "1";
+      avatarInput.addEventListener("change", async () => {
+        const file = avatarInput.files && avatarInput.files[0];
+        avatarInput.value = "";
+        if (!file) return;
+        if (!/^image\//i.test(file.type || "")) {
+          setStatus("Please choose an image file for your profile picture.");
+          return;
+        }
+        if (file.size > 6 * 1024 * 1024) {
+          setStatus("Please choose an image smaller than 6 MB.");
+          return;
+        }
+        try {
+          setStatus("Preparing your profile picture...");
+          const dataUrl = await toAvatarDataUrl(file);
+          const next = { ...state.settings, avatarUrl: dataUrl };
+          saveSettings(next);
+        } catch (e) {
+          console.error("Avatar upload failed:", e);
+          setStatus(e?.message || "Could not process that image.");
+        }
+      });
+    }
+
+    if (removeBtn && removeBtn.dataset.bound !== "1") {
+      removeBtn.dataset.bound = "1";
+      removeBtn.addEventListener("click", () => {
+        const next = { ...state.settings, avatarUrl: "" };
+        saveSettings(next);
+      });
+    }
   }
 
   async function render() {

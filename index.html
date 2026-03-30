@@ -497,6 +497,20 @@
                   <span>Picture URL</span>
                   <input id="dashboardAvatarUrl" type="url" placeholder="Paste an image URL for your profile photo">
                 </label>
+                <div class="dashboard-avatar-upload" aria-label="Avatar upload tools">
+                  <div class="dashboard-avatar-upload-preview">
+                    <span class="dashboard-avatar dashboard-avatar-settings" id="dashboardAvatarSettingsPreview" aria-hidden="true">S</span>
+                    <div class="dashboard-avatar-upload-copy">
+                      <strong>Profile picture</strong>
+                      <span>Upload from your device or keep using a pasted image URL.</span>
+                    </div>
+                  </div>
+                  <div class="dashboard-avatar-upload-actions">
+                    <input id="dashboardAvatarFileInput" class="hidden" type="file" accept="image/*">
+                    <button class="btn" type="button" id="dashboardUploadAvatarBtn">Upload from device</button>
+                    <button class="btn secondary" type="button" id="dashboardRemoveAvatarBtn">Remove photo</button>
+                  </div>
+                </div>
                 <label class="dashboard-field" for="dashboardTargetBand">
                   <span>Target band</span>
                   <select id="dashboardTargetBand">

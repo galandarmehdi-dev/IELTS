@@ -915,6 +915,45 @@
   grid-template-columns:repeat(2, minmax(0,1fr));
   gap:14px;
 }
+.dashboard-avatar-upload{
+  grid-column:1 / -1;
+  display:grid;
+  gap:14px;
+  padding:18px;
+  border-radius:22px;
+  background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);
+  border:1px solid rgba(23,50,77,.08);
+  box-shadow:0 16px 34px rgba(18,26,36,.05);
+}
+.dashboard-avatar-upload-preview{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.dashboard-avatar-settings{
+  width:64px;
+  height:64px;
+  border-radius:20px;
+  flex:0 0 64px;
+  font-size:24px;
+}
+.dashboard-avatar-upload-copy{
+  display:grid;
+  gap:4px;
+}
+.dashboard-avatar-upload-copy strong{
+  color:var(--ink);
+  font-size:16px;
+}
+.dashboard-avatar-upload-copy span{
+  color:var(--muted);
+  line-height:1.55;
+}
+.dashboard-avatar-upload-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
 .dashboard-field{
   display:flex;
   flex-direction:column;
@@ -1341,6 +1380,8 @@
   .dashboard-profile-hero-details{ width:100%; }
   .dashboard-profile-prompt{ text-align:left; max-width:none; }
   .dashboard-settings-grid{ grid-template-columns:1fr; }
+  .dashboard-avatar-upload-preview{ align-items:flex-start; }
+  .dashboard-avatar-upload-actions .btn{ width:100%; }
   .workspace-banner,
   .dashboard-profile-card,
   .dashboard-settings-card,

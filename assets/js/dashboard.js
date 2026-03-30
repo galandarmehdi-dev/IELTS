@@ -361,6 +361,7 @@
     const username = String(state.settings.username || "").trim().replace(/^@+/, "");
     const preferredName = String(state.settings.preferredName || "").trim();
     const headline = String(state.settings.headline || "").trim();
+    const signedIn = !!(user && user.id);
     const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
     const focusSkill = String(state.settings.focusSkill || "").trim();
     const targetBand = String(state.settings.targetBand || "").trim();
@@ -379,9 +380,10 @@
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
     setText("dashboardHeadline", headline || "Focused on steady IELTS progress.");
-    setText("homeAccountName", displayName);
-    setText("homeAccountLabel", username ? `@${username}` : "Profile");
-    $("homeAccountLabel")?.classList?.toggle("is-username", !!username);
+    setText("homeAccountName", signedIn ? displayName : "Log In");
+    setText("homeAccountLabel", signedIn ? (username ? `@${username}` : "Student access") : "Student access");
+    $("homeAccountLabel")?.classList?.toggle("is-username", signedIn && !!username);
+    $("openDashboardBtn")?.classList?.toggle("is-login", !signedIn);
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
     if ($("dashboardIdentityName")) $("dashboardIdentityName").textContent = displayName;
     if ($("dashboardIdentityFocus")) {
@@ -399,7 +401,7 @@
     }
 
     setAvatar(avatar, displayName, user?.email, avatarUrl);
-    setAvatar(homeAvatar, displayName, user?.email, avatarUrl);
+    setAvatar(homeAvatar, signedIn ? displayName : "Log In", user?.email, avatarUrl);
     setAvatar($("dashboardAvatarSettingsPreview"), displayName, user?.email, avatarUrl);
     updateAvatarControls();
 

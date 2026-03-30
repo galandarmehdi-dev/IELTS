@@ -725,10 +725,23 @@
     const resourceHubBackBtn = $("resourceHubBackBtn");
     const resourceHubAnchorbar = $("resourceHubAnchorbar");
     const resourceHubContent = $("resourceHubContent");
+    function requireSignedIn(onOk, message) {
+      if (window.IELTS?.Auth?.isSignedIn?.()) {
+        if (typeof onOk === "function") onOk();
+        return true;
+      }
+      window.IELTS?.Auth?.openLoginGate?.(message || "Please log in to continue.");
+      return false;
+    }
+
     // Student password gate (does NOT affect admin view)
     function requireTestPassword(onOk) {
       if (isAdminView()) {
         onOk();
+        return;
+      }
+
+      if (!requireSignedIn(null, "Please log in before starting a test.")) {
         return;
       }
 
@@ -773,6 +786,7 @@
 
     function openHistoryFromMenu() {
       closeAccountMenu();
+      if (!requireSignedIn(null, "Please log in to open your history.")) return;
       try {
         if (typeof window.IELTS?.History?.openHistory === "function") {
           window.IELTS.History.openHistory();
@@ -784,6 +798,7 @@
 
     function openSpeakingFromMenu() {
       closeAccountMenu();
+      if (!requireSignedIn(null, "Please log in to open speaking practice.")) return;
       try {
         if (typeof window.IELTS?.Speaking?.initSpeakingExam === "function") {
           window.IELTS.Speaking.initSpeakingExam();
@@ -1404,12 +1419,16 @@ function startFreshExam() {
     if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (openDashboardBtn) openDashboardBtn.onclick = (e) => {
       e.preventDefault();
+      if (!window.IELTS?.Auth?.isSignedIn?.()) {
+        window.IELTS?.Auth?.openLoginGate?.("Please log in to open your dashboard.");
+        return;
+      }
       toggleAccountMenu();
     };
-    if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => window.IELTS?.Dashboard?.open?.();
+    if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => requireSignedIn(() => window.IELTS?.Dashboard?.open?.(), "Please log in to open your dashboard.");
     if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => openHistoryFromMenu();
-    if (menuDashboardProfileBtn) menuDashboardProfileBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("overview"); };
-    if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); window.IELTS?.Dashboard?.openTab?.("settings"); };
+    if (menuDashboardProfileBtn) menuDashboardProfileBtn.onclick = () => { closeAccountMenu(); requireSignedIn(() => window.IELTS?.Dashboard?.openTab?.("overview"), "Please log in to open your profile."); };
+    if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); requireSignedIn(() => window.IELTS?.Dashboard?.openTab?.("settings"), "Please log in to open your settings."); };
     if (menuHistoryBtn) menuHistoryBtn.onclick = () => openHistoryFromMenu();
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();

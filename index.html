@@ -121,7 +121,7 @@
           <button class="home-account-trigger" type="button" id="openDashboardBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="homeAccountDropdown">
             <span class="home-account-avatar" id="homeAccountAvatar" aria-hidden="true">S</span>
             <span class="home-account-copy">
-              <span class="home-account-label">Profile</span>
+              <span class="home-account-label" id="homeAccountLabel">Profile</span>
               <strong id="homeAccountName">Student</strong>
             </span>
           </button>
@@ -362,8 +362,10 @@
           <div class="dashboard-profile-hero-copy">
             <div class="dashboard-card-topline">Profile overview</div>
             <strong id="dashboardName">Student</strong>
+            <span id="dashboardUsernameDisplay">@student</span>
             <span id="dashboardEmail">Signed-in account</span>
             <span id="dashboardProvider">Secure account</span>
+            <span id="dashboardHeadline">Focused on steady IELTS progress.</span>
           </div>
 
           <div class="dashboard-profile-hero-meta">
@@ -479,9 +481,21 @@
             <div class="dashboard-settings-card">
               <div class="dashboard-card-topline">Profile settings</div>
               <div class="dashboard-settings-grid">
+                <label class="dashboard-field" for="dashboardUsernameInput">
+                  <span>Username</span>
+                  <input id="dashboardUsernameInput" type="text" placeholder="Pick a profile username">
+                </label>
                 <label class="dashboard-field" for="dashboardPreferredName">
                   <span>Preferred name</span>
                   <input id="dashboardPreferredName" type="text" placeholder="How should the dashboard address you?">
+                </label>
+                <label class="dashboard-field" for="dashboardHeadlineInput">
+                  <span>Profile headline</span>
+                  <input id="dashboardHeadlineInput" type="text" placeholder="A short line about your IELTS focus">
+                </label>
+                <label class="dashboard-field" for="dashboardAvatarUrl">
+                  <span>Picture URL</span>
+                  <input id="dashboardAvatarUrl" type="url" placeholder="Paste an image URL for your profile photo">
                 </label>
                 <label class="dashboard-field" for="dashboardTargetBand">
                   <span>Target band</span>
@@ -540,7 +554,7 @@
                 <textarea id="dashboardBioInput" rows="3" placeholder="Write a short bio about your IELTS journey, current level, or motivation."></textarea>
               </label>
               <div class="dashboard-settings-footer">
-                <div class="small" id="dashboardSettingsStatus">Settings save automatically for this student account.</div>
+                <div class="small" id="dashboardSettingsStatus">Settings sync automatically with your student profile.</div>
               </div>
             </div>
           </div>

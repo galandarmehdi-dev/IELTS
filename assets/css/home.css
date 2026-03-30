@@ -441,6 +441,9 @@
   color:var(--ink);
   font-size:15px;
 }
+.home-account-label.is-username{
+  color:var(--navy);
+}
 .home-account-dropdown{
   position:absolute;
   right:0;
@@ -797,6 +800,15 @@
   display:block;
   color:var(--muted);
   margin-top:6px;
+}
+#dashboardUsernameDisplay{
+  color:var(--navy);
+  font-weight:900;
+  letter-spacing:-.02em;
+}
+#dashboardHeadline{
+  max-width:60ch;
+  line-height:1.6;
 }
 .dashboard-profile-hero-meta{
   display:flex;

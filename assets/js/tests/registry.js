@@ -260,6 +260,16 @@
     }
   }
 
+  function stripHtmlToText(html) {
+    try {
+      const div = document.createElement("div");
+      div.innerHTML = String(html || "");
+      return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+    } catch (e) {
+      return String(html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    }
+  }
+
   function getStructuredReadingParts(testId) {
     const reading = getTestConfig(testId)?.content?.reading;
     return Array.isArray(reading?.parts) ? reading.parts : [];
@@ -373,6 +383,35 @@
     };
   }
 
+  function buildWritingSampleCatalog() {
+    return Object.values(TESTS.byId)
+      .filter((cfg) => cfg?.content?.writing)
+      .flatMap((cfg) => {
+        const writing = cfg.content.writing || {};
+        const samples = writing.sampleAnswers || {};
+        return ["task1", "task2"].map((taskKey) => {
+          const taskLabel = taskKey === "task1" ? "Task 1" : "Task 2";
+          const promptHtml = writing[`${taskKey}Html`] || "";
+          const sample = samples[taskKey] || {};
+          return {
+            id: `${cfg.id}-${taskKey}`,
+            testId: cfg.id,
+            taskKey,
+            taskLabel,
+            title: `${getTestLabel(cfg.id)} · ${taskLabel}`,
+            promptHtml,
+            promptText: stripHtmlToText(promptHtml),
+            imageSrc: taskKey === "task1" ? (writing.task1ImageSrc || "") : "",
+            bandScore: String(sample.bandScore || "Coming soon"),
+            explanation: String(sample.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded."),
+            sampleAnswer: String(sample.sampleAnswer || "Sample answer coming soon."),
+            correctedForm: String(sample.correctedForm || "Corrected form coming soon."),
+            hasSample: Boolean(sample.sampleAnswer && sample.correctedForm && sample.bandScore),
+          };
+        });
+      });
+  }
+
   function buildHomeCatalog() {
     return {
       fullExams: buildFullExamCatalog(),
@@ -385,6 +424,7 @@
       practice: {
         reading: buildReadingPracticeCatalog(),
       },
+      writingSamples: buildWritingSampleCatalog(),
     };
   }
 
@@ -428,6 +468,7 @@
     SECTION_META,
     READING_TASK_TYPES,
     buildHomeCatalog,
+    buildWritingSampleCatalog,
     buildReadingPracticeContent,
     buildAdminApiUrl,
   };

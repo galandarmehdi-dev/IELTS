@@ -377,7 +377,49 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     R.TESTS.byId.ielts1.content.writing = {
       task1Html: "You should spend about 20 minutes on this task.<br/>\n            The graphs below give information about computer ownership as a percentage of the population between 2002 and 2010,\n            and by level of education for the years 2002 and 2010.<br/>\n            Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/>\n<b>Write at least 150 words.</b>",
       task1ImageSrc: "https://static.wixstatic.com/media/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg/v1/fill/w_568,h_650,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg",
-      task2Html: "You should spend about 40 minutes on this task.<br/><br/>\n            A person\u2019s worth nowadays seems to be judged according to social status and material possessions.\n            Old-fashioned values, such as honour, kindness and trust, no longer seem important.<br/>\n<b>To what extent do you agree or disagree with this opinion?</b><br/>\n            Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br/>\n<b>Write at least 250 words.</b>"
+      task2Html: "You should spend about 40 minutes on this task.<br/><br/>\n            A person\u2019s worth nowadays seems to be judged according to social status and material possessions.\n            Old-fashioned values, such as honour, kindness and trust, no longer seem important.<br/>\n<b>To what extent do you agree or disagree with this opinion?</b><br/>\n            Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br/>\n<b>Write at least 250 words.</b>",
+      sampleAnswers: {
+        task1: {
+          bandScore: "Band 7.0",
+          explanation: "This model gives a clear overview, highlights the main trends, and makes useful comparisons between education groups. It reaches Band 7 because the organization is strong and the language is mostly accurate, although the data commentary could be even more selective and precise.",
+          sampleAnswer: `The graphs compare computer ownership in the population as a whole between 2002 and 2010 and show how ownership varied by level of education in 2002 and 2010.
+
+Overall, computer ownership increased steadily over the period. It is also clear that people with higher levels of education were more likely to own a computer in both years, although all educational groups saw growth by 2010.
+
+In the first graph, the proportion of people who owned a computer rose from just over half in 2002 to around three quarters in 2010. The increase was gradual and consistent, with no decline at any point during the period.
+
+The second graph shows a clear connection between education and computer ownership. In 2002, the lowest ownership levels were among people without a high-school diploma, while postgraduates had the highest figure. By 2010, all groups had experienced growth. Ownership among the most educated groups rose to very high levels, while the least educated groups, although still lower overall, recorded some of the strongest gains. This suggests that computer access became much more widespread over time, even though educational background remained an important factor.`,
+          correctedForm: `The graphs illustrate changes in computer ownership from 2002 to 2010 and compare ownership rates across education levels in 2002 and 2010.
+
+Overall, computer ownership rose steadily throughout the period. In addition, ownership was consistently higher among better-educated people, although every educational group experienced an increase by 2010.
+
+According to the first graph, the share of the population owning a computer grew from slightly above 50% in 2002 to roughly 75% in 2010. The trend was upward across the whole period.
+
+The second graph indicates that education level had a strong impact on ownership. In 2002, people without a high-school diploma had the lowest rate, whereas postgraduates recorded the highest. By 2010, ownership had risen in all categories. The more highly educated groups remained at the top, but the lower educational groups also made noticeable progress. Overall, the data shows both expanding computer access and a continuing link between education and computer ownership.`
+        },
+        task2: {
+          bandScore: "Band 7.5",
+          explanation: "This essay presents a clear position, develops both sides sensibly, and supports the ideas with relevant reasoning. It fits the upper bands because the response is coherent and controlled, though a few arguments could be pushed slightly further for a stronger Band 8 performance.",
+          sampleAnswer: `In modern society, many people appear to be valued according to their wealth, possessions and social position, while traditional qualities such as kindness, trust and honour seem less visible. I partly agree with this statement because material success has become an obvious measure of status, although I do not believe that moral values have lost their importance.
+
+There is no doubt that modern life encourages people to judge others by external success. Social media, advertising and celebrity culture place great emphasis on income, luxury goods and lifestyle. As a result, expensive houses, fashionable brands and prestigious jobs are often seen as signs that someone is successful or important. In some cases, people form opinions about others before learning anything about their real character.
+
+However, this does not mean that old-fashioned values have disappeared. In everyday life, trust, honesty and kindness are still essential. Families depend on them, friendships are built on them, and workplaces function more effectively when people act with integrity. During difficult times, people usually value those who are reliable and supportive rather than those who simply have status or money.
+
+In my opinion, the main change is that traditional values are less visible in public life. Wealth can be displayed immediately, whereas character is revealed only through long-term behaviour. Because of this, society may seem more materialistic than it really is.
+
+In conclusion, social status and possessions have become powerful ways of judging people in the modern world, but values such as honour, kindness and trust still define a person’s true worth in the long run.`,
+          correctedForm: `Nowadays, many people seem to judge others by social status and material possessions rather than by qualities such as kindness, honour and trust. I partly agree, because visible success has become a powerful social signal, but I do not think traditional values are no longer important.
+
+On the one hand, material success is often treated as a measure of personal worth. Media and online culture regularly present wealth, influence and luxury as proof of achievement. This encourages people to admire others for what they own rather than for how they behave.
+
+On the other hand, traditional values still matter deeply in real life. Trust is essential in families and business, kindness strengthens communities, and honour shapes how people are remembered. When people face genuine difficulty, they usually depend on loyal and decent individuals rather than on those with the highest social position.
+
+I believe the real difference is one of visibility. Status can be displayed instantly, while good character becomes clear only over time. For that reason, modern society may look more superficial than it actually is.
+
+To conclude, social status and possessions have gained too much importance, but values such as trust, honour and kindness still remain the true basis of human worth.`
+        }
+      }
     };
     R.TESTS.byId.ielts1.content.reading = { legacyFactory: readingLegacyFactory };
   }

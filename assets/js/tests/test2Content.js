@@ -223,7 +223,53 @@ Summarise the information by selecting and reporting the main features, and make
       task2Html: `You should spend about 40 minutes on this task.<br><br>
 Some parents and teachers think that children's behavior should be strictly controlled. While some think that children should be free to behave.<br>
 <b>Discuss both views and give your opinion.</b><br>
-Write at least 250 words.`
+Write at least 250 words.`,
+      sampleAnswers: {
+        task1: {
+          bandScore: "Band 7.0",
+          explanation: "This report identifies the key trends clearly and compares the four materials rather than describing every point mechanically. It reaches Band 7 because the overview is effective and the language is controlled, although some data support could be slightly more specific.",
+          sampleAnswer: `The line graph shows the proportion of four materials that were recycled in one country between 1982 and 2010.
+
+Overall, paper and cardboard remained the most widely recycled material for most of the period, although its figure declined slightly at the end. By contrast, aluminium cans showed the most dramatic growth. Glass recovered after an early fall, while plastics remained by far the least recycled material throughout.
+
+Paper and cardboard started at around 65% in 1982 and rose to a peak of about 80% in the mid-1990s. After that, the figure fell gradually, finishing at roughly 70% in 2010. Glass began at approximately 50%, dropped to about 40% by 1990, and then climbed steadily to around 60% at the end of the period.
+
+Aluminium cans recorded the fastest growth. Recycling began at a very low level, at only a few percent, but rose sharply after 1990 and reached about 45% by 2010. Plastics changed the least. Despite a small increase over time, the figure stayed low and ended at under 10%.
+
+In summary, paper and cardboard dominated recycling overall, but aluminium experienced the strongest upward trend, while plastics remained comparatively insignificant.`,
+          correctedForm: `The graph illustrates the percentage of four materials that were recycled in a particular country from 1982 to 2010.
+
+Overall, paper and cardboard had the highest recycling rates during most of the period, although their figure declined slightly in the later years. Aluminium cans, in contrast, rose sharply, while plastics remained the least recycled material throughout. Glass fell at first but then recovered steadily.
+
+Paper and cardboard started at about 65% in 1982 and peaked at roughly 80% in 1994 before decreasing to around 70% by 2010. Glass began at approximately 50%, dropped to about 40% by 1990, and then increased gradually to end at around 60%.
+
+Aluminium cans showed the most significant growth. Their recycling rate was very low at the beginning, but it rose rapidly after 1990 and reached about 45% by the end of the period. Plastics, by comparison, saw only a slight increase and finished at under 10%.
+
+Overall, the graph shows strong long-term growth in aluminium and a continuing dominance of paper and cardboard, whereas plastics remained far less commonly recycled.`
+        },
+        task2: {
+          bandScore: "Band 7.5",
+          explanation: "This essay covers both views clearly and gives a balanced personal position. It reaches Band 7.5 because the ideas are logically developed and supported, though some arguments could be illustrated even more fully for a higher band.",
+          sampleAnswer: `Some people believe that children should be raised under strict control, while others argue that they should be given more freedom. This essay will discuss both perspectives before explaining why I believe children need freedom, but within reasonable boundaries.
+
+Those who support strict control argue that children are not mature enough to make sensible decisions on their own. Clear rules can protect them from danger, encourage discipline and help them understand acceptable behavior. For example, school rules and parental limits on screen time can prevent harmful habits and create a more stable environment for learning. Without guidance, some children may struggle to develop self-control.
+
+On the other hand, people who favour freedom believe that children learn best by making choices and experiencing the consequences of those choices. If every action is controlled, children may become dependent, insecure or less creative. Freedom can also help them develop confidence, independence and problem-solving skills, which are essential in adult life.
+
+In my opinion, children should not be either completely controlled or completely free. They need a structured environment, but they also need opportunities to express themselves and make age-appropriate decisions. Parents and teachers should therefore provide firm guidance while gradually increasing freedom as children become more responsible.
+
+In conclusion, strict control can protect children and teach discipline, whereas freedom helps them grow into independent individuals. A balanced approach is the most effective way to support healthy development.`,
+          correctedForm: `Some parents and teachers believe that children's behaviour should be tightly controlled, whereas others think children should have greater freedom. Both views have merit, but I believe the best approach is to combine clear limits with increasing independence.
+
+Supporters of strict control argue that children need firm guidance because they are still developing judgement and self-discipline. Rules at home and school can protect them from harm, establish boundaries and promote responsible behaviour. For instance, limits on internet use or school attendance can prevent poor habits from forming early.
+
+By contrast, those who favour freedom argue that children must learn to think and act for themselves. If adults control every decision, children may become overly dependent and less confident. Freedom allows them to make choices, learn from mistakes and build independence.
+
+In my view, neither extreme is ideal. Children need structure, but they also need room to grow. Adults should set clear rules on important matters while allowing children to make smaller decisions appropriate to their age and maturity.
+
+To conclude, strict control offers safety and discipline, while freedom encourages confidence and responsibility. A balanced combination of both is the most effective way to guide children's behaviour.`
+        }
+      }
     },
     reading: {
       parts: [

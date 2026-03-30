@@ -116,7 +116,7 @@
 
       <div class="home-top-actions">
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
-        <button class="home-btn ghost" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
+        <button class="home-btn ghost hidden" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
         <div class="home-account-menu">
           <button class="home-account-trigger" type="button" id="openDashboardBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="homeAccountDropdown">
             <span class="home-account-avatar" id="homeAccountAvatar" aria-hidden="true">S</span>
@@ -312,6 +312,15 @@
   </header>
 
   <main class="home-main" id="homeHowItWorks">
+    <section class="home-nav-shell" aria-label="Exam navigation">
+      <div class="home-section-head">
+        <div class="home-card-topline">Explore by skill</div>
+        <h2 class="home-section-title">Choose the path you want, then open the dedicated page for that skill</h2>
+        <p class="home-section-copy">The homepage stays clean. Use the dropdowns below to jump into full exams, skill-only pages, task practice, tips, sample answers, and section-level resources.</p>
+      </div>
+      <div class="home-explore-menus" id="homeExploreMenus"></div>
+    </section>
+
     <div class="home-grid compact-grid">
       <div class="home-info">
         <div class="home-info-h">Real exam order</div>
@@ -328,60 +337,6 @@
         <div class="home-info-p">Reading question types are grouped automatically into focused practice buckets.</div>
       </div>
     </div>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Full exam</div>
-        <h2 class="home-section-title">Take the complete IELTS mock first</h2>
-        <p class="home-section-copy">Each uploaded exam still works as a full mock. The same uploaded content also feeds the skill sections below automatically.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeFullExamCatalog"></div>
-    </section>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Listening</div>
-        <h2 class="home-section-title">Practice listening only</h2>
-        <p class="home-section-copy">Open the listening section from any uploaded exam without continuing into reading or writing.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeListeningCatalog"></div>
-    </section>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Reading</div>
-        <h2 class="home-section-title">Practice reading only</h2>
-        <p class="home-section-copy">Take the reading section on its own when you want focused timing and question work.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeReadingCatalog"></div>
-    </section>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Writing</div>
-        <h2 class="home-section-title">Practice writing only</h2>
-        <p class="home-section-copy">Jump straight into task 1 and task 2 without running the full mock sequence first.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeWritingCatalog"></div>
-    </section>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Speaking</div>
-        <h2 class="home-section-title">Open speaking directly</h2>
-        <p class="home-section-copy">Keep speaking as its own independent path for quick voice practice and recording flows.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeSpeakingCatalog"></div>
-    </section>
-
-    <section class="home-catalog-section">
-      <div class="home-section-head">
-        <div class="home-card-topline">Practice by task</div>
-        <h2 class="home-section-title">Train one question type at a time</h2>
-        <p class="home-section-copy">Reading task types are grouped automatically, so every uploaded test contributes its TFNG, headings, completion, and matching tasks to the right drill bucket.</p>
-      </div>
-      <div class="home-catalog-grid" id="homeReadingPracticeCatalog"></div>
-    </section>
   </main>
 
   <footer class="home-footer premium-footer">
@@ -397,6 +352,24 @@
       </div>
     </div>
   </footer>
+</section>
+
+<section id="resourceHubSection" class="resource-hub-screen hidden" aria-label="Skill resource hub">
+  <div class="resource-hub-shell">
+    <div class="resource-hub-topbar">
+      <div class="resource-hub-copy">
+        <div class="home-badge" id="resourceHubBadge">Skill page</div>
+        <h1 id="resourceHubTitle">Exam resources</h1>
+        <p id="resourceHubSubtitle">Choose the exact path you want from this dedicated page.</p>
+      </div>
+      <div class="resource-hub-actions">
+        <button class="btn secondary" type="button" id="resourceHubBackBtn">Back to Home</button>
+      </div>
+    </div>
+
+    <div class="resource-hub-anchorbar" id="resourceHubAnchorbar"></div>
+    <div class="resource-hub-content" id="resourceHubContent"></div>
+  </div>
 </section>
 
 <section id="dashboardSection" class="dashboard-screen hidden" aria-label="Student dashboard">

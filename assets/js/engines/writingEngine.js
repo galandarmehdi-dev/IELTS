@@ -11,6 +11,7 @@
   function startWritingSystem() {
     if (window.__IELTS_WRITING_INIT__) return;
     window.__IELTS_WRITING_INIT__ = true;
+    const LAUNCH_CONTEXT = (typeof R().getLaunchContext === "function" && R().getLaunchContext()) || null;
 
     const activeTestId =
       (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
@@ -115,6 +116,19 @@
 
     applyActiveWritingContent();
     initGraphZoomControls();
+
+    function focusRequestedTask() {
+      const task = String(LAUNCH_CONTEXT?.focusTask || "").trim();
+      if (!task) return;
+      const target = task === "task2" ? wt2 : wt1;
+      if (!target) return;
+      setTimeout(() => {
+        try {
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          target.focus();
+        } catch (e) {}
+      }, 40);
+    }
 
     function setAutosave(text) {
       if (!autosaveEl) return;
@@ -588,6 +602,7 @@
 
     loadWriting();
     S().set(W.keys.started, "true");
+    focusRequestedTask();
 
     if (hasSubmitted) {
       writingSection.classList.add("view-only");

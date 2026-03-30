@@ -43,6 +43,7 @@
 
   function showOnly(view) {
     const home = $("homeSection");
+    const resourceHub = $("resourceHubSection");
     const dashboard = $("dashboardSection");
     const listening = $("listeningSection");
     const readingControls = $("readingControls");
@@ -53,6 +54,7 @@
     const adminResults = $("adminResultsSection");
 
     const isHome = view === "home";
+    const isResourceHub = ["fullExamHub", "readingHub", "listeningHub", "writingHub", "speakingHub"].includes(view);
     const isDashboard = view === "dashboard";
     const isListening = view === "listening";
     const isReading = view === "reading";
@@ -62,6 +64,7 @@
     const isAdminResults = view === "adminResults";
 
     if (home) home.classList.toggle("hidden", !isHome);
+    if (resourceHub) resourceHub.classList.toggle("hidden", !isResourceHub);
     if (dashboard) dashboard.classList.toggle("hidden", !isDashboard);
     if (listening) listening.classList.toggle("hidden", !isListening);
     if (readingControls) readingControls.classList.toggle("hidden", !isReading);
@@ -178,7 +181,7 @@
   }
 
   function hideAllExamViews() {
-    ["homeSection","dashboardSection","listeningSection","readingControls","container","writingSection","examNav"].forEach((id) => $(id)?.classList.add("hidden"));
+    ["homeSection","resourceHubSection","dashboardSection","listeningSection","readingControls","container","writingSection","examNav"].forEach((id) => $(id)?.classList.add("hidden"));
   }
 
   function showSubmittedOverlay(text) {

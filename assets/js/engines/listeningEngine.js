@@ -20,6 +20,7 @@
     window.__IELTS_LISTENING_INIT__ = true;
 
     const testId = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
+    const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const L_KEYS = (R().getScopedKeys?.(testId)?.listening) || (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
 
     // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
@@ -69,7 +70,15 @@
     let transferInterval = null;
     let strictActive = false;
 
-    let currentPageIndex = Math.max(0, Math.min(3, parseInt(S().get(L_KEYS.pageIndex, "0"), 10) || 0));
+    let currentPageIndex = Math.max(
+      0,
+      Math.min(
+        3,
+        Number.isInteger(LAUNCH_CONTEXT?.pageIndex)
+          ? LAUNCH_CONTEXT.pageIndex
+          : (parseInt(S().get(L_KEYS.pageIndex, "0"), 10) || 0)
+      )
+    );
 
     const initialListenBodyHtml = (() => {
       try {

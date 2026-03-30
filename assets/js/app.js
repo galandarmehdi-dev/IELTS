@@ -629,6 +629,7 @@
     // -----------------------------
     // Hash route support (ADMIN ONLY)
     // -----------------------------
+    let pendingResourceHubKind = null;
     const route = Router().parseHashRoute();
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
     if (isAdminView() && route && route.view) {
@@ -671,6 +672,24 @@
       }
     }
 
+    if (route && route.view) {
+      if (route.view === "fullExamHub") {
+        pendingResourceHubKind = "fullExam";
+      }
+      if (route.view === "readingHub") {
+        pendingResourceHubKind = "reading";
+      }
+      if (route.view === "listeningHub") {
+        pendingResourceHubKind = "listening";
+      }
+      if (route.view === "writingHub") {
+        pendingResourceHubKind = "writing";
+      }
+      if (route.view === "speakingHub") {
+        pendingResourceHubKind = "speaking";
+      }
+    }
+
     // -----------------------------
     // Default to home
     // -----------------------------
@@ -699,12 +718,13 @@
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
     const adminExportBtn = $("adminExportBtn");
-    const homeFullExamCatalog = $("homeFullExamCatalog");
-    const homeListeningCatalog = $("homeListeningCatalog");
-    const homeReadingCatalog = $("homeReadingCatalog");
-    const homeWritingCatalog = $("homeWritingCatalog");
-    const homeSpeakingCatalog = $("homeSpeakingCatalog");
-    const homeReadingPracticeCatalog = $("homeReadingPracticeCatalog");
+    const homeExploreMenus = $("homeExploreMenus");
+    const resourceHubBadge = $("resourceHubBadge");
+    const resourceHubTitle = $("resourceHubTitle");
+    const resourceHubSubtitle = $("resourceHubSubtitle");
+    const resourceHubBackBtn = $("resourceHubBackBtn");
+    const resourceHubAnchorbar = $("resourceHubAnchorbar");
+    const resourceHubContent = $("resourceHubContent");
     // Student password gate (does NOT affect admin view)
     function requireTestPassword(onOk) {
       if (isAdminView()) {
@@ -794,44 +814,50 @@
       } catch (e) {}
     }
 
-    function launchListeningOnly(testId) {
+    function launchListeningOnly(testId, pageIndex) {
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:LISTENING`;
-      R()?.setLaunchContext?.({ mode: "section", section: "listening", testId, storageScope: scope });
+      const ctx = { mode: "section", section: "listening", testId, storageScope: scope };
+      if (Number.isInteger(pageIndex)) ctx.pageIndex = pageIndex;
+      R()?.setLaunchContext?.(ctx);
       clearScopedLaunchData(scope);
       resetEngineInitFlags();
       safe(() => Modal().hideModal());
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("listening"); } catch (e) {}
-      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Listening`); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Listening${Number.isInteger(pageIndex) ? ` · Section ${pageIndex + 1}` : ""}`); } catch (e) {}
       try { Router().setHashRoute(testId, "listening"); } catch (e) {}
       startEngineWhenReady("Listening", "initListeningSystem").catch((e) => console.error("[IELTS] Listening-only launch failed:", e));
     }
 
-    function launchReadingOnly(testId) {
+    function launchReadingOnly(testId, partId) {
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:READING`;
-      R()?.setLaunchContext?.({ mode: "section", section: "reading", testId, storageScope: scope });
+      const ctx = { mode: "section", section: "reading", testId, storageScope: scope };
+      if (partId) ctx.partId = partId;
+      R()?.setLaunchContext?.(ctx);
       clearScopedLaunchData(scope);
       resetEngineInitFlags();
       safe(() => Modal().hideModal());
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("reading"); } catch (e) {}
-      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Reading`); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Reading${partId ? ` · ${String(partId).replace("part", "Section ")}` : ""}`); } catch (e) {}
       try { Router().setHashRoute(testId, "reading"); } catch (e) {}
       startEngineWhenReady("Reading", "startReadingSystem").catch((e) => console.error("[IELTS] Reading-only launch failed:", e));
     }
 
-    function launchWritingOnly(testId) {
+    function launchWritingOnly(testId, focusTask) {
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:WRITING`;
-      R()?.setLaunchContext?.({ mode: "section", section: "writing", testId, storageScope: scope });
+      const ctx = { mode: "section", section: "writing", testId, storageScope: scope };
+      if (focusTask) ctx.focusTask = focusTask;
+      R()?.setLaunchContext?.(ctx);
       clearScopedLaunchData(scope);
       resetEngineInitFlags();
       safe(() => Modal().hideModal());
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("writing"); } catch (e) {}
-      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Writing`); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Writing${focusTask ? ` · ${focusTask === "task1" ? "Task 1" : "Task 2"}` : ""}`); } catch (e) {}
       try { Router().setHashRoute(testId, "writing"); } catch (e) {}
       startEngineWhenReady("Writing", "startWritingSystem").catch((e) => console.error("[IELTS] Writing-only launch failed:", e));
     }
@@ -909,6 +935,29 @@
       return card;
     }
 
+    function createMultiActionCard(options) {
+      const card = createCatalogCard({
+        kicker: options.kicker,
+        title: options.title,
+        copy: options.copy,
+        meta: options.meta,
+        primaryLabel: options.primaryLabel || "Open",
+        onPrimary: options.onPrimary || (() => {}),
+      });
+      const actions = card.querySelector(".home-catalog-actions");
+      if (actions && Array.isArray(options.extraActions)) {
+        options.extraActions.forEach((action) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = action.ghost ? "home-btn ghost" : "home-btn ghost";
+          btn.textContent = action.label;
+          btn.addEventListener("click", action.onClick);
+          actions.appendChild(btn);
+        });
+      }
+      return card;
+    }
+
     function renderCatalogInto(root, items, buildCard, emptyText) {
       if (!root) return;
       root.innerHTML = "";
@@ -922,100 +971,399 @@
       items.forEach((item) => root.appendChild(buildCard(item)));
     }
 
-    function renderHomeCatalogs() {
-      const catalog = R()?.buildHomeCatalog?.();
-      if (!catalog) return;
+    const HUB_VIEWS = {
+      fullExam: "fullExamHub",
+      reading: "readingHub",
+      listening: "listeningHub",
+      writing: "writingHub",
+      speaking: "speakingHub",
+    };
 
-      renderCatalogInto(
-        homeFullExamCatalog,
-        catalog.fullExams,
-        (item) => createCatalogCard({
-          kicker: "Full exam",
-          title: item.label,
-          copy: item.description,
-          meta: item.meta,
-          primaryLabel: "Start full exam",
-          onPrimary: () => requireTestPassword(() => {
-            setActiveTestId(item.id);
-            startFreshExam();
-          }),
-        }),
-        "Upload a full exam and it will appear here automatically."
-      );
+    function createNoteCard(title, bullets, kicker) {
+      const card = document.createElement("article");
+      card.className = "resource-note-card";
+      if (kicker) {
+        const pill = document.createElement("div");
+        pill.className = "sample-band-pill";
+        pill.textContent = kicker;
+        card.appendChild(pill);
+      }
+      const h3 = document.createElement("h3");
+      h3.textContent = title;
+      card.appendChild(h3);
+      const list = document.createElement("ul");
+      (bullets || []).forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+      card.appendChild(list);
+      return card;
+    }
 
-      renderCatalogInto(
-        homeListeningCatalog,
-        catalog.sections.listening,
-        (item) => createCatalogCard({
-          kicker: "Listening only",
-          title: item.label,
-          copy: item.description,
-          meta: item.meta,
-          primaryLabel: "Open listening",
-          onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
-        }),
-        "Listening sections will appear here automatically."
-      );
+    function buildHubSection(id, label, copy, nodeBuilder) {
+      const section = document.createElement("section");
+      section.className = "resource-hub-section";
+      section.id = id;
+      const head = document.createElement("div");
+      head.className = "home-section-head";
+      head.innerHTML = `<div class="home-card-topline">${label}</div><h2 class="home-section-title">${label}</h2><p class="home-section-copy">${copy}</p>`;
+      section.appendChild(head);
+      const node = nodeBuilder();
+      if (node) section.appendChild(node);
+      return section;
+    }
 
-      renderCatalogInto(
-        homeReadingCatalog,
-        catalog.sections.reading,
-        (item) => createCatalogCard({
-          kicker: "Reading only",
-          title: item.label,
-          copy: item.description,
-          meta: item.meta,
-          primaryLabel: "Open reading",
-          onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
-        }),
-        "Reading sections will appear here automatically."
-      );
+    function renderStaticTips(cards) {
+      const wrap = document.createElement("div");
+      wrap.className = "resource-hub-grid";
+      cards.forEach((card) => wrap.appendChild(card));
+      return wrap;
+    }
 
-      renderCatalogInto(
-        homeWritingCatalog,
-        catalog.sections.writing,
-        (item) => createCatalogCard({
-          kicker: "Writing only",
-          title: item.label,
-          copy: item.description,
-          meta: item.meta,
-          primaryLabel: "Open writing",
-          onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId)),
-        }),
-        "Writing sections will appear here automatically."
-      );
+    function rememberHub(kind) {
+      try { localStorage.setItem("IELTS:HOME:resourceHubKind", kind); } catch (e) {}
+    }
 
-      renderCatalogInto(
-        homeSpeakingCatalog,
-        catalog.sections.speaking,
-        (item) => createCatalogCard({
-          kicker: "Speaking",
-          title: item.label,
-          copy: item.description,
-          meta: item.meta,
-          primaryLabel: "Open speaking",
-          onPrimary: () => openSpeakingFromMenu(),
-        }),
-        "Speaking practice will appear here."
-      );
+    function openResourceHub(kind, focusId) {
+      const view = HUB_VIEWS[kind] || "fullExamHub";
+      rememberHub(kind);
+      renderResourceHub(kind, focusId);
+      UI().showOnly(view);
+      try { Router().setHashRoute(getActiveTestId(), view); } catch (e) {}
+      UI().setExamNavStatus(`Status: ${kind} page`);
+      if (focusId) {
+        setTimeout(() => document.getElementById(focusId)?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+      }
+    }
 
-      renderCatalogInto(
-        homeReadingPracticeCatalog,
-        catalog.practice.reading,
-        (item) => createCatalogCard({
-          kicker: "Reading task",
-          title: item.label,
-          copy: item.summary,
-          meta: [
-            `${item.exerciseCount} drills`,
-            `${item.questionCount} questions`,
-            `${item.tests.length} test${item.tests.length === 1 ? "" : "s"}`,
+    function renderMenuGroup(menu) {
+      const wrap = document.createElement("div");
+      wrap.className = "home-skill-menu";
+
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "home-skill-trigger";
+      trigger.innerHTML = `<span><small>${menu.kicker}</small>${menu.label}</span><i>▾</i>`;
+
+      const dropdown = document.createElement("div");
+      dropdown.className = "home-skill-dropdown hidden";
+
+      menu.items.forEach((item) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-skill-item";
+        btn.innerHTML = `<strong>${item.label}</strong><span>${item.copy}</span>`;
+        btn.addEventListener("click", () => {
+          dropdown.classList.add("hidden");
+          item.onClick();
+        });
+        dropdown.appendChild(btn);
+      });
+
+      trigger.addEventListener("click", () => {
+        document.querySelectorAll(".home-skill-dropdown").forEach((el) => {
+          if (el !== dropdown) el.classList.add("hidden");
+        });
+        dropdown.classList.toggle("hidden");
+      });
+
+      wrap.appendChild(trigger);
+      wrap.appendChild(dropdown);
+      return wrap;
+    }
+
+    function renderHomeMenus() {
+      if (!homeExploreMenus) return;
+      homeExploreMenus.innerHTML = "";
+      const menus = [
+        {
+          kicker: "Core path",
+          label: "Take Full Exam",
+          items: [
+            { label: "Open full exam page", copy: "See all uploaded complete exams in one place.", onClick: () => openResourceHub("fullExam") },
+            { label: "Start IELTS Test 1", copy: "Quick start the first full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); }) },
+            { label: "Start IELTS Test 2", copy: "Quick start the second full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); }) },
+            { label: "Start IELTS Test 3", copy: "Quick start the third full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts3"); startFreshExam(); }) },
           ],
-          primaryLabel: "Start practice",
-          onPrimary: () => requireTestPassword(() => launchReadingPractice(item.type)),
-        }),
-        "As structured reading tasks are added, they will appear here automatically."
-      );
+        },
+        {
+          kicker: "Skill page",
+          label: "Reading",
+          items: [
+            { label: "Open reading page", copy: "Reading exams, sections, practice buckets, and tips.", onClick: () => openResourceHub("reading") },
+            { label: "Take full reading exam", copy: "Jump straight to the reading-only exam page.", onClick: () => openResourceHub("reading", "reading-full-exams") },
+            { label: "Take by section", copy: "Open reading sections 1, 2, or 3 separately.", onClick: () => openResourceHub("reading", "reading-sections") },
+            { label: "Practice by question type", copy: "Go straight to TFNG, Headings, Completion, and more.", onClick: () => openResourceHub("reading", "reading-practice-types") },
+            { label: "Reading tips", copy: "See the reading strategy page section.", onClick: () => openResourceHub("reading", "reading-tips") },
+          ],
+        },
+        {
+          kicker: "Skill page",
+          label: "Listening",
+          items: [
+            { label: "Open listening page", copy: "Listening exams, sections, and tips.", onClick: () => openResourceHub("listening") },
+            { label: "Take full listening exam", copy: "Go to listening-only exam cards.", onClick: () => openResourceHub("listening", "listening-full-exams") },
+            { label: "Take by section", copy: "Open listening section launchers.", onClick: () => openResourceHub("listening", "listening-sections") },
+            { label: "Listening tips", copy: "See listening technique guidance.", onClick: () => openResourceHub("listening", "listening-tips") },
+          ],
+        },
+        {
+          kicker: "Skill page",
+          label: "Writing",
+          items: [
+            { label: "Open writing page", copy: "Writing task launchers, sample answers, and guidance.", onClick: () => openResourceHub("writing") },
+            { label: "Writing Task 1", copy: "Open Task 1-focused writing access.", onClick: () => openResourceHub("writing", "writing-task1") },
+            { label: "Writing Task 2", copy: "Open Task 2-focused writing access.", onClick: () => openResourceHub("writing", "writing-task2") },
+            { label: "Sample answers by bandscore", copy: "Browse writing sample-answer guidance.", onClick: () => openResourceHub("writing", "writing-samples") },
+          ],
+        },
+        {
+          kicker: "Skill page",
+          label: "Speaking",
+          items: [
+            { label: "Open speaking page", copy: "Speaking practice, predicted questions, tips, and sample answers.", onClick: () => openResourceHub("speaking") },
+            { label: "Practice speaking", copy: "Jump straight into the speaking module.", onClick: () => openResourceHub("speaking", "speaking-practice") },
+            { label: "Predicted speaking questions", copy: "See likely prompt themes and examples.", onClick: () => openResourceHub("speaking", "speaking-predicted") },
+            { label: "Tips for speaking", copy: "Open speaking technique guidance.", onClick: () => openResourceHub("speaking", "speaking-tips") },
+            { label: "Sample answers", copy: "Open speaking sample response guidance.", onClick: () => openResourceHub("speaking", "speaking-samples") },
+          ],
+        },
+      ];
+      menus.forEach((menu) => homeExploreMenus.appendChild(renderMenuGroup(menu)));
+    }
+
+    function renderResourceHub(kind, focusId) {
+      if (!resourceHubContent || !resourceHubTitle || !resourceHubSubtitle || !resourceHubBadge || !resourceHubAnchorbar) return;
+
+      const catalog = R()?.buildHomeCatalog?.() || { fullExams: [], sections: {}, practice: { reading: [] } };
+      resourceHubContent.innerHTML = "";
+      resourceHubAnchorbar.innerHTML = "";
+
+      const addSection = (sectionId, label, copy, nodeBuilder) => {
+        const section = buildHubSection(sectionId, label, copy, nodeBuilder);
+        resourceHubContent.appendChild(section);
+        const anchor = document.createElement("button");
+        anchor.type = "button";
+        anchor.className = "resource-hub-anchor";
+        anchor.textContent = label;
+        anchor.addEventListener("click", () => document.getElementById(sectionId)?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+        resourceHubAnchorbar.appendChild(anchor);
+      };
+
+      if (kind === "fullExam") {
+        resourceHubBadge.textContent = "Full exam page";
+        resourceHubTitle.textContent = "Take the full IELTS mock";
+        resourceHubSubtitle.textContent = "Every uploaded exam still works as a complete mock first, with Listening, Reading, and Writing in sequence.";
+        addSection("full-exam-list", "Available full exams", "Choose the complete mock you want to run.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          catalog.fullExams.forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Full exam",
+              title: item.label,
+              copy: item.description,
+              meta: item.meta,
+              primaryLabel: "Start full exam",
+              onPrimary: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
+            }));
+          });
+          return grid;
+        });
+        addSection("full-exam-notes", "How full exams work", "Use the full path when you want realistic sequencing and timing.", () => renderStaticTips([
+          createNoteCard("Best use case", ["Take a full exam when you want stamina practice, timing, and realistic transitions."], "Strategy"),
+          createNoteCard("What to expect", ["Listening starts first, then Reading, then Writing.", "Progress is saved in the same workspace."], "Flow"),
+          createNoteCard("When to use section pages instead", ["Use the skill pages when you want focused repair work on one area only."], "Focus"),
+        ]));
+      }
+
+      if (kind === "reading") {
+        resourceHubBadge.textContent = "Reading page";
+        resourceHubTitle.textContent = "Reading exams, sections, practice, and strategy";
+        resourceHubSubtitle.textContent = "Choose between full reading exams, part-based launches, question-type drills, and reading strategy support.";
+        addSection("reading-full-exams", "Take full reading exam", "Run the complete reading-only section from any uploaded test.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.reading || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Reading exam",
+              title: item.label,
+              copy: item.description,
+              meta: item.meta,
+              primaryLabel: "Open full reading",
+              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
+            }));
+          });
+          return grid;
+        });
+        addSection("reading-sections", "Take by section", "Open reading section 1, 2, or 3 separately from each uploaded test.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.reading || []).forEach((item) => {
+            grid.appendChild(createMultiActionCard({
+              kicker: "Reading sections",
+              title: R()?.getTestLabel?.(item.testId) || item.label,
+              copy: "Launch one reading part at a time when a student wants focused repair work instead of the full reading paper.",
+              meta: ["Section 1", "Section 2", "Section 3"],
+              primaryLabel: "Full reading",
+              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
+              extraActions: [
+                { label: "Section 1", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part1")) },
+                { label: "Section 2", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part2")) },
+                { label: "Section 3", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part3")) },
+              ],
+            }));
+          });
+          return grid;
+        });
+        addSection("reading-practice-types", "Practice by question type", "Choose the task type a student struggles with and drill only that format.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.practice.reading || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Question type",
+              title: item.label,
+              copy: item.summary,
+              meta: [`${item.exerciseCount} drills`, `${item.questionCount} questions`],
+              primaryLabel: "Start practice",
+              onPrimary: () => requireTestPassword(() => launchReadingPractice(item.type)),
+            }));
+          });
+          return grid;
+        });
+        addSection("reading-tips", "Reading tips", "Keep a small bank of reminders students can return to before practice.", () => renderStaticTips([
+          createNoteCard("Skim with intent", ["Read the title, first lines, and topic shifts before diving into every detail."], "Tip 1"),
+          createNoteCard("Prove every answer", ["For TFNG and headings, force yourself to point to the exact evidence before locking in the answer."], "Tip 2"),
+          createNoteCard("Time by passage", ["Do not spend too long on one question cluster. Move on and come back if needed."], "Tip 3"),
+        ]));
+      }
+
+      if (kind === "listening") {
+        resourceHubBadge.textContent = "Listening page";
+        resourceHubTitle.textContent = "Listening exams, sections, and listening technique";
+        resourceHubSubtitle.textContent = "Use this page for full listening runs, section-by-section access, and listening reminders.";
+        addSection("listening-full-exams", "Take full listening exam", "Open the listening-only version of each uploaded test.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.listening || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Listening exam",
+              title: item.label,
+              copy: item.description,
+              meta: item.meta,
+              primaryLabel: "Open full listening",
+              onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
+            }));
+          });
+          return grid;
+        });
+        addSection("listening-sections", "Take by section", "Jump directly to individual listening sections for focused practice.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.listening || []).forEach((item) => {
+            grid.appendChild(createMultiActionCard({
+              kicker: "Listening sections",
+              title: R()?.getTestLabel?.(item.testId) || item.label,
+              copy: "Open one listening section at a time. This is useful for focused repetition inside the current listening workspace.",
+              meta: ["Section 1", "Section 2", "Section 3", "Section 4"],
+              primaryLabel: "Full listening",
+              onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
+              extraActions: [
+                { label: "Section 1", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 0)) },
+                { label: "Section 2", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 1)) },
+                { label: "Section 3", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 2)) },
+                { label: "Section 4", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 3)) },
+              ],
+            }));
+          });
+          return grid;
+        });
+        addSection("listening-tips", "Listening tips", "Quick reminders students can use before or between listening attempts.", () => renderStaticTips([
+          createNoteCard("Read ahead", ["Use the setup time to predict word class, number, or likely distractors before the audio reaches the gap."], "Tip 1"),
+          createNoteCard("Expect distractors", ["Do not commit too early. Speakers often correct themselves or change direction mid-sentence."], "Tip 2"),
+          createNoteCard("Follow section difficulty", ["Section 1 is usually easier and Section 4 often demands closer note tracking and focus."], "Tip 3"),
+        ]));
+      }
+
+      if (kind === "writing") {
+        resourceHubBadge.textContent = "Writing page";
+        resourceHubTitle.textContent = "Writing tasks, model bands, and writing support";
+        resourceHubSubtitle.textContent = "Separate task entry points and sample-answer guidance live here instead of crowding the homepage.";
+        addSection("writing-task1", "Writing Task 1", "Open Task 1-focused writing work from each uploaded test.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.writing || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Task 1",
+              title: `${R()?.getTestLabel?.(item.testId) || item.label} · Task 1`,
+              copy: "Launch writing and focus the student directly on Task 1.",
+              meta: ["Visual / report task"],
+              primaryLabel: "Open Task 1",
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task1")),
+            }));
+          });
+          return grid;
+        });
+        addSection("writing-task2", "Writing Task 2", "Open Task 2-focused writing work from each uploaded test.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.writing || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Task 2",
+              title: `${R()?.getTestLabel?.(item.testId) || item.label} · Task 2`,
+              copy: "Launch writing and focus the student directly on Task 2.",
+              meta: ["Essay task"],
+              primaryLabel: "Open Task 2",
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task2")),
+            }));
+          });
+          return grid;
+        });
+        addSection("writing-samples", "Sample answers by bandscore", "Use these as teaching anchors for what changes from one band level to the next.", () => renderStaticTips([
+          createNoteCard("Band 5.0 sample hallmarks", ["Basic structure is visible, but ideas may stay underdeveloped and linking can feel repetitive."], "Band 5.0"),
+          createNoteCard("Band 6.0 sample hallmarks", ["Clearer organization, more stable grammar control, but precision and depth still need work."], "Band 6.0"),
+          createNoteCard("Band 7.0 sample hallmarks", ["Good response to the task, stronger cohesion, and more flexible vocabulary with fewer slips."], "Band 7.0"),
+          createNoteCard("Band 8.0 sample hallmarks", ["Well-controlled structure, concise support, accurate tone, and strong grammar range."], "Band 8.0"),
+        ]));
+      }
+
+      if (kind === "speaking") {
+        resourceHubBadge.textContent = "Speaking page";
+        resourceHubTitle.textContent = "Speaking practice, likely questions, tips, and sample answers";
+        resourceHubSubtitle.textContent = "Keep speaking as its own dedicated page with both practice and coaching resources.";
+        addSection("speaking-practice", "Practice speaking", "Open the live speaking workspace directly.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          grid.appendChild(createCatalogCard({
+            kicker: "Speaking module",
+            title: "IELTS Speaking Practice",
+            copy: "Use the current speaking module for guided response flow and recording practice.",
+            meta: ["Independent practice", "Voice workflow"],
+            primaryLabel: "Open speaking",
+            onPrimary: () => openSpeakingFromMenu(),
+          }));
+          return grid;
+        });
+        addSection("speaking-predicted", "Predicted speaking questions", "Use likely prompt themes as warm-up or homework material.", () => renderStaticTips([
+          createNoteCard("People and relationships", ["Describe someone who influenced you.", "Describe a helpful friend or teacher."], "Likely theme"),
+          createNoteCard("Places and experiences", ["Describe a place you would like to revisit.", "Describe a crowded place you have been to."], "Likely theme"),
+          createNoteCard("Habits and routines", ["Describe a skill you want to improve.", "Describe something you do to stay focused."], "Likely theme"),
+        ]));
+        addSection("speaking-tips", "Tips for speaking", "Small reminders students can read right before speaking practice.", () => renderStaticTips([
+          createNoteCard("Keep speaking through small mistakes", ["Fluency matters. Correcting every tiny slip can break rhythm and confidence."], "Tip 1"),
+          createNoteCard("Add one layer of detail", ["If you answer with one idea, add an example, feeling, or short explanation after it."], "Tip 2"),
+          createNoteCard("Use natural signposting", ["Phrases like 'first', 'for example', and 'what I mean is' help extend answers naturally."], "Tip 3"),
+        ]));
+        addSection("speaking-samples", "Sample answers", "Use sample structures as models for pacing and development, not scripts to memorize.", () => renderStaticTips([
+          createNoteCard("Short sample structure", ["Answer directly.", "Add one concrete detail.", "Finish with a feeling or conclusion."], "Part 1"),
+          createNoteCard("Cue-card sample structure", ["Set the scene.", "Cover each bullet point.", "Close with why it mattered."], "Part 2"),
+          createNoteCard("Discussion sample structure", ["State your view.", "Explain why.", "Give an example or contrast.", "Conclude clearly."], "Part 3"),
+        ]));
+      }
+
+      if (focusId) {
+        setTimeout(() => document.getElementById(focusId)?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
+      }
     }
 
 function startFreshExam() {
@@ -1068,7 +1416,15 @@ function startFreshExam() {
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
-    renderHomeCatalogs();
+    renderHomeMenus();
+    if (pendingResourceHubKind) {
+      openResourceHub(pendingResourceHubKind);
+    }
+    if (resourceHubBackBtn) resourceHubBackBtn.onclick = () => {
+      UI().showOnly("home");
+      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      UI().setExamNavStatus("Status: Home");
+    };
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
@@ -1092,6 +1448,14 @@ function startFreshExam() {
       const trigger = e.target?.closest?.("#openDashboardBtn");
       const inside = e.target?.closest?.("#homeAccountDropdown");
       if (!trigger && !inside) closeAccountMenu();
+    });
+
+    document.addEventListener("click", (e) => {
+      const trigger = e.target?.closest?.(".home-skill-trigger");
+      const inside = e.target?.closest?.(".home-skill-dropdown");
+      if (!trigger && !inside) {
+        document.querySelectorAll(".home-skill-dropdown").forEach((el) => el.classList.add("hidden"));
+      }
     });
 
     // End of main init

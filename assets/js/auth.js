@@ -165,6 +165,7 @@ function forceHideAllAppSections() {
     "readingControls",
     "container",
     "writingSection",
+    "resourceHubSection",
     "dashboardSection",
     "speakingSection",
     "examNav",
@@ -248,7 +249,7 @@ function getDesiredView() {
 function sanitizeDesiredView(view) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
-  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults"]);
+  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "speakingHub"]);
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
@@ -280,6 +281,11 @@ function restoreViewAfterAuth() {
 
   const fallbackIdMap = {
     home: "homeSection",
+    fullExamHub: "resourceHubSection",
+    readingHub: "resourceHubSection",
+    listeningHub: "resourceHubSection",
+    writingHub: "resourceHubSection",
+    speakingHub: "resourceHubSection",
     dashboard: "dashboardSection",
     listening: "listeningSection",
     reading: "readingControls",

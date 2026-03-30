@@ -29,7 +29,7 @@
     let hasTransitionedToWriting = false;
 
     const PARTS = ["part1", "part2", "part3"];
-    let activePart = "part1";
+    let activePart = String(LAUNCH_CONTEXT?.partId || "part1");
     const SPLIT_KEY = "IELTSPREF:readingSplitPct";
 
     function applySplitPercent(value) {
@@ -475,12 +475,20 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function getAvailablePartDescriptors() {
       const dynamicParts = getDynamicReadingParts();
       if (dynamicParts) {
-        return dynamicParts.map((part, index) => ({
+        const descriptors = dynamicParts.map((part, index) => ({
           id: String(part?.id || `part${index + 1}`),
           label: String(part?.shortLabel || part?.title || `Part ${index + 1}`),
         }));
+        if (LAUNCH_CONTEXT?.partId) {
+          return descriptors.filter((part) => part.id === String(LAUNCH_CONTEXT.partId));
+        }
+        return descriptors;
       }
-      return PARTS.map((id, index) => ({ id, label: `Part ${index + 1}` }));
+      const fallback = PARTS.map((id, index) => ({ id, label: `Part ${index + 1}` }));
+      if (LAUNCH_CONTEXT?.partId) {
+        return fallback.filter((part) => part.id === String(LAUNCH_CONTEXT.partId));
+      }
+      return fallback;
     }
 
     function renderOptionalHeadingsExample(panel, cfg) {

@@ -42,6 +42,17 @@
   function setActiveTestId(id) {
     try { R()?.setActiveTestId?.(id); } catch (e) {}
   }
+  function getLaunchContext() {
+    try {
+      return R()?.getLaunchContext?.() || null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function isFullExamFlow() {
+    const ctx = getLaunchContext();
+    return !ctx || ctx.mode === "full";
+  }
 
 
 
@@ -160,7 +171,15 @@
     }
 
     // Key helpers
-    const readingSubmittedKey = () => { const tid = getActiveTestId(); const cfg = R()?.getTestConfig?.(tid) || R()?.TESTS?.byId?.[tid] || {}; const rid = cfg.readingTestId || R()?.TESTS?.readingTestId || "ielts-reading-3parts-001"; return `${rid}:submitted`; };
+    const readingSubmittedKey = () => {
+      const tid = getActiveTestId();
+      const rid = R()?.getScopedReadingTestId?.(tid) || R()?.getTestConfig?.(tid)?.readingTestId || "ielts-reading-3parts-001";
+      return `${rid}:submitted`;
+    };
+    const activeScopedKeys = () => {
+      const tid = getActiveTestId();
+      return (R()?.getScopedKeys?.(tid)) || (R()?.keysFor?.(tid)) || {};
+    };
 
     // -----------------------------
     // Always-new attempt behavior
@@ -200,8 +219,9 @@
     let showingGate = false;
 
     function showListeningGate() {
+      if (!isFullExamFlow()) return;
       if (isAdminView() || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
+      const listeningDone = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
       if (!listeningDone || readingDone) return;
       // If the user has already moved on to Reading/Writing, do not pull them back to Listening.
@@ -249,10 +269,11 @@
     }
 
     function showReadingGate() {
+      if (!isFullExamFlow()) return;
       if (isAdminView() || showingGate) return;
-      const listeningDone = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
+      const listeningDone = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
-      const writingStarted = S().get((R().keysFor?.(getActiveTestId())?.writing || R().TESTS.writingKeys).started, "false") === "true";
+      const writingStarted = S().get((activeScopedKeys()?.writing || R().TESTS.writingKeys).started, "false") === "true";
       if (!listeningDone || !readingDone || writingStarted) return;
       // If the user already moved to Writing, do not pull them back to Reading.
       const lastView = S().get(R().KEYS.HOME_LAST_VIEW, "");
@@ -295,11 +316,11 @@
     document.addEventListener("reading:submitted", showReadingGate);
 
     // Storage-based fallback polling (in case an event is missed)
-    let lastListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
+    let lastListen = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");
     setInterval(() => {
       if (isAdminView()) return;
-      const curListen = S().get((R().keysFor?.(getActiveTestId())?.listening || R().TESTS.listeningKeys).submitted, "false");
+      const curListen = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false");
       const curRead = S().get(readingSubmittedKey(), "false");
 
       // If changed to true, run gates
@@ -678,6 +699,12 @@
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
     const adminExportBtn = $("adminExportBtn");
+    const homeFullExamCatalog = $("homeFullExamCatalog");
+    const homeListeningCatalog = $("homeListeningCatalog");
+    const homeReadingCatalog = $("homeReadingCatalog");
+    const homeWritingCatalog = $("homeWritingCatalog");
+    const homeSpeakingCatalog = $("homeSpeakingCatalog");
+    const homeReadingPracticeCatalog = $("homeReadingPracticeCatalog");
     // Student password gate (does NOT affect admin view)
     function requireTestPassword(onOk) {
       if (isAdminView()) {
@@ -755,7 +782,244 @@
       try { const remote = document.getElementById('remoteAudio'); if (remote && !remote.paused) { remote.pause(); remote.currentTime = 0; } } catch (e) {}
     }
 
+    function clearScopedLaunchData(scope) {
+      if (!scope) return;
+      try {
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(scope)) toRemove.push(key);
+        }
+        toRemove.forEach((key) => localStorage.removeItem(key));
+      } catch (e) {}
+    }
+
+    function launchListeningOnly(testId) {
+      setActiveTestId(testId);
+      const scope = `IELTS:SECTION:${testId}:LISTENING`;
+      R()?.setLaunchContext?.({ mode: "section", section: "listening", testId, storageScope: scope });
+      clearScopedLaunchData(scope);
+      resetEngineInitFlags();
+      safe(() => Modal().hideModal());
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("listening"); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Listening`); } catch (e) {}
+      try { Router().setHashRoute(testId, "listening"); } catch (e) {}
+      startEngineWhenReady("Listening", "initListeningSystem").catch((e) => console.error("[IELTS] Listening-only launch failed:", e));
+    }
+
+    function launchReadingOnly(testId) {
+      setActiveTestId(testId);
+      const scope = `IELTS:SECTION:${testId}:READING`;
+      R()?.setLaunchContext?.({ mode: "section", section: "reading", testId, storageScope: scope });
+      clearScopedLaunchData(scope);
+      resetEngineInitFlags();
+      safe(() => Modal().hideModal());
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("reading"); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Reading`); } catch (e) {}
+      try { Router().setHashRoute(testId, "reading"); } catch (e) {}
+      startEngineWhenReady("Reading", "startReadingSystem").catch((e) => console.error("[IELTS] Reading-only launch failed:", e));
+    }
+
+    function launchWritingOnly(testId) {
+      setActiveTestId(testId);
+      const scope = `IELTS:SECTION:${testId}:WRITING`;
+      R()?.setLaunchContext?.({ mode: "section", section: "writing", testId, storageScope: scope });
+      clearScopedLaunchData(scope);
+      resetEngineInitFlags();
+      safe(() => Modal().hideModal());
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("writing"); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Writing`); } catch (e) {}
+      try { Router().setHashRoute(testId, "writing"); } catch (e) {}
+      startEngineWhenReady("Writing", "startWritingSystem").catch((e) => console.error("[IELTS] Writing-only launch failed:", e));
+    }
+
+    function launchReadingPractice(taskType) {
+      const catalog = R()?.buildHomeCatalog?.()?.practice?.reading || [];
+      const match = catalog.find((entry) => entry.type === taskType);
+      const testId = match?.tests?.[0] || R()?.TESTS?.defaultTestId || "ielts1";
+      const scope = `IELTS:PRACTICE:READING:${taskType}`;
+      setActiveTestId(testId);
+      R()?.setLaunchContext?.({ mode: "practice", skill: "reading", taskType, storageScope: scope });
+      clearScopedLaunchData(scope);
+      resetEngineInitFlags();
+      safe(() => Modal().hideModal());
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("reading"); } catch (e) {}
+      try { UI().setExamNavStatus(`Status: ${match?.label || "Reading practice"}`); } catch (e) {}
+      try { Router().setHashRoute(testId, "reading"); } catch (e) {}
+      startEngineWhenReady("Reading", "startReadingSystem").catch((e) => console.error("[IELTS] Reading practice launch failed:", e));
+    }
+
+    function createMetaPill(text) {
+      const pill = document.createElement("span");
+      pill.className = "meta-pill";
+      pill.textContent = text;
+      return pill;
+    }
+
+    function createCatalogCard(options) {
+      const card = document.createElement("article");
+      card.className = "home-catalog-card";
+
+      const kicker = document.createElement("div");
+      kicker.className = "home-catalog-kicker";
+      kicker.textContent = options.kicker || "Section";
+      card.appendChild(kicker);
+
+      const title = document.createElement("h3");
+      title.className = "home-catalog-title";
+      title.textContent = options.title || "Practice";
+      card.appendChild(title);
+
+      const copy = document.createElement("p");
+      copy.className = "home-catalog-copy";
+      copy.textContent = options.copy || "";
+      card.appendChild(copy);
+
+      if (Array.isArray(options.meta) && options.meta.length) {
+        const meta = document.createElement("div");
+        meta.className = "home-catalog-meta";
+        options.meta.forEach((item) => meta.appendChild(createMetaPill(item)));
+        card.appendChild(meta);
+      }
+
+      const actions = document.createElement("div");
+      actions.className = "home-catalog-actions";
+
+      const primary = document.createElement("button");
+      primary.type = "button";
+      primary.className = "home-btn";
+      primary.textContent = options.primaryLabel || "Open";
+      primary.addEventListener("click", options.onPrimary);
+      actions.appendChild(primary);
+
+      if (options.onSecondary) {
+        const secondary = document.createElement("button");
+        secondary.type = "button";
+        secondary.className = "home-btn ghost";
+        secondary.textContent = options.secondaryLabel || "Open";
+        secondary.addEventListener("click", options.onSecondary);
+        actions.appendChild(secondary);
+      }
+
+      card.appendChild(actions);
+      return card;
+    }
+
+    function renderCatalogInto(root, items, buildCard, emptyText) {
+      if (!root) return;
+      root.innerHTML = "";
+      if (!Array.isArray(items) || !items.length) {
+        const empty = document.createElement("div");
+        empty.className = "home-catalog-empty";
+        empty.textContent = emptyText || "Nothing is available here yet.";
+        root.appendChild(empty);
+        return;
+      }
+      items.forEach((item) => root.appendChild(buildCard(item)));
+    }
+
+    function renderHomeCatalogs() {
+      const catalog = R()?.buildHomeCatalog?.();
+      if (!catalog) return;
+
+      renderCatalogInto(
+        homeFullExamCatalog,
+        catalog.fullExams,
+        (item) => createCatalogCard({
+          kicker: "Full exam",
+          title: item.label,
+          copy: item.description,
+          meta: item.meta,
+          primaryLabel: "Start full exam",
+          onPrimary: () => requireTestPassword(() => {
+            setActiveTestId(item.id);
+            startFreshExam();
+          }),
+        }),
+        "Upload a full exam and it will appear here automatically."
+      );
+
+      renderCatalogInto(
+        homeListeningCatalog,
+        catalog.sections.listening,
+        (item) => createCatalogCard({
+          kicker: "Listening only",
+          title: item.label,
+          copy: item.description,
+          meta: item.meta,
+          primaryLabel: "Open listening",
+          onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
+        }),
+        "Listening sections will appear here automatically."
+      );
+
+      renderCatalogInto(
+        homeReadingCatalog,
+        catalog.sections.reading,
+        (item) => createCatalogCard({
+          kicker: "Reading only",
+          title: item.label,
+          copy: item.description,
+          meta: item.meta,
+          primaryLabel: "Open reading",
+          onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
+        }),
+        "Reading sections will appear here automatically."
+      );
+
+      renderCatalogInto(
+        homeWritingCatalog,
+        catalog.sections.writing,
+        (item) => createCatalogCard({
+          kicker: "Writing only",
+          title: item.label,
+          copy: item.description,
+          meta: item.meta,
+          primaryLabel: "Open writing",
+          onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId)),
+        }),
+        "Writing sections will appear here automatically."
+      );
+
+      renderCatalogInto(
+        homeSpeakingCatalog,
+        catalog.sections.speaking,
+        (item) => createCatalogCard({
+          kicker: "Speaking",
+          title: item.label,
+          copy: item.description,
+          meta: item.meta,
+          primaryLabel: "Open speaking",
+          onPrimary: () => openSpeakingFromMenu(),
+        }),
+        "Speaking practice will appear here."
+      );
+
+      renderCatalogInto(
+        homeReadingPracticeCatalog,
+        catalog.practice.reading,
+        (item) => createCatalogCard({
+          kicker: "Reading task",
+          title: item.label,
+          copy: item.summary,
+          meta: [
+            `${item.exerciseCount} drills`,
+            `${item.questionCount} questions`,
+            `${item.tests.length} test${item.tests.length === 1 ? "" : "s"}`,
+          ],
+          primaryLabel: "Start practice",
+          onPrimary: () => requireTestPassword(() => launchReadingPractice(item.type)),
+        }),
+        "As structured reading tasks are added, they will appear here automatically."
+      );
+    }
+
 function startFreshExam() {
+      R()?.clearLaunchContext?.();
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
@@ -804,6 +1068,7 @@ function startFreshExam() {
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
+    renderHomeCatalogs();
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);

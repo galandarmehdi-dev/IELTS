@@ -22,11 +22,16 @@
       R().TESTS?.byId?.[R().TESTS?.defaultTestId] ||
       {};
 
-    const namespacedKeys = (typeof R().keysFor === "function" && R().keysFor(activeTestId)) || {};
+    const namespacedKeys =
+      (typeof R().getScopedKeys === "function" && R().getScopedKeys(activeTestId)) ||
+      (typeof R().keysFor === "function" && R().keysFor(activeTestId)) ||
+      {};
     const legacyKeys = R().LEGACY?.writingKeys || R().TESTS?.writingKeys || {};
 
     const W = {
-      TEST_ID: cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001",
+      TEST_ID: (typeof R().getLaunchContext === "function" && R().getLaunchContext()?.storageScope)
+        ? `${R().getLaunchContext().storageScope}:WRITING`
+        : (cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001"),
       DURATION_MINUTES: 60,
       keys: namespacedKeys.writing || legacyKeys,
       readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",

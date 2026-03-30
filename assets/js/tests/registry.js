@@ -42,6 +42,66 @@
     HOME_LAST_VIEW: "IELTS:HOME:lastView",
     EXAM_STARTED: "IELTS:EXAM:started",
     ACTIVE_TEST_ID: "IELTS:EXAM:activeTestId",
+    LAUNCH_CONTEXT: "IELTS:EXAM:launchContext",
+  };
+
+  const SECTION_META = {
+    full: { key: "full", label: "Full Exam", summary: "Full Listening, Reading, and Writing flow" },
+    listening: { key: "listening", label: "Listening", summary: "Take only the listening section" },
+    reading: { key: "reading", label: "Reading", summary: "Take only the reading section" },
+    writing: { key: "writing", label: "Writing", summary: "Take only the writing section" },
+    speaking: { key: "speaking", label: "Speaking", summary: "Open speaking practice directly" },
+  };
+
+  const READING_TASK_TYPES = {
+    tfng: {
+      type: "tfng",
+      label: "True / False / Not Given",
+      shortLabel: "TFNG",
+      summary: "Practice accuracy on evidence-based statement questions.",
+    },
+    headings: {
+      type: "headings",
+      label: "Matching Headings",
+      shortLabel: "Headings",
+      summary: "Match paragraph purpose and main idea faster.",
+    },
+    sentenceGaps: {
+      type: "sentenceGaps",
+      label: "Sentence / Summary Completion",
+      shortLabel: "Completion",
+      summary: "Build precision on gap-fill style reading tasks.",
+    },
+    shortAnswer: {
+      type: "shortAnswer",
+      label: "Short Answer",
+      shortLabel: "Short Answer",
+      summary: "Practice extracting exact words from the passage.",
+    },
+    endingsMatch: {
+      type: "endingsMatch",
+      label: "Matching Endings / Information",
+      shortLabel: "Matching",
+      summary: "Train pattern recognition across sentence endings and paragraph match tasks.",
+    },
+    multiTextChoices: {
+      type: "multiTextChoices",
+      label: "Multiple Choice",
+      shortLabel: "MCQ",
+      summary: "Sharpen option elimination and evidence checking.",
+    },
+    summarySelect: {
+      type: "summarySelect",
+      label: "Summary Selection",
+      shortLabel: "Summary Select",
+      summary: "Practice choosing the best word or option for summary completion.",
+    },
+    mcq: {
+      type: "mcq",
+      label: "Multiple Choice",
+      shortLabel: "MCQ",
+      summary: "Sharpen option elimination and evidence checking.",
+    },
   };
 
   const LEGACY = {
@@ -89,6 +149,13 @@
     return TESTS.byId[testId] || TESTS.byId[TESTS.defaultTestId];
   }
 
+  function getTestLabel(testId) {
+    const cfg = getTestConfig(testId);
+    if (!cfg) return "IELTS Test";
+    const digits = String(cfg.id || testId || "").match(/(\d+)$/);
+    return digits ? `IELTS Test ${digits[1]}` : String(cfg.id || "IELTS Test");
+  }
+
   function keysFor(testId) {
     const cfg = getTestConfig(testId);
     return {
@@ -112,7 +179,213 @@
 
   function getActiveTestContent() {
     const active = getActiveTestId();
+    const ctx = getLaunchContext();
+    if (ctx && ctx.mode === "practice" && ctx.skill === "reading") {
+      return buildReadingPracticeContent(ctx.taskType);
+    }
     return getTestConfig(active)?.content || {};
+  }
+
+  function setLaunchContext(context) {
+    const next = context && typeof context === "object" ? { ...context } : null;
+    try {
+      if (!next) {
+        localStorage.removeItem(KEYS.LAUNCH_CONTEXT);
+      } else {
+        localStorage.setItem(KEYS.LAUNCH_CONTEXT, JSON.stringify(next));
+      }
+    } catch (e) {}
+    return next;
+  }
+
+  function getLaunchContext() {
+    try {
+      const raw = localStorage.getItem(KEYS.LAUNCH_CONTEXT);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearLaunchContext() {
+    return setLaunchContext(null);
+  }
+
+  function getScopedKeys(testId) {
+    const base = keysFor(testId);
+    const ctx = getLaunchContext();
+    if (!ctx || !ctx.storageScope) return base;
+    const scope = String(ctx.storageScope || "").trim();
+    if (!scope) return base;
+    return {
+      listening: {
+        submitted: `${scope}:LISTENING:submitted`,
+        started: `${scope}:LISTENING:started`,
+        answers: `${scope}:LISTENING:answers`,
+        lastSubmission: `${scope}:LISTENING:lastSubmission`,
+        pageIndex: `${scope}:LISTENING:pageIndex`,
+      },
+      writing: {
+        started: `${scope}:WRITING:started`,
+        submitted: `${scope}:WRITING:submitted`,
+        remaining: `${scope}:WRITING:remainingSeconds`,
+        answers: `${scope}:WRITING:answers`,
+        lastSubmission: `${scope}:WRITING:lastSubmission`,
+        studentName: `${scope}:WRITING:studentFullName`,
+      },
+    };
+  }
+
+  function getScopedReadingTestId(testId) {
+    const ctx = getLaunchContext();
+    if (ctx && ctx.storageScope) return `${ctx.storageScope}:READING`;
+    return getTestConfig(testId)?.readingTestId || getTestConfig(TESTS.defaultTestId)?.readingTestId || "ielts-reading-3parts-001";
+  }
+
+  function getQuestionCountFromBlock(block) {
+    if (!block || typeof block !== "object") return 0;
+    if (Array.isArray(block.items)) return block.items.length;
+    if (Array.isArray(block.questions)) return block.questions.length;
+    if (Array.isArray(block.summaryLines)) return block.summaryLines.filter((line) => line && line.blankQ).length;
+    return 0;
+  }
+
+  function cloneJsonSafe(value) {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (e) {
+      return value;
+    }
+  }
+
+  function getStructuredReadingParts(testId) {
+    const reading = getTestConfig(testId)?.content?.reading;
+    return Array.isArray(reading?.parts) ? reading.parts : [];
+  }
+
+  function buildFullExamCatalog() {
+    return Object.values(TESTS.byId).map((cfg) => {
+      const content = cfg.content || {};
+      return {
+        id: cfg.id,
+        label: getTestLabel(cfg.id),
+        description: "Complete Listening, Reading, and Writing in the exam sequence.",
+        meta: [
+          content.listening ? "Listening" : null,
+          content.reading ? "Reading" : null,
+          content.writing ? "Writing" : null,
+        ].filter(Boolean),
+      };
+    });
+  }
+
+  function buildSectionCatalog(section) {
+    if (!section || section === "speaking") {
+      return [{
+        id: "speaking-practice",
+        label: "Speaking Practice",
+        description: "Open the speaking module without starting a full exam.",
+        meta: ["Independent practice", "Recorded flow"],
+      }];
+    }
+    return Object.values(TESTS.byId)
+      .filter((cfg) => cfg?.content?.[section])
+      .map((cfg) => ({
+        id: cfg.id,
+        testId: cfg.id,
+        section,
+        label: `${getTestLabel(cfg.id)} ${SECTION_META[section]?.label || section}`,
+        description: `Open only the ${SECTION_META[section]?.label?.toLowerCase() || section} part from ${getTestLabel(cfg.id)}.`,
+        meta: [
+          section === "listening" ? "Audio section only" : null,
+          section === "reading" ? "Reading section only" : null,
+          section === "writing" ? "Writing section only" : null,
+        ].filter(Boolean),
+      }));
+  }
+
+  function buildReadingPracticeCatalog() {
+    const buckets = {};
+    Object.values(READING_TASK_TYPES).forEach((task) => {
+      buckets[task.type] = {
+        ...task,
+        exerciseCount: 0,
+        questionCount: 0,
+        tests: new Set(),
+      };
+    });
+
+    Object.values(TESTS.byId).forEach((cfg) => {
+      const parts = getStructuredReadingParts(cfg.id);
+      parts.forEach((part, partIndex) => {
+        const blocks = Array.isArray(part?.blocks) ? part.blocks : [];
+        blocks.forEach((block, blockIndex) => {
+          const type = String(block?.type || "").trim();
+          if (!buckets[type]) return;
+          buckets[type].exerciseCount += 1;
+          buckets[type].questionCount += getQuestionCountFromBlock(block);
+          buckets[type].tests.add(cfg.id);
+        });
+      });
+    });
+
+    return Object.values(buckets)
+      .filter((entry) => entry.exerciseCount > 0)
+      .map((entry) => ({
+        ...entry,
+        tests: Array.from(entry.tests),
+      }))
+      .sort((a, b) => b.exerciseCount - a.exerciseCount || a.label.localeCompare(b.label));
+  }
+
+  function buildReadingPracticeContent(taskType) {
+    const task = READING_TASK_TYPES[taskType];
+    if (!task) return { reading: { parts: [] } };
+
+    const parts = [];
+    Object.values(TESTS.byId).forEach((cfg) => {
+      const sourceParts = getStructuredReadingParts(cfg.id);
+      sourceParts.forEach((sourcePart, partIndex) => {
+        const blocks = Array.isArray(sourcePart?.blocks) ? sourcePart.blocks : [];
+        blocks.forEach((block, blockIndex) => {
+          if (String(block?.type || "") !== taskType) return;
+          parts.push({
+            id: `practice-${cfg.id}-${partIndex + 1}-${blockIndex + 1}`,
+            title: `${task.label} · ${getTestLabel(cfg.id)}`,
+            shortLabel: `${getTestLabel(cfg.id)} · ${sourcePart.title || `Part ${partIndex + 1}`}`,
+            passageText: sourcePart.passageText || "",
+            blocks: [cloneJsonSafe(block)],
+            sourceTestId: cfg.id,
+            sourcePartId: sourcePart.id || `part${partIndex + 1}`,
+          });
+        });
+      });
+    });
+
+    return {
+      reading: {
+        title: `${task.label} Practice`,
+        practiceType: taskType,
+        parts,
+      },
+    };
+  }
+
+  function buildHomeCatalog() {
+    return {
+      fullExams: buildFullExamCatalog(),
+      sections: {
+        listening: buildSectionCatalog("listening"),
+        reading: buildSectionCatalog("reading"),
+        writing: buildSectionCatalog("writing"),
+        speaking: buildSectionCatalog("speaking"),
+      },
+      practice: {
+        reading: buildReadingPracticeCatalog(),
+      },
+    };
   }
 
   function buildAdminApiUrl(params = {}) {
@@ -144,8 +417,18 @@
     getActiveTestId,
     setActiveTestId,
     getTestConfig,
+    getTestLabel,
     keysFor,
+    getScopedKeys,
+    getScopedReadingTestId,
     getActiveTestContent,
+    setLaunchContext,
+    getLaunchContext,
+    clearLaunchContext,
+    SECTION_META,
+    READING_TASK_TYPES,
+    buildHomeCatalog,
+    buildReadingPracticeContent,
     buildAdminApiUrl,
   };
 })();

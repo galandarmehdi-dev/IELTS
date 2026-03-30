@@ -1036,6 +1036,46 @@
         });
     }
 
+    function createWritingSampleResponse(entry, sample, index) {
+      const response = document.createElement("div");
+      response.className = "writing-sample-response";
+
+      const head = document.createElement("div");
+      head.className = "writing-sample-response-head";
+
+      const label = document.createElement("h4");
+      label.textContent = entry.samples.length > 1
+        ? (sample.label || `Sample ${index + 1}`)
+        : "Sample answer";
+
+      const band = document.createElement("div");
+      band.className = "sample-band-pill writing-band-pill";
+      band.textContent = sample.bandScore || "Coming soon";
+
+      head.appendChild(label);
+      head.appendChild(band);
+      response.appendChild(head);
+
+      const explanationWrap = document.createElement("div");
+      explanationWrap.className = "writing-sample-section";
+      explanationWrap.innerHTML = `<h4>Why this score</h4><p>${sample.explanation}</p>`;
+      response.appendChild(explanationWrap);
+
+      const sampleWrap = document.createElement("div");
+      sampleWrap.className = "writing-sample-section";
+      sampleWrap.innerHTML = "<h4>Sample answer</h4>";
+      appendEssayParagraphs(sampleWrap, sample.sampleAnswer);
+      response.appendChild(sampleWrap);
+
+      const correctedWrap = document.createElement("div");
+      correctedWrap.className = "writing-sample-section";
+      correctedWrap.innerHTML = "<h4>Corrected form</h4>";
+      appendEssayParagraphs(correctedWrap, sample.correctedForm);
+      response.appendChild(correctedWrap);
+
+      return response;
+    }
+
     function createWritingSampleCard(entry) {
       const card = document.createElement("article");
       card.className = "writing-sample-card";
@@ -1056,8 +1096,13 @@
       card.appendChild(top);
 
       const title = document.createElement("h3");
-      title.textContent = entry.title;
+      title.textContent = entry.shortTitle || entry.title;
       card.appendChild(title);
+
+      const source = document.createElement("div");
+      source.className = "writing-sample-source";
+      source.textContent = entry.sourceTitle || entry.title;
+      card.appendChild(source);
 
       const prompt = document.createElement("div");
       prompt.className = "writing-sample-prompt";
@@ -1072,27 +1117,67 @@
         card.appendChild(img);
       }
 
-      const explanationWrap = document.createElement("div");
-      explanationWrap.className = "writing-sample-section";
-      explanationWrap.innerHTML = `<h4>Why this score</h4><p>${entry.explanation}</p>`;
-      card.appendChild(explanationWrap);
-
-      const sampleWrap = document.createElement("div");
-      sampleWrap.className = "writing-sample-section";
-      sampleWrap.innerHTML = "<h4>Sample answer</h4>";
-      appendEssayParagraphs(sampleWrap, entry.sampleAnswer);
-      card.appendChild(sampleWrap);
-
-      const correctedWrap = document.createElement("div");
-      correctedWrap.className = "writing-sample-section";
-      correctedWrap.innerHTML = "<h4>Corrected form</h4>";
-      appendEssayParagraphs(correctedWrap, entry.correctedForm);
-      card.appendChild(correctedWrap);
+      (entry.samples || []).forEach((sample, index) => {
+        card.appendChild(createWritingSampleResponse(entry, sample, index));
+      });
 
       return card;
     }
 
-    function renderWritingSampleLibrary(taskKey, heading, copy) {
+    function createWritingSampleAccordion(entry) {
+      const item = document.createElement("details");
+      item.className = "writing-sample-accordion";
+
+      const summary = document.createElement("summary");
+      summary.className = "writing-sample-summary";
+
+      const textWrap = document.createElement("div");
+      textWrap.className = "writing-sample-summary-copy";
+
+      const title = document.createElement("div");
+      title.className = "writing-sample-summary-title";
+      title.textContent = entry.shortTitle || entry.title;
+
+      const meta = document.createElement("div");
+      meta.className = "writing-sample-summary-meta";
+      meta.textContent = entry.sourceTitle || entry.title;
+
+      textWrap.appendChild(title);
+      textWrap.appendChild(meta);
+      summary.appendChild(textWrap);
+
+      const pillWrap = document.createElement("div");
+      pillWrap.className = "writing-sample-summary-pills";
+
+      const typePill = document.createElement("div");
+      typePill.className = "sample-band-pill";
+      typePill.textContent = entry.groupType || entry.taskLabel;
+      pillWrap.appendChild(typePill);
+
+      const bandPill = document.createElement("div");
+      bandPill.className = "sample-band-pill writing-band-pill";
+      bandPill.textContent = entry.bandScore || "Coming soon";
+      pillWrap.appendChild(bandPill);
+
+      if ((entry.sampleCount || 0) > 1) {
+        const countPill = document.createElement("div");
+        countPill.className = "sample-band-pill";
+        countPill.textContent = `${entry.sampleCount} samples`;
+        pillWrap.appendChild(countPill);
+      }
+
+      summary.appendChild(pillWrap);
+      item.appendChild(summary);
+
+      const body = document.createElement("div");
+      body.className = "writing-sample-accordion-body";
+      body.appendChild(createWritingSampleCard(entry));
+      item.appendChild(body);
+
+      return item;
+    }
+
+    function renderWritingSampleLibrary(taskKey) {
       const wrap = document.createElement("div");
       wrap.className = "resource-hub-list writing-sample-list";
       const items = (R()?.buildWritingSampleCatalog?.() || [])
@@ -1106,7 +1191,35 @@
         return wrap;
       }
 
-      items.forEach((item) => wrap.appendChild(createWritingSampleCard(item)));
+      const groups = {};
+      items.forEach((item) => {
+        const key = item.groupType || "Other";
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+      });
+
+      Object.keys(groups)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach((groupLabel) => {
+          const section = document.createElement("section");
+          section.className = "writing-sample-group";
+
+          const head = document.createElement("div");
+          head.className = "writing-sample-group-head";
+          head.innerHTML = `<h3>${groupLabel}</h3><p>${groups[groupLabel].length} prompt${groups[groupLabel].length === 1 ? "" : "s"}</p>`;
+          section.appendChild(head);
+
+          const list = document.createElement("div");
+          list.className = "writing-sample-group-list";
+
+          groups[groupLabel]
+            .sort((a, b) => String(a.shortTitle || a.title).localeCompare(String(b.shortTitle || b.title)))
+            .forEach((item) => list.appendChild(createWritingSampleAccordion(item)));
+
+          section.appendChild(list);
+          wrap.appendChild(section);
+        });
+
       return wrap;
     }
 

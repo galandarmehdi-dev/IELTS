@@ -809,6 +809,75 @@
   display:grid;
   gap:18px;
 }
+.writing-sample-group{
+  display:grid;
+  gap:12px;
+}
+.writing-sample-group-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.writing-sample-group-head h3{
+  margin:0;
+  color:var(--ink);
+  font-size:24px;
+}
+.writing-sample-group-head p{
+  margin:0;
+  color:var(--muted);
+  font-weight:800;
+}
+.writing-sample-group-list{
+  display:grid;
+  gap:12px;
+}
+.writing-sample-accordion{
+  border-radius:24px;
+  background:rgba(255,253,249,.98);
+  border:1px solid rgba(255,255,255,.82);
+  box-shadow:0 20px 48px rgba(18,26,36,.08);
+  overflow:hidden;
+}
+.writing-sample-summary{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:18px 20px;
+  cursor:pointer;
+}
+.writing-sample-summary::-webkit-details-marker{
+  display:none;
+}
+.writing-sample-summary-copy{
+  min-width:0;
+}
+.writing-sample-summary-title{
+  color:var(--ink);
+  font-size:18px;
+  font-weight:900;
+  line-height:1.35;
+}
+.writing-sample-summary-meta{
+  margin-top:6px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+}
+.writing-sample-summary-pills{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.writing-sample-accordion-body{
+  padding:0 18px 18px;
+}
 .writing-sample-card{
   border-radius:26px;
   padding:22px;
@@ -832,6 +901,14 @@
   margin:0 0 12px;
   color:var(--ink);
   font-size:24px;
+}
+.writing-sample-source{
+  margin-bottom:12px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
 }
 .writing-sample-prompt{
   border-radius:18px;
@@ -861,6 +938,23 @@
   margin:0 0 10px;
   color:var(--ink);
   font-size:18px;
+}
+.writing-sample-response{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid rgba(18,26,36,.08);
+}
+.writing-sample-response-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.writing-sample-response-head h4{
+  margin:0;
+  color:var(--ink);
+  font-size:20px;
 }
 .writing-sample-section p{
   margin:0 0 10px;

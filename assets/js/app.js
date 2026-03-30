@@ -685,6 +685,12 @@
       if (route.view === "writingHub") {
         pendingResourceHubKind = "writing";
       }
+      if (route.view === "writingTask1SamplesHub") {
+        pendingResourceHubKind = "writingSamplesTask1";
+      }
+      if (route.view === "writingTask2SamplesHub") {
+        pendingResourceHubKind = "writingSamplesTask2";
+      }
       if (route.view === "speakingHub") {
         pendingResourceHubKind = "speaking";
       }
@@ -991,6 +997,8 @@
       reading: "readingHub",
       listening: "listeningHub",
       writing: "writingHub",
+      writingSamplesTask1: "writingTask1SamplesHub",
+      writingSamplesTask2: "writingTask2SamplesHub",
       speaking: "speakingHub",
     };
 
@@ -1082,6 +1090,24 @@
       card.appendChild(correctedWrap);
 
       return card;
+    }
+
+    function renderWritingSampleLibrary(taskKey, heading, copy) {
+      const wrap = document.createElement("div");
+      wrap.className = "resource-hub-list writing-sample-list";
+      const items = (R()?.buildWritingSampleCatalog?.() || [])
+        .filter((item) => item.taskKey === taskKey);
+
+      if (!items.length) {
+        const empty = document.createElement("div");
+        empty.className = "home-catalog-empty";
+        empty.textContent = "No sample answers are available for this task yet.";
+        wrap.appendChild(empty);
+        return wrap;
+      }
+
+      items.forEach((item) => wrap.appendChild(createWritingSampleCard(item)));
+      return wrap;
     }
 
     function buildHubSection(id, label, copy, nodeBuilder) {
@@ -1198,7 +1224,8 @@
             { label: "Open writing page", copy: "Writing task launchers, sample answers, and guidance.", onClick: () => openResourceHub("writing") },
             { label: "Writing Task 1", copy: "Open Task 1-focused writing access.", onClick: () => openResourceHub("writing", "writing-task1") },
             { label: "Writing Task 2", copy: "Open Task 2-focused writing access.", onClick: () => openResourceHub("writing", "writing-task2") },
-            { label: "Sample answers by bandscore", copy: "Browse writing sample-answer guidance.", onClick: () => openResourceHub("writing", "writing-samples") },
+            { label: "Task 1 sample library", copy: "Browse Task 1 sample answers in a dedicated page.", onClick: () => openResourceHub("writingSamplesTask1") },
+            { label: "Task 2 sample library", copy: "Browse Task 2 sample answers in a dedicated page.", onClick: () => openResourceHub("writingSamplesTask2") },
           ],
         },
         {
@@ -1506,12 +1533,25 @@
           });
           return grid;
         });
-        addSection("writing-samples", "Sample answers by bandscore", "Every uploaded writing prompt can appear here with a model answer, score explanation, and corrected version.", () => {
+        addSection("writing-samples", "Sample answer libraries", "Open the dedicated sample-answer pages for Task 1 and Task 2 so the main Writing page stays lighter and easier to scan.", () => {
           const grid = document.createElement("div");
-          grid.className = "resource-hub-list writing-sample-list";
-          (R()?.buildWritingSampleCatalog?.() || catalog.writingSamples || []).forEach((item) => {
-            grid.appendChild(createWritingSampleCard(item));
-          });
+          grid.className = "resource-hub-grid";
+          grid.appendChild(createCatalogCard({
+            kicker: "Sample library",
+            title: "Writing Task 1 Samples",
+            copy: "All available Task 1 prompts with sample answers, band explanations, and corrected forms.",
+            meta: ["Past prompts", "Future prompts", "Band guidance"],
+            primaryLabel: "Open Task 1 library",
+            onPrimary: () => openResourceHub("writingSamplesTask1"),
+          }));
+          grid.appendChild(createCatalogCard({
+            kicker: "Sample library",
+            title: "Writing Task 2 Samples",
+            copy: "All available Task 2 prompts with sample answers, band explanations, and corrected forms.",
+            meta: ["Past prompts", "Future prompts", "Band guidance"],
+            primaryLabel: "Open Task 2 library",
+            onPrimary: () => openResourceHub("writingSamplesTask2"),
+          }));
           return grid;
         });
         addSection("writing-tips", "Writing tips", "General writing guidance plus separate reminders for Task 1 and Task 2.", () => renderStaticTips([
@@ -1576,6 +1616,20 @@
             "If your conclusion says something new, rewrite it to summarize your real position instead."
           ], "Review"),
         ]));
+      }
+
+      if (kind === "writingSamplesTask1") {
+        resourceHubBadge.textContent = "Writing sample library";
+        resourceHubTitle.textContent = "Writing Task 1 sample answers";
+        resourceHubSubtitle.textContent = "Browse all available Task 1 prompts with a band score, explanation, sample answer, and corrected form.";
+        addSection("writing-task1-sample-library", "Task 1 sample library", "Every current and future Task 1 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task1"));
+      }
+
+      if (kind === "writingSamplesTask2") {
+        resourceHubBadge.textContent = "Writing sample library";
+        resourceHubTitle.textContent = "Writing Task 2 sample answers";
+        resourceHubSubtitle.textContent = "Browse all available Task 2 prompts with a band score, explanation, sample answer, and corrected form.";
+        addSection("writing-task2-sample-library", "Task 2 sample library", "Every current and future Task 2 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task2"));
       }
 
       if (kind === "speaking") {

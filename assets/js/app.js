@@ -1044,7 +1044,7 @@
       const trigger = document.createElement("button");
       trigger.type = "button";
       trigger.className = "home-skill-trigger";
-      trigger.innerHTML = `<span><small>${menu.kicker}</small>${menu.label}</span><i>▾</i>`;
+      trigger.innerHTML = `<span>${menu.label}</span><i>▾</i>`;
 
       const dropdown = document.createElement("div");
       dropdown.className = "home-skill-dropdown hidden";
@@ -1053,7 +1053,7 @@
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "home-skill-item";
-        btn.innerHTML = `<strong>${item.label}</strong><span>${item.copy}</span>`;
+        btn.textContent = item.label;
         btn.addEventListener("click", () => {
           dropdown.classList.add("hidden");
           item.onClick();

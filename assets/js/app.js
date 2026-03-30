@@ -1016,6 +1016,74 @@
       return card;
     }
 
+    function appendEssayParagraphs(root, text) {
+      String(text || "")
+        .split(/\n\s*\n/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .forEach((part) => {
+          const p = document.createElement("p");
+          p.textContent = part;
+          root.appendChild(p);
+        });
+    }
+
+    function createWritingSampleCard(entry) {
+      const card = document.createElement("article");
+      card.className = "writing-sample-card";
+
+      const top = document.createElement("div");
+      top.className = "writing-sample-top";
+
+      const kicker = document.createElement("div");
+      kicker.className = "sample-band-pill";
+      kicker.textContent = entry.taskLabel;
+
+      const band = document.createElement("div");
+      band.className = "sample-band-pill writing-band-pill";
+      band.textContent = entry.bandScore;
+
+      top.appendChild(kicker);
+      top.appendChild(band);
+      card.appendChild(top);
+
+      const title = document.createElement("h3");
+      title.textContent = entry.title;
+      card.appendChild(title);
+
+      const prompt = document.createElement("div");
+      prompt.className = "writing-sample-prompt";
+      prompt.innerHTML = entry.promptHtml || "";
+      card.appendChild(prompt);
+
+      if (entry.imageSrc) {
+        const img = document.createElement("img");
+        img.className = "writing-sample-image";
+        img.src = entry.imageSrc;
+        img.alt = `${entry.title} prompt visual`;
+        card.appendChild(img);
+      }
+
+      const explanationWrap = document.createElement("div");
+      explanationWrap.className = "writing-sample-section";
+      explanationWrap.innerHTML = `<h4>Why this score</h4><p>${entry.explanation}</p>`;
+      card.appendChild(explanationWrap);
+
+      const sampleWrap = document.createElement("div");
+      sampleWrap.className = "writing-sample-section";
+      sampleWrap.innerHTML = "<h4>Sample answer</h4>";
+      appendEssayParagraphs(sampleWrap, entry.sampleAnswer);
+      card.appendChild(sampleWrap);
+
+      const correctedWrap = document.createElement("div");
+      correctedWrap.className = "writing-sample-section";
+      correctedWrap.innerHTML = "<h4>Corrected form</h4>";
+      appendEssayParagraphs(correctedWrap, entry.correctedForm);
+      card.appendChild(correctedWrap);
+
+      return card;
+    }
+
     function buildHubSection(id, label, copy, nodeBuilder) {
       const section = document.createElement("section");
       section.className = "resource-hub-section";
@@ -1438,12 +1506,14 @@
           });
           return grid;
         });
-        addSection("writing-samples", "Sample answers by bandscore", "Use these as teaching anchors for what changes from one band level to the next.", () => renderStaticTips([
-          createNoteCard("Band 5.0 sample hallmarks", ["Basic structure is visible, but ideas may stay underdeveloped and linking can feel repetitive."], "Band 5.0"),
-          createNoteCard("Band 6.0 sample hallmarks", ["Clearer organization, more stable grammar control, but precision and depth still need work."], "Band 6.0"),
-          createNoteCard("Band 7.0 sample hallmarks", ["Good response to the task, stronger cohesion, and more flexible vocabulary with fewer slips."], "Band 7.0"),
-          createNoteCard("Band 8.0 sample hallmarks", ["Well-controlled structure, concise support, accurate tone, and strong grammar range."], "Band 8.0"),
-        ]));
+        addSection("writing-samples", "Sample answers by bandscore", "Every uploaded writing prompt can appear here with a model answer, score explanation, and corrected version.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-list writing-sample-list";
+          (R()?.buildWritingSampleCatalog?.() || catalog.writingSamples || []).forEach((item) => {
+            grid.appendChild(createWritingSampleCard(item));
+          });
+          return grid;
+        });
         addSection("writing-tips", "Writing tips", "General writing guidance plus separate reminders for Task 1 and Task 2.", () => renderStaticTips([
           createNoteCard("Plan before you write", [
             "Spend a few minutes deciding your structure before you begin typing.",

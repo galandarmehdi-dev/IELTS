@@ -805,6 +805,68 @@
   text-transform:uppercase;
   letter-spacing:.08em;
 }
+.writing-sample-list{
+  display:grid;
+  gap:18px;
+}
+.writing-sample-card{
+  border-radius:26px;
+  padding:22px;
+  background:rgba(255,253,249,.98);
+  border:1px solid rgba(255,255,255,.82);
+  box-shadow:0 20px 48px rgba(18,26,36,.08);
+}
+.writing-sample-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
+.writing-band-pill{
+  background:rgba(23,50,77,.08);
+  color:var(--navy);
+}
+.writing-sample-card h3{
+  margin:0 0 12px;
+  color:var(--ink);
+  font-size:24px;
+}
+.writing-sample-prompt{
+  border-radius:18px;
+  padding:16px 18px;
+  background:rgba(243,239,232,.68);
+  border:1px solid rgba(18,26,36,.06);
+  color:var(--text);
+  line-height:1.7;
+}
+.writing-sample-prompt b{
+  color:var(--ink);
+}
+.writing-sample-image{
+  display:block;
+  width:min(100%, 520px);
+  margin:14px 0 0;
+  border-radius:18px;
+  border:1px solid rgba(18,26,36,.08);
+  box-shadow:0 12px 30px rgba(18,26,36,.08);
+}
+.writing-sample-section{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid rgba(18,26,36,.08);
+}
+.writing-sample-section h4{
+  margin:0 0 10px;
+  color:var(--ink);
+  font-size:18px;
+}
+.writing-sample-section p{
+  margin:0 0 10px;
+  color:var(--muted);
+  line-height:1.75;
+}
 .home-premium-band,
 .home-testimonials,
 .home-faq{

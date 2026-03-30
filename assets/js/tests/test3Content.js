@@ -175,7 +175,53 @@ Summarise the information by selecting and reporting the main features, and make
 Today more people put their private information (address, telephone and plastic card numbers) online to do their daily activities (banking, shopping, socializing).<br>
 <b>Is it a positive or negative development?</b><br>
 Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
-<b>Write at least 250 words.</b>`
+<b>Write at least 250 words.</b>`,
+      sampleAnswers: {
+        task1: {
+          bandScore: "Band 6.5",
+          explanation: "This report gives an overall picture and makes comparisons, but it stays slightly general because the visual details are summarised more broadly than in a stronger Band 7+ answer. The structure is clear and the language is mostly accurate.",
+          sampleAnswer: `The pie charts compare the distribution of the world's forests across five regions.
+
+Overall, the world's forest resources were not shared equally. Two regions accounted for the largest proportions, whereas the remaining areas made up noticeably smaller shares of the total.
+
+Europe represented the biggest segment of global forest area, while South America also occupied a substantial proportion. North America formed another important share, although it was smaller than the first two regions. By contrast, Asia and Africa contributed much smaller percentages overall, with Africa appearing to have the smallest share among the five regions.
+
+The charts therefore suggest that the majority of the world's forests were concentrated in a limited number of regions rather than being spread evenly across the globe. The gap between the largest and smallest categories is clearly significant.
+
+In summary, Europe and South America dominated the global distribution of forests, North America occupied a moderate proportion, and the smallest shares belonged to Asia and Africa.`,
+          correctedForm: `The pie charts illustrate how the world's forests are distributed among five regions.
+
+Overall, forest resources are unevenly spread, with the largest proportions concentrated in Europe and South America, while Asia and Africa account for noticeably smaller shares.
+
+Europe makes up the biggest segment of the total, and South America is also responsible for a considerable proportion. North America contributes a moderate share in comparison with these two regions. By contrast, Asia represents a smaller part of the global total, and Africa has the smallest proportion among the five regions shown.
+
+Taken together, the charts indicate that a large percentage of the world's forests is concentrated in just a few areas, whereas the remaining regions hold much less.
+
+In short, Europe and South America dominate the global picture, North America occupies a middle position, and Asia and Africa account for the smallest proportions.`
+        },
+        task2: {
+          bandScore: "Band 7.5",
+          explanation: "This response presents a clear position, weighs benefits against risks, and keeps the argument focused. It reaches Band 7.5 because the ideas are well organized and supported, although a few points could be expanded further for an even stronger high-band essay.",
+          sampleAnswer: `More people now share private information online in order to shop, bank and communicate more conveniently. In my view, this is both a useful and an unavoidable development, but overall it is negative because the risks to privacy and security are too serious.
+
+On the positive side, putting information online has made daily life faster and more efficient. People can transfer money, buy goods and keep in contact with others without visiting banks or shops in person. This saves time and often reduces cost. For many users, online systems are also more convenient because services are available at any hour.
+
+However, the disadvantages are more significant. Once personal data is stored online, it can be stolen, misused or sold without the user's knowledge. Cybercrime, identity theft and online fraud have become common problems, and even large companies are not always able to protect customer information completely. A single data leak can expose addresses, telephone numbers and bank details to criminals.
+
+Another concern is that many people do not fully understand how much information they are giving away. Some users accept terms and conditions without reading them, while others share personal details too freely on social media. This creates long-term privacy risks that are difficult to reverse.
+
+In conclusion, although online services make modern life easier, I believe that putting private information online is a negative development overall. The convenience is real, but the potential harm to privacy and personal security is greater.`,
+          correctedForm: `Today, many people provide personal information online in order to carry out everyday activities such as banking, shopping and socialising. Although this trend offers clear convenience, I believe it is a negative development overall because it exposes individuals to serious privacy and security risks.
+
+There are obvious benefits to storing and using information online. Digital services save time, allow instant transactions and make communication easier. People can shop from home, pay bills quickly and stay connected across long distances. In that sense, online access has made daily life far more efficient.
+
+Nevertheless, the main drawback is the danger of misuse. Personal data can be hacked, leaked or exploited by companies and criminals. Identity theft, financial fraud and privacy breaches have become increasingly common, and even well-known organisations are vulnerable to cyberattacks.
+
+In addition, many users are unaware of how widely their information may be shared. They may agree to weak privacy settings or disclose too much on social platforms without considering the long-term consequences.
+
+In conclusion, while putting private information online is convenient and often practical, it is ultimately a negative development because the threats to privacy and security outweigh the benefits.`
+        }
+      }
     },
     reading: {
       parts: [

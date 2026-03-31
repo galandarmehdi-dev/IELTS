@@ -126,7 +126,6 @@ function buildWritingSamplesFromSheet(csvText) {
   if (!rows.length) return [];
 
   const samples = [];
-  let currentStudent = "";
   rows.forEach((row) => {
     const cols = Array.isArray(row) ? row : [];
     const col0 = String(cols[0] || "").trim();
@@ -135,17 +134,14 @@ function buildWritingSamplesFromSheet(csvText) {
     const col3 = String(cols[3] || "").trim();
     const col5 = String(cols[5] || "").trim();
 
-    if (col1 === "Name") {
-      currentStudent = col0;
-      return;
-    }
+    if (col1 === "Name") return;
 
     if (col2 !== "Task 1" && col2 !== "Task 2") return;
 
     samples.push({
       promptKey: normalizePromptKey(col1),
       taskKey: col2 === "Task 1" ? "task1" : "task2",
-      label: formatSampleLabel(currentStudent, col3),
+      label: formatSampleLabel(col3),
       bandScore: formatBand(col3),
       explanation: plainText(col5 || "Stored student essay from the writing sheet."),
       sampleAnswer: col0,
@@ -222,28 +218,12 @@ function formatBand(value) {
   return /^band\s+/i.test(text) ? text : `Band ${text}`;
 }
 
-function formatSampleLabel(studentName, band) {
-  const parts = [];
-  if (String(studentName || "").trim()) parts.push(String(studentName).trim());
-  parts.push(formatBand(band));
-  return parts.join(" · ");
-}
-
-function formatDateLabel(value) {
-  const date = new Date(value || "");
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
+function formatSampleLabel(band) {
+  return `${formatBand(band)} sample`;
 }
 
 function plainText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
-}
-
-function formatSampleLabelLegacy(band, submittedAt) {
-  const parts = [formatBand(band)];
-  const stamp = formatDateLabel(submittedAt);
-  if (stamp) parts.push(stamp);
-  return parts.join(" · ");
 }
 
 function json(status, payload) {

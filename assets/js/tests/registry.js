@@ -317,7 +317,11 @@
   }
 
   function inferTask1Topic(promptText) {
-    const text = String(promptText || "").replace(/\s+/g, " ").trim();
+    const text = String(promptText || "")
+      .replace(/^you should spend about \d+ minutes on this task\.?\s*/i, "")
+      .replace(/write at least \d+ words\.?/ig, "")
+      .replace(/\s+/g, " ")
+      .trim();
     const patterns = [
       /(?:give information|provides information|show|shows|compare|compares|illustrate|illustrates)\s+about\s+(.+?)(?:,|\s+between\b|\s+for\b|\.)/i,
       /(?:give information|provides information|show|shows|compare|compares|illustrate|illustrates)\s+the\s+(.+?)(?:,|\s+between\b|\s+for\b|\.)/i,
@@ -345,7 +349,11 @@
   }
 
   function inferTask2Topic(promptText) {
-    const text = String(promptText || "").replace(/\s+/g, " ").trim();
+    const text = String(promptText || "")
+      .replace(/^you should spend about \d+ minutes on this task\.?\s*/i, "")
+      .replace(/write at least \d+ words\.?/ig, "")
+      .replace(/\s+/g, " ")
+      .trim();
     const firstSentence = text.split(/[.?!]/)[0] || "";
     const lowered = firstSentence.toLowerCase();
     const judgedMatch = firstSentence.match(/judged according to\s+(.+)$/i);

@@ -270,6 +270,19 @@
     }
   }
 
+  function normalizePromptKey(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/task\s*[12]\s*/g, " ")
+      .replace(/you should spend about \d+ minutes on this task\.?/g, " ")
+      .replace(/write at least \d+ words\.?/g, " ")
+      .replace(/graph url:\s*\S+/g, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/[^\w\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
   function toHeadlineCase(value) {
     return String(value || "")
       .toLowerCase()
@@ -490,6 +503,7 @@
           const taskLabel = taskKey === "task1" ? "Task 1" : "Task 2";
           const promptHtml = writing[`${taskKey}Html`] || "";
           const promptText = stripHtmlToText(promptHtml);
+          const promptKey = normalizePromptKey(promptText);
           const groupType = taskKey === "task1"
             ? inferTask1ChartType(promptText, writing.task1ImageSrc, writing.task1Type)
             : inferTask2EssayType(promptText, writing.task2Type);
@@ -498,7 +512,7 @@
             : inferTask2Topic(promptText);
           const promptId = `${cfg.id}-${taskKey}`;
           const sampleItems = normalizeWritingSamples(samples[taskKey], taskLabel)
-            .concat(normalizeWritingSamples((extraSamplesByPrompt || {})[promptId], `${taskLabel} student`));
+            .concat(normalizeWritingSamples((extraSamplesByPrompt || {})[promptKey], `${taskLabel} student`));
           return {
             id: promptId,
             testId: cfg.id,
@@ -507,6 +521,7 @@
             title: `${groupType} - ${topic}`,
             shortTitle: `${groupType} - ${topic}`,
             sourceTitle: `${getTestLabel(cfg.id)} · ${taskLabel}`,
+            promptKey,
             groupType,
             topic,
             promptHtml,
@@ -581,6 +596,7 @@
     READING_TASK_TYPES,
     buildHomeCatalog,
     buildWritingSampleCatalog,
+    normalizePromptKey,
     buildReadingPracticeContent,
     buildAdminApiUrl,
   };

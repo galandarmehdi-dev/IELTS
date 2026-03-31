@@ -1106,10 +1106,9 @@
     function groupStoredWritingSamples(rows) {
       const map = {};
       (rows || []).forEach((row) => {
-        const testId = String(row?.testId || "").trim();
-        const taskKey = String(row?.taskKey || "").trim();
-        if (!testId || !taskKey) return;
-        const key = `${testId}-${taskKey}`;
+        const promptKey = String(row?.promptKey || "").trim();
+        if (!promptKey) return;
+        const key = promptKey;
         if (!map[key]) map[key] = [];
         map[key].push({
           label: row.label || "Student sample",

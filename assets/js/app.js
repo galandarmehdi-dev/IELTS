@@ -55,6 +55,21 @@
     return !ctx || ctx.mode === "full";
   }
 
+  function hasActiveExamLaunch() {
+    const started = S()?.get?.(R()?.KEYS?.EXAM_STARTED, "false") === "true";
+    const ctx = getLaunchContext();
+    return started || !!(ctx && typeof ctx === "object");
+  }
+
+  function resetToPublicHomeFromStaleRoute() {
+    try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
+    try { UI().setExamStarted(false); } catch (e) {}
+    try { R()?.clearLaunchContext?.(); } catch (e) {}
+    try { UI().showOnly("home"); } catch (e) {}
+    try { UI().updateHomeStatusLine("Status: Ready"); } catch (e) {}
+    try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+  }
+
 
 
   // Start engine method when split bundles load out-of-order.
@@ -633,6 +648,14 @@
     let pendingResourceHubKind = null;
     const route = Router().parseHashRoute();
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
+    if (
+      route &&
+      ["listening", "reading", "writing"].includes(String(route.view || "")) &&
+      !hasActiveExamLaunch()
+    ) {
+      resetToPublicHomeFromStaleRoute();
+      return;
+    }
     if (isAdminView() && route && route.view) {
       if (route.view === "listening") {
         UI().setExamStarted(true);

@@ -166,6 +166,8 @@
       `
     },
     writing: {
+      task1Type: "Pie chart",
+      task2Type: "Positive or negative development",
       task1Html: `You should spend about 20 minutes on this task.<br>
 The pie charts give information about the world's forest in five different regions.<br>
 Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>

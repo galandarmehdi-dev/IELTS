@@ -10,6 +10,7 @@
   
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
+  const writingSampleCache = { rows: null, promise: null };
 
   async function getAuthHeaders() {
     try {
@@ -1070,10 +1071,55 @@
       const correctedWrap = document.createElement("div");
       correctedWrap.className = "writing-sample-section";
       correctedWrap.innerHTML = "<h4>Corrected form</h4>";
-      appendEssayParagraphs(correctedWrap, sample.correctedForm);
+      appendEssayParagraphs(correctedWrap, sample.correctedForm || "No stored corrected rewrite is available for this essay yet.");
       response.appendChild(correctedWrap);
 
       return response;
+    }
+
+    async function fetchStoredWritingSamples() {
+      if (Array.isArray(writingSampleCache.rows)) return writingSampleCache.rows.slice();
+      if (writingSampleCache.promise) return writingSampleCache.promise;
+
+      writingSampleCache.promise = (async () => {
+        const url = R()?.buildAdminApiUrl?.({ action: "writingSamples", t: Date.now() });
+        if (!url) return [];
+
+        const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.ok !== true || !Array.isArray(data.samples)) {
+          throw new Error((data && data.error) || "Could not load stored writing samples.");
+        }
+
+        writingSampleCache.rows = data.samples.slice();
+        writingSampleCache.promise = null;
+        return data.samples.slice();
+      })().catch((err) => {
+        writingSampleCache.promise = null;
+        console.error("Writing sample sync failed:", err);
+        return [];
+      });
+
+      return writingSampleCache.promise;
+    }
+
+    function groupStoredWritingSamples(rows) {
+      const map = {};
+      (rows || []).forEach((row) => {
+        const testId = String(row?.testId || "").trim();
+        const taskKey = String(row?.taskKey || "").trim();
+        if (!testId || !taskKey) return;
+        const key = `${testId}-${taskKey}`;
+        if (!map[key]) map[key] = [];
+        map[key].push({
+          label: row.label || "Student sample",
+          bandScore: row.bandScore || "Student sample",
+          explanation: row.explanation || "Stored student essay from a past submission.",
+          sampleAnswer: row.sampleAnswer || "",
+          correctedForm: row.correctedForm || "",
+        });
+      });
+      return map;
     }
 
     function createWritingSampleCard(entry) {
@@ -1180,44 +1226,59 @@
     function renderWritingSampleLibrary(taskKey) {
       const wrap = document.createElement("div");
       wrap.className = "resource-hub-list writing-sample-list";
-      const items = (R()?.buildWritingSampleCatalog?.() || [])
-        .filter((item) => item.taskKey === taskKey);
+      wrap.innerHTML = '<div class="home-catalog-empty">Loading stored essays and model answers...</div>';
 
-      if (!items.length) {
-        const empty = document.createElement("div");
-        empty.className = "home-catalog-empty";
-        empty.textContent = "No sample answers are available for this task yet.";
-        wrap.appendChild(empty);
-        return wrap;
-      }
+      const renderItems = (items) => {
+        wrap.innerHTML = "";
+        if (!items.length) {
+          const empty = document.createElement("div");
+          empty.className = "home-catalog-empty";
+          empty.textContent = "No sample answers are available for this task yet.";
+          wrap.appendChild(empty);
+          return;
+        }
 
-      const groups = {};
-      items.forEach((item) => {
-        const key = item.groupType || "Other";
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(item);
-      });
+        const groups = {};
+        items.forEach((item) => {
+          const key = item.groupType || "Other";
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(item);
+        });
 
-      Object.keys(groups)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach((groupLabel) => {
-          const section = document.createElement("section");
-          section.className = "writing-sample-group";
+        Object.keys(groups)
+          .sort((a, b) => a.localeCompare(b))
+          .forEach((groupLabel) => {
+            const section = document.createElement("section");
+            section.className = "writing-sample-group";
 
-          const head = document.createElement("div");
-          head.className = "writing-sample-group-head";
-          head.innerHTML = `<h3>${groupLabel}</h3><p>${groups[groupLabel].length} prompt${groups[groupLabel].length === 1 ? "" : "s"}</p>`;
-          section.appendChild(head);
+            const head = document.createElement("div");
+            head.className = "writing-sample-group-head";
+            head.innerHTML = `<h3>${groupLabel}</h3><p>${groups[groupLabel].length} prompt${groups[groupLabel].length === 1 ? "" : "s"}</p>`;
+            section.appendChild(head);
 
-          const list = document.createElement("div");
-          list.className = "writing-sample-group-list";
+            const list = document.createElement("div");
+            list.className = "writing-sample-group-list";
 
-          groups[groupLabel]
-            .sort((a, b) => String(a.shortTitle || a.title).localeCompare(String(b.shortTitle || b.title)))
-            .forEach((item) => list.appendChild(createWritingSampleAccordion(item)));
+            groups[groupLabel]
+              .sort((a, b) => String(a.shortTitle || a.title).localeCompare(String(b.shortTitle || b.title)))
+              .forEach((item) => list.appendChild(createWritingSampleAccordion(item)));
 
-          section.appendChild(list);
-          wrap.appendChild(section);
+            section.appendChild(list);
+            wrap.appendChild(section);
+          });
+      };
+
+      Promise.resolve()
+        .then(fetchStoredWritingSamples)
+        .then((rows) => {
+          const items = (R()?.buildWritingSampleCatalog?.(groupStoredWritingSamples(rows)) || [])
+            .filter((item) => item.taskKey === taskKey);
+          renderItems(items);
+        })
+        .catch(() => {
+          const items = (R()?.buildWritingSampleCatalog?.() || [])
+            .filter((item) => item.taskKey === taskKey);
+          renderItems(items);
         });
 
       return wrap;

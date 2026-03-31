@@ -286,15 +286,17 @@
     return cleaned ? toHeadlineCase(cleaned) : fallback;
   }
 
-  function inferTask1ChartType(promptText) {
+  function inferTask1ChartType(promptText, imageSrc, configuredType) {
+    if (String(configuredType || "").trim()) return String(configuredType).trim();
     const raw = String(promptText || "").toLowerCase();
+    const image = String(imageSrc || "").toLowerCase();
     const hits = [];
-    if (/\bbar charts?\b|\bbar graphs?\b/.test(raw)) hits.push("Bar chart");
-    if (/\bpie charts?\b/.test(raw)) hits.push("Pie chart");
-    if (/\bline graphs?\b|\bline charts?\b/.test(raw)) hits.push("Line graph");
-    if (/\btables?\b/.test(raw)) hits.push("Table");
-    if (/\bmaps?\b/.test(raw)) hits.push("Map");
-    if (/\bprocess\b|\bflow charts?\b|\bdiagram\b/.test(raw)) hits.push("Process diagram");
+    if (/\bbar charts?\b|\bbar graphs?\b/.test(raw) || /bar[-_ ]graph|bar[-_ ]chart/.test(image)) hits.push("Bar chart");
+    if (/\bpie charts?\b/.test(raw) || /pie[-_ ]chart/.test(image)) hits.push("Pie chart");
+    if (/\bline graphs?\b|\bline charts?\b/.test(raw) || /line[-_ ]graph|line[-_ ]chart/.test(image)) hits.push("Line graph");
+    if (/\btables?\b/.test(raw) || /table/.test(image)) hits.push("Table");
+    if (/\bmaps?\b/.test(raw) || /map/.test(image)) hits.push("Map");
+    if (/\bprocess\b|\bflow charts?\b|\bdiagram\b/.test(raw) || /process|diagram|flow[-_ ]chart/.test(image)) hits.push("Process diagram");
     if (hits.length > 1) return "Mixed chart";
     if (hits.length === 1) return hits[0];
     if (/\bgraphs?\b|\bcharts?\b/.test(raw)) return "Chart";
@@ -316,7 +318,8 @@
     return normalizeWritingTopic(firstSentence, "Writing Task 1 prompt");
   }
 
-  function inferTask2EssayType(promptText) {
+  function inferTask2EssayType(promptText, configuredType) {
+    if (String(configuredType || "").trim()) return String(configuredType).trim();
     const raw = String(promptText || "").toLowerCase();
     if (/discuss both views/i.test(raw)) return "Discussion essay";
     if (/agree or disagree|to what extent/i.test(raw)) return "Opinion essay";
@@ -477,7 +480,7 @@
     };
   }
 
-  function buildWritingSampleCatalog() {
+  function buildWritingSampleCatalog(extraSamplesByPrompt) {
     return Object.values(TESTS.byId)
       .filter((cfg) => cfg?.content?.writing)
       .flatMap((cfg) => {
@@ -488,14 +491,16 @@
           const promptHtml = writing[`${taskKey}Html`] || "";
           const promptText = stripHtmlToText(promptHtml);
           const groupType = taskKey === "task1"
-            ? inferTask1ChartType(promptText)
-            : inferTask2EssayType(promptText);
+            ? inferTask1ChartType(promptText, writing.task1ImageSrc, writing.task1Type)
+            : inferTask2EssayType(promptText, writing.task2Type);
           const topic = taskKey === "task1"
             ? inferTask1Topic(promptText)
             : inferTask2Topic(promptText);
-          const sampleItems = normalizeWritingSamples(samples[taskKey], taskLabel);
+          const promptId = `${cfg.id}-${taskKey}`;
+          const sampleItems = normalizeWritingSamples(samples[taskKey], taskLabel)
+            .concat(normalizeWritingSamples((extraSamplesByPrompt || {})[promptId], `${taskLabel} student`));
           return {
-            id: `${cfg.id}-${taskKey}`,
+            id: promptId,
             testId: cfg.id,
             taskKey,
             taskLabel,

@@ -215,6 +215,8 @@
       `
     },
     writing: {
+      task1Type: "Line graph",
+      task2Type: "Discussion essay",
       task1Html: `You should spend about 20 minutes on this task.<br>
 The graph below shows the proportion of four different materials that were recycled from 1982 to 2010 in a particular country.<br>
 Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>

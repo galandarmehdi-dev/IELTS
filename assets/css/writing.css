@@ -23,18 +23,7 @@
   overflow:hidden;
 }
 .writing-top{
-  position:sticky;
-  top:var(--exam-nav-h, 64px);
-  z-index:1000;
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:18px;
-  padding:18px 22px;
-  background:rgba(255,251,246,.88);
-  backdrop-filter:blur(16px);
-  border-bottom:1px solid rgba(18,26,36,.08);
-  box-shadow:0 10px 24px rgba(18,26,36,.05);
+  display:none;
 }
 .writing-title{
   margin:0;
@@ -114,13 +103,18 @@
   background:rgba(255,253,249,.76);
   padding:12px;
   margin:10px 0 14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .writing-graph img{
   display:block;
-  width:100%;
-  max-width:none;
+  width:auto;
+  max-width:100%;
+  max-height:min(68vh, 760px);
   height:auto;
   border-radius:14px;
+  margin:0 auto;
 }
 .writing-label{
   display:block;

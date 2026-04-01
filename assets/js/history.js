@@ -313,7 +313,7 @@
       let rows = await loadRows();
       const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
       if (backendResults.length) {
-        const byKey = new Map(backendResults.map((result) => [buildMatchKey(result), result]));
+        const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
         rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
       }
       state.rows = rows;
@@ -332,7 +332,7 @@
         rows = await loadRows();
         const backendResultsAfter = await fetchStudentResultsForRows(rows).catch(() => []);
         if (backendResultsAfter.length) {
-          const byKey = new Map(backendResultsAfter.map((result) => [buildMatchKey(result), result]));
+          const byKey = new Map(backendResultsAfter.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
           rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
         }
         state.rows = rows;

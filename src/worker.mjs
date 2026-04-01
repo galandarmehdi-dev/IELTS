@@ -135,8 +135,16 @@ async function handleAdminApi(request, env) {
       return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
     }
 
-    const wanted = new Set(rows.map((row) => buildResultMatchKey(row)));
-    const matches = data.results.filter((row) => wanted.has(buildResultMatchKey(row)));
+    const matches = rows
+      .map((row) => {
+        const match = matchStudentResultRow(row, data.results);
+        if (!match) return null;
+        return {
+          requestedKey: buildResultMatchKey(row),
+          result: match,
+        };
+      })
+      .filter(Boolean);
     return json(200, { ok: true, results: matches });
   }
 
@@ -327,6 +335,50 @@ function buildResultMatchKey(row) {
     normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id),
     normalizeMatchString(row?.reason),
   ].join("::");
+}
+
+function toTimestamp(value) {
+  const ts = Date.parse(String(value || ""));
+  return Number.isFinite(ts) ? ts : NaN;
+}
+
+function matchStudentResultRow(requestedRow, results) {
+  const wantedExam = normalizeMatchString(requestedRow?.examId || requestedRow?.exam_id || requestedRow?.active_test_id);
+  const wantedName = normalizeMatchString(requestedRow?.studentFullName || requestedRow?.student_full_name);
+  const wantedReason = normalizeMatchString(requestedRow?.reason);
+  const wantedTs = toTimestamp(requestedRow?.submittedAt || requestedRow?.submitted_at);
+
+  const exact = results.find((row) => buildResultMatchKey(row) === buildResultMatchKey(requestedRow));
+  if (exact) return exact;
+
+  const filtered = results.filter((row) => {
+    const exam = normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id);
+    const name = normalizeMatchString(row?.studentFullName || row?.student_full_name);
+    return exam === wantedExam && name === wantedName;
+  });
+  if (!filtered.length) return null;
+
+  const withReason = wantedReason
+    ? filtered.filter((row) => normalizeMatchString(row?.reason) === wantedReason)
+    : filtered;
+  const pool = withReason.length ? withReason : filtered;
+
+  if (!Number.isFinite(wantedTs)) return pool[0];
+
+  let best = null;
+  let bestDelta = Number.POSITIVE_INFINITY;
+  for (const row of pool) {
+    const ts = toTimestamp(row?.submittedAt || row?.submitted_at);
+    if (!Number.isFinite(ts)) continue;
+    const delta = Math.abs(ts - wantedTs);
+    if (delta < bestDelta) {
+      best = row;
+      bestDelta = delta;
+    }
+  }
+
+  if (best && bestDelta <= 1000 * 60 * 60 * 12) return best;
+  return pool[0] || null;
 }
 
 function oneLine(value) {

@@ -10,6 +10,15 @@
     "directory": ".",
     "binding": "ASSETS"
   },
+  "send_email": [
+    {
+      "name": "CONTACT_EMAIL",
+      "destination_address": "info@ieltsmock.org",
+      "allowed_sender_addresses": [
+        "no-reply@ieltsmock.org"
+      ]
+    }
+  ],
   "vars": {
     "ADMIN_BACKEND_URL": "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec",
     "SUPABASE_URL": "https://bgujwyknnszwborgbkxq.supabase.co",

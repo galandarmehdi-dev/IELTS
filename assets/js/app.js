@@ -70,6 +70,59 @@
     try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
   }
 
+  function isEditableTarget(target) {
+    if (!target || typeof target.closest !== "function") return false;
+    return !!target.closest('input, textarea, select, [contenteditable="true"]');
+  }
+
+  function installAntiCheatGuards() {
+    if (window.__IELTS_ANTI_CHEAT_GUARDS__) return;
+    window.__IELTS_ANTI_CHEAT_GUARDS__ = true;
+
+    document.addEventListener(
+      "contextmenu",
+      (event) => {
+        event.preventDefault();
+      },
+      true
+    );
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        const key = String(event.key || "").toLowerCase();
+        const cmdOrCtrl = !!(event.ctrlKey || event.metaKey);
+        const shift = !!event.shiftKey;
+
+        const blockedCombos =
+          (cmdOrCtrl && (key === "f" || key === "p" || key === "s" || key === "u")) ||
+          (cmdOrCtrl && shift && (key === "i" || key === "j" || key === "c")) ||
+          key === "f12" ||
+          key === "f3";
+
+        if (!blockedCombos) return;
+
+        if (isEditableTarget(event.target) && cmdOrCtrl && key === "s") {
+          // Save is harmless inside text inputs on some platforms; let browser/editor behavior pass through.
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+          if (blockedCombos && !window.__IELTS_SHORTCUT_WARNED__) {
+            window.__IELTS_SHORTCUT_WARNED__ = true;
+            window.setTimeout(() => {
+              window.__IELTS_SHORTCUT_WARNED__ = false;
+            }, 2500);
+          }
+        } catch (e) {}
+      },
+      true
+    );
+  }
+
 
 
   // Start engine method when split bundles load out-of-order.
@@ -102,6 +155,8 @@
   }
 
   document.addEventListener("partials:loaded", () => {
+    installAntiCheatGuards();
+
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {
       window.IELTS.Modal.bindModalOnce();

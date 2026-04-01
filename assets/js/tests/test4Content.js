@@ -125,7 +125,7 @@
               <div class="listen-card-title">Questions 17–20</div>
               <div class="listen-inst">Label the map below. Write the correct letter, <b>A–F</b>, next to Questions 17–20.</div>
               <div class="img-wrap" style="background:#fff;border:1px solid #d7dce5;border-radius:14px;padding:12px;margin-bottom:14px;">
-                <img src="https://practicepteonline.com/wp-content/uploads/2024/09/lis-test87.png" alt="Map of Anglia Sculpture Park" style="width:100%;height:auto;display:block;border-radius:10px;">
+                <img src="https://practicepteonline.com/wp-content/uploads/2024/09/lis-test87.png" alt="Map of Anglia Sculpture Park" style="width:auto;max-width:100%;max-height:420px;height:auto;display:block;margin:0 auto;border-radius:10px;">
               </div>
               <div class="note-row"><span class="qnum">17</span> Joe Tremain sculptures <input data-lq="17" class="l-input tiny"></div>
               <div class="note-row"><span class="qnum">18</span> Giorgio Catalucci bird sculptures <input data-lq="18" class="l-input tiny"></div>

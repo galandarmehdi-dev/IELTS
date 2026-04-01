@@ -64,6 +64,31 @@ body button{
   font:inherit;
 }
 
+body.exam-guard #listeningSection,
+body.exam-guard #readingControls,
+body.exam-guard #container,
+body.exam-guard #writingSection,
+body.exam-guard #speakingSection{
+  -webkit-touch-callout:none;
+}
+
+body.exam-guard #listeningSection :not(input):not(textarea):not(select):not(button),
+body.exam-guard #readingControls :not(input):not(textarea):not(select):not(button),
+body.exam-guard #container :not(input):not(textarea):not(select):not(button),
+body.exam-guard #writingSection :not(input):not(textarea):not(select):not(button),
+body.exam-guard #speakingSection :not(input):not(textarea):not(select):not(button){
+  -webkit-user-select:none;
+  user-select:none;
+}
+
+body.exam-guard #listeningSection img,
+body.exam-guard #container img,
+body.exam-guard #writingSection img,
+body.exam-guard #speakingSection img{
+  -webkit-user-drag:none;
+  pointer-events:none;
+}
+
 img{ max-width:100%; }
 a{ color:inherit; }
 pre{ font-family: inherit; }

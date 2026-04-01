@@ -74,6 +74,11 @@
     if (speaking) speaking.classList.toggle("hidden", !isSpeaking);
     if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
 
+    try {
+      document.body.dataset.activeView = view;
+      document.body.classList.toggle("exam-guard", isListening || isReading || isWriting || isSpeaking);
+    } catch (e) {}
+
     const showNav = isListening || isReading || isWriting || isAdminResults;
     showExamNav(showNav);
 

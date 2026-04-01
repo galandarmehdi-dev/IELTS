@@ -75,6 +75,14 @@
     return !!target.closest('input, textarea, select, [contenteditable="true"]');
   }
 
+  function isExamGuardActive() {
+    try {
+      return document.body?.classList?.contains("exam-guard") === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   function installAntiCheatGuards() {
     if (window.__IELTS_ANTI_CHEAT_GUARDS__) return;
     window.__IELTS_ANTI_CHEAT_GUARDS__ = true;
@@ -93,7 +101,6 @@
         const key = String(event.key || "").toLowerCase();
         const cmdOrCtrl = !!(event.ctrlKey || event.metaKey);
         const shift = !!event.shiftKey;
-
         const blockedCombos =
           (cmdOrCtrl && (key === "f" || key === "p" || key === "s" || key === "u")) ||
           (cmdOrCtrl && shift && (key === "i" || key === "j" || key === "c")) ||
@@ -103,7 +110,6 @@
         if (!blockedCombos) return;
 
         if (isEditableTarget(event.target) && cmdOrCtrl && key === "s") {
-          // Save is harmless inside text inputs on some platforms; let browser/editor behavior pass through.
           return;
         }
 
@@ -121,6 +127,19 @@
       },
       true
     );
+
+    const examOnlyBlock = (event) => {
+      if (!isExamGuardActive()) return;
+      if (isEditableTarget(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("copy", examOnlyBlock, true);
+    document.addEventListener("cut", examOnlyBlock, true);
+    document.addEventListener("dragstart", examOnlyBlock, true);
+    document.addEventListener("selectstart", examOnlyBlock, true);
+    document.addEventListener("dblclick", examOnlyBlock, true);
   }
 
 

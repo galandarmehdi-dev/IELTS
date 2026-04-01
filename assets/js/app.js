@@ -740,8 +740,7 @@
     const startBtnT3b = $("cardStartIelts3Btn");
     const footerStartTest1Btn = $("footerStartTest1Btn");
     const openDashboardBtn = $("openDashboardBtn");
-    const footerOpenDashboardBtn = $("footerOpenDashboardBtn");
-    const footerOpenHistoryBtn = $("footerOpenHistoryBtn");
+    const footerOpenContactBtn = $("footerOpenContactBtn");
     const homeAccountDropdown = $("homeAccountDropdown");
     const menuDashboardProfileBtn = $("menuDashboardProfileBtn");
     const menuDashboardSettingsBtn = $("menuDashboardSettingsBtn");
@@ -1561,13 +1560,6 @@
             { label: "Sample answers", copy: "Open speaking sample response guidance.", onClick: () => openResourceHub("speaking", "speaking-samples") },
           ],
         },
-        {
-          kicker: "Support",
-          label: "Contact",
-          items: [
-            { label: "Contact us", copy: "Open the support page and contact email.", onClick: () => openResourceHub("contact") },
-          ],
-        },
       ];
       menus.forEach((menu) => homeExploreMenus.appendChild(renderMenuGroup(menu)));
     }
@@ -2103,8 +2095,7 @@ function startFreshExam() {
       }
       toggleAccountMenu();
     };
-    if (footerOpenDashboardBtn) footerOpenDashboardBtn.onclick = () => requireSignedIn(() => window.IELTS?.Dashboard?.open?.(), "Please log in to open your dashboard.");
-    if (footerOpenHistoryBtn) footerOpenHistoryBtn.onclick = () => openHistoryFromMenu();
+    if (footerOpenContactBtn) footerOpenContactBtn.onclick = () => openResourceHub("contact");
     if (menuDashboardProfileBtn) menuDashboardProfileBtn.onclick = () => { closeAccountMenu(); requireSignedIn(() => window.IELTS?.Dashboard?.openTab?.("overview"), "Please log in to open your profile."); };
     if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); requireSignedIn(() => window.IELTS?.Dashboard?.openTab?.("settings"), "Please log in to open your settings."); };
     if (menuHistoryBtn) menuHistoryBtn.onclick = () => openHistoryFromMenu();
@@ -2205,10 +2196,6 @@ function startFreshExam() {
           }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {
             safeCall('IELTS.History.openHistory');
-            return;
-          }
-          if (id === 'footerOpenDashboardBtn') {
-            safeCall('IELTS.Dashboard.open');
             return;
           }
           if (id === 'historyBackBtn') {

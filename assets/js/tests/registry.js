@@ -128,6 +128,7 @@
       ielts1: { id: "ielts1", readingTestId: "ielts-reading-3parts-001", writingTestId: "ielts-writing-001", content: { reading: null, writing: null, listening: null } },
       ielts2: { id: "ielts2", readingTestId: "ielts-reading-3parts-002", writingTestId: "ielts-writing-002", content: { reading: null, writing: null, listening: null } },
       ielts3: { id: "ielts3", readingTestId: "ielts-reading-3parts-003", writingTestId: "ielts-writing-003", content: { reading: null, writing: null, listening: null } },
+      ielts4: { id: "ielts4", readingTestId: "ielts-reading-3parts-004", writingTestId: "ielts-writing-004", content: { reading: null, writing: null, listening: null } },
     },
   };
 

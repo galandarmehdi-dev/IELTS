@@ -13,7 +13,7 @@
   "send_email": [
     {
       "name": "CONTACT_EMAIL",
-      "destination_address": "info@ieltsmock.org",
+      "destination_address": "galandar.mehdi@gmail.com",
       "allowed_sender_addresses": [
         "no-reply@ieltsmock.org"
       ]

@@ -54,7 +54,7 @@
     const adminResults = $("adminResultsSection");
 
     const isHome = view === "home";
-    const isResourceHub = ["fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub"].includes(view);
+    const isResourceHub = ["fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"].includes(view);
     const isDashboard = view === "dashboard";
     const isListening = view === "listening";
     const isReading = view === "reading";

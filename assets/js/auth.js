@@ -273,7 +273,7 @@ function getDesiredView() {
 function sanitizeDesiredView(view) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
-  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub"]);
+  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
@@ -312,6 +312,7 @@ function restoreViewAfterAuth() {
     writingTask1SamplesHub: "resourceHubSection",
     writingTask2SamplesHub: "resourceHubSection",
     speakingHub: "resourceHubSection",
+    contactHub: "resourceHubSection",
     dashboard: "dashboardSection",
     listening: "listeningSection",
     reading: "readingControls",

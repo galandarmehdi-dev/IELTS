@@ -270,6 +270,15 @@
     }
   }
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
   function normalizePromptKey(value) {
     return String(value || "")
       .toLowerCase()
@@ -502,16 +511,24 @@
   }
 
   function buildWritingSampleCatalog(extraSamplesByPrompt) {
-    return Object.values(TESTS.byId)
+    const extraMap = extraSamplesByPrompt && typeof extraSamplesByPrompt === "object"
+      ? extraSamplesByPrompt
+      : {};
+    const items = [];
+    const seenPromptKeys = new Set();
+
+    Object.values(TESTS.byId)
       .filter((cfg) => cfg?.content?.writing)
-      .flatMap((cfg) => {
+      .forEach((cfg) => {
         const writing = cfg.content.writing || {};
         const samples = writing.sampleAnswers || {};
-        return ["task1", "task2"].map((taskKey) => {
+
+        ["task1", "task2"].forEach((taskKey) => {
           const taskLabel = taskKey === "task1" ? "Task 1" : "Task 2";
           const promptHtml = writing[`${taskKey}Html`] || "";
           const promptText = stripHtmlToText(promptHtml);
           const promptKey = normalizePromptKey(promptText);
+          const extraBucket = extraMap[promptKey];
           const groupType = taskKey === "task1"
             ? inferTask1ChartType(promptText, writing.task1ImageSrc, writing.task1Type)
             : inferTask2EssayType(promptText, writing.task2Type);
@@ -520,8 +537,9 @@
             : inferTask2Topic(promptText);
           const promptId = `${cfg.id}-${taskKey}`;
           const sampleItems = normalizeWritingSamples(samples[taskKey], taskLabel)
-            .concat(normalizeWritingSamples((extraSamplesByPrompt || {})[promptKey], `${taskLabel} student`));
-          return {
+            .concat(normalizeWritingSamples(extraBucket?.samples || extraBucket, `${taskLabel} student`));
+
+          items.push({
             id: promptId,
             testId: cfg.id,
             taskKey,
@@ -542,9 +560,53 @@
             sampleAnswer: sampleItems[0]?.sampleAnswer || "Sample answer coming soon.",
             correctedForm: sampleItems[0]?.correctedForm || "Corrected form coming soon.",
             hasSample: sampleItems.some((item) => item.hasSample),
-          };
+          });
+
+          if (promptKey) seenPromptKeys.add(promptKey);
         });
       });
+
+    Object.keys(extraMap).forEach((promptKey) => {
+      if (!promptKey || seenPromptKeys.has(promptKey)) return;
+      const bucket = extraMap[promptKey] || {};
+      const taskKey = String(bucket.taskKey || "").trim() === "task1" ? "task1" : "task2";
+      const taskLabel = taskKey === "task1" ? "Task 1" : "Task 2";
+      const promptText = String(bucket.promptText || "").trim();
+      if (!promptText) return;
+
+      const groupType = taskKey === "task1"
+        ? inferTask1ChartType(promptText, "", "")
+        : inferTask2EssayType(promptText, "");
+      const topic = taskKey === "task1"
+        ? inferTask1Topic(promptText)
+        : inferTask2Topic(promptText);
+      const sampleItems = normalizeWritingSamples(bucket.samples || bucket, `${taskLabel} student`);
+
+      items.push({
+        id: `sheet-${taskKey}-${promptKey}`,
+        testId: "",
+        taskKey,
+        taskLabel,
+        title: `${groupType} - ${topic}`,
+        shortTitle: `${groupType} - ${topic}`,
+        sourceTitle: `Writing sheet · ${taskLabel}`,
+        promptKey,
+        groupType,
+        topic,
+        promptHtml: `<p>${escapeHtml(promptText)}</p>`,
+        promptText,
+        imageSrc: "",
+        sampleCount: sampleItems.length,
+        samples: sampleItems,
+        bandScore: sampleItems[0]?.bandScore || "Student sample",
+        explanation: sampleItems[0]?.explanation || "Stored student essays are available for this prompt from the writing sheet.",
+        sampleAnswer: sampleItems[0]?.sampleAnswer || "Sample answer coming soon.",
+        correctedForm: sampleItems[0]?.correctedForm || "No stored corrected rewrite is available for this essay yet.",
+        hasSample: sampleItems.some((item) => item.hasSample),
+      });
+    });
+
+    return items;
   }
 
   function buildHomeCatalog() {

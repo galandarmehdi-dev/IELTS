@@ -110,11 +110,13 @@
 .writing-graph img{
   display:block;
   width:auto;
+  object-fit:contain;
   max-width:100%;
   max-height:min(68vh, 760px);
   height:auto;
   border-radius:14px;
   margin:0 auto;
+  will-change:transform;
 }
 .writing-label{
   display:block;

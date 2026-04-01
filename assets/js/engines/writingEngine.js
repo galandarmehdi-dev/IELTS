@@ -85,7 +85,8 @@
     function setGraphZoom(value) {
       if (!graphImg) return 1;
       const zoom = Math.max(1, Math.min(3, Number(value) || 1));
-      graphImg.style.width = `${Math.round(zoom * 100)}%`;
+      graphImg.style.transform = `scale(${zoom})`;
+      graphImg.style.transformOrigin = "top center";
       if (zoomResetBtn) zoomResetBtn.textContent = `${Math.round(zoom * 100)}%`;
       try { localStorage.setItem(ZOOM_KEY, String(zoom)); } catch (e) {}
       return zoom;

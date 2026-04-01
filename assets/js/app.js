@@ -564,6 +564,35 @@
         .replace(/'/g, "&#39;");
     }
 
+    function buildObjectiveReviewHtml(items, emptyMessage) {
+      const rows = Array.isArray(items) ? items : [];
+      if (!rows.length) {
+        return `<div class="objective-review-empty">${escapeHtml(emptyMessage || "No answer review available yet.")}</div>`;
+      }
+      return `
+        <table class="objective-review-table">
+          <thead>
+            <tr>
+              <th>Q#</th>
+              <th>Student</th>
+              <th>Correct</th>
+              <th>Mark</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((item) => `
+              <tr>
+                <td>${escapeHtml(String(item.q ?? "—"))}</td>
+                <td>${escapeHtml(String(item.student || "—"))}</td>
+                <td>${escapeHtml(String(item.correct || "—"))}</td>
+                <td><span class="objective-review-mark ${item.mark ? "ok" : "bad"}">${item.mark ? "Correct" : "Wrong"}</span></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
     async function fetchAdminResults() {
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
@@ -584,6 +613,38 @@
         throw new Error((data && data.error) || "Could not load admin results.");
       }
       return data.results;
+    }
+
+    async function fetchObjectiveDetailForRow(row) {
+      const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
+      if (!endpoint) throw new Error("Admin endpoint is missing.");
+
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set("action", "studentObjectiveDetail");
+      url.searchParams.set("submittedAt", String(row.submittedAt || ""));
+      url.searchParams.set("studentFullName", String(row.studentFullName || ""));
+      url.searchParams.set("examId", String(row.examId || ""));
+      url.searchParams.set("reason", String(row.reason || ""));
+      url.searchParams.set("t", String(Date.now()));
+
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true || !data.result) return null;
+      return data.result;
+    }
+
+    function renderObjectiveReview(prefix, result) {
+      const listeningEl = $(`${prefix}ListeningReview`);
+      const readingEl = $(`${prefix}ReadingReview`);
+      if (listeningEl) {
+        listeningEl.innerHTML = buildObjectiveReviewHtml(result?.listening, "Listening answer review is not available for this submission yet.");
+      }
+      if (readingEl) {
+        readingEl.innerHTML = buildObjectiveReviewHtml(result?.reading, "Reading answer review is not available for this submission yet.");
+      }
     }
 
     function fillExamFilter(rows) {
@@ -669,7 +730,7 @@
       renderAdminTable(rows);
     }
 
-    function renderAdminDetail(row, options = {}) {
+    async function renderAdminDetail(row, options = {}) {
       const detail = $("adminResultDetail");
       if (!detail || !row) return;
       adminDetailState.sourceRowId = options.sourceRowId || null;
@@ -684,10 +745,17 @@
       $("adminDetailTask2").textContent = row.writingTask2 || "";
       $("adminDetailTask2Feedback").textContent = plainText(row.task2Feedback, "");
       $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
+      renderObjectiveReview("adminDetail", null);
       detail.classList.remove("hidden");
       try {
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {}
+      try {
+        const objectiveResult = await fetchObjectiveDetailForRow(row);
+        renderObjectiveReview("adminDetail", objectiveResult);
+      } catch (e) {
+        renderObjectiveReview("adminDetail", null);
+      }
     }
 
     function closeAdminDetail() {

@@ -39,6 +39,68 @@
     return Number(row.task1_words || 0) + Number(row.task2_words || 0);
   }
 
+  function buildObjectiveReviewHtml(items, emptyMessage) {
+    const rows = Array.isArray(items) ? items : [];
+    if (!rows.length) {
+      return `<div class="objective-review-empty">${escapeHtml(emptyMessage || "No answer review available yet.")}</div>`;
+    }
+    return `
+      <table class="objective-review-table">
+        <thead>
+          <tr>
+            <th>Q#</th>
+            <th>Student</th>
+            <th>Correct</th>
+            <th>Mark</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((item) => `
+            <tr>
+              <td>${escapeHtml(String(item.q ?? "—"))}</td>
+              <td>${escapeHtml(String(item.student || "—"))}</td>
+              <td>${escapeHtml(String(item.correct || "—"))}</td>
+              <td><span class="objective-review-mark ${item.mark ? "ok" : "bad"}">${item.mark ? "Correct" : "Wrong"}</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  async function fetchObjectiveDetailForRow(row) {
+    const url = Registry()?.buildAdminApiUrl?.({
+      action: "studentObjectiveDetail",
+      submittedAt: row.submitted_at || "",
+      studentFullName: row.student_full_name || "",
+      examId: row.exam_id || row.active_test_id || "",
+      reason: row.reason || "",
+      t: Date.now(),
+    });
+    if (!url) return null;
+
+    const token = await window.IELTS?.Auth?.getAccessToken?.();
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok !== true || !data.result) return null;
+    return data.result;
+  }
+
+  function renderObjectiveReview(prefix, result) {
+    const listeningEl = $(`${prefix}ListeningReview`);
+    const readingEl = $(`${prefix}ReadingReview`);
+    if (listeningEl) {
+      listeningEl.innerHTML = buildObjectiveReviewHtml(result?.listening, "Listening answer review is not available for this attempt yet.");
+    }
+    if (readingEl) {
+      readingEl.innerHTML = buildObjectiveReviewHtml(result?.reading, "Reading answer review is not available for this attempt yet.");
+    }
+  }
+
   async function withTimeout(promise, timeoutMs, label) {
     let timer = null;
     const timeoutPromise = new Promise((_, reject) => {
@@ -278,7 +340,7 @@
     renderSummary(rows);
   }
 
-  function renderDetail(row, options = {}) {
+  async function renderDetail(row, options = {}) {
     const detail = $("historyDetail");
     if (!detail || !row) return;
     detailState.sourceRowId = options.sourceRowId || null;
@@ -302,10 +364,17 @@
     setText("historyDetailTask2", row.writing_task2 || "");
     setText("historyDetailTask1Feedback", row.task1_feedback || "");
     setText("historyDetailTask2Feedback", row.task2_feedback || "");
+    renderObjectiveReview("historyDetail", null);
     detail.classList.remove("hidden");
     try {
       detail.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {}
+    try {
+      const objectiveResult = await fetchObjectiveDetailForRow(row);
+      renderObjectiveReview("historyDetail", objectiveResult);
+    } catch (e) {
+      renderObjectiveReview("historyDetail", null);
+    }
   }
 
   async function openHistory() {

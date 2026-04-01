@@ -116,6 +116,15 @@ async function handleAdminApi(request, env) {
     return proxy(request, backendUrl.toString());
   }
 
+  if (request.method === "GET" && action === "studentObjectiveDetail") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    return proxy(request, backendUrl.toString());
+  }
+
   if (request.method === "POST" && action === "studentResults") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });

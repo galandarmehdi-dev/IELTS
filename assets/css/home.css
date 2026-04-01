@@ -1960,6 +1960,35 @@
   color:var(--text);
 }
 
+.objective-review-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.objective-review-table th,
+.objective-review-table td{
+  padding:8px 10px;
+  border-bottom:1px solid rgba(18,26,36,.08);
+  vertical-align:top;
+  text-align:left;
+}
+.objective-review-table th{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.objective-review-mark{
+  font-weight:900;
+}
+.objective-review-mark.ok{ color:var(--success); }
+.objective-review-mark.bad{ color:var(--danger); }
+.objective-review-empty{
+  color:var(--muted);
+  line-height:1.6;
+}
+
 /* Admin */
 .admin-results-toolbar{
   border-radius:28px;

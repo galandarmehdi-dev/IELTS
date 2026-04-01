@@ -718,6 +718,9 @@
       if (route.view === "speakingHub") {
         pendingResourceHubKind = "speaking";
       }
+      if (route.view === "contactHub") {
+        pendingResourceHubKind = "contact";
+      }
     }
 
     // -----------------------------
@@ -1024,6 +1027,7 @@
       writingSamplesTask1: "writingTask1SamplesHub",
       writingSamplesTask2: "writingTask2SamplesHub",
       speaking: "speakingHub",
+      contact: "contactHub",
     };
 
     function createNoteCard(title, bullets, kicker) {
@@ -1132,8 +1136,17 @@
         const promptKey = String(row?.promptKey || "").trim();
         if (!promptKey) return;
         const key = promptKey;
-        if (!map[key]) map[key] = [];
-        map[key].push({
+        if (!map[key]) {
+          map[key] = {
+            promptKey: key,
+            promptText: String(row?.promptText || "").trim(),
+            taskKey: String(row?.taskKey || "").trim(),
+            samples: [],
+          };
+        }
+        if (!map[key].promptText && row?.promptText) map[key].promptText = String(row.promptText).trim();
+        if (!map[key].taskKey && row?.taskKey) map[key].taskKey = String(row.taskKey).trim();
+        map[key].samples.push({
           label: row.label || "Student sample",
           bandScore: row.bandScore || "Student sample",
           explanation: row.explanation || "Stored student essay from a past submission.",
@@ -1433,6 +1446,13 @@
             { label: "Predicted speaking questions", copy: "See likely prompt themes and examples.", onClick: () => openResourceHub("speaking", "speaking-predicted") },
             { label: "Tips for speaking", copy: "Open speaking technique guidance.", onClick: () => openResourceHub("speaking", "speaking-tips") },
             { label: "Sample answers", copy: "Open speaking sample response guidance.", onClick: () => openResourceHub("speaking", "speaking-samples") },
+          ],
+        },
+        {
+          kicker: "Support",
+          label: "Contact",
+          items: [
+            { label: "Contact us", copy: "Open the support page and contact email.", onClick: () => openResourceHub("contact") },
           ],
         },
       ];
@@ -1911,6 +1931,28 @@
           createNoteCard("Short sample structure", ["Answer directly.", "Add one concrete detail.", "Finish with a feeling or conclusion."], "Part 1"),
           createNoteCard("Cue-card sample structure", ["Set the scene.", "Cover each bullet point.", "Close with why it mattered."], "Part 2"),
           createNoteCard("Discussion sample structure", ["State your view.", "Explain why.", "Give an example or contrast.", "Conclude clearly."], "Part 3"),
+        ]));
+      }
+
+      if (kind === "contact") {
+        resourceHubBadge.textContent = "Contact";
+        resourceHubTitle.textContent = "Contact IELTS Mock";
+        resourceHubSubtitle.textContent = "A direct support page for platform questions, account help, and general IELTS Mock contact.";
+        addSection("contact-overview", "Contact details", "Use this page when you need help with the website, your account, or general platform support.", () => renderStaticTips([
+          createNoteCard("Email support", [
+            "For support and general questions, email info@ieltsmock.org.",
+            "If something is not working as expected, include the page, test, or prompt you were using."
+          ], "Support"),
+          createNoteCard("Good reasons to contact us", [
+            "Login or account access issues",
+            "Dashboard, history, or writing sample problems",
+            "Questions about available tests and skill pages",
+            "Feedback and feature suggestions"
+          ], "Help"),
+          createNoteCard("Best way to report a bug", [
+            "Tell us what page you were on and what action you were trying to take.",
+            "If possible, include the test name or prompt title so the issue is easier to trace."
+          ], "Bug report"),
         ]));
       }
 

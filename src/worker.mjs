@@ -140,6 +140,7 @@ function buildWritingSamplesFromSheet(csvText) {
 
     samples.push({
       promptKey: normalizePromptKey(col1),
+      promptText: plainText(col1),
       taskKey: col2 === "Task 1" ? "task1" : "task2",
       label: formatSampleLabel(col3),
       bandScore: formatBand(col3),

@@ -412,6 +412,7 @@
 
   function renderSettings() {
     const settings = state.settings;
+    renderPreferredTestOptions();
     const pairs = [
       ["dashboardUsernameInput", settings.username],
       ["dashboardPreferredName", settings.preferredName],
@@ -432,6 +433,22 @@
       el.value = value == null ? "" : String(value);
     });
     updateAvatarControls();
+  }
+
+  function renderPreferredTestOptions() {
+    const select = $("dashboardPreferredTest");
+    if (!select) return;
+    const tests = Object.values(Registry()?.TESTS?.byId || {});
+    if (!tests.length) return;
+    const current = state.settings.preferredTest || select.value || "ielts1";
+    select.innerHTML = "";
+    tests.forEach((cfg) => {
+      const option = document.createElement("option");
+      option.value = cfg.id;
+      option.textContent = Registry()?.getTestLabel?.(cfg.id) || cfg.id;
+      select.appendChild(option);
+    });
+    select.value = tests.some((cfg) => cfg.id === current) ? current : tests[0].id;
   }
 
   function renderSummary() {
@@ -770,11 +787,26 @@
   function startPreferredTest() {
     const testId = state.settings.preferredTest || "ielts1";
     try { Registry()?.setActiveTestId?.(testId); } catch (e) {}
-    const btnId = testId === "ielts2"
-      ? "startIelts2Btn"
+    try {
+      window.IELTS?.Access?.requireTestPassword?.(() => {
+        try { Registry()?.clearLaunchContext?.(); } catch (err) {}
+        try { UI()?.setExamStarted?.(true); } catch (err) {}
+        try { UI()?.showOnly?.("listening"); } catch (err) {}
+        try { UI()?.setExamNavStatus?.("Status: Listening in progress"); } catch (err) {}
+        try { Router()?.setHashRoute?.(testId, "listening"); } catch (err) {}
+        try { window.IELTS?.Engines?.Listening?.initListeningSystem?.(); } catch (err) {
+          console.error("Could not start preferred test:", err);
+        }
+      });
+      return;
+    } catch (e) {}
+    const btnId = testId === "ielts4"
+      ? "startIelts4Btn"
       : testId === "ielts3"
         ? "startIelts3Btn"
-        : "startIelts1Btn";
+        : testId === "ielts2"
+          ? "startIelts2Btn"
+          : "startIelts1Btn";
     $(btnId)?.click?.();
   }
 

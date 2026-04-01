@@ -1514,16 +1514,18 @@
     function renderHomeMenus() {
       if (!homeExploreMenus) return;
       homeExploreMenus.innerHTML = "";
+      const fullExamItems = (R()?.buildHomeCatalog?.()?.fullExams || []).map((item) => ({
+        label: `Start ${item.label}`,
+        copy: `Quick start ${item.label.toLowerCase()}.`,
+        onClick: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
+      }));
       const menus = [
         {
           kicker: "Core path",
           label: "Take Full Exam",
           items: [
             { label: "Open full exam page", copy: "See all uploaded complete exams in one place.", onClick: () => openResourceHub("fullExam") },
-            { label: "Start IELTS Test 1", copy: "Quick start the first full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts1"); startFreshExam(); }) },
-            { label: "Start IELTS Test 2", copy: "Quick start the second full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts2"); startFreshExam(); }) },
-            { label: "Start IELTS Test 3", copy: "Quick start the third full mock.", onClick: () => requireTestPassword(() => { setActiveTestId("ielts3"); startFreshExam(); }) },
-          ],
+          ].concat(fullExamItems),
         },
         {
           kicker: "Skill page",
@@ -1570,6 +1572,13 @@
         },
       ];
       menus.forEach((menu) => homeExploreMenus.appendChild(renderMenuGroup(menu)));
+    }
+
+    function renderHomeMetrics() {
+      const metricValues = document.querySelectorAll(".hero-stat-value");
+      if (!metricValues || !metricValues.length) return;
+      const fullExamCount = (R()?.buildHomeCatalog?.()?.fullExams || []).length;
+      if (metricValues[0]) metricValues[0].textContent = String(fullExamCount).padStart(2, "0");
     }
 
     function renderResourceHub(kind, focusId) {
@@ -2113,6 +2122,7 @@ function startFreshExam() {
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
     renderHomeMenus();
+    renderHomeMetrics();
     if (pendingResourceHubKind) {
       openResourceHub(pendingResourceHubKind);
     }

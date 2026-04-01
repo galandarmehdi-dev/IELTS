@@ -1924,6 +1924,10 @@
   grid-template-columns:repeat(2, minmax(0,1fr));
   gap:16px;
 }
+.history-detail-grid.single,
+.admin-detail-grid.single{
+  grid-template-columns:1fr;
+}
 .history-detail-grid.writing,
 .admin-detail-grid.writing{ margin-top:14px; }
 .history-detail-label,

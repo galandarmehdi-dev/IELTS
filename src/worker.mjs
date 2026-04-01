@@ -1,6 +1,12 @@
+import { EmailMessage } from "cloudflare:email";
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === "/api/contact") {
+      return handleContactApi(request, env);
+    }
 
     if (url.pathname === "/api/admin") {
       return handleAdminApi(request, env);
@@ -12,6 +18,62 @@ export default {
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
+
+async function handleContactApi(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const fullName = oneLine(payload?.fullName);
+  const email = oneLine(payload?.email).toLowerCase();
+  const phone = oneLine(payload?.phone);
+  const category = oneLine(payload?.category || "General contact");
+  const message = normalizeMessage(payload?.message);
+
+  if (!fullName) return json(400, { ok: false, error: "Full name is required." });
+  if (!isValidEmail(email)) return json(400, { ok: false, error: "A valid email address is required." });
+  if (!phone) return json(400, { ok: false, error: "Phone number is required." });
+  if (!message) return json(400, { ok: false, error: "Please describe your question or problem." });
+  if (!env.CONTACT_EMAIL || typeof env.CONTACT_EMAIL.send !== "function") {
+    return json(503, { ok: false, error: "Contact email is not configured yet." });
+  }
+
+  const submittedAt = new Date().toISOString();
+  const subject = `[IELTS Mock Contact] ${category}`;
+  const body = [
+    "A new contact form submission was sent from ieltsmock.org.",
+    "",
+    `Submitted at: ${submittedAt}`,
+    `Category: ${category}`,
+    `Full name: ${fullName}`,
+    `Email: ${email}`,
+    `Phone: ${phone}`,
+    "",
+    "Message:",
+    message,
+  ].join("\n");
+
+  const rawEmail = [
+    'From: IELTS Mock Contact <no-reply@ieltsmock.org>',
+    `Reply-To: ${email}`,
+    "To: info@ieltsmock.org",
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "",
+    body,
+  ].join("\r\n");
+
+  const mail = new EmailMessage("no-reply@ieltsmock.org", undefined, rawEmail);
+  try {
+    await env.CONTACT_EMAIL.send(mail);
+  } catch (error) {
+    return json(502, { ok: false, error: error?.message || "Could not send your message right now." });
+  }
+
+  return json(200, { ok: true, message: "Your message has been sent to IELTS Mock support." });
+}
 
 async function handleAdminApi(request, env) {
   const url = new URL(request.url);
@@ -225,6 +287,18 @@ function formatSampleLabel(band) {
 
 function plainText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function oneLine(value) {
+  return String(value || "").replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeMessage(value) {
+  return String(value || "").replace(/\r/g, "").trim();
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
 function json(status, payload) {

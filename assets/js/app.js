@@ -1339,6 +1339,119 @@
       return wrap;
     }
 
+    function createContactSection() {
+      const wrap = document.createElement("div");
+      wrap.className = "contact-page-grid";
+
+      const card = document.createElement("article");
+      card.className = "contact-highlight-card";
+      card.innerHTML = `
+        <div class="home-card-topline">Support email</div>
+        <h3>info@ieltsmock.org</h3>
+        <p>Use this address for platform support, account questions, writing sample issues, bug reports, and general IELTS Mock enquiries.</p>
+        <a class="btn" href="mailto:info@ieltsmock.org">Email support directly</a>
+      `;
+      wrap.appendChild(card);
+
+      const formCard = document.createElement("article");
+      formCard.className = "contact-form-card";
+      formCard.innerHTML = `
+        <div class="home-card-topline">Contact form</div>
+        <h3>Report a problem or contact the team</h3>
+        <p class="contact-form-copy">Fill this in and we will send it directly to <strong>info@ieltsmock.org</strong>.</p>
+        <form class="contact-form" id="contactSupportForm">
+          <div class="contact-form-grid">
+            <label class="contact-field">
+              <span>Full name</span>
+              <input type="text" name="fullName" placeholder="Your full name" required>
+            </label>
+            <label class="contact-field">
+              <span>Email address</span>
+              <input type="email" name="email" placeholder="you@example.com" required>
+            </label>
+            <label class="contact-field">
+              <span>Phone number</span>
+              <input type="tel" name="phone" placeholder="+994..." required>
+            </label>
+            <label class="contact-field">
+              <span>Reason</span>
+              <select name="category" required>
+                <option value="General contact">General contact</option>
+                <option value="Technical issue">Technical issue</option>
+                <option value="Account support">Account support</option>
+                <option value="Writing sample issue">Writing sample issue</option>
+                <option value="Feedback or suggestion">Feedback or suggestion</option>
+              </select>
+            </label>
+          </div>
+          <label class="contact-field contact-field-full">
+            <span>Message</span>
+            <textarea name="message" rows="7" placeholder="Tell us what happened, what page you were on, or how we can help." required></textarea>
+          </label>
+          <div class="contact-form-actions">
+            <button class="btn" type="submit">Send message</button>
+            <div class="contact-form-status" id="contactFormStatus" aria-live="polite"></div>
+          </div>
+        </form>
+      `;
+
+      const form = formCard.querySelector("#contactSupportForm");
+      const status = formCard.querySelector("#contactFormStatus");
+      const emailInput = formCard.querySelector('input[name="email"]');
+      const fullNameInput = formCard.querySelector('input[name="fullName"]');
+
+      try {
+        const savedUser = window.IELTS?.Auth?.getSavedUser?.() || JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+        if (savedUser?.email && emailInput) emailInput.value = savedUser.email;
+        const knownName = savedUser?.profile?.preferredName || savedUser?.name || "";
+        if (knownName && fullNameInput) fullNameInput.value = knownName;
+      } catch (e) {}
+
+      form?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!form || !status) return;
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const formData = new FormData(form);
+        const payload = {
+          fullName: String(formData.get("fullName") || "").trim(),
+          email: String(formData.get("email") || "").trim(),
+          phone: String(formData.get("phone") || "").trim(),
+          category: String(formData.get("category") || "").trim(),
+          message: String(formData.get("message") || "").trim(),
+        };
+
+        status.textContent = "Sending your message...";
+        status.className = "contact-form-status is-pending";
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          const response = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.ok) {
+            throw new Error(data?.error || "Could not send your message.");
+          }
+          status.textContent = data.message || "Your message has been sent.";
+          status.className = "contact-form-status is-success";
+          form.reset();
+          if (emailInput && payload.email) emailInput.value = payload.email;
+          if (fullNameInput && payload.fullName) fullNameInput.value = payload.fullName;
+        } catch (error) {
+          status.textContent = error?.message || "Could not send your message.";
+          status.className = "contact-form-status is-error";
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+
+      wrap.appendChild(formCard);
+      return wrap;
+    }
+
     function rememberHub(kind) {
       try { localStorage.setItem("IELTS:HOME:resourceHubKind", kind); } catch (e) {}
     }
@@ -1937,23 +2050,8 @@
       if (kind === "contact") {
         resourceHubBadge.textContent = "Contact";
         resourceHubTitle.textContent = "Contact IELTS Mock";
-        resourceHubSubtitle.textContent = "A direct support page for platform questions, account help, and general IELTS Mock contact.";
-        addSection("contact-overview", "Contact details", "Use this page when you need help with the website, your account, or general platform support.", () => renderStaticTips([
-          createNoteCard("Email support", [
-            "For support and general questions, email info@ieltsmock.org.",
-            "If something is not working as expected, include the page, test, or prompt you were using."
-          ], "Support"),
-          createNoteCard("Good reasons to contact us", [
-            "Login or account access issues",
-            "Dashboard, history, or writing sample problems",
-            "Questions about available tests and skill pages",
-            "Feedback and feature suggestions"
-          ], "Help"),
-          createNoteCard("Best way to report a bug", [
-            "Tell us what page you were on and what action you were trying to take.",
-            "If possible, include the test name or prompt title so the issue is easier to trace."
-          ], "Bug report"),
-        ]));
+        resourceHubSubtitle.textContent = "Use the support email or send a direct contact form message to the IELTS Mock team.";
+        addSection("contact-overview", "Contact details", "Use the support email or the form below for technical issues, account support, feedback, or general contact.", () => createContactSection());
       }
 
       if (focusId) {

@@ -788,6 +788,94 @@
   margin:12px 0 0;
   padding-left:18px;
 }
+.contact-page-grid{
+  display:grid;
+  grid-template-columns:minmax(280px, .9fr) minmax(0, 1.1fr);
+  gap:16px;
+}
+.contact-highlight-card,
+.contact-form-card{
+  border-radius:28px;
+  padding:24px;
+  background:rgba(255,253,249,.96);
+  border:1px solid rgba(255,255,255,.82);
+  box-shadow:0 18px 44px rgba(18,26,36,.08);
+}
+.contact-highlight-card{
+  background:
+    radial-gradient(420px 220px at 100% 0%, rgba(196,69,54,.12), transparent 66%),
+    linear-gradient(160deg, rgba(23,50,77,.98) 0%, rgba(32,61,89,.96) 56%, rgba(75,58,76,.94) 100%);
+  color:#fff;
+}
+.contact-highlight-card .home-card-topline{
+  color:rgba(255,255,255,.76);
+}
+.contact-highlight-card h3{
+  margin:10px 0 10px;
+  font-family:"Space Grotesk", Arial, sans-serif;
+  font-size:clamp(28px, 4vw, 42px);
+  line-height:1;
+  letter-spacing:-.05em;
+  color:#fff6ef;
+}
+.contact-highlight-card p{
+  margin:0 0 18px;
+  color:rgba(255,255,255,.78);
+  line-height:1.7;
+}
+.contact-highlight-card .btn{ display:inline-flex; }
+.contact-form-card h3{
+  margin:10px 0 8px;
+  color:var(--ink);
+  font-size:28px;
+  letter-spacing:-.04em;
+}
+.contact-form-copy{
+  margin:0 0 18px;
+  color:var(--muted);
+  line-height:1.7;
+}
+.contact-form{
+  display:grid;
+  gap:16px;
+}
+.contact-form-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:14px;
+}
+.contact-field{
+  display:grid;
+  gap:8px;
+}
+.contact-field span{
+  color:var(--ink);
+  font-size:13px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.contact-field-full{
+  grid-column:1 / -1;
+}
+.contact-field textarea{
+  min-height:160px;
+  resize:vertical;
+}
+.contact-form-actions{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
+.contact-form-status{
+  min-height:24px;
+  color:var(--muted);
+  font-weight:700;
+}
+.contact-form-status.is-success{ color:#197a43; }
+.contact-form-status.is-error{ color:#a23b2d; }
+.contact-form-status.is-pending{ color:var(--navy); }
 .sample-band-row{
   display:grid;
   gap:10px;
@@ -1901,6 +1989,7 @@
   .home-explore-menus,
   .home-catalog-grid,
   .resource-hub-grid,
+  .contact-page-grid,
   .dashboard-summary,
   .dashboard-goals-grid,
   .dashboard-goals-grid-expanded,
@@ -1945,6 +2034,7 @@
     grid-template-columns:repeat(2, minmax(0, 1fr));
   }
   .home-skill-dropdown{ width:min(92vw, 360px); }
+  .contact-form-grid{ grid-template-columns:1fr; }
   .dashboard-cover-overlay,
   .dashboard-profile-hero{
     grid-template-columns:1fr;

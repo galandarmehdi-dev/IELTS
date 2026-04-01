@@ -372,6 +372,7 @@
     const toL = $("navToListeningBtn");
     const toR = $("navToReadingBtn");
     const toW = $("navToWritingBtn");
+    const toResults = $("navToResultsBtn");
     const resetBtn = $("resetExamBtn");
 
     if (toHome) {
@@ -432,6 +433,13 @@
         else UI().showOnly("writing");
         try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "writing"); } catch (e) {}
         UI().setExamNavStatus("Status: Viewing Writing");
+      };
+    }
+
+    if (toResults) {
+      toResults.onclick = () => {
+        if (!isAdminView()) return;
+        openAdminResultsView();
       };
     }
 
@@ -2217,7 +2225,7 @@ function startFreshExam() {
             safeCall('IELTS.UI.setExamNavStatus', ['Status: Home']);
             return;
           }
-          if (id === 'navToHomeBtn' || id === 'navToListeningBtn' || id === 'navToReadingBtn' || id === 'navToWritingBtn') {
+          if (id === 'navToHomeBtn' || id === 'navToListeningBtn' || id === 'navToReadingBtn' || id === 'navToWritingBtn' || id === 'navToResultsBtn') {
             // best-effort: call the UI navigation helpers
             if (id === 'navToHomeBtn') {
               try { const la = document.getElementById('listeningAudio'); if (la && !la.paused) { la.pause(); la.currentTime = 0; } } catch (e) {}
@@ -2242,6 +2250,10 @@ function startFreshExam() {
               safeCall('IELTS.UI.setExamStarted', [true]);
               safeCall('IELTS.Engines.Writing.startWritingSystem');
               safeCall('IELTS.UI.showOnly', ['writing']);
+              return;
+            }
+            if (id === 'navToResultsBtn') {
+              safeCall('IELTS.UI.showOnly', ['adminResults']);
               return;
             }
           }

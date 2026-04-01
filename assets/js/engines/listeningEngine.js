@@ -103,8 +103,10 @@ function applyActiveListeningContent() {
     const nextHtml = (typeof listening.html === "string" ? listening.html.trim() : "");
     if (nextHtml) {
       body.innerHTML = nextHtml;
+      body.querySelectorAll(".listen-footer").forEach((node) => node.remove());
     } else if (!String(body.innerHTML || "").trim() && initialListenBodyHtml.trim()) {
       body.innerHTML = initialListenBodyHtml;
+      body.querySelectorAll(".listen-footer").forEach((node) => node.remove());
     }
   }
 
@@ -125,6 +127,7 @@ function applyActiveListeningContent() {
 
   if (body && !body.querySelector(".listen-page") && initialListenBodyHtml.trim()) {
     body.innerHTML = initialListenBodyHtml;
+    body.querySelectorAll(".listen-footer").forEach((node) => node.remove());
   }
 }
 

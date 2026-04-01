@@ -105,6 +105,67 @@
     }
   }
 
+  function buildMatchKey(row) {
+    return [
+      String(row?.submittedAt || row?.submitted_at || "").trim().toLowerCase(),
+      String(row?.studentFullName || row?.student_full_name || "").replace(/\s+/g, " ").trim().toLowerCase(),
+      String(row?.examId || row?.exam_id || row?.active_test_id || "").trim().toLowerCase(),
+      String(row?.reason || "").replace(/\s+/g, " ").trim().toLowerCase(),
+    ].join("::");
+  }
+
+  function mergeBackendResult(row, result) {
+    if (!result) return row;
+    return {
+      ...row,
+      submitted_at: row.submitted_at || result.submittedAt || "",
+      student_full_name: row.student_full_name || result.studentFullName || "",
+      exam_id: row.exam_id || result.examId || row.active_test_id || "",
+      reason: row.reason || result.reason || "",
+      listening_total: result.listeningTotal ?? row.listening_total ?? null,
+      listening_band: result.listeningBand ?? row.listening_band ?? null,
+      reading_total: result.readingTotal ?? row.reading_total ?? null,
+      reading_band: result.readingBand ?? row.reading_band ?? null,
+      final_writing_band: result.finalWritingBand ?? row.final_writing_band ?? null,
+      task1_band: result.task1Band ?? row.task1_band ?? null,
+      task2_band: result.task2Band ?? row.task2_band ?? null,
+      task1_breakdown: result.task1Breakdown ?? row.task1_breakdown ?? null,
+      task2_breakdown: result.task2Breakdown ?? row.task2_breakdown ?? null,
+      task1_feedback: result.task1Feedback ?? row.task1_feedback ?? null,
+      task2_feedback: result.task2Feedback ?? row.task2_feedback ?? null,
+      overall_feedback: result.overallFeedback ?? row.overall_feedback ?? null,
+      writing_task1: result.writingTask1 ?? row.writing_task1 ?? "",
+      writing_task2: result.writingTask2 ?? row.writing_task2 ?? "",
+      task1_words: result.task1Words ?? row.task1_words ?? 0,
+      task2_words: result.task2Words ?? row.task2_words ?? 0,
+    };
+  }
+
+  async function fetchStudentResultsForRows(rows) {
+    const endpoint = Registry()?.buildAdminApiUrl?.({ action: "studentResults" });
+    if (!endpoint || !rows?.length) return [];
+    const token = await window.IELTS?.Auth?.getAccessToken?.();
+    const res = await fetch(endpoint.toString(), {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        rows: rows.map((row) => ({
+          submittedAt: row.submitted_at || "",
+          studentFullName: row.student_full_name || "",
+          examId: row.exam_id || row.active_test_id || "",
+          reason: row.reason || "",
+        })),
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok !== true || !Array.isArray(data.results)) return [];
+    return data.results;
+  }
+
   async function syncRowToSupabase(row, result) {
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
@@ -250,6 +311,11 @@
       } catch (e) {}
       if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       let rows = await loadRows();
+      const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
+      if (backendResults.length) {
+        const byKey = new Map(backendResults.map((result) => [buildMatchKey(result), result]));
+        rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+      }
       state.rows = rows;
       renderTable(rows);
       if (!rows.length) {
@@ -264,6 +330,11 @@
       const updated = await refreshPendingRows(rows);
       if (updated) {
         rows = await loadRows();
+        const backendResultsAfter = await fetchStudentResultsForRows(rows).catch(() => []);
+        if (backendResultsAfter.length) {
+          const byKey = new Map(backendResultsAfter.map((result) => [buildMatchKey(result), result]));
+          rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+        }
         state.rows = rows;
         renderTable(rows);
       }

@@ -11,6 +11,7 @@
   const Router = () => window.IELTS?.Router;
 
   const state = { rows: [] };
+  const detailState = { sourceRowId: null, sourceScrollY: 0 };
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -261,24 +262,27 @@
       const payload = row.final_payload || {};
       const listeningSaved = payload.listening ? "Saved" : "—";
       const readingSaved = payload.reading ? "Saved" : "—";
+      const rowId = `history-row-${idx}`;
       return `
-        <tr>
+        <tr id="${rowId}">
           <td>${escapeHtml(fmtDate(row.submitted_at))}</td>
           <td>${escapeHtml(examLabel(row))}</td>
           <td>${escapeHtml(row.student_full_name || "—")}</td>
           <td>${escapeHtml(row.listening_band ? `Band ${row.listening_band}` : listeningSaved)}</td>
           <td>${escapeHtml(row.reading_band ? `Band ${row.reading_band}` : readingSaved)}</td>
           <td>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}<br><span class="small">T1: ${escapeHtml(String(row.task1_words || 0))} · T2: ${escapeHtml(String(row.task2_words || 0))}</span></td>
-          <td><button class="btn secondary" type="button" data-history-view="${idx}">View</button></td>
+          <td><button class="btn secondary" type="button" data-history-view="${idx}" data-history-row-id="${rowId}">View</button></td>
         </tr>
       `;
     }).join("");
     renderSummary(rows);
   }
 
-  function renderDetail(row) {
+  function renderDetail(row, options = {}) {
     const detail = $("historyDetail");
     if (!detail || !row) return;
+    detailState.sourceRowId = options.sourceRowId || null;
+    detailState.sourceScrollY = window.scrollY || 0;
     const payload = row.final_payload || {};
     $("historyDetailTitle").textContent = examLabel(row);
     $("historyDetailMeta").innerHTML = `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>Email: <b>${escapeHtml(row.user_email || "—")}</b>`;
@@ -299,6 +303,9 @@
     setText("historyDetailTask1Feedback", row.task1_feedback || "");
     setText("historyDetailTask2Feedback", row.task2_feedback || "");
     detail.classList.remove("hidden");
+    try {
+      detail.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (e) {}
   }
 
   async function openHistory() {
@@ -345,7 +352,20 @@
   }
 
   function closeHistory() {
-    $("historyDetail")?.classList.add("hidden");
+    const detail = $("historyDetail");
+    detail?.classList.add("hidden");
+    if (detailState.sourceRowId) {
+      const source = document.getElementById(detailState.sourceRowId);
+      if (source) {
+        try {
+          source.scrollIntoView({ behavior: "smooth", block: "center" });
+        } catch (e) {}
+      } else {
+        try { window.scrollTo({ top: detailState.sourceScrollY || 0, behavior: "smooth" }); } catch (e) {}
+      }
+      detailState.sourceRowId = null;
+      return;
+    }
     UI()?.showOnly?.("home");
     UI()?.updateHomeStatusLine?.("Status: Signed in");
     try {
@@ -358,7 +378,9 @@
     const btn = e.target.closest("[data-history-view]");
     if (!btn) return;
     const idx = Number(btn.getAttribute("data-history-view"));
-    renderDetail(state.rows[idx]);
+    renderDetail(state.rows[idx], {
+      sourceRowId: btn.getAttribute("data-history-row-id") || null
+    });
   });
 
   window.IELTS = window.IELTS || {};

@@ -531,6 +531,7 @@
     // Admin results dashboard
     // -----------------------------
     const adminState = { rows: [], filtered: [] };
+    const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
 
     function num(value) {
       const n = Number(value);
@@ -618,7 +619,7 @@
       }
       empty?.classList.add("hidden");
       tbody.innerHTML = rows.map((row, idx) => `
-        <tr>
+        <tr id="admin-result-row-${idx}">
           <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
           <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
           <td>${escapeHtml(row.examId || "—")}</td>
@@ -626,7 +627,7 @@
           <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(bandText(row.readingBand))}</span></td>
           <td>Band ${escapeHtml(bandText(row.finalWritingBand))}</td>
           <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
-          <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}">View</button></div></td>
+          <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}" data-admin-row-id="admin-result-row-${idx}">View</button></div></td>
         </tr>
       `).join("");
       renderSummary(rows);
@@ -668,9 +669,11 @@
       renderAdminTable(rows);
     }
 
-    function renderAdminDetail(row) {
+    function renderAdminDetail(row, options = {}) {
       const detail = $("adminResultDetail");
       if (!detail || !row) return;
+      adminDetailState.sourceRowId = options.sourceRowId || null;
+      adminDetailState.sourceScrollY = window.scrollY || 0;
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
       $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
       $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.readingBand))})<br>Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
@@ -682,6 +685,24 @@
       $("adminDetailTask2Feedback").textContent = plainText(row.task2Feedback, "");
       $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
       detail.classList.remove("hidden");
+      try {
+        detail.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) {}
+    }
+
+    function closeAdminDetail() {
+      $("adminResultDetail")?.classList.add("hidden");
+      if (adminDetailState.sourceRowId) {
+        const source = document.getElementById(adminDetailState.sourceRowId);
+        if (source) {
+          try {
+            source.scrollIntoView({ behavior: "smooth", block: "center" });
+          } catch (e) {}
+        } else {
+          try { window.scrollTo({ top: adminDetailState.sourceScrollY || 0, behavior: "smooth" }); } catch (e) {}
+        }
+        adminDetailState.sourceRowId = null;
+      }
     }
 
     async function openAdminResultsView() {
@@ -2208,13 +2229,13 @@ function startFreshExam() {
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
-    $("adminDetailCloseBtn")?.addEventListener("click", () => $("adminResultDetail")?.classList.add("hidden"));
+    $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-admin-view]");
       if (!btn) return;
       const idx = Number(btn.getAttribute("data-admin-view"));
       const row = adminState.filtered[idx];
-      if (row) renderAdminDetail(row);
+      if (row) renderAdminDetail(row, { sourceRowId: btn.getAttribute("data-admin-row-id") || null });
     });
 
     // If student refreshes after Listening is already submitted, show gate (not auto-reading)

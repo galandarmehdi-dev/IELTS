@@ -475,44 +475,51 @@
 
         const hasWritingText = hasAnyWritingText(writingPayload);
 
+        // Save history immediately so a flaky backend response does not erase the student's record.
+        const historyResult = await saveAttemptToSupabase(finalPayload);
+
         const endpoint = String(R().ADMIN_API_PATH || "").trim();
         let sheetsSaved = false;
+        let submissionWarning = "";
         if (endpoint) {
-          const body = new URLSearchParams({
-            payload: JSON.stringify(finalPayload)
-          });
+          try {
+            const body = new URLSearchParams({
+              payload: JSON.stringify(finalPayload)
+            });
 
-          const res = await fetchWithTimeout(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
-            },
-            body: body.toString()
-          }, Number(R().TIMEOUTS?.submissionPostMs || 45000));
+            const res = await fetchWithTimeout(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+              },
+              body: body.toString()
+            }, Number(R().TIMEOUTS?.submissionPostMs || 45000));
 
-          const text = await res.text();
-          let json = null;
-          try { json = JSON.parse(text); } catch (e) {}
+            const text = await res.text();
+            let json = null;
+            try { json = JSON.parse(text); } catch (e) {}
 
-          const okResponse = res.ok && (
-            /^OK\b/i.test(String(text || "").trim()) ||
-            (json && json.ok === true)
-          );
+            const okResponse = res.ok && (
+              /^OK\b/i.test(String(text || "").trim()) ||
+              (json && json.ok === true)
+            );
 
-          if (!okResponse) {
-            throw new Error((json && json.error) || text || `HTTP ${res.status}`);
+            if (!okResponse) {
+              throw new Error((json && json.error) || text || `HTTP ${res.status}`);
+            }
+            sheetsSaved = true;
+          } catch (sheetErr) {
+            console.error("Backend submission response failed:", sheetErr);
+            submissionWarning = String(sheetErr?.message || sheetErr || "Submission response failed");
           }
-          sheetsSaved = true;
         }
-
-        // Save history AFTER Sheets, but do not let history block the submit screen.
-        const historyResult = await saveAttemptToSupabase(finalPayload);
 
         if (hasWritingText) {
           try {
             const immediate = await fetchStudentResultFromBackend(finalPayload);
             if (immediate?.graded && immediate?.result) {
               await updateAttemptScoresInSupabase(finalPayload, immediate.result);
+              sheetsSaved = true;
             } else {
               startMarkedResultPolling(finalPayload);
             }
@@ -538,7 +545,9 @@
                     ? "Submitted successfully to Google Sheets. History may appear after a short delay."
                     : "Submitted successfully to Google Sheets. History may appear after a short delay."))
             : (historyResult?.ok
-                ? "Saved to your history for this account."
+                ? (submissionWarning
+                    ? "Your submission was saved to your history, but the server response was unreliable. If the test already appears in admin results, it will sync here shortly."
+                    : "Saved to your history for this account.")
                 : "Saved locally on this browser."),
           { mode: "confirm" }
         );

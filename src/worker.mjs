@@ -116,6 +116,30 @@ async function handleAdminApi(request, env) {
     return proxy(request, backendUrl.toString());
   }
 
+  if (request.method === "POST" && action === "studentResults") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const payload = await request.json().catch(() => null);
+    const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+    if (!rows.length) return json(200, { ok: true, results: [] });
+
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.searchParams.set("action", "results");
+    backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
+    backendUrl.searchParams.set("t", String(Date.now()));
+
+    const response = await fetch(backendUrl.toString(), { method: "GET" });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
+      return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
+    }
+
+    const wanted = new Set(rows.map((row) => buildResultMatchKey(row)));
+    const matches = data.results.filter((row) => wanted.has(buildResultMatchKey(row)));
+    return json(200, { ok: true, results: matches });
+  }
+
   if (request.method === "POST") {
     return proxy(request, String(env.ADMIN_BACKEND_URL || ""));
   }
@@ -287,6 +311,22 @@ function formatSampleLabel(band) {
 
 function plainText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeMatchString(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function buildResultMatchKey(row) {
+  return [
+    normalizeMatchString(row?.submittedAt || row?.submitted_at),
+    normalizeMatchString(row?.studentFullName || row?.student_full_name),
+    normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id),
+    normalizeMatchString(row?.reason),
+  ].join("::");
 }
 
 function oneLine(value) {

@@ -81,6 +81,20 @@ body.exam-guard #speakingSection :not(input):not(textarea):not(select):not(butto
   user-select:none;
 }
 
+body.exam-guard [data-hl-root-key],
+body.exam-guard [data-hl-root-key] *,
+body.exam-guard mark.hl,
+body.exam-guard #hlToolbar,
+body.exam-guard #hlToolbar *{
+  -webkit-user-select:text;
+  user-select:text;
+}
+
+body.exam-guard #hlToolbar .hl-toolbtn{
+  -webkit-user-select:none;
+  user-select:none;
+}
+
 body.exam-guard #listeningSection img,
 body.exam-guard #container img,
 body.exam-guard #writingSection img,

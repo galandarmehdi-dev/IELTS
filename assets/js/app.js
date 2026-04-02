@@ -305,6 +305,63 @@
       } catch (e) {}
     }
 
+    function hasNonEmptyObject(value) {
+      return !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length > 0;
+    }
+
+    function hasResumableStudentAttempt() {
+      if (isAdminView()) return false;
+      try {
+        if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true") return false;
+      } catch (e) {}
+
+      const scoped = activeScopedKeys();
+      const listeningKeys = scoped?.listening || {};
+      const writingKeys = scoped?.writing || {};
+      const readingAnswers = S().getJSON(`${R()?.getScopedReadingTestId?.(getActiveTestId()) || R()?.getTestConfig?.(getActiveTestId())?.readingTestId || "ielts-reading-3parts-001"}:answers`, null);
+      const listeningAnswers = S().getJSON(listeningKeys.answers, null);
+      const writingAnswers = S().getJSON(writingKeys.answers, null);
+
+      return (
+        S().get(R().KEYS.EXAM_STARTED, "false") === "true" ||
+        !!getLaunchContext() ||
+        S().get(listeningKeys.started, "false") === "true" ||
+        S().get(listeningKeys.submitted, "false") === "true" ||
+        hasNonEmptyObject(listeningAnswers) ||
+        S().get(readingSubmittedKey(), "false") === "true" ||
+        hasNonEmptyObject(readingAnswers) ||
+        S().get(writingKeys.started, "false") === "true" ||
+        S().get(writingKeys.submitted, "false") === "true" ||
+        hasNonEmptyObject(writingAnswers)
+      );
+    }
+
+    function resumeStudentExamRoute(route) {
+      if (!route?.view) return;
+      if (route.view === "listening") {
+        try { UI().setExamStarted(true); } catch (e) {}
+        try { startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to resume:', e)); } catch (e) {}
+        try { UI().showOnly("listening"); } catch (e) {}
+        try { UI().setExamNavStatus("Status: Resuming Listening"); } catch (e) {}
+        return;
+      }
+      if (route.view === "reading") {
+        try { UI().setExamStarted(true); } catch (e) {}
+        try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
+        try { startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to resume:', e)); } catch (e) {}
+        try { UI().showOnly("reading"); } catch (e) {}
+        try { UI().setExamNavStatus("Status: Resuming Reading"); } catch (e) {}
+        return;
+      }
+      if (route.view === "writing") {
+        try { UI().setExamStarted(true); } catch (e) {}
+        try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
+        try { startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to resume:', e)); } catch (e) {}
+        try { UI().showOnly("writing"); } catch (e) {}
+        try { UI().setExamNavStatus("Status: Resuming Writing"); } catch (e) {}
+      }
+    }
+
     // If student lands on "submitted" overlay, do NOT trap them forever.
     // They should be able to start a new attempt.
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
@@ -867,7 +924,27 @@
       ["listening", "reading", "writing"].includes(String(route.view || "")) &&
       !isAdminView()
     ) {
-      resetToPublicHomeFromStaleRoute();
+      if (!hasResumableStudentAttempt()) {
+        resetToPublicHomeFromStaleRoute();
+        return;
+      }
+      safe(() =>
+        Modal().showModal(
+          "Resume your exam?",
+          "We found an unfinished exam attempt. If you go back to the homepage instead of resuming, your current answers will be lost and the exam will start from the beginning next time.",
+          {
+            mode: "confirm",
+            showCancel: true,
+            submitText: "Resume exam",
+            cancelText: "Go to homepage",
+            onConfirm: () => resumeStudentExamRoute(route),
+            onCancel: () => {
+              clearAllStudentAttemptKeys();
+              resetToPublicHomeFromStaleRoute();
+            },
+          }
+        )
+      );
       return;
     }
     if (isAdminView() && route && route.view) {

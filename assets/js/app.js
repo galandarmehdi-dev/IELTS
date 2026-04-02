@@ -85,6 +85,11 @@
     }
   }
 
+  function isHighlightingTarget(target) {
+    if (!target || typeof target.closest !== "function") return false;
+    return !!target.closest('[data-hl-root-key], #hlToolbar, mark.hl');
+  }
+
   function installAntiCheatGuards() {
     if (window.__IELTS_ANTI_CHEAT_GUARDS__) return;
     window.__IELTS_ANTI_CHEAT_GUARDS__ = true;
@@ -133,6 +138,12 @@
     const examOnlyBlock = (event) => {
       if (!isExamGuardActive()) return;
       if (isEditableTarget(event.target)) return;
+      if (
+        isHighlightingTarget(event.target) &&
+        (event.type === "selectstart" || event.type === "dblclick")
+      ) {
+        return;
+      }
       event.preventDefault();
       event.stopPropagation();
     };

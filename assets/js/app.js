@@ -865,7 +865,7 @@
     if (
       route &&
       ["listening", "reading", "writing"].includes(String(route.view || "")) &&
-      !hasActiveExamLaunch()
+      !isAdminView()
     ) {
       resetToPublicHomeFromStaleRoute();
       return;

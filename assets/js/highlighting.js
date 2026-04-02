@@ -384,7 +384,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     ensureToolbar();
 
-    registerRoot("listening", document.getElementById("listeningSection"));
+    registerRoot("listening", document.getElementById("listenBody") || document.getElementById("listeningSection"));
     registerRoot("writing", document.getElementById("writingSection"));
 
     restoreRootByKey("listening");

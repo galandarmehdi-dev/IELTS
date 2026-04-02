@@ -6,6 +6,7 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
+  const Auth = () => window.IELTS?.Auth;
 
   function isAdminView() {
     try {
@@ -22,6 +23,7 @@
     const testId = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
     const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const L_KEYS = (R().getScopedKeys?.(testId)?.listening) || (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
+    const REVIEW_MODE = !!(LAUNCH_CONTEXT && LAUNCH_CONTEXT.mode === "section" && LAUNCH_CONTEXT.section === "listening");
 
     // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
     const LEG = R().LEGACY?.listeningKeys;
@@ -69,6 +71,8 @@
     let transferEndsAt = 0;
     let transferInterval = null;
     let strictActive = false;
+    let lastReviewRows = S().getJSON(`${L_KEYS.answers}:reviewRows`, []) || [];
+    let lastReviewRevealed = S().get(`${L_KEYS.answers}:reviewRevealed`, "false") === "true";
 
     let currentPageIndex = Math.max(
       0,
@@ -181,6 +185,239 @@ function applyActiveListeningContent() {
       setTimeout(() => {
         if (a) a.textContent = "Autosave: ready";
       }, 800);
+    }
+
+    function injectListeningReviewStyles() {
+      if (document.getElementById("listeningReviewStyles")) return;
+      const style = document.createElement("style");
+      style.id = "listeningReviewStyles";
+      style.textContent = `
+        .answer-review-panel{margin-top:18px;border:1px solid rgba(18,26,36,.08);border-radius:24px;padding:18px;background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);box-shadow:0 18px 40px rgba(18,26,36,.06);}
+        .answer-review-panel.hidden{display:none;}
+        .answer-review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+        .answer-review-head h3{margin:4px 0 0;font-size:28px;color:var(--ink);}
+        .answer-review-hint{max-width:360px;color:var(--muted);font-weight:700;line-height:1.45;}
+        .answer-review-list{display:grid;gap:12px;}
+        .answer-review-row{border:1px solid rgba(18,26,36,.08);border-radius:18px;padding:14px;background:#fff;}
+        .answer-review-row.is-correct{border-color:rgba(31,132,90,.28);box-shadow:inset 0 0 0 1px rgba(31,132,90,.08);}
+        .answer-review-row.is-wrong{border-color:rgba(196,69,54,.28);box-shadow:inset 0 0 0 1px rgba(196,69,54,.08);}
+        .answer-review-row-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+        .answer-review-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;}
+        .answer-review-row.is-correct .answer-review-badge{background:rgba(31,132,90,.12);color:#1f845a;}
+        .answer-review-row.is-wrong .answer-review-badge{background:rgba(196,69,54,.12);color:#c44536;}
+        .answer-review-student,.answer-review-correct{display:grid;gap:4px;}
+        .answer-review-student span,.answer-review-correct span{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+      `;
+      document.head.appendChild(style);
+    }
+
+    function getVisibleListeningQuestionNumbers() {
+      const start = currentPageIndex * 10 + 1;
+      return Array.from({ length: 10 }, (_, index) => start + index);
+    }
+
+    function getManagedListeningAnswerKeyStorageKey() {
+      const scope = String(LAUNCH_CONTEXT?.storageScope || testId || "listening").trim();
+      return `${scope}:LISTENING:managedAnswerKey:section:${currentPageIndex + 1}`;
+    }
+
+    function loadManagedListeningOverrides() {
+      return S().getJSON(getManagedListeningAnswerKeyStorageKey(), {}) || {};
+    }
+
+    function saveManagedListeningOverrides(map) {
+      S().setJSON(getManagedListeningAnswerKeyStorageKey(), map || {});
+    }
+
+    function getListeningReviewPanel() {
+      let panel = $("listeningReviewPanel");
+      if (panel) return panel;
+      const footer = document.querySelector(".listen-footer");
+      if (!footer || !footer.parentNode) return null;
+      panel = document.createElement("div");
+      panel.id = "listeningReviewPanel";
+      panel.className = "answer-review-panel hidden";
+      footer.parentNode.insertBefore(panel, footer.nextSibling);
+      return panel;
+    }
+
+    function renderListeningReview(rows, revealed, totalCorrect, totalQuestions) {
+      const panel = getListeningReviewPanel();
+      if (!panel) return;
+      const safeRows = Array.isArray(rows) ? rows : [];
+      if (!safeRows.length) {
+        panel.classList.add("hidden");
+        panel.innerHTML = "";
+        return;
+      }
+      const correctCount = Number.isFinite(totalCorrect) ? totalCorrect : safeRows.filter((item) => item.mark).length;
+      const questionCount = Number.isFinite(totalQuestions) && totalQuestions > 0 ? totalQuestions : safeRows.length;
+      panel.classList.remove("hidden");
+      panel.innerHTML = `
+        <div class="answer-review-head">
+          <div>
+            <div class="home-card-topline">Listening review</div>
+            <h3>${correctCount}/${questionCount} correct</h3>
+          </div>
+          <div class="answer-review-hint">${revealed ? "Correct answers are visible below." : "Correct answers stay hidden until you click See answers."}</div>
+        </div>
+        <div class="answer-review-list">
+          ${safeRows.map((row) => `
+            <article class="answer-review-row ${row.mark ? "is-correct" : "is-wrong"}">
+              <div class="answer-review-row-top">
+                <strong>Question ${String(row.q || "—")}</strong>
+                <span class="answer-review-badge">${row.mark ? "Correct" : "Wrong"}</span>
+              </div>
+              <div class="answer-review-student"><span>Your answer</span><b>${escapeReviewValue(row.student || "—")}</b></div>
+              ${revealed ? `<div class="answer-review-correct"><span>Correct answer</span><b>${escapeReviewValue(row.correct || "—")}</b></div>` : ""}
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function escapeReviewValue(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    async function fetchListeningReview(reveal) {
+      const url = R().buildAdminApiUrl?.({ action: "objectiveAnswerCheck" });
+      if (!url) throw new Error("Listening review endpoint is unavailable.");
+
+      const latest = getListeningAnswers();
+      S().setJSON(L_KEYS.answers, latest);
+
+      const token = await Auth()?.getAccessToken?.();
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          testId,
+          skill: "listening",
+          reveal: reveal === true,
+          answers: latest,
+          questionNumbers: getVisibleListeningQuestionNumbers(),
+          overrideMap: isAdminView() ? loadManagedListeningOverrides() : {},
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data || data.ok !== true) {
+        throw new Error(data?.error || "Could not check listening answers.");
+      }
+      if (!Number(data.availableCount || 0)) {
+        throw new Error("No listening answer key is configured for this section yet.");
+      }
+      lastReviewRows = Array.isArray(data.review) ? data.review.slice() : [];
+      lastReviewRevealed = reveal === true;
+      S().setJSON(`${L_KEYS.answers}:reviewRows`, lastReviewRows);
+      S().set(`${L_KEYS.answers}:reviewRevealed`, lastReviewRevealed ? "true" : "false");
+      renderListeningReview(lastReviewRows, lastReviewRevealed, Number(data.totalCorrect || 0), Number(data.totalQuestions || lastReviewRows.length || 0));
+    }
+
+    function openManageListeningPrompt() {
+      const seed = {};
+      const existing = loadManagedListeningOverrides();
+      getVisibleListeningQuestionNumbers().forEach((q) => {
+        seed[q] = existing[q] || "";
+      });
+      const raw = window.prompt(
+        "Set listening answers as JSON, for example {\"17\":\"A\",\"18\":\"B\",\"19\":\"garden gallery\"}",
+        JSON.stringify(seed, null, 2)
+      );
+      if (raw == null) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
+        saveManagedListeningOverrides(parsed);
+        window.alert("Listening answer overrides saved for this browser.");
+      } catch (e) {
+        window.alert("Please paste a valid JSON object.");
+      }
+    }
+
+    function syncListeningReviewButtons() {
+      const finishBtn = $("finishListeningReviewBtn");
+      const checkBtn = $("checkListeningAnswersBtn");
+      const showBtn = $("showListeningAnswersBtn");
+      const manageBtn = $("manageListeningAnswersBtn");
+      if (finishBtn) finishBtn.disabled = submitted;
+      if (checkBtn) checkBtn.disabled = !submitted;
+      if (showBtn) showBtn.disabled = !submitted || !lastReviewRows.length;
+      if (manageBtn) manageBtn.classList.toggle("hidden", !isAdminView());
+    }
+
+    function ensureListeningReviewButtons() {
+      if (!REVIEW_MODE) return;
+      const footer = document.querySelector(".listen-footer");
+      if (!footer) return;
+
+      const ensureBtn = (id, label, ghost) => {
+        let btn = document.getElementById(id);
+        if (btn) return btn;
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = id;
+        btn.className = ghost ? "btn secondary" : "btn";
+        btn.textContent = label;
+        footer.appendChild(btn);
+        return btn;
+      };
+
+      const finishBtn = ensureBtn("finishListeningReviewBtn", "Finish Listening", false);
+      const checkBtn = ensureBtn("checkListeningAnswersBtn", "Check answers", true);
+      const showBtn = ensureBtn("showListeningAnswersBtn", "See answers", true);
+      const manageBtn = ensureBtn("manageListeningAnswersBtn", "Manage", true);
+
+      if (!finishBtn.dataset.bound) {
+        finishBtn.dataset.bound = "1";
+        finishBtn.addEventListener("click", () => {
+          if (submitted) return;
+          finishListening("Listening section finished.");
+          const a = $("listenAutosave");
+          if (a) a.textContent = "Listening finished. Check your answers below.";
+          syncListeningReviewButtons();
+        });
+      }
+
+      if (!checkBtn.dataset.bound) {
+        checkBtn.dataset.bound = "1";
+        checkBtn.addEventListener("click", async () => {
+          try {
+            await fetchListeningReview(false);
+            syncListeningReviewButtons();
+          } catch (error) {
+            window.alert(error?.message || "Could not check listening answers.");
+          }
+        });
+      }
+
+      if (!showBtn.dataset.bound) {
+        showBtn.dataset.bound = "1";
+        showBtn.addEventListener("click", async () => {
+          try {
+            await fetchListeningReview(true);
+            syncListeningReviewButtons();
+          } catch (error) {
+            window.alert(error?.message || "Could not reveal listening answers.");
+          }
+        });
+      }
+
+      if (!manageBtn.dataset.bound) {
+        manageBtn.dataset.bound = "1";
+        manageBtn.addEventListener("click", openManageListeningPrompt);
+      }
+
+      syncListeningReviewButtons();
     }
 
     function loadListeningAnswers() {
@@ -528,6 +765,7 @@ function applyActiveListeningContent() {
 
     function setupListeningUI() {
   applyActiveListeningContent();
+  injectListeningReviewStyles();
 
   // Admin gate (students must NOT be able to submit early / control flow)
   const isAdmin =
@@ -540,6 +778,10 @@ function applyActiveListeningContent() {
     if (s) s.classList.add("view-only");
     if (s) s.classList.remove("hidden");
     lockReading(false);
+    if (REVIEW_MODE && lastReviewRows.length) {
+      renderListeningReview(lastReviewRows, lastReviewRevealed);
+      syncListeningReviewButtons();
+    }
     document.dispatchEvent(new CustomEvent("listening:submitted"));
     return;
   }
@@ -551,6 +793,9 @@ function applyActiveListeningContent() {
 
   const submitNow = $("submitListeningBtn");
   if (submitNow) {
+    if (REVIEW_MODE) {
+      submitNow.classList.add("hidden");
+    } else
     if (!isAdmin) {
       // Students cannot submit early
       submitNow.classList.add("hidden");
@@ -598,6 +843,8 @@ function applyActiveListeningContent() {
       setStatus("Status: Not started");
     };
   }
+
+  ensureListeningReviewButtons();
 }
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", setupListeningUI);

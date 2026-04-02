@@ -18,6 +18,8 @@ export default {
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
+const ANSWER_KEY_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/gviz/tq?tqx=out:csv&sheet=AnswerKey";
 
 async function handleContactApi(request, env) {
   if (request.method !== "POST") {
@@ -105,6 +107,58 @@ async function handleAdminApi(request, env) {
 
     const samples = buildWritingSamplesFromSheet(csvText);
     return json(200, { ok: true, samples });
+  }
+
+  if (request.method === "POST" && action === "objectiveAnswerCheck") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const payload = await request.json().catch(() => null);
+    const testId = oneLine(payload?.testId || "");
+    const skill = oneLine(payload?.skill || "").toLowerCase();
+    const reveal = payload?.reveal === true;
+    const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
+    const overrideMap = payload?.overrideMap && typeof payload.overrideMap === "object" ? payload.overrideMap : {};
+    const questionNumbers = Array.isArray(payload?.questionNumbers)
+      ? payload.questionNumbers.map((value) => Number(value)).filter((value) => Number.isFinite(value) && value > 0)
+      : [];
+
+    if (!testId || !["listening", "reading"].includes(skill) || !questionNumbers.length) {
+      return json(400, { ok: false, error: "Missing grading inputs." });
+    }
+
+    const response = await fetch(ANSWER_KEY_CSV_URL, { method: "GET" });
+    const csvText = await response.text();
+    if (!response.ok || !csvText) {
+      return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load answer key sheet." });
+    }
+
+    const answerMap = {
+      ...buildObjectiveAnswerMap(csvText, testId, skill),
+      ...sanitizeObjectiveOverrideMap(overrideMap),
+    };
+    const review = questionNumbers
+      .sort((a, b) => a - b)
+      .map((q) => {
+        const correctRaw = String(answerMap[q] || "").trim();
+        const studentRaw = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
+        const isCorrect = matchesObjectiveAnswer(studentRaw, correctRaw);
+        return {
+          q,
+          student: studentRaw,
+          mark: isCorrect,
+          ...(reveal ? { correct: correctRaw || "—" } : {}),
+        };
+      });
+
+    return json(200, {
+      ok: true,
+      review,
+      totalCorrect: review.filter((item) => item.mark).length,
+      totalQuestions: review.length,
+      availableCount: Object.keys(answerMap).length,
+      revealed: reveal,
+    });
   }
 
   if (request.method === "GET" && action === "studentResult") {
@@ -320,6 +374,67 @@ function formatBand(value) {
   const text = String(value || "").trim();
   if (!text) return "Student sample";
   return /^band\s+/i.test(text) ? text : `Band ${text}`;
+}
+
+function buildObjectiveAnswerMap(csvText, testId, skill) {
+  const rows = parseCsv(csvText).filter((row) => Array.isArray(row) && row.length);
+  const colMap = {
+    ielts1: { listening: 0, reading: 1 },
+    ielts2: { listening: 2, reading: 3 },
+    ielts3: { listening: 4, reading: 5 },
+    ielts4: { listening: 6, reading: 7 },
+  };
+  const testCols = colMap[String(testId || "").trim().toLowerCase()] || null;
+  if (!testCols) return {};
+  const colIndex = testCols[skill];
+  if (!Number.isInteger(colIndex)) return {};
+
+  const map = {};
+  rows.slice(0, 40).forEach((row, index) => {
+    const value = String(row[colIndex] || "").trim();
+    if (value) map[index + 1] = value;
+  });
+  return map;
+}
+
+function matchesObjectiveAnswer(studentValue, correctValue) {
+  const student = normalizeObjectiveValue(studentValue);
+  if (!student) return false;
+
+  const options = splitObjectiveCandidates(correctValue);
+  if (!options.length) return false;
+  return options.some((candidate) => candidate === student);
+}
+
+function splitObjectiveCandidates(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(/\s*\/\s*/)
+    .map((part) => normalizeObjectiveValue(part))
+    .filter(Boolean);
+}
+
+function normalizeObjectiveValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function sanitizeObjectiveOverrideMap(value) {
+  const out = {};
+  if (!value || typeof value !== "object") return out;
+  Object.entries(value).forEach(([key, raw]) => {
+    const q = Number(key);
+    if (!Number.isFinite(q) || q <= 0) return;
+    const next = String(raw || "").trim();
+    if (!next) return;
+    out[q] = next;
+  });
+  return out;
 }
 
 function formatSampleLabel(band) {

@@ -6,6 +6,15 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
+  const Auth = () => window.IELTS?.Auth;
+
+  function isAdminView() {
+    try {
+      return window.IELTS?.Access?.isAdmin?.() === true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
@@ -18,12 +27,14 @@
     const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const TEST_ID = (R().getScopedReadingTestId?.(ACTIVE_TEST_ID)) || (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
     const DURATION_MINUTES = 60;
+    const REVIEW_MODE = !!(LAUNCH_CONTEXT && (LAUNCH_CONTEXT.mode === "section" || LAUNCH_CONTEXT.mode === "practice"));
 
     // TIMER/STATE
     let remainingSeconds = DURATION_MINUTES * 60;
     let timerInterval = null;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;
+    const reviewStorageKey = (suffix) => storageKey(`review:${suffix}`);
 
     let hasSubmittedReading = S().get(storageKey("submitted"), "false") === "true";
     let hasTransitionedToWriting = false;
@@ -31,6 +42,8 @@
     const PARTS = ["part1", "part2", "part3"];
     let activePart = String(LAUNCH_CONTEXT?.partId || "part1");
     const SPLIT_KEY = "IELTSPREF:readingSplitPct";
+    let lastReviewRows = S().getJSON(reviewStorageKey("rows"), []) || [];
+    let lastReviewRevealed = S().get(reviewStorageKey("revealed"), "false") === "true";
 
     function applySplitPercent(value) {
       const container = $("container");
@@ -607,6 +620,21 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         .partTabs{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;}
         .partTab{padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;cursor:pointer;font-weight:800;font-size:13px;}
         .partTab.active{border-color:#111;background:#111;color:#fff;}
+        .answer-review-panel{margin-top:18px;border:1px solid rgba(18,26,36,.08);border-radius:24px;padding:18px;background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);box-shadow:0 18px 40px rgba(18,26,36,.06);}
+        .answer-review-panel.hidden{display:none;}
+        .answer-review-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+        .answer-review-head h3{margin:4px 0 0;font-size:28px;color:var(--ink);}
+        .answer-review-hint{max-width:360px;color:var(--muted);font-weight:700;line-height:1.45;}
+        .answer-review-list{display:grid;gap:12px;}
+        .answer-review-row{border:1px solid rgba(18,26,36,.08);border-radius:18px;padding:14px;background:#fff;}
+        .answer-review-row.is-correct{border-color:rgba(31,132,90,.28);box-shadow:inset 0 0 0 1px rgba(31,132,90,.08);}
+        .answer-review-row.is-wrong{border-color:rgba(196,69,54,.28);box-shadow:inset 0 0 0 1px rgba(196,69,54,.08);}
+        .answer-review-row-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;}
+        .answer-review-badge{display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;}
+        .answer-review-row.is-correct .answer-review-badge{background:rgba(31,132,90,.12);color:#1f845a;}
+        .answer-review-row.is-wrong .answer-review-badge{background:rgba(196,69,54,.12);color:#c44536;}
+        .answer-review-student,.answer-review-correct{display:grid;gap:4px;}
+        .answer-review-student span,.answer-review-correct span{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
       `;
       document.head.appendChild(style);
     }
@@ -635,6 +663,260 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       S().setJSON(storageKey("answers"), snapshot);
       S().set(storageKey("remainingSeconds"), String(remainingSeconds));
       if ($("autosaveStatus")) $("autosaveStatus").textContent = `Autosave: saved at ${new Date().toLocaleTimeString()}`;
+    }
+
+    function getReadingFooter() {
+      return $("readingQuestions")?.querySelector(".foot") || null;
+    }
+
+    function getReviewPanel() {
+      let panel = $("readingReviewPanel");
+      if (panel) return panel;
+      const host = $("readingQuestions");
+      const footer = getReadingFooter();
+      if (!host) return null;
+      panel = document.createElement("div");
+      panel.id = "readingReviewPanel";
+      panel.className = "answer-review-panel hidden";
+      if (footer && footer.parentNode === host) {
+        host.insertBefore(panel, footer.nextSibling);
+      } else {
+        host.appendChild(panel);
+      }
+      return panel;
+    }
+
+    function escapeReviewHtml(value) {
+      return escapeHtml(value);
+    }
+
+    function buildQuestionNumbersFromBlock(block, out) {
+      if (!block || typeof block !== "object") return;
+      const push = (value) => {
+        const num = Number(value);
+        if (Number.isFinite(num) && num > 0) out.add(num);
+      };
+      (block.questions || []).forEach((item) => push(item?.q));
+      (block.items || []).forEach((item) => push(item?.q));
+      (block.summaryLines || []).forEach((item) => push(item?.blankQ));
+    }
+
+    function getVisibleReadingQuestionNumbers() {
+      const partCfg = getActivePartConfig();
+      const out = new Set();
+
+      if (Array.isArray(partCfg?.blocks) && partCfg.blocks.length) {
+        partCfg.blocks.forEach((block) => buildQuestionNumbersFromBlock(block, out));
+      } else if (activePart === "part1") {
+        for (let q = 1; q <= 13; q += 1) out.add(q);
+      } else if (activePart === "part2") {
+        for (let q = 14; q <= 26; q += 1) out.add(q);
+      } else {
+        for (let q = 27; q <= 40; q += 1) out.add(q);
+      }
+
+      return Array.from(out).sort((a, b) => a - b);
+    }
+
+    function getManagedAnswerKeyStorageKey() {
+      const scope = String(LAUNCH_CONTEXT?.storageScope || ACTIVE_TEST_ID || TEST_ID || "reading").trim();
+      const modeKey = LAUNCH_CONTEXT?.mode === "practice"
+        ? `practice:${String(LAUNCH_CONTEXT?.taskType || "reading").trim()}`
+        : `section:${String(LAUNCH_CONTEXT?.partId || activePart || "part1").trim()}`;
+      return `${scope}:READING:managedAnswerKey:${modeKey}`;
+    }
+
+    function loadManagedAnswerOverrides() {
+      return S().getJSON(getManagedAnswerKeyStorageKey(), {}) || {};
+    }
+
+    function saveManagedAnswerOverrides(map) {
+      S().setJSON(getManagedAnswerKeyStorageKey(), map || {});
+    }
+
+    async function fetchReadingReview(reveal) {
+      const url = R().buildAdminApiUrl?.({ action: "objectiveAnswerCheck" });
+      if (!url) throw new Error("Reading review endpoint is unavailable.");
+
+      const latest = collectCurrentAnswersFromDOM(answersRef.current);
+      answersRef.current = latest;
+      saveAnswers(latest);
+
+      const token = await Auth()?.getAccessToken?.();
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          testId: ACTIVE_TEST_ID,
+          skill: "reading",
+          reveal: reveal === true,
+          answers: latest,
+          questionNumbers: getVisibleReadingQuestionNumbers(),
+          overrideMap: isAdminView() ? loadManagedAnswerOverrides() : {},
+        }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data || data.ok !== true) {
+        throw new Error(data?.error || "Could not check reading answers.");
+      }
+      if (!Number(data.availableCount || 0)) {
+        throw new Error("No reading answer key is configured for this section yet.");
+      }
+      lastReviewRows = Array.isArray(data.review) ? data.review.slice() : [];
+      lastReviewRevealed = reveal === true;
+      S().setJSON(reviewStorageKey("rows"), lastReviewRows);
+      S().set(reviewStorageKey("revealed"), lastReviewRevealed ? "true" : "false");
+      renderReviewPanel(lastReviewRows, lastReviewRevealed, Number(data.totalCorrect || 0), Number(data.totalQuestions || lastReviewRows.length || 0));
+      return data;
+    }
+
+    function renderReviewPanel(rows, revealed, totalCorrect, totalQuestions) {
+      const panel = getReviewPanel();
+      if (!panel) return;
+
+      const safeRows = Array.isArray(rows) ? rows : [];
+      if (!safeRows.length) {
+        panel.classList.add("hidden");
+        panel.innerHTML = "";
+        return;
+      }
+
+      const correctCount = Number.isFinite(totalCorrect) ? totalCorrect : safeRows.filter((item) => item.mark).length;
+      const questionCount = Number.isFinite(totalQuestions) && totalQuestions > 0 ? totalQuestions : safeRows.length;
+
+      panel.classList.remove("hidden");
+      panel.innerHTML = `
+        <div class="answer-review-head">
+          <div>
+            <div class="home-card-topline">Reading review</div>
+            <h3>${correctCount}/${questionCount} correct</h3>
+          </div>
+          <div class="answer-review-hint">${revealed ? "Correct answers are visible below." : "Correct answers stay hidden until you click See answers."}</div>
+        </div>
+        <div class="answer-review-list">
+          ${safeRows.map((row) => `
+            <article class="answer-review-row ${row.mark ? "is-correct" : "is-wrong"}">
+              <div class="answer-review-row-top">
+                <strong>Question ${escapeReviewHtml(row.q)}</strong>
+                <span class="answer-review-badge">${row.mark ? "Correct" : "Wrong"}</span>
+              </div>
+              <div class="answer-review-student"><span>Your answer</span><b>${escapeReviewHtml(row.student || "—")}</b></div>
+              ${revealed ? `<div class="answer-review-correct"><span>Correct answer</span><b>${escapeReviewHtml(row.correct || "—")}</b></div>` : ""}
+            </article>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    function openManageAnswersPrompt() {
+      const visible = getVisibleReadingQuestionNumbers();
+      const existing = loadManagedAnswerOverrides();
+      const seed = {};
+      visible.forEach((q) => {
+        seed[q] = existing[q] || "";
+      });
+      const raw = window.prompt(
+        "Set reading answers as JSON, for example {\"1\":\"A\",\"2\":\"TRUE\",\"3\":\"ice shelves\"}",
+        JSON.stringify(seed, null, 2)
+      );
+      if (raw == null) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
+        saveManagedAnswerOverrides(parsed);
+        window.alert("Reading answer overrides saved for this browser.");
+      } catch (e) {
+        window.alert("Please paste a valid JSON object.");
+      }
+    }
+
+    function syncReviewButtons() {
+      const finishBtn = $("finishReadingReviewBtn");
+      const checkBtn = $("checkReadingReviewBtn");
+      const showBtn = $("showReadingAnswersBtn");
+      const manageBtn = $("manageReadingAnswersBtn");
+      if (finishBtn) finishBtn.disabled = hasSubmittedReading;
+      if (checkBtn) {
+        checkBtn.disabled = !hasSubmittedReading;
+        checkBtn.classList.toggle("hidden", !REVIEW_MODE);
+      }
+      if (showBtn) {
+        showBtn.disabled = !hasSubmittedReading || !lastReviewRows.length;
+        showBtn.classList.toggle("hidden", !REVIEW_MODE);
+      }
+      if (manageBtn) {
+        manageBtn.classList.toggle("hidden", !REVIEW_MODE || !isAdminView());
+      }
+    }
+
+    function ensureReviewButtons() {
+      if (!REVIEW_MODE) return;
+      const actions = document.querySelector(".reading-controls-right");
+      if (!actions) return;
+
+      const ensureBtn = (id, label, ghost) => {
+        let btn = document.getElementById(id);
+        if (btn) return btn;
+        btn = document.createElement("button");
+        btn.type = "button";
+        btn.id = id;
+        btn.className = ghost ? "btn secondary" : "btn";
+        btn.textContent = label;
+        actions.appendChild(btn);
+        return btn;
+      };
+
+      const finishBtn = ensureBtn("finishReadingReviewBtn", "Finish Reading", false);
+      const checkBtn = ensureBtn("checkReadingReviewBtn", "Check answers", true);
+      const showBtn = ensureBtn("showReadingAnswersBtn", "See answers", true);
+      const manageBtn = ensureBtn("manageReadingAnswersBtn", "Manage", true);
+
+      if (!finishBtn.dataset.bound) {
+        finishBtn.dataset.bound = "1";
+        finishBtn.addEventListener("click", async () => {
+          if (hasSubmittedReading) return;
+          const latest = collectCurrentAnswersFromDOM(answersRef.current);
+          answersRef.current = latest;
+          await submitReading("Reading section finished.", latest);
+          if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading finished. Check your answers below.";
+          syncReviewButtons();
+        });
+      }
+
+      if (!checkBtn.dataset.bound) {
+        checkBtn.dataset.bound = "1";
+        checkBtn.addEventListener("click", async () => {
+          try {
+            await fetchReadingReview(false);
+            syncReviewButtons();
+          } catch (error) {
+            window.alert(error?.message || "Could not check reading answers.");
+          }
+        });
+      }
+
+      if (!showBtn.dataset.bound) {
+        showBtn.dataset.bound = "1";
+        showBtn.addEventListener("click", async () => {
+          try {
+            await fetchReadingReview(true);
+            syncReviewButtons();
+          } catch (error) {
+            window.alert(error?.message || "Could not reveal reading answers.");
+          }
+        });
+      }
+
+      if (!manageBtn.dataset.bound) {
+        manageBtn.dataset.bound = "1";
+        manageBtn.addEventListener("click", openManageAnswersPrompt);
+      }
+
+      syncReviewButtons();
     }
 
     function collectCurrentAnswersFromDOM(base = {}) {
@@ -1427,6 +1709,10 @@ qnum.textContent = `${item.q}`;
       if (hasSubmittedReading) {
         if ($("autosaveStatus")) $("autosaveStatus").textContent = "Reading submitted (locked).";
         lockReadingUI();
+        if (REVIEW_MODE && lastReviewRows.length) {
+          renderReviewPanel(lastReviewRows, lastReviewRevealed);
+          syncReviewButtons();
+        }
         // Ensure user can proceed to Writing even after a refresh.
         transitionToWritingOnce();
         return;
@@ -1468,6 +1754,7 @@ qnum.textContent = `${item.q}`;
 
     buildPartTabs();
     initReadingSplitter();
+    ensureReviewButtons();
     try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = activePart; } catch (e) {}
     renderPassageForActivePart();
     renderQuestionsForActivePart(answersRef.current);
@@ -1476,15 +1763,19 @@ qnum.textContent = `${item.q}`;
 
     if (hasSubmittedReading) {
       lockReadingUI();
+      if (REVIEW_MODE && lastReviewRows.length) {
+        renderReviewPanel(lastReviewRows, lastReviewRevealed);
+        syncReviewButtons();
+      }
       // If the page is refreshed after Reading was submitted, show the Writing gate.
       transitionToWritingOnce();
     }
 
     if ($("submitBtn")) {
       $("submitBtn").addEventListener("click", async () => {
+        if (REVIEW_MODE) return;
         // Admin-only: students should NOT see/use the submit button
-        const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
-        if (!isAdmin) return;
+        if (!isAdminView()) return;
         if (hasSubmittedReading) return;
 
         const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");
@@ -1503,7 +1794,7 @@ qnum.textContent = `${item.q}`;
       });
     }
 
-    
+    syncReviewButtons();
 
     startTimer(answersRef);
   }

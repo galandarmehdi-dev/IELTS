@@ -1,5 +1,8 @@
 import { EmailMessage } from "cloudflare:email";
 
+const OBJECTIVE_DETAIL_CACHE = new Map();
+const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -174,9 +177,24 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
+    const cached = getCachedObjectiveDetail(cacheKey);
+    if (cached) {
+      return json(200, { ok: true, result: cached, cached: true });
+    }
+
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
-    return proxy(request, backendUrl.toString());
+    const response = await fetch(backendUrl.toString(), {
+      method: request.method,
+      headers: filteredProxyHeaders(request),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data || data.ok !== true || !data.result) {
+      return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load objective detail." });
+    }
+    setCachedObjectiveDetail(cacheKey, data.result);
+    return json(200, { ok: true, result: data.result });
   }
 
   if (request.method === "POST" && action === "studentResults") {
@@ -276,6 +294,13 @@ function proxy(request, backendUrl) {
     headers,
     body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
   });
+}
+
+function filteredProxyHeaders(request) {
+  const headers = new Headers(request.headers);
+  headers.delete("Authorization");
+  headers.delete("Host");
+  return headers;
 }
 
 function buildWritingSamplesFromSheet(csvText) {
@@ -435,6 +460,34 @@ function sanitizeObjectiveOverrideMap(value) {
     out[q] = next;
   });
   return out;
+}
+
+function buildObjectiveDetailCacheKey(searchParams) {
+  return [
+    String(searchParams.get("submittedAt") || "").trim(),
+    String(searchParams.get("studentFullName") || "").trim().toLowerCase(),
+    String(searchParams.get("examId") || "").trim().toLowerCase(),
+    String(searchParams.get("reason") || "").trim().toLowerCase(),
+  ].join("::");
+}
+
+function getCachedObjectiveDetail(key) {
+  if (!key) return null;
+  const entry = OBJECTIVE_DETAIL_CACHE.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    OBJECTIVE_DETAIL_CACHE.delete(key);
+    return null;
+  }
+  return entry.value || null;
+}
+
+function setCachedObjectiveDetail(key, value) {
+  if (!key || !value) return;
+  OBJECTIVE_DETAIL_CACHE.set(key, {
+    value,
+    expiresAt: Date.now() + OBJECTIVE_DETAIL_TTL_MS,
+  });
 }
 
 function formatSampleLabel(band) {

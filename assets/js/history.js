@@ -12,6 +12,8 @@
 
   const state = { rows: [] };
   const detailState = { sourceRowId: null, sourceScrollY: 0 };
+  const objectiveDetailCache = new Map();
+  const objectivePrefetchPending = new Set();
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -69,6 +71,9 @@
   }
 
   async function fetchObjectiveDetailForRow(row) {
+    const cacheKey = buildMatchKey(row);
+    if (objectiveDetailCache.has(cacheKey)) return objectiveDetailCache.get(cacheKey);
+
     const url = Registry()?.buildAdminApiUrl?.({
       action: "studentObjectiveDetail",
       submittedAt: row.submitted_at || "",
@@ -87,7 +92,21 @@
     });
     const data = await res.json().catch(() => null);
     if (!res.ok || !data || data.ok !== true || !data.result) return null;
+    objectiveDetailCache.set(cacheKey, data.result);
     return data.result;
+  }
+
+  function prefetchObjectiveDetails(rows, limit) {
+    (rows || [])
+      .slice(0, Math.max(0, Number(limit) || 0))
+      .forEach((row) => {
+        const cacheKey = buildMatchKey(row);
+        if (!cacheKey || objectiveDetailCache.has(cacheKey) || objectivePrefetchPending.has(cacheKey)) return;
+        objectivePrefetchPending.add(cacheKey);
+        fetchObjectiveDetailForRow(row)
+          .catch(() => null)
+          .finally(() => objectivePrefetchPending.delete(cacheKey));
+      });
   }
 
   function renderObjectiveReview(prefix, result) {
@@ -394,6 +413,7 @@
       }
       state.rows = rows;
       renderTable(rows);
+      prefetchObjectiveDetails(rows, 6);
       if (!rows.length) {
         const lastLocal = window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
         if (lastLocal?.submittedAt) {
@@ -413,6 +433,7 @@
         }
         state.rows = rows;
         renderTable(rows);
+        prefetchObjectiveDetails(rows, 6);
       }
     } catch (err) {
       const tbody = $("historyTbody");

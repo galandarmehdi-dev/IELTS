@@ -81,18 +81,22 @@ body.exam-guard #speakingSection :not(input):not(textarea):not(select):not(butto
   user-select:none;
 }
 
-body.exam-guard [data-hl-root-key],
-body.exam-guard [data-hl-root-key] *,
+body.exam-guard #listeningSection [data-hl-root-key],
+body.exam-guard #listeningSection [data-hl-root-key] *,
+body.exam-guard #container [data-hl-root-key],
+body.exam-guard #container [data-hl-root-key] *,
+body.exam-guard #writingSection [data-hl-root-key],
+body.exam-guard #writingSection [data-hl-root-key] *,
 body.exam-guard mark.hl,
 body.exam-guard #hlToolbar,
 body.exam-guard #hlToolbar *{
-  -webkit-user-select:text;
-  user-select:text;
+  -webkit-user-select:text !important;
+  user-select:text !important;
 }
 
 body.exam-guard #hlToolbar .hl-toolbtn{
-  -webkit-user-select:none;
-  user-select:none;
+  -webkit-user-select:none !important;
+  user-select:none !important;
 }
 
 body.exam-guard #listeningSection img,

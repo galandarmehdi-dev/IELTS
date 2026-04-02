@@ -144,6 +144,23 @@
   line-height:1.68;
   margin:0 0 16px;
 }
+.listen-body,
+.listen-block,
+.listen-h,
+.listen-inst,
+.listen-card,
+.listen-card-title,
+.listen-example,
+.people-box,
+.endings-box,
+.listen-notes,
+.note-row,
+.listen-table th,
+.listen-table td,
+.mcq,
+.mcq-q{
+  cursor:text;
+}
 .listen-card{
   width:min(760px, 100%);
   background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);

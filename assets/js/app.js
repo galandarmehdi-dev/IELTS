@@ -86,8 +86,10 @@
   }
 
   function isHighlightingTarget(target) {
-    if (!target || typeof target.closest !== "function") return false;
-    return !!target.closest('[data-hl-root-key], #hlToolbar, mark.hl');
+    if (!target) return false;
+    const el = target.nodeType === 1 ? target : target.parentElement;
+    if (!el || typeof el.closest !== "function") return false;
+    return !!el.closest('[data-hl-root-key], #hlToolbar, mark.hl');
   }
 
   function installAntiCheatGuards() {

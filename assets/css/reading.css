@@ -110,6 +110,17 @@
 .passage h3{ color:var(--navy); }
 .passage p,
 .passage li{ line-height:1.72; color:var(--text); }
+.passage,
+.passage h1,
+.passage h2,
+.passage h3,
+.passage h4,
+.passage p,
+.passage li,
+.passage span,
+.passage div{
+  cursor:text;
+}
 .splitter{
   flex:0 0 12px;
   position:relative;
@@ -152,6 +163,22 @@
 .qcard p,
 .qcard li,
 .qcard label{ color:var(--text); line-height:1.68; }
+.questions,
+.questions .qcard,
+.questions .panel,
+.questions .task-title,
+.questions .task-instructions,
+.questions p,
+.questions li,
+.questions span,
+.questions label,
+.questions .qtext,
+.questions .sentenceLine,
+.questions .answer-example,
+.questions .headings-list,
+.questions .headings-list li{
+  cursor:text;
+}
 .foot{
   margin-top:16px;
   display:flex;

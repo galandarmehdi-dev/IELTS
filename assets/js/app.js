@@ -64,6 +64,7 @@
   }
 
   function resetToPublicHomeFromStaleRoute() {
+    try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
     try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
     try { UI().setExamStarted(false); } catch (e) {}
     try { R()?.clearLaunchContext?.(); } catch (e) {}
@@ -318,21 +319,21 @@
       const scoped = activeScopedKeys();
       const listeningKeys = scoped?.listening || {};
       const writingKeys = scoped?.writing || {};
+      const listeningSubmitted = S().get(listeningKeys.submitted, "false") === "true";
+      const listeningStarted = S().get(listeningKeys.started, "false") === "true";
+      const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
+      const writingSubmitted = S().get(writingKeys.submitted, "false") === "true";
+      const writingStarted = S().get(writingKeys.started, "false") === "true";
       const readingAnswers = S().getJSON(`${R()?.getScopedReadingTestId?.(getActiveTestId()) || R()?.getTestConfig?.(getActiveTestId())?.readingTestId || "ielts-reading-3parts-001"}:answers`, null);
       const listeningAnswers = S().getJSON(listeningKeys.answers, null);
       const writingAnswers = S().getJSON(writingKeys.answers, null);
 
       return (
-        S().get(R().KEYS.EXAM_STARTED, "false") === "true" ||
-        !!getLaunchContext() ||
-        S().get(listeningKeys.started, "false") === "true" ||
-        S().get(listeningKeys.submitted, "false") === "true" ||
-        hasNonEmptyObject(listeningAnswers) ||
-        S().get(readingSubmittedKey(), "false") === "true" ||
-        hasNonEmptyObject(readingAnswers) ||
-        S().get(writingKeys.started, "false") === "true" ||
-        S().get(writingKeys.submitted, "false") === "true" ||
-        hasNonEmptyObject(writingAnswers)
+        (listeningStarted && !listeningSubmitted) ||
+        (!listeningSubmitted && hasNonEmptyObject(listeningAnswers)) ||
+        (!readingSubmitted && hasNonEmptyObject(readingAnswers)) ||
+        (writingStarted && !writingSubmitted) ||
+        (!writingSubmitted && hasNonEmptyObject(writingAnswers))
       );
     }
 
@@ -382,6 +383,7 @@
 
     function showListeningGate() {
       if (!isFullExamFlow()) return;
+      if (window.__IELTS_SUPPRESS_AUTO_GATES__ === true) return;
       if (isAdminView() || showingGate) return;
       const listeningDone = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
@@ -432,6 +434,7 @@
 
     function showReadingGate() {
       if (!isFullExamFlow()) return;
+      if (window.__IELTS_SUPPRESS_AUTO_GATES__ === true) return;
       if (isAdminView() || showingGate) return;
       const listeningDone = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false") === "true";
       const readingDone = S().get(readingSubmittedKey(), "false") === "true";
@@ -1153,6 +1156,7 @@
     }
 
     function launchListeningOnly(testId, pageIndex) {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:LISTENING`;
       const ctx = { mode: "section", section: "listening", testId, storageScope: scope };
@@ -1169,6 +1173,7 @@
     }
 
     function launchReadingOnly(testId, partId) {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:READING`;
       const ctx = { mode: "section", section: "reading", testId, storageScope: scope };
@@ -1185,6 +1190,7 @@
     }
 
     function launchWritingOnly(testId, focusTask) {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:WRITING`;
       const ctx = { mode: "section", section: "writing", testId, storageScope: scope };
@@ -1201,6 +1207,7 @@
     }
 
     function launchReadingPractice(taskType) {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       const catalog = R()?.buildHomeCatalog?.()?.practice?.reading || [];
       const match = catalog.find((entry) => entry.type === taskType);
       const testId = match?.tests?.[0] || R()?.TESTS?.defaultTestId || "ielts1";
@@ -2352,6 +2359,7 @@
     }
 
 function startFreshExam() {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       R()?.clearLaunchContext?.();
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();

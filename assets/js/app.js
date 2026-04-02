@@ -10,7 +10,9 @@
   
   const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
-  const writingSampleCache = { rows: null, promise: null };
+    const writingSampleCache = { rows: null, promise: null };
+    const adminObjectiveDetailCache = new Map();
+    const adminObjectivePrefetchPending = new Set();
 
   async function getAuthHeaders() {
     try {
@@ -616,6 +618,14 @@
     }
 
     async function fetchObjectiveDetailForRow(row) {
+      const cacheKey = [
+        String(row.submittedAt || "").trim(),
+        String(row.studentFullName || "").trim().toLowerCase(),
+        String(row.examId || "").trim().toLowerCase(),
+        String(row.reason || "").trim().toLowerCase(),
+      ].join("::");
+      if (adminObjectiveDetailCache.has(cacheKey)) return adminObjectiveDetailCache.get(cacheKey);
+
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
@@ -633,7 +643,26 @@
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true || !data.result) return null;
+      adminObjectiveDetailCache.set(cacheKey, data.result);
       return data.result;
+    }
+
+    function prefetchAdminObjectiveDetails(rows, limit) {
+      (rows || [])
+        .slice(0, Math.max(0, Number(limit) || 0))
+        .forEach((row) => {
+          const cacheKey = [
+            String(row.submittedAt || "").trim(),
+            String(row.studentFullName || "").trim().toLowerCase(),
+            String(row.examId || "").trim().toLowerCase(),
+            String(row.reason || "").trim().toLowerCase(),
+          ].join("::");
+          if (!cacheKey || adminObjectiveDetailCache.has(cacheKey) || adminObjectivePrefetchPending.has(cacheKey)) return;
+          adminObjectivePrefetchPending.add(cacheKey);
+          fetchObjectiveDetailForRow(row)
+            .catch(() => null)
+            .finally(() => adminObjectivePrefetchPending.delete(cacheKey));
+        });
     }
 
     function renderObjectiveReview(prefix, result) {
@@ -785,6 +814,7 @@
         adminState.rows = rows;
         fillExamFilter(rows);
         applyAdminFilters();
+        prefetchAdminObjectiveDetails(rows, 8);
       } catch (e) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
         renderSummary([]);

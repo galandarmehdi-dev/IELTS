@@ -11,6 +11,10 @@ export default {
       return handleContactApi(request, env);
     }
 
+    if (url.pathname === "/api/auth/shared-login") {
+      return handleSharedStudentLogin(request, env);
+    }
+
     if (url.pathname === "/api/admin") {
       return handleAdminApi(request, env);
     }
@@ -23,6 +27,42 @@ const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
 const ANSWER_KEY_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/gviz/tq?tqx=out:csv&sheet=AnswerKey";
+const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
+
+async function handleSharedStudentLogin(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const email = oneLine(payload?.email).toLowerCase();
+  const password = String(payload?.password || "");
+  const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || DEFAULT_SHARED_STUDENT_PASSWORD);
+
+  if (!isValidEmail(email)) {
+    return json(400, { ok: false, error: "Please enter a valid email address." });
+  }
+  if (!password || password !== expectedPassword) {
+    return json(401, { ok: false, error: "Wrong shared password." });
+  }
+
+  const token = await issueSharedStudentToken(email, env);
+  const displayName = deriveNameFromEmail(email);
+  const user = {
+    id: `shared:${email}`,
+    email,
+    created_at: new Date().toISOString(),
+    last_sign_in_at: new Date().toISOString(),
+    app_metadata: { provider: "shared-password", is_shared_student_login: true },
+    user_metadata: {
+      full_name: displayName,
+      name: displayName,
+      preferred_name: displayName,
+    },
+  };
+
+  return json(200, { ok: true, token, user });
+}
 
 async function handleContactApi(request, env) {
   if (request.method !== "POST") {
@@ -239,6 +279,9 @@ async function handleAdminApi(request, env) {
 async function authenticateAdmin(request, env) {
   const auth = await authenticateUser(request, env);
   if (!auth.ok) return auth;
+  if (auth.kind === "shared") {
+    return { ok: false, status: 403, error: "Shared-password student sign-in cannot use admin tools." };
+  }
 
   const allowedEmails = String(env.ADMIN_ALLOWED_EMAILS || "")
     .split(",")
@@ -263,6 +306,27 @@ async function authenticateUser(request, env) {
     return { ok: false, status: 401, error: "Missing access token." };
   }
 
+  const token = String(authHeader.slice("Bearer ".length) || "").trim();
+  if (token.startsWith("shared.")) {
+    const payload = await verifySharedStudentToken(token, env);
+    if (!payload?.email) {
+      return { ok: false, status: 401, error: "Invalid shared sign-in token." };
+    }
+    return {
+      ok: true,
+      status: 200,
+      kind: "shared",
+      user: {
+        email: payload.email,
+        app_metadata: { provider: "shared-password", is_shared_student_login: true },
+        user_metadata: {
+          name: deriveNameFromEmail(payload.email),
+          preferred_name: deriveNameFromEmail(payload.email),
+        },
+      },
+    };
+  }
+
   const response = await fetch(`${String(env.SUPABASE_URL || "").replace(/\/$/, "")}/auth/v1/user`, {
     method: "GET",
     headers: {
@@ -277,7 +341,78 @@ async function authenticateUser(request, env) {
     return { ok: false, status: 401, error: "Invalid access token." };
   }
 
-  return { ok: true, status: 200, user };
+  return { ok: true, status: 200, kind: "supabase", user };
+}
+
+function deriveNameFromEmail(email) {
+  const local = String(email || "").split("@")[0] || "Student";
+  const pretty = local
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+  return pretty || "Student";
+}
+
+function getSharedTokenSigningSecret(env) {
+  return String(env.SHARED_STUDENT_TOKEN_SECRET || env.ADMIN_RESULTS_PASSCODE || DEFAULT_SHARED_STUDENT_PASSWORD);
+}
+
+async function issueSharedStudentToken(email, env) {
+  const payload = {
+    email: String(email || "").trim().toLowerCase(),
+    type: "shared-student",
+    exp: Date.now() + (1000 * 60 * 60 * 24 * 30),
+  };
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const signature = await signSharedTokenPayload(encodedPayload, getSharedTokenSigningSecret(env));
+  return `shared.${encodedPayload}.${signature}`;
+}
+
+async function verifySharedStudentToken(token, env) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3 || parts[0] !== "shared") return null;
+  const encodedPayload = parts[1];
+  const signature = parts[2];
+  const expected = await signSharedTokenPayload(encodedPayload, getSharedTokenSigningSecret(env));
+  if (signature !== expected) return null;
+
+  const payload = JSON.parse(fromBase64Url(encodedPayload) || "null");
+  if (!payload || payload.type !== "shared-student" || !payload.email) return null;
+  if (!Number.isFinite(payload.exp) || Date.now() > payload.exp) return null;
+  return payload;
+}
+
+async function signSharedTokenPayload(encodedPayload, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(String(secret || "")),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(String(encodedPayload || "")));
+  return toBase64UrlFromBytes(new Uint8Array(signature));
+}
+
+function toBase64Url(value) {
+  const bytes = new TextEncoder().encode(String(value || ""));
+  return toBase64UrlFromBytes(bytes);
+}
+
+function toBase64UrlFromBytes(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function fromBase64Url(value) {
+  const base64 = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4 || 4)) % 4);
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
 function proxy(request, backendUrl) {

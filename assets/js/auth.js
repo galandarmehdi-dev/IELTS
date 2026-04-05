@@ -18,6 +18,7 @@ window.IELTS = window.IELTS || {};
 
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
+const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
 
 let authReady = false;
 let loggingOut = false;
@@ -31,6 +32,14 @@ function getEl(id) {
 function getSavedUser() {
   try {
     return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+  } catch (e) {
+    return null;
+  }
+}
+
+function getSharedSession() {
+  try {
+    return JSON.parse(localStorage.getItem(SHARED_SESSION_KEY) || "null");
   } catch (e) {
     return null;
   }
@@ -94,6 +103,18 @@ function clearSavedUser() {
   } catch (e) {}
 }
 
+function saveSharedSession(session) {
+  try {
+    localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(session));
+  } catch (e) {}
+}
+
+function clearSharedSession() {
+  try {
+    localStorage.removeItem(SHARED_SESSION_KEY);
+  } catch (e) {}
+}
+
 function syncAuthExport() {
   window.IELTS = window.IELTS || {};
   window.IELTS.Auth = {
@@ -116,6 +137,8 @@ function isSignedIn() {
 }
 
 async function getAccessToken() {
+  const shared = getSharedSession();
+  if (shared?.token) return shared.token;
   try {
     const { data } = await supabase.auth.getSession();
     return data?.session?.access_token || null;
@@ -374,6 +397,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   const user = session?.user || null;
 
   if (user) {
+    clearSharedSession();
     saveUser(user);
     syncAuthExport();
     showProtectedApp(true);
@@ -399,6 +423,23 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     return true;
   }
 
+  const shared = getSharedSession();
+  if (shared?.token && shared?.user?.email) {
+    saveUser(shared.user);
+    syncAuthExport();
+    showProtectedApp(true);
+    setMessage("");
+    authReady = true;
+    if (forceHome) {
+      routeHomeAfterLogin();
+    } else {
+      restoreViewAfterAuth();
+    }
+    notifyAuthChanged();
+    return true;
+  }
+
+  clearSharedSession();
   clearSavedUser();
   syncAuthExport();
   hideBlockingModals();
@@ -465,6 +506,41 @@ async function sendOtpOrMagicLink() {
   setMessage(error ? error.message : "Check your email for the code or magic link.");
 }
 
+async function signInWithSharedPassword() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  const password = getEl("sharedPasswordInput")?.value || "";
+
+  if (!email) {
+    setMessage("Please enter your email.");
+    return;
+  }
+  if (!password) {
+    setMessage("Please enter the shared password.");
+    return;
+  }
+
+  setMessage("Signing you in...");
+  const res = await fetch("/api/auth/shared-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  }).catch(() => null);
+
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
+    setMessage(data?.error || "Shared-password sign-in failed.");
+    return;
+  }
+
+  saveSharedSession({ token: data.token, user: data.user });
+  saveUser(data.user);
+  syncAuthExport();
+  showProtectedApp(true);
+  setMessage("");
+  routeHomeAfterLogin();
+  notifyAuthChanged();
+}
+
 async function verifyOtpCode() {
   const email = getEl("otpEmail")?.value.trim() || "";
   const token = getEl("otpCode")?.value.trim() || "";
@@ -502,6 +578,7 @@ async function logout() {
 
   hideBlockingModals();
   showProtectedApp(false);
+  clearSharedSession();
   clearSavedUser();
   syncAuthExport();
   setMessage("");
@@ -517,6 +594,7 @@ async function logout() {
 
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
+getEl("sharedPasswordLoginBtn")?.addEventListener("click", signInWithSharedPassword);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);
@@ -558,8 +636,18 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
 
   if (event === "SIGNED_OUT") {
+    if (getSharedSession()?.token) {
+      saveUser(getSharedSession().user);
+      syncAuthExport();
+      showProtectedApp(true);
+      setMessage("");
+      authReady = true;
+      notifyAuthChanged();
+      return;
+    }
     hideBlockingModals();
     showProtectedApp(false);
+    clearSharedSession();
     clearSavedUser();
     syncAuthExport();
     setMessage("");

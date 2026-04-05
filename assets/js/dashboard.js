@@ -372,6 +372,8 @@
       ? "Google account"
       : provider === "azure"
         ? "Microsoft account"
+        : provider === "shared-password"
+          ? "Student account"
         : provider
           ? `${provider} account`
           : "Secure account";

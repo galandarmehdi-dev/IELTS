@@ -21,6 +21,7 @@ const authMessage = document.getElementById("authMessage");
 const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
 const SHARED_PASSWORD_OVERRIDE_KEY = "IELTS:AUTH:sharedPasswordOverrides";
 const PERSONAL_PASSWORD_MARKERS_KEY = "IELTS:AUTH:personalPasswordEmails";
+const PROFILE_CACHE_BY_EMAIL_KEY = "IELTS:AUTH:profileByEmail";
 const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 let authReady = false;
@@ -151,6 +152,32 @@ function getIdentityKeyFromUserLike(user) {
   return normalizeEmail(user?.email) || String(user?.id || "").trim() || "guest";
 }
 
+function readEmailScopedDashboardSettings(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(`IELTS:DASHBOARD:${normalizedEmail}:settings`) || "null");
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getProfileCacheByEmail() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PROFILE_CACHE_BY_EMAIL_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveProfileCacheByEmail(next) {
+  try {
+    localStorage.setItem(PROFILE_CACHE_BY_EMAIL_KEY, JSON.stringify(next || {}));
+  } catch (e) {}
+}
+
 function buildProfileFromMetadata(metadata) {
   return {
     username: String(metadata.username || "").trim(),
@@ -186,19 +213,38 @@ function setMessage(text, options) {
 function saveUser(user) {
   const metadata = user?.user_metadata || {};
   const appMetadata = user?.app_metadata || {};
-  const profile = buildProfileFromMetadata(metadata);
+  const emailScoped = readEmailScopedDashboardSettings(user?.email) || {};
+  const cachedByEmail = getProfileCacheByEmail()[normalizeEmail(user?.email)] || {};
+  const profile = { ...buildProfileFromMetadata(metadata), ...(cachedByEmail.profile || {}), ...emailScoped };
   const avatar =
     profile.avatarUrl ||
+    cachedByEmail.avatarUrl ||
     metadata.avatar_url ||
     metadata.picture ||
     metadata.photo_url ||
     "";
   const fullName =
     profile.preferredName ||
+    cachedByEmail.name ||
     metadata.full_name ||
     metadata.name ||
     "";
+  const provider = appMetadata?.provider || cachedByEmail.provider || "";
   try {
+    const email = normalizeEmail(user?.email);
+    if (email) {
+      saveProfileCacheByEmail({
+        ...getProfileCacheByEmail(),
+        [email]: {
+          name: fullName,
+          avatarUrl: avatar,
+          provider,
+          createdAt: user?.created_at || cachedByEmail.createdAt || "",
+          lastSignInAt: user?.last_sign_in_at || cachedByEmail.lastSignInAt || "",
+          profile,
+        },
+      });
+    }
     localStorage.setItem(
       "IELTS:AUTH:user",
       JSON.stringify({
@@ -207,7 +253,7 @@ function saveUser(user) {
         email: user?.email || "",
         name: fullName,
         avatarUrl: avatar,
-        provider: appMetadata?.provider || "",
+        provider,
         createdAt: user?.created_at || "",
         lastSignInAt: user?.last_sign_in_at || "",
         profile

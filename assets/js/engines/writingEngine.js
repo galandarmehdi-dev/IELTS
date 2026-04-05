@@ -33,7 +33,7 @@
       TEST_ID: (typeof R().getLaunchContext === "function" && R().getLaunchContext()?.storageScope)
         ? `${R().getLaunchContext().storageScope}:WRITING`
         : (cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001"),
-      DURATION_MINUTES: 60,
+      DURATION_MINUTES: 2,
       keys: namespacedKeys.writing || legacyKeys,
       readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",
       listeningKeys: namespacedKeys.listening || R().LEGACY?.listeningKeys || R().TESTS?.listeningKeys || {},

@@ -14,6 +14,8 @@
   const detailState = { sourceRowId: null, sourceScrollY: 0 };
   const objectiveDetailCache = new Map();
   const objectivePrefetchPending = new Set();
+  const LOCAL_HISTORY_KEY_PREFIX = "IELTS:LOCAL:HISTORY:";
+  const LOCAL_HISTORY_LAST_OPEN_KEY = "IELTS:LOCAL:HISTORY:lastOpen";
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -132,12 +134,40 @@
     }
   }
 
+  function getHistoryEmail() {
+    const user = Auth()?.getSavedUser?.();
+    return String(user?.email || "").trim().toLowerCase();
+  }
+
+  function getLocalHistoryStorageKey(email) {
+    return `${LOCAL_HISTORY_KEY_PREFIX}${String(email || "").trim().toLowerCase()}`;
+  }
+
+  function loadLocalRows(email) {
+    const key = getLocalHistoryStorageKey(email);
+    try {
+      const rows = window.IELTS?.Storage?.getJSON?.(key, []) || [];
+      return Array.isArray(rows) ? rows : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveLocalRows(email, rows) {
+    const key = getLocalHistoryStorageKey(email);
+    try {
+      window.IELTS?.Storage?.setJSON?.(key, Array.isArray(rows) ? rows.slice(0, 50) : []);
+    } catch (e) {}
+  }
+
   async function loadRows() {
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
     const email = String(user?.email || "").trim().toLowerCase();
-    if (!supabase || !email) return [];
+    const localRows = email ? loadLocalRows(email) : [];
+    if (!email) return [];
+    if (!supabase) return localRows;
 
     const query = supabase
       .from(table)
@@ -148,7 +178,7 @@
 
     const { data, error } = await withTimeout(query, Number(Registry()?.TIMEOUTS?.historyLoadMs || 20000), "History load");
     if (error) throw error;
-    return Array.isArray(data) ? data : [];
+    return mergeRowsByMatchKey(Array.isArray(data) ? data : [], localRows);
   }
 
 
@@ -195,6 +225,106 @@
       String(row?.examId || row?.exam_id || row?.active_test_id || "").trim().toLowerCase(),
       String(row?.reason || "").replace(/\s+/g, " ").trim().toLowerCase(),
     ].join("::");
+  }
+
+  function mergeRowsByMatchKey(primaryRows, secondaryRows) {
+    const byKey = new Map();
+    (Array.isArray(secondaryRows) ? secondaryRows : []).forEach((row) => {
+      const key = buildMatchKey(row);
+      if (!key) return;
+      byKey.set(key, row);
+    });
+    (Array.isArray(primaryRows) ? primaryRows : []).forEach((row) => {
+      const key = buildMatchKey(row);
+      if (!key) return;
+      const existing = byKey.get(key) || {};
+      byKey.set(key, { ...existing, ...row });
+    });
+    return Array.from(byKey.values()).sort((a, b) => {
+      const aTime = new Date(a?.submitted_at || a?.submittedAt || 0).getTime() || 0;
+      const bTime = new Date(b?.submitted_at || b?.submittedAt || 0).getTime() || 0;
+      return bTime - aTime;
+    });
+  }
+
+  function buildLocalAttemptRow(finalPayload) {
+    const user = Auth()?.getSavedUser?.() || {};
+    const listening = finalPayload?.listening || {};
+    const reading = finalPayload?.reading || {};
+    const writing = finalPayload?.writing || {};
+    return {
+      id: `local:${buildMatchKey(finalPayload)}`,
+      user_id: String(Auth()?.getIdentityKey?.() || user?.identityKey || user?.email || user?.id || "").trim().toLowerCase(),
+      user_email: String(user?.email || "").trim().toLowerCase(),
+      student_full_name: finalPayload?.studentFullName || user?.name || "",
+      exam_id: finalPayload?.examId || "",
+      active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || "",
+      submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
+      reason: finalPayload?.reason || writing?.reason || reading?.reason || listening?.reason || "",
+      writing_task1: String(writing?.answers?.task1 || ""),
+      writing_task2: String(writing?.answers?.task2 || ""),
+      task1_words: Number(writing?.wordCount?.task1 || 0),
+      task2_words: Number(writing?.wordCount?.task2 || 0),
+      final_payload: {
+        examId: finalPayload?.examId || "",
+        submittedAt: finalPayload?.submittedAt || "",
+        studentFullName: finalPayload?.studentFullName || "",
+        reason: finalPayload?.reason || "",
+        listening: listening ? {
+          saved: true,
+          testId: listening.testId || null,
+          answerCount: Object.keys(listening.answers || {}).length
+        } : null,
+        reading: reading ? {
+          saved: true,
+          testId: reading.testId || null,
+          answerCount: Object.keys(reading.answers || {}).length
+        } : null,
+        writing: writing ? {
+          saved: true,
+          testId: writing.testId || null,
+          task1Words: Number(writing?.wordCount?.task1 || 0),
+          task2Words: Number(writing?.wordCount?.task2 || 0)
+        } : null
+      },
+      listening_total: null,
+      listening_band: null,
+      reading_total: null,
+      reading_band: null,
+      final_writing_band: null,
+      task1_band: null,
+      task2_band: null,
+      task1_breakdown: null,
+      task2_breakdown: null,
+      task1_feedback: null,
+      task2_feedback: null,
+      overall_feedback: null,
+    };
+  }
+
+  function rememberLocalAttempt(finalPayload, options = {}) {
+    const email = getHistoryEmail();
+    if (!email || !finalPayload?.submittedAt) return null;
+    const row = buildLocalAttemptRow(finalPayload);
+    const rows = mergeRowsByMatchKey([row], loadLocalRows(email));
+    saveLocalRows(email, rows);
+    const key = buildMatchKey(row);
+    if (options.openAfterSubmit && key) {
+      try { window.IELTS?.Storage?.set(LOCAL_HISTORY_LAST_OPEN_KEY, key); } catch (e) {}
+    }
+    return row;
+  }
+
+  function getLastOpenHistoryKey() {
+    try {
+      return String(window.IELTS?.Storage?.get(LOCAL_HISTORY_LAST_OPEN_KEY, "") || "");
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function clearLastOpenHistoryKey() {
+    try { window.IELTS?.Storage?.remove?.(LOCAL_HISTORY_LAST_OPEN_KEY); } catch (e) {}
   }
 
   function mergeBackendResult(row, result) {
@@ -416,6 +546,16 @@
       state.rows = rows;
       renderTable(rows);
       prefetchObjectiveDetails(rows, 6);
+      const pendingOpenKey = getLastOpenHistoryKey();
+      if (pendingOpenKey) {
+        const idx = rows.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
+        if (idx >= 0) {
+          clearLastOpenHistoryKey();
+          await renderDetail(rows[idx], {
+            sourceRowId: `history-row-${idx}`
+          });
+        }
+      }
       if (!rows.length) {
         const lastLocal = window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
         if (lastLocal?.submittedAt) {
@@ -476,7 +616,7 @@
   });
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows };
+  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows, rememberLocalAttempt };
 
   document.addEventListener("partials:loaded", () => {
     $("openHistoryBtn")?.addEventListener("click", openHistory);

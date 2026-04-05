@@ -598,6 +598,24 @@
                 <span>Profile bio</span>
                 <textarea id="dashboardBioInput" rows="3" placeholder="Write a short bio about your IELTS journey, current level, or motivation."></textarea>
               </label>
+              <div class="dashboard-password-card hidden" id="dashboardPasswordCard">
+                <div class="dashboard-card-topline">Student password</div>
+                <div class="dashboard-password-copy">Set a personal password for this email on this device. After you save it, <strong>Leznik123</strong> will stop working for this student email here.</div>
+                <div class="dashboard-settings-grid">
+                  <label class="dashboard-field" for="dashboardNewPassword">
+                    <span>New password</span>
+                    <input id="dashboardNewPassword" type="password" placeholder="Choose a new student password" autocomplete="new-password">
+                  </label>
+                  <label class="dashboard-field" for="dashboardConfirmPassword">
+                    <span>Confirm password</span>
+                    <input id="dashboardConfirmPassword" type="password" placeholder="Re-enter the password" autocomplete="new-password">
+                  </label>
+                </div>
+                <div class="dashboard-password-actions">
+                  <button class="btn" type="button" id="dashboardSavePasswordBtn">Change password</button>
+                  <div class="small" id="dashboardPasswordStatus">Shared-password students can set a personal password here.</div>
+                </div>
+              </div>
               <div class="dashboard-settings-footer">
                 <div class="small" id="dashboardSettingsStatus">Settings sync automatically with your student profile.</div>
               </div>

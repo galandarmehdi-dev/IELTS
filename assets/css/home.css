@@ -1497,6 +1497,29 @@
 .dashboard-notes-field textarea{
   min-height:110px;
 }
+.dashboard-password-card{
+  margin-top:16px;
+  display:grid;
+  gap:14px;
+  padding:18px;
+  border-radius:22px;
+  background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);
+  border:1px solid rgba(23,50,77,.08);
+  box-shadow:0 16px 34px rgba(18,26,36,.05);
+}
+.dashboard-password-copy{
+  color:var(--muted);
+  line-height:1.6;
+}
+.dashboard-password-copy strong{
+  color:var(--ink);
+}
+.dashboard-password-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  align-items:center;
+}
 .dashboard-settings-footer{
   margin-top:12px;
 }

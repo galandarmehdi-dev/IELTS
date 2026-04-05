@@ -380,43 +380,43 @@ I Even so, Swiffer remains a useful case study in innovation. It illustrates how
               items: [
                 {
                   q: 27,
-                  stem: "Before Swiffer was launched, cleaning tools were mainly",
-                  options: [
-                    { value: "A", text: "widely admired for their design" },
-                    { value: "B", text: "replaced frequently by new inventions" },
-                    { value: "C", text: "used mostly in workplaces" },
-                    { value: "D", text: "similar to long-established products" },
-                  ],
+                  text: "Before Swiffer was launched, cleaning tools were mainly",
+                  choices: {
+                    A: "widely admired for their design",
+                    B: "replaced frequently by new inventions",
+                    C: "used mostly in workplaces",
+                    D: "similar to long-established products",
+                  },
                 },
                 {
                   q: 28,
-                  stem: "The company developed the product after it",
-                  options: [
-                    { value: "A", text: "copied a rival's technology" },
-                    { value: "B", text: "observed real cleaning behaviour closely" },
-                    { value: "C", text: "received government funding" },
-                    { value: "D", text: "tested only laboratory data" },
-                  ],
+                  text: "The company developed the product after it",
+                  choices: {
+                    A: "copied a rival's technology",
+                    B: "observed real cleaning behaviour closely",
+                    C: "received government funding",
+                    D: "tested only laboratory data",
+                  },
                 },
                 {
                   q: 29,
-                  stem: "The passage suggests consumers wanted cleaning to be",
-                  options: [
-                    { value: "A", text: "easier and more efficient" },
-                    { value: "B", text: "more expensive and specialised" },
-                    { value: "C", text: "more physically demanding" },
-                    { value: "D", text: "less dependent on cloths" },
-                  ],
+                  text: "The passage suggests consumers wanted cleaning to be",
+                  choices: {
+                    A: "easier and more efficient",
+                    B: "more expensive and specialised",
+                    C: "more physically demanding",
+                    D: "less dependent on cloths",
+                  },
                 },
                 {
                   q: 30,
-                  stem: "Paragraph F mainly emphasises the importance of",
-                  options: [
-                    { value: "A", text: "factory efficiency" },
-                    { value: "B", text: "store layout" },
-                    { value: "C", text: "marketing strategy" },
-                    { value: "D", text: "scientific controversy" },
-                  ],
+                  text: "Paragraph F mainly emphasises the importance of",
+                  choices: {
+                    A: "factory efficiency",
+                    B: "store layout",
+                    C: "marketing strategy",
+                    D: "scientific controversy",
+                  },
                 },
               ],
             },
@@ -464,13 +464,13 @@ I Even so, Swiffer remains a useful case study in innovation. It illustrates how
               items: [
                 {
                   q: 40,
-                  stem: "Which title best describes Reading Passage 3?",
-                  options: [
-                    { value: "A", text: "How observation helped create a new cleaning product" },
-                    { value: "B", text: "Why traditional brooms are still the best" },
-                    { value: "C", text: "A history of industrial floor design" },
-                    { value: "D", text: "The science of household chemicals" },
-                  ],
+                  text: "Which title best describes Reading Passage 3?",
+                  choices: {
+                    A: "How observation helped create a new cleaning product",
+                    B: "Why traditional brooms are still the best",
+                    C: "A history of industrial floor design",
+                    D: "The science of household chemicals",
+                  },
                 },
               ],
             },

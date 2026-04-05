@@ -476,6 +476,7 @@
         UI().lockWholeExamAfterFinalSubmit();
 
         const hasWritingText = hasAnyWritingText(writingPayload);
+        const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
 
         // Save history immediately so a flaky backend response does not erase the student's record.
         const historyResult = await saveAttemptToSupabase(finalPayload);
@@ -536,21 +537,27 @@
         }
 
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+        const submittedMessage = sheetsSaved
+          ? (historyResult?.ok
+              ? (hasWritingText
+                  ? "Submitted successfully. Opening your history now so you can review the saved attempt and any available scores."
+                  : "Submitted successfully. Opening your history now.")
+              : (localHistoryRow
+                  ? "Submitted successfully to Google Sheets. Opening your history now from this browser while the synced record catches up."
+                  : "Submitted successfully to Google Sheets. History may appear after a short delay."))
+          : (historyResult?.ok || localHistoryRow
+              ? (submissionWarning
+                  ? "Your attempt was saved and will open in history now, but the server response was unreliable. If it already appears in admin results, scores will sync here shortly."
+                  : "Your attempt was saved. Opening your history now.")
+              : "Saved locally on this browser.");
+
+        try {
+          await window.IELTS?.History?.openHistory?.();
+        } catch (e) {}
+
         Modal().showModal(
           "Exam submitted",
-          sheetsSaved
-            ? (historyResult?.ok
-                ? (hasWritingText
-                    ? "Submitted successfully. Google Sheets is saved, and writing will appear in your history after grading finishes."
-                    : "Submitted successfully. Google Sheets and history are both saved.")
-                : (hasWritingText
-                    ? "Submitted successfully to Google Sheets. History may appear after a short delay."
-                    : "Submitted successfully to Google Sheets. History may appear after a short delay."))
-            : (historyResult?.ok
-                ? (submissionWarning
-                    ? "Your submission was saved to your history, but the server response was unreliable. If the test already appears in admin results, it will sync here shortly."
-                    : "Saved to your history for this account.")
-                : "Saved locally on this browser."),
+          submittedMessage,
           { mode: "confirm" }
         );
       } catch (err) {

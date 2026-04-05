@@ -382,7 +382,6 @@
 
     function confirmLeaveStudentExam(onLeave) {
       if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) {
-        if (typeof onLeave === "function") onLeave();
         return true;
       }
       safe(() =>

@@ -759,10 +759,12 @@
 
         try {
           if (status) status.textContent = "Saving your student password...";
-          await Auth()?.saveSharedPasswordOverride?.(email, nextPassword);
+          const result = await Auth()?.upgradeSharedStudentPassword?.(nextPassword);
           if ($("dashboardNewPassword")) $("dashboardNewPassword").value = "";
           if ($("dashboardConfirmPassword")) $("dashboardConfirmPassword").value = "";
-          if (status) status.textContent = "Saved. Use your new password for this email on this device. Leznik123 will no longer work here.";
+          if (status) {
+            status.textContent = result?.message || "Saved. Use your new password for this email.";
+          }
         } catch (e) {
           console.error("Could not save student password override:", e);
           if (status) status.textContent = e?.message || "Could not save your new student password.";

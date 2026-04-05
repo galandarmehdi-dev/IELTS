@@ -97,7 +97,21 @@
         <input id="sharedPasswordInput" type="password" placeholder="Enter the shared student password" autocomplete="current-password">
       </div>
       <button id="sharedPasswordLoginBtn" class="btn auth-full-btn">Continue with email and password</button>
+      <button id="forgotPasswordBtn" class="btn secondary auth-full-btn" type="button">Forgot password</button>
       <button id="sendOtpBtn" class="btn auth-full-btn">Send code or magic link</button>
+
+      <div id="passwordResetBox" class="hidden">
+        <div class="auth-field-group">
+          <label class="auth-label" for="resetPasswordInput">New password</label>
+          <input id="resetPasswordInput" type="password" placeholder="Enter your new password" autocomplete="new-password">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="resetPasswordConfirmInput">Confirm new password</label>
+          <input id="resetPasswordConfirmInput" type="password" placeholder="Confirm your new password" autocomplete="new-password">
+        </div>
+        <button id="finishPasswordResetBtn" class="btn auth-full-btn" type="button">Save new password</button>
+        <p id="passwordResetHelp" class="small auth-message">Choose a new password for your student account.</p>
+      </div>
 
       <div class="auth-code-row">
         <div class="auth-field-group auth-code-field">
@@ -600,7 +614,7 @@
               </label>
               <div class="dashboard-password-card hidden" id="dashboardPasswordCard">
                 <div class="dashboard-card-topline">Student password</div>
-                <div class="dashboard-password-copy">Set a personal password for this email on this device. After you save it, <strong>Leznik123</strong> will stop working for this student email here.</div>
+                <div class="dashboard-password-copy">Set a personal password for this student email. After it is saved, sign in with your own password instead of <strong>Leznik123</strong>. If needed, you can use the Forgot password email flow from the sign-in box.</div>
                 <div class="dashboard-settings-grid">
                   <label class="dashboard-field" for="dashboardNewPassword">
                     <span>New password</span>

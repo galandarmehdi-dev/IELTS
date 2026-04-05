@@ -850,13 +850,15 @@
       });
       return;
     } catch (e) {}
-    const btnId = testId === "ielts4"
-      ? "startIelts4Btn"
-      : testId === "ielts3"
-        ? "startIelts3Btn"
-        : testId === "ielts2"
-          ? "startIelts2Btn"
-          : "startIelts1Btn";
+    const btnId = testId === "ielts5"
+      ? "startIelts5Btn"
+      : testId === "ielts4"
+        ? "startIelts4Btn"
+        : testId === "ielts3"
+          ? "startIelts3Btn"
+          : testId === "ielts2"
+            ? "startIelts2Btn"
+            : "startIelts1Btn";
     $(btnId)?.click?.();
   }
 

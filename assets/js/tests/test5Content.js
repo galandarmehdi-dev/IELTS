@@ -151,33 +151,33 @@
               <div class="listen-card-title">Questions 35-36</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
               <div class="mcq-q">Which TWO benefits of online social networking are mentioned?</div>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="35" value="A"> A) It improves marketing campaigns automatically</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="35" value="B"> B) It helps people maintain a sense of belonging</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="35" value="C"> C) It removes the need for face-to-face meetings</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="35" value="D"> D) It makes communities more transparent</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="35" value="E"> E) It guarantees more accurate news</label>
+              <label class="mcq-opt" for="lq35a"><input id="lq35a" name="lq35group" type="checkbox" data-lq-check="35" value="A" autocomplete="off"> A) It improves marketing campaigns automatically</label>
+              <label class="mcq-opt" for="lq35b"><input id="lq35b" name="lq35group" type="checkbox" data-lq-check="35" value="B" autocomplete="off"> B) It helps people maintain a sense of belonging</label>
+              <label class="mcq-opt" for="lq35c"><input id="lq35c" name="lq35group" type="checkbox" data-lq-check="35" value="C" autocomplete="off"> C) It removes the need for face-to-face meetings</label>
+              <label class="mcq-opt" for="lq35d"><input id="lq35d" name="lq35group" type="checkbox" data-lq-check="35" value="D" autocomplete="off"> D) It makes communities more transparent</label>
+              <label class="mcq-opt" for="lq35e"><input id="lq35e" name="lq35group" type="checkbox" data-lq-check="35" value="E" autocomplete="off"> E) It guarantees more accurate news</label>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 37-38</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
               <div class="mcq-q">Which TWO disadvantages are mentioned?</div>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="37" value="A"> A) Personal boundaries can become less clear</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="37" value="B"> B) Weak ties are usually unreliable</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="37" value="C"> C) People have less access to information</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="37" value="D"> D) News from contacts can be inaccurate</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="37" value="E"> E) It becomes impossible to maintain close friendships</label>
+              <label class="mcq-opt" for="lq37a"><input id="lq37a" name="lq37group" type="checkbox" data-lq-check="37" value="A" autocomplete="off"> A) Personal boundaries can become less clear</label>
+              <label class="mcq-opt" for="lq37b"><input id="lq37b" name="lq37group" type="checkbox" data-lq-check="37" value="B" autocomplete="off"> B) Weak ties are usually unreliable</label>
+              <label class="mcq-opt" for="lq37c"><input id="lq37c" name="lq37group" type="checkbox" data-lq-check="37" value="C" autocomplete="off"> C) People have less access to information</label>
+              <label class="mcq-opt" for="lq37d"><input id="lq37d" name="lq37group" type="checkbox" data-lq-check="37" value="D" autocomplete="off"> D) News from contacts can be inaccurate</label>
+              <label class="mcq-opt" for="lq37e"><input id="lq37e" name="lq37group" type="checkbox" data-lq-check="37" value="E" autocomplete="off"> E) It becomes impossible to maintain close friendships</label>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 39-40</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
               <div class="mcq-q">Which TWO claims are associated with Robin Dunbar?</div>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="39" value="A"> A) Humans can manage only a limited number of meaningful relationships</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="39" value="B"> B) Online tools are ideal for forming entirely new relationships</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="39" value="C"> C) Physical contact still matters when forming close ties</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="39" value="D"> D) Social networks should replace newspapers</label>
-              <label class="mcq-opt"><input type="checkbox" data-lq-check="39" value="E"> E) Better-connected users always dominate online discussions</label>
+              <label class="mcq-opt" for="lq39a"><input id="lq39a" name="lq39group" type="checkbox" data-lq-check="39" value="A" autocomplete="off"> A) Humans can manage only a limited number of meaningful relationships</label>
+              <label class="mcq-opt" for="lq39b"><input id="lq39b" name="lq39group" type="checkbox" data-lq-check="39" value="B" autocomplete="off"> B) Online tools are ideal for forming entirely new relationships</label>
+              <label class="mcq-opt" for="lq39c"><input id="lq39c" name="lq39group" type="checkbox" data-lq-check="39" value="C" autocomplete="off"> C) Physical contact still matters when forming close ties</label>
+              <label class="mcq-opt" for="lq39d"><input id="lq39d" name="lq39group" type="checkbox" data-lq-check="39" value="D" autocomplete="off"> D) Social networks should replace newspapers</label>
+              <label class="mcq-opt" for="lq39e"><input id="lq39e" name="lq39group" type="checkbox" data-lq-check="39" value="E" autocomplete="off"> E) Better-connected users always dominate online discussions</label>
             </div>
           </div>
         </div>

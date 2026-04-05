@@ -20,6 +20,7 @@ const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
 const SHARED_PASSWORD_OVERRIDE_KEY = "IELTS:AUTH:sharedPasswordOverrides";
+const PERSONAL_PASSWORD_MARKERS_KEY = "IELTS:AUTH:personalPasswordEmails";
 const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 let authReady = false;
@@ -62,6 +63,34 @@ function saveSharedPasswordOverrides(next) {
   } catch (e) {}
 }
 
+function getPersonalPasswordMarkers() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PERSONAL_PASSWORD_MARKERS_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function savePersonalPasswordMarkers(next) {
+  try {
+    localStorage.setItem(PERSONAL_PASSWORD_MARKERS_KEY, JSON.stringify(next || {}));
+  } catch (e) {}
+}
+
+function markPersonalPasswordEnabled(email) {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) return;
+  const next = { ...getPersonalPasswordMarkers(), [key]: true };
+  savePersonalPasswordMarkers(next);
+}
+
+function hasPersonalPasswordEnabled(email) {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) return false;
+  return getPersonalPasswordMarkers()[key] === true;
+}
+
 function getSharedPasswordOverride(email) {
   const key = String(email || "").trim().toLowerCase();
   if (!key) return null;
@@ -100,6 +129,17 @@ async function verifySharedPasswordOverride(email, password) {
 function isSharedPasswordUser() {
   const user = getSavedUser();
   return String(user?.provider || "").trim().toLowerCase() === "shared-password";
+}
+
+function setPasswordResetMode(active, text) {
+  const recoveryBox = getEl("passwordResetBox");
+  if (recoveryBox) recoveryBox.classList.toggle("hidden", !active);
+  const resetHelp = getEl("passwordResetHelp");
+  if (resetHelp) resetHelp.textContent = text || "Choose a new password for your student account.";
+  const sharedBtn = getEl("sharedPasswordLoginBtn");
+  if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
+  const otpBtn = getEl("sendOtpBtn");
+  if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
 }
 
 function buildProfileFromMetadata(metadata) {
@@ -183,6 +223,8 @@ function syncAuthExport() {
     updateProfileMetadata,
     saveSharedPasswordOverride,
     getSharedPasswordOverride,
+    sendPasswordResetEmail,
+    upgradeSharedStudentPassword,
     showProtectedApp,
     openLoginGate,
     closeLoginGate,
@@ -580,10 +622,29 @@ async function signInWithSharedPassword() {
   }
 
   const hasOverride = !!getSharedPasswordOverride(email);
+  const hasPersonalPassword = hasPersonalPasswordEnabled(email);
+
+  try {
+    const passwordLogin = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (!passwordLogin.error && passwordLogin.data?.user) {
+      clearSharedSession();
+      await refreshAuthUI({ forceHome: true });
+      return;
+    }
+  } catch (e) {}
+
+  if (hasPersonalPassword) {
+    setMessage("Wrong email or password. If you forgot it, use Forgot password.");
+    return;
+  }
+
   if (hasOverride) {
     const matches = await verifySharedPasswordOverride(email, password);
     if (!matches) {
-      setMessage("Use your updated password for this email. The shared password is no longer valid on this device.");
+      setMessage("Wrong email or password. If you forgot it, use Forgot password.");
       return;
     }
   }
@@ -608,6 +669,116 @@ async function signInWithSharedPassword() {
   setMessage("");
   routeHomeAfterLogin();
   notifyAuthChanged();
+}
+
+async function sendPasswordResetEmail() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  if (!email) {
+    setMessage("Please enter your email first.");
+    return;
+  }
+
+  setMessage("Sending password reset email...");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: SITE_URL,
+  });
+  if (error) {
+    console.error("[AUTH] reset password error:", error);
+    setMessage(error.message || "Could not send a reset email.");
+    return;
+  }
+
+  setMessage("Password reset email sent. Open the link in your inbox to choose a new password.");
+}
+
+async function finishPasswordReset() {
+  const password = getEl("resetPasswordInput")?.value || "";
+  const confirm = getEl("resetPasswordConfirmInput")?.value || "";
+
+  if (!password || password.length < 6) {
+    setMessage("Choose a new password with at least 6 characters.");
+    return;
+  }
+  if (password !== confirm) {
+    setMessage("The password confirmation does not match.");
+    return;
+  }
+
+  setMessage("Updating your password...");
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    console.error("[AUTH] finish reset error:", error);
+    setMessage(error.message || "Could not update your password.");
+    return;
+  }
+
+  const email = String(data?.user?.email || getSavedUser()?.email || "").trim().toLowerCase();
+  if (email) {
+    markPersonalPasswordEnabled(email);
+  }
+  setPasswordResetMode(false, "");
+  setMessage("Your password has been reset. You can now sign in with your new password.");
+  await refreshAuthUI({ forceHome: true });
+}
+
+async function upgradeSharedStudentPassword(nextPassword) {
+  const email = String(getSavedUser()?.email || "").trim().toLowerCase();
+  if (!email) throw new Error("We could not find the student email.");
+  if (!nextPassword || nextPassword.length < 6) {
+    throw new Error("Choose a password with at least 6 characters.");
+  }
+
+  // Keep the existing local bridge so current-device sign-in works even if signup returns without a session.
+  await saveSharedPasswordOverride(email, nextPassword);
+
+  const user = getSavedUser() || {};
+  const metadata = {
+    full_name: String(user?.name || "").trim(),
+    preferred_name: String(user?.profile?.preferredName || user?.name || "").trim(),
+    username: String(user?.profile?.username || "").trim(),
+    profile_headline: String(user?.profile?.headline || "").trim(),
+    profile_bio: String(user?.profile?.bio || "").trim(),
+    profile_avatar_url: String(user?.profile?.avatarUrl || user?.avatarUrl || "").trim(),
+    target_band: String(user?.profile?.targetBand || "").trim(),
+    focus_skill: String(user?.profile?.focusSkill || "").trim(),
+    preferred_test: String(user?.profile?.preferredTest || "").trim(),
+    daily_goal: String(user?.profile?.dailyGoal || "").trim(),
+    study_note: String(user?.profile?.studyNote || "").trim(),
+    font_scale: String(user?.profile?.fontScale || "").trim(),
+  };
+
+  const signUpResult = await supabase.auth.signUp({
+    email,
+    password: nextPassword,
+    options: {
+      emailRedirectTo: SITE_URL,
+      data: metadata,
+    }
+  });
+
+  if (signUpResult.error && !/already registered|already exists|User already registered/i.test(String(signUpResult.error.message || ""))) {
+    throw signUpResult.error;
+  }
+
+  const signInResult = await supabase.auth.signInWithPassword({ email, password: nextPassword });
+  if (signInResult.error || !signInResult.data?.user) {
+    if (signUpResult.data?.user) {
+      markPersonalPasswordEnabled(email);
+      return {
+        needsEmailConfirmation: true,
+        message: "Check your email to confirm the password change, then sign in with your new password.",
+      };
+    }
+    throw signInResult.error || new Error("Could not activate the new password.");
+  }
+
+  clearSharedSession();
+  markPersonalPasswordEnabled(email);
+  await refreshAuthUI({ forceHome: true });
+  return {
+    needsEmailConfirmation: false,
+    message: "Your student password has been updated.",
+  };
 }
 
 async function verifyOtpCode() {
@@ -664,8 +835,10 @@ async function logout() {
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sharedPasswordLoginBtn")?.addEventListener("click", signInWithSharedPassword);
+getEl("forgotPasswordBtn")?.addEventListener("click", sendPasswordResetEmail);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
+getEl("finishPasswordResetBtn")?.addEventListener("click", finishPasswordReset);
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);
 authGate?.addEventListener("click", (e) => {
   if (e.target === authGate) closeLoginGate();
@@ -677,10 +850,21 @@ document.addEventListener("partials:loaded", () => {
 supabase.auth.onAuthStateChange((event, session) => {
   console.log("[AUTH] onAuthStateChange:", event);
 
+  if (event === "PASSWORD_RECOVERY") {
+    clearSharedSession();
+    if (session?.user) saveUser(session.user);
+    showProtectedApp(false);
+    openLoginGate("Reset your password to continue.");
+    setPasswordResetMode(true, "Choose a new password for your student account.");
+    authReady = true;
+    return;
+  }
+
   if (event === "SIGNED_IN" && session?.user) {
     saveUser(session.user);
     showProtectedApp(true);
     setMessage("");
+    setPasswordResetMode(false, "");
     authReady = true;
     notifyAuthChanged();
 
@@ -699,6 +883,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     saveUser(session.user);
     showProtectedApp(true);
     setMessage("");
+    setPasswordResetMode(false, "");
     authReady = true;
     notifyAuthChanged();
     return;
@@ -720,6 +905,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     clearSavedUser();
     syncAuthExport();
     setMessage("");
+    setPasswordResetMode(false, "");
     authReady = true;
     hasHandledInitialLoginRedirect = false;
     notifyAuthChanged();

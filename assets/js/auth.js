@@ -19,6 +19,8 @@ window.IELTS = window.IELTS || {};
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
+const SHARED_PASSWORD_OVERRIDE_KEY = "IELTS:AUTH:sharedPasswordOverrides";
+const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 let authReady = false;
 let loggingOut = false;
@@ -43,6 +45,61 @@ function getSharedSession() {
   } catch (e) {
     return null;
   }
+}
+
+function getSharedPasswordOverrides() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SHARED_PASSWORD_OVERRIDE_KEY) || "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveSharedPasswordOverrides(next) {
+  try {
+    localStorage.setItem(SHARED_PASSWORD_OVERRIDE_KEY, JSON.stringify(next || {}));
+  } catch (e) {}
+}
+
+function getSharedPasswordOverride(email) {
+  const key = String(email || "").trim().toLowerCase();
+  if (!key) return null;
+  const all = getSharedPasswordOverrides();
+  return all[key] || null;
+}
+
+async function hashSharedPassword(email, password) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || "");
+  const payload = new TextEncoder().encode(`${normalizedEmail}::${normalizedPassword}`);
+  const digest = await crypto.subtle.digest("SHA-256", payload);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function saveSharedPasswordOverride(email, password) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) throw new Error("Missing student email.");
+  if (!password) throw new Error("Please enter a new password.");
+
+  const next = { ...getSharedPasswordOverrides() };
+  next[normalizedEmail] = {
+    hash: await hashSharedPassword(normalizedEmail, password),
+    changedAt: new Date().toISOString(),
+  };
+  saveSharedPasswordOverrides(next);
+}
+
+async function verifySharedPasswordOverride(email, password) {
+  const record = getSharedPasswordOverride(email);
+  if (!record?.hash) return false;
+  const actual = await hashSharedPassword(email, password);
+  return actual === record.hash;
+}
+
+function isSharedPasswordUser() {
+  const user = getSavedUser();
+  return String(user?.provider || "").trim().toLowerCase() === "shared-password";
 }
 
 function buildProfileFromMetadata(metadata) {
@@ -121,8 +178,11 @@ function syncAuthExport() {
     supabase,
     getSavedUser,
     isSignedIn,
+    isSharedPasswordUser,
     getAccessToken,
     updateProfileMetadata,
+    saveSharedPasswordOverride,
+    getSharedPasswordOverride,
     showProtectedApp,
     openLoginGate,
     closeLoginGate,
@@ -519,11 +579,20 @@ async function signInWithSharedPassword() {
     return;
   }
 
+  const hasOverride = !!getSharedPasswordOverride(email);
+  if (hasOverride) {
+    const matches = await verifySharedPasswordOverride(email, password);
+    if (!matches) {
+      setMessage("Use your updated password for this email. The shared password is no longer valid on this device.");
+      return;
+    }
+  }
+
   setMessage("Signing you in...");
   const res = await fetch("/api/auth/shared-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password: hasOverride ? DEFAULT_SHARED_STUDENT_PASSWORD : password }),
   }).catch(() => null);
 
   const data = res ? await res.json().catch(() => null) : null;

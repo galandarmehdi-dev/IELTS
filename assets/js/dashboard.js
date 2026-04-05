@@ -432,6 +432,10 @@
       if (!el) return;
       el.value = value == null ? "" : String(value);
     });
+    const passwordCard = $("dashboardPasswordCard");
+    if (passwordCard) {
+      passwordCard.classList.toggle("hidden", Auth()?.isSharedPasswordUser?.() !== true);
+    }
     updateAvatarControls();
   }
 
@@ -722,6 +726,47 @@
       removeBtn.addEventListener("click", () => {
         const next = { ...state.settings, avatarUrl: "" };
         saveSettings(next);
+      });
+    }
+
+    const savePasswordBtn = $("dashboardSavePasswordBtn");
+    if (savePasswordBtn && savePasswordBtn.dataset.bound !== "1") {
+      savePasswordBtn.dataset.bound = "1";
+      savePasswordBtn.addEventListener("click", async () => {
+        const status = $("dashboardPasswordStatus");
+        const email = String(getUser()?.email || "").trim().toLowerCase();
+        const nextPassword = $("dashboardNewPassword")?.value || "";
+        const confirmPassword = $("dashboardConfirmPassword")?.value || "";
+
+        if (status) status.textContent = "";
+
+        if (Auth()?.isSharedPasswordUser?.() !== true) {
+          if (status) status.textContent = "Password changes here are available for shared-password student sign-ins.";
+          return;
+        }
+        if (!email) {
+          if (status) status.textContent = "We could not find the signed-in student email.";
+          return;
+        }
+        if (!nextPassword || nextPassword.length < 6) {
+          if (status) status.textContent = "Choose a password with at least 6 characters.";
+          return;
+        }
+        if (nextPassword !== confirmPassword) {
+          if (status) status.textContent = "The password confirmation does not match.";
+          return;
+        }
+
+        try {
+          if (status) status.textContent = "Saving your student password...";
+          await Auth()?.saveSharedPasswordOverride?.(email, nextPassword);
+          if ($("dashboardNewPassword")) $("dashboardNewPassword").value = "";
+          if ($("dashboardConfirmPassword")) $("dashboardConfirmPassword").value = "";
+          if (status) status.textContent = "Saved. Use your new password for this email on this device. Leznik123 will no longer work here.";
+        } catch (e) {
+          console.error("Could not save student password override:", e);
+          if (status) status.textContent = e?.message || "Could not save your new student password.";
+        }
       });
     }
   }

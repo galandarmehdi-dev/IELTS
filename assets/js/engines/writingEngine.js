@@ -33,7 +33,7 @@
       TEST_ID: (typeof R().getLaunchContext === "function" && R().getLaunchContext()?.storageScope)
         ? `${R().getLaunchContext().storageScope}:WRITING`
         : (cfg.writingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.writingTestId || "ielts-writing-001"),
-      DURATION_MINUTES: 2,
+      DURATION_MINUTES: 60,
       keys: namespacedKeys.writing || legacyKeys,
       readingTestId: cfg.readingTestId || R().TESTS?.byId?.[R().TESTS?.defaultTestId || "ielts1"]?.readingTestId || "ielts-reading-3parts-001",
       listeningKeys: namespacedKeys.listening || R().LEGACY?.listeningKeys || R().TESTS?.listeningKeys || {},
@@ -45,7 +45,7 @@
 
     UI().showOnly("writing");
 
-    let remainingSeconds = W.DURATION_MINUTES * 60;
+    let remainingSeconds = W.DURATION_MINUTES * 2;
     const savedRemaining = S().get(W.keys.remaining, null);
     if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));

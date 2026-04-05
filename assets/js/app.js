@@ -365,24 +365,19 @@
 
     function isStudentExamRouteActive() {
       if (isAdminView()) return false;
-      try {
-        const route = Router()?.parseHash?.(window.location.hash) || {};
-        return ["listening", "reading", "writing"].includes(String(route.view || ""));
-      } catch (e) {
-        return false;
-      }
+      const isVisible = (id) => {
+        const el = $(id);
+        return !!(el && !el.classList.contains("hidden"));
+      };
+      return isVisible("listeningSection") || isVisible("readingControls") || isVisible("writingSection");
     }
 
-    function clearStudentAttemptAndGoHome() {
+    function clearStudentAttemptForExit() {
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
       safe(() => stopAllAudio());
       try { UI().setExamStarted(false); } catch (e) {}
-      try { UI().showOnly("home"); } catch (e) {}
-      try { UI().updateHomeStatusLine(); } catch (e) {}
-      try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
-      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
     }
 
     function confirmLeaveStudentExam(onLeave) {
@@ -399,7 +394,7 @@
             submitText: "Leave exam",
             cancelText: "Stay here",
             onConfirm: () => {
-              clearStudentAttemptAndGoHome();
+              clearStudentAttemptForExit();
               if (typeof onLeave === "function") onLeave();
             },
           }

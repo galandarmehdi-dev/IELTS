@@ -296,8 +296,9 @@
       try {
         const supabase = window.IELTS?.Auth?.supabase;
         const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const identityKey = window.IELTS?.Auth?.getIdentityKey?.() || authUser?.identityKey || authUser?.email || authUser?.id || "";
         const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-        if (!supabase || !authUser?.id) return { ok: false, skipped: true };
+        if (!supabase || !identityKey || !authUser?.email) return { ok: false, skipped: true };
 
         const listening = finalPayload?.listening || {};
         const reading = finalPayload?.reading || {};
@@ -306,8 +307,8 @@
         const task2 = String(writing?.answers?.task2 || "");
 
         const record = {
-          user_id: authUser.id,
-          user_email: authUser.email || null,
+          user_id: String(identityKey).trim().toLowerCase(),
+          user_email: String(authUser.email || "").trim().toLowerCase() || null,
           student_full_name: finalPayload?.studentFullName || authUser.name || null,
           exam_id: finalPayload?.examId || null,
           active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || null,
@@ -362,7 +363,8 @@
         const supabase = window.IELTS?.Auth?.supabase;
         const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
         const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
-        if (!supabase || !authUser?.id || !markedResult) return { ok: false, skipped: true };
+        const email = String(authUser?.email || "").trim().toLowerCase();
+        if (!supabase || !email || !markedResult) return { ok: false, skipped: true };
 
         const patch = {
           listening_total: markedResult.listeningTotal ?? null,
@@ -382,7 +384,7 @@
         const updatePromise = supabase
           .from(historyTable)
           .update(patch)
-          .eq("user_id", authUser.id)
+          .ilike("user_email", email)
           .eq("submitted_at", String(finalPayload?.submittedAt || ""))
           .eq("exam_id", String(finalPayload?.examId || ""));
 

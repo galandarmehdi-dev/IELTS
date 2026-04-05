@@ -39,7 +39,8 @@
 
   function getSettingsKey() {
     const user = getUser();
-    return `IELTS:DASHBOARD:${user?.id || "guest"}:settings`;
+    const identityKey = Auth()?.getIdentityKey?.() || user?.identityKey || user?.email || user?.id || "guest";
+    return `IELTS:DASHBOARD:${String(identityKey).trim().toLowerCase()}:settings`;
   }
 
   function getRemoteSettings() {

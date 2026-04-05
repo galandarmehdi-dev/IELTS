@@ -136,12 +136,13 @@
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
-    if (!supabase || !user?.id) return [];
+    const email = String(user?.email || "").trim().toLowerCase();
+    if (!supabase || !email) return [];
 
     const query = supabase
       .from(table)
       .select("id,user_id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
-      .eq("user_id", user.id)
+      .ilike("user_email", email)
       .order("submitted_at", { ascending: false })
       .limit(50);
 
@@ -252,7 +253,8 @@
     const supabase = Auth()?.supabase;
     const user = Auth()?.getSavedUser?.();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
-    if (!supabase || !user?.id || !row?.id || !result) return false;
+    const email = String(user?.email || "").trim().toLowerCase();
+    if (!supabase || !email || !row?.id || !result) return false;
 
     const patch = {
       listening_total: result.listeningTotal ?? null,
@@ -269,7 +271,7 @@
       overall_feedback: result.overallFeedback ?? null,
     };
 
-    const { error } = await supabase.from(table).update(patch).eq("id", row.id).eq("user_id", user.id);
+    const { error } = await supabase.from(table).update(patch).eq("id", row.id).ilike("user_email", email);
     return !error;
   }
 

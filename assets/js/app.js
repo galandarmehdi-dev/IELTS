@@ -363,6 +363,51 @@
       }
     }
 
+    function isStudentExamRouteActive() {
+      if (isAdminView()) return false;
+      try {
+        const route = Router()?.parseHash?.(window.location.hash) || {};
+        return ["listening", "reading", "writing"].includes(String(route.view || ""));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function clearStudentAttemptAndGoHome() {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+      clearAllStudentAttemptKeys();
+      safe(() => Modal().hideModal());
+      safe(() => stopAllAudio());
+      try { UI().setExamStarted(false); } catch (e) {}
+      try { UI().showOnly("home"); } catch (e) {}
+      try { UI().updateHomeStatusLine(); } catch (e) {}
+      try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
+      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+    }
+
+    function confirmLeaveStudentExam(onLeave) {
+      if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) {
+        if (typeof onLeave === "function") onLeave();
+        return true;
+      }
+      safe(() =>
+        Modal().showModal(
+          "Leave this exam?",
+          "If you leave now, your current answers will be lost and the exam will start from the beginning next time.",
+          {
+            mode: "confirm",
+            submitText: "Leave exam",
+            cancelText: "Stay here",
+            onConfirm: () => {
+              clearStudentAttemptAndGoHome();
+              if (typeof onLeave === "function") onLeave();
+            },
+          }
+        )
+      );
+      return false;
+    }
+
     // If student lands on "submitted" overlay, do NOT trap them forever.
     // They should be able to start a new attempt.
     const maybePayload = S().getJSON(R().EXAM.keys.finalSubmission, null);
@@ -375,6 +420,12 @@
       // Student: auto-clear so Start Exam always works
       clearAllStudentAttemptKeys();
     }
+
+    window.addEventListener("beforeunload", (event) => {
+      if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
 
     // -----------------------------
     // Reliable gates (Listening→Reading, Reading→Writing)
@@ -1113,6 +1164,7 @@
     function openHistoryFromMenu() {
       closeAccountMenu();
       if (!requireSignedIn(null, "Please log in to open your history.")) return;
+      if (!confirmLeaveStudentExam(() => openHistoryFromMenu())) return;
       try {
         if (typeof window.IELTS?.History?.openHistory === "function") {
           window.IELTS.History.openHistory();
@@ -1125,6 +1177,7 @@
     function openSpeakingFromMenu() {
       closeAccountMenu();
       if (!requireSignedIn(null, "Please log in to open speaking practice.")) return;
+      if (!confirmLeaveStudentExam(() => openSpeakingFromMenu())) return;
       try {
         if (typeof window.IELTS?.Speaking?.initSpeakingExam === "function") {
           window.IELTS.Speaking.initSpeakingExam();
@@ -1754,6 +1807,7 @@
     }
 
     function openResourceHub(kind, focusId) {
+      if (!confirmLeaveStudentExam(() => openResourceHub(kind, focusId))) return;
       const view = HUB_VIEWS[kind] || "fullExamHub";
       rememberHub(kind);
       renderResourceHub(kind, focusId);

@@ -923,21 +923,28 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const out = { ...(base || {}) };
 
       document.querySelectorAll('#qCard input[type="text"], #qCard textarea').forEach((el) => {
+        const explicitQ = String(el.getAttribute("data-reading-q") || "").trim();
         const qbox = el.closest('.sentenceRow, .mcqItem, .qrow, .optionsBox')?.querySelector('.qbox');
-        const q = qbox?.textContent?.trim();
+        const q = explicitQ || qbox?.textContent?.trim();
         if (!q) return;
         out[q] = (el.value || '').trim().replace(/\s+/g, ' ');
       });
 
       document.querySelectorAll('#qCard select').forEach((el) => {
+        const explicitQ = String(el.getAttribute("data-reading-q") || "").trim();
         const qbox = el.closest('.qrow, .optionsBox')?.querySelector('.qbox');
         const qLabel = el.closest('.optionsBox, .panel')?.querySelector('b');
-        const q = qbox?.textContent?.trim() || qLabel?.textContent?.replace('.', '').trim();
+        const q = explicitQ || qbox?.textContent?.trim() || qLabel?.textContent?.replace('.', '').trim();
         if (!q) return;
         out[q] = el.value || '';
       });
 
       document.querySelectorAll('#qCard input[type="radio"]:checked').forEach((el) => {
+        const explicitQ = String(el.getAttribute("data-reading-q") || "").trim();
+        if (explicitQ) {
+          out[explicitQ] = el.value || '';
+          return;
+        }
         const name = String(el.name || '');
         const m = name.match(/^q_(\d+)$/);
         if (!m) return;
@@ -1096,6 +1103,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
         const select = document.createElement("select");
         select.className = "qselect";
+        select.setAttribute("data-reading-q", String(q.q));
 
         const opt0 = document.createElement("option");
         opt0.value = "";
@@ -1150,6 +1158,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         input.className = "gapInput";
         input.type = "text";
         input.placeholder = "Type your answer";
+        input.setAttribute("data-reading-q", String(item.q));
         input.value = answers[item.q] ?? "";
         input.disabled = hasSubmittedReading;
 
@@ -1245,6 +1254,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     input.className = "gapInput";
     input.type = "text";
     input.placeholder = "Type your answer";
+    input.setAttribute("data-reading-q", String(item.q));
     input.value = answers[item.q] ?? "";
     input.disabled = hasSubmittedReading;
 
@@ -1350,6 +1360,7 @@ qnum.textContent = `${item.q}`;
           const input = document.createElement("input");
           input.type = "radio";
           input.name = `q_${item.q}`;
+          input.setAttribute("data-reading-q", String(item.q));
           input.value = c;
           input.checked = selected === c;
           input.disabled = hasSubmittedReading;
@@ -1409,6 +1420,7 @@ qnum.textContent = `${item.q}`;
           const input = document.createElement("input");
           input.type = "radio";
           input.name = `q_${item.q}`;
+          input.setAttribute("data-reading-q", String(item.q));
           input.value = letter;
           input.checked = selected === letter;
           input.disabled = hasSubmittedReading;
@@ -1470,6 +1482,7 @@ qnum.textContent = `${item.q}`;
 
         const select = document.createElement("select");
         select.className = "qselect";
+        select.setAttribute("data-reading-q", String(item.q));
 
         const opt0 = document.createElement("option");
         opt0.value = "";
@@ -1522,6 +1535,7 @@ qnum.textContent = `${item.q}`;
 
         const select = document.createElement("select");
         select.className = "qselect";
+        select.setAttribute("data-reading-q", String(line.blankQ));
         select.style.width = "120px";
         select.style.display = "inline-block";
         select.style.verticalAlign = "baseline";

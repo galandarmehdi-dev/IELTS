@@ -465,12 +465,35 @@ body[data-view-mode="student"] #resetExamBtn{
 .auth-code-field{ min-width:0; }
 .auth-code-btn{ min-width:150px; }
 .auth-message{
-  margin-top:16px;
-  padding:12px 14px;
+  position:fixed;
+  right:24px;
+  bottom:24px;
+  z-index:1200;
+  width:min(420px, calc(100vw - 32px));
+  padding:14px 16px;
   min-height:20px;
-  border-radius:14px;
-  background:rgba(23,50,77,.07);
-  color:var(--navy);
+  border-radius:16px;
+  background:rgba(23,50,77,.94);
+  color:#fff;
+  box-shadow:0 20px 40px rgba(12,18,28,.22);
+  opacity:0;
+  transform:translateY(12px);
+  pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.auth-message.is-visible{
+  opacity:1;
+  transform:translateY(0);
+}
+.auth-message.is-error{
+  background:linear-gradient(135deg, #8a2330 0%, #c45045 100%);
+}
+.auth-message.is-success{
+  background:linear-gradient(135deg, #1d4f44 0%, #2f7d63 100%);
+}
+.auth-inline-help{
+  margin-top:10px;
+  color:var(--muted);
 }
 
 /* Shared tables */

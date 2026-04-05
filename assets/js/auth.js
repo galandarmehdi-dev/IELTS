@@ -27,9 +27,14 @@ let authReady = false;
 let loggingOut = false;
 let hasHandledInitialLoginRedirect = false;
 let loginGateOpen = false;
+let authMessageTimer = null;
 
 function getEl(id) {
   return document.getElementById(id);
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function getSavedUser() {
@@ -142,6 +147,10 @@ function setPasswordResetMode(active, text) {
   if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
 }
 
+function getIdentityKeyFromUserLike(user) {
+  return normalizeEmail(user?.email) || String(user?.id || "").trim() || "guest";
+}
+
 function buildProfileFromMetadata(metadata) {
   return {
     username: String(metadata.username || "").trim(),
@@ -158,8 +167,20 @@ function buildProfileFromMetadata(metadata) {
   };
 }
 
-function setMessage(text) {
-  if (authMessage) authMessage.textContent = text || "";
+function setMessage(text, options) {
+  if (!authMessage) return;
+  const nextText = String(text || "").trim();
+  authMessage.textContent = nextText;
+  authMessage.classList.toggle("is-visible", !!nextText);
+  authMessage.classList.toggle("is-error", !!nextText && options?.tone === "error");
+  authMessage.classList.toggle("is-success", !!nextText && options?.tone === "success");
+  clearTimeout(authMessageTimer);
+  if (nextText && options?.sticky !== true) {
+    authMessageTimer = setTimeout(() => {
+      authMessage.textContent = "";
+      authMessage.classList.remove("is-visible", "is-error", "is-success");
+    }, Math.max(2400, Number(options?.durationMs) || 4200));
+  }
 }
 
 function saveUser(user) {
@@ -182,6 +203,7 @@ function saveUser(user) {
       "IELTS:AUTH:user",
       JSON.stringify({
         id: user?.id || "",
+        identityKey: getIdentityKeyFromUserLike(user),
         email: user?.email || "",
         name: fullName,
         avatarUrl: avatar,
@@ -217,6 +239,7 @@ function syncAuthExport() {
   window.IELTS.Auth = {
     supabase,
     getSavedUser,
+    getIdentityKey,
     isSignedIn,
     isSharedPasswordUser,
     getAccessToken,
@@ -236,6 +259,10 @@ function syncAuthExport() {
 function isSignedIn() {
   const user = getSavedUser();
   return !!(user && user.id);
+}
+
+function getIdentityKey() {
+  return getIdentityKeyFromUserLike(getSavedUser());
 }
 
 async function getAccessToken() {
@@ -486,7 +513,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
 
   if (error) {
     console.error("[AUTH] getSession error:", error);
-    setMessage(error.message || "Authentication error.");
+    setMessage(error.message || "Authentication error.", { tone: "error", sticky: true });
     clearSavedUser();
     syncAuthExport();
     hideBlockingModals();
@@ -557,7 +584,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
 }
 
 async function signInWithGoogle() {
-  setMessage("Redirecting to Google...");
+  setMessage("Redirecting to Google...", { sticky: true });
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -567,12 +594,12 @@ async function signInWithGoogle() {
   });
   if (error) {
     console.error("[AUTH] Google sign-in error:", error);
-    setMessage(error.message || "Google sign-in failed.");
+    setMessage(error.message || "Google sign-in failed.", { tone: "error" });
   }
 }
 
 async function signInWithMicrosoft() {
-  setMessage("Redirecting to Microsoft...");
+  setMessage("Redirecting to Microsoft...", { sticky: true });
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "azure",
     options: {
@@ -583,18 +610,18 @@ async function signInWithMicrosoft() {
   });
   if (error) {
     console.error("[AUTH] Microsoft sign-in error:", error);
-    setMessage(error.message || "Microsoft sign-in failed.");
+    setMessage(error.message || "Microsoft sign-in failed.", { tone: "error" });
   }
 }
 
 async function sendOtpOrMagicLink() {
   const email = getEl("otpEmail")?.value.trim() || "";
   if (!email) {
-    setMessage("Please enter your email.");
+    setMessage("Please enter your email.", { tone: "error" });
     return;
   }
 
-  setMessage("Sending... Please wait.");
+  setMessage("Sending... Please wait.", { sticky: true });
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -605,7 +632,7 @@ async function sendOtpOrMagicLink() {
   if (error) {
     console.error("[AUTH] OTP send error:", error);
   }
-  setMessage(error ? error.message : "Check your email for the code or magic link.");
+  setMessage(error ? error.message : "Check your email for the code or magic link.", { tone: error ? "error" : "success", sticky: !error });
 }
 
 async function signInWithSharedPassword() {
@@ -613,11 +640,11 @@ async function signInWithSharedPassword() {
   const password = getEl("sharedPasswordInput")?.value || "";
 
   if (!email) {
-    setMessage("Please enter your email.");
+    setMessage("Please enter your email.", { tone: "error" });
     return;
   }
   if (!password) {
-    setMessage("Please enter the shared password.");
+    setMessage("Please enter the shared password.", { tone: "error" });
     return;
   }
 
@@ -637,19 +664,19 @@ async function signInWithSharedPassword() {
   } catch (e) {}
 
   if (hasPersonalPassword) {
-    setMessage("Wrong email or password. If you forgot it, use Forgot password.");
+    setMessage("Wrong email or password. If you forgot it, use Forgot password.", { tone: "error" });
     return;
   }
 
   if (hasOverride) {
     const matches = await verifySharedPasswordOverride(email, password);
     if (!matches) {
-      setMessage("Wrong email or password. If you forgot it, use Forgot password.");
+      setMessage("Wrong email or password. If you forgot it, use Forgot password.", { tone: "error" });
       return;
     }
   }
 
-  setMessage("Signing you in...");
+  setMessage("Signing you in...", { sticky: true });
   const res = await fetch("/api/auth/shared-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -658,7 +685,7 @@ async function signInWithSharedPassword() {
 
   const data = res ? await res.json().catch(() => null) : null;
   if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
-    setMessage(data?.error || "Shared-password sign-in failed.");
+    setMessage(data?.error || "Shared-password sign-in failed.", { tone: "error", sticky: true });
     return;
   }
 
@@ -674,21 +701,21 @@ async function signInWithSharedPassword() {
 async function sendPasswordResetEmail() {
   const email = getEl("otpEmail")?.value.trim() || "";
   if (!email) {
-    setMessage("Please enter your email first.");
+    setMessage("Please enter your email first.", { tone: "error" });
     return;
   }
 
-  setMessage("Sending password reset email...");
+  setMessage("Sending password reset email...", { sticky: true });
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: SITE_URL,
   });
   if (error) {
     console.error("[AUTH] reset password error:", error);
-    setMessage(error.message || "Could not send a reset email.");
+    setMessage(error.message || "Could not send a reset email.", { tone: "error", sticky: true });
     return;
   }
 
-  setMessage("Password reset email sent. Open the link in your inbox to choose a new password.");
+  setMessage("Password reset email sent. Open the link in your inbox to choose a new password.", { tone: "success", sticky: true });
 }
 
 async function finishPasswordReset() {
@@ -696,19 +723,19 @@ async function finishPasswordReset() {
   const confirm = getEl("resetPasswordConfirmInput")?.value || "";
 
   if (!password || password.length < 6) {
-    setMessage("Choose a new password with at least 6 characters.");
+    setMessage("Choose a new password with at least 6 characters.", { tone: "error" });
     return;
   }
   if (password !== confirm) {
-    setMessage("The password confirmation does not match.");
+    setMessage("The password confirmation does not match.", { tone: "error" });
     return;
   }
 
-  setMessage("Updating your password...");
+  setMessage("Updating your password...", { sticky: true });
   const { data, error } = await supabase.auth.updateUser({ password });
   if (error) {
     console.error("[AUTH] finish reset error:", error);
-    setMessage(error.message || "Could not update your password.");
+    setMessage(error.message || "Could not update your password.", { tone: "error", sticky: true });
     return;
   }
 
@@ -717,7 +744,7 @@ async function finishPasswordReset() {
     markPersonalPasswordEnabled(email);
   }
   setPasswordResetMode(false, "");
-  setMessage("Your password has been reset. You can now sign in with your new password.");
+  setMessage("Your password has been reset. You can now sign in with your new password.", { tone: "success", sticky: true });
   await refreshAuthUI({ forceHome: true });
 }
 
@@ -786,11 +813,11 @@ async function verifyOtpCode() {
   const token = getEl("otpCode")?.value.trim() || "";
 
   if (!email || !token) {
-    setMessage("Enter both email and code.");
+    setMessage("Enter both email and code.", { tone: "error" });
     return;
   }
 
-  setMessage("Verifying code...");
+  setMessage("Verifying code...", { sticky: true });
   const { error } = await supabase.auth.verifyOtp({
     email,
     token,
@@ -799,7 +826,7 @@ async function verifyOtpCode() {
 
   if (error) {
     console.error("[AUTH] OTP verify error:", error);
-    setMessage(error.message);
+    setMessage(error.message, { tone: "error", sticky: true });
     return;
   }
 
@@ -920,7 +947,7 @@ async function bootAuth() {
   try {
     const cameFromOAuth = hasOAuthCallbackParams();
     if (cameFromOAuth) {
-      setMessage("Signing you in...");
+      setMessage("Signing you in...", { sticky: true });
       await new Promise((resolve) => setTimeout(resolve, 700));
     }
 
@@ -932,7 +959,7 @@ async function bootAuth() {
   } catch (e) {
     console.error("[AUTH] Boot error:", e);
     showProtectedApp(false);
-    setMessage("Could not restore your session.");
+    setMessage("Could not restore your session.", { tone: "error", sticky: true });
   }
 }
 

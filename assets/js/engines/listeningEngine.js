@@ -175,6 +175,21 @@ function applyActiveListeningContent() {
         if (el.checked) out[q] = String(el.value || "").trim();
       });
 
+      const groupedChecks = {};
+      root.querySelectorAll("[data-lq-check]").forEach((el) => {
+        const startQ = Number(String(el.dataset.lqCheck || "").trim());
+        if (!Number.isFinite(startQ) || startQ <= 0) return;
+        if (!groupedChecks[startQ]) groupedChecks[startQ] = [];
+        if (el.checked) groupedChecks[startQ].push(String(el.value || "").trim());
+      });
+
+      Object.entries(groupedChecks).forEach(([startQRaw, values]) => {
+        const startQ = Number(startQRaw);
+        const chosen = Array.isArray(values) ? values.slice(0, 2).sort() : [];
+        out[startQ] = chosen[0] || "";
+        out[startQ + 1] = chosen[1] || "";
+      });
+
       return out;
     }
 
@@ -442,6 +457,54 @@ function applyActiveListeningContent() {
         const k = String(el.dataset.lqRadio || "").trim();
         if (a[k] !== undefined) el.checked = String(a[k]) === String(el.value);
       });
+
+      const groupedChecks = new Map();
+      root.querySelectorAll("[data-lq-check]").forEach((el) => {
+        const startQ = Number(String(el.dataset.lqCheck || "").trim());
+        if (!Number.isFinite(startQ) || startQ <= 0) return;
+        if (!groupedChecks.has(startQ)) groupedChecks.set(startQ, []);
+        groupedChecks.get(startQ).push(el);
+      });
+
+      groupedChecks.forEach((inputs, startQ) => {
+        const allowed = new Set(
+          [a[startQ], a[String(startQ)], a[startQ + 1], a[String(startQ + 1)]]
+            .map((value) => String(value || "").trim())
+            .filter(Boolean)
+        );
+        inputs.forEach((el) => {
+          el.checked = allowed.has(String(el.value || "").trim());
+        });
+      });
+    }
+
+    function enforceListeningCheckLimits() {
+      const root = getListeningRoot();
+      const groupedChecks = new Map();
+      root.querySelectorAll("[data-lq-check]").forEach((el) => {
+        const startQ = Number(String(el.dataset.lqCheck || "").trim());
+        if (!Number.isFinite(startQ) || startQ <= 0) return;
+        if (!groupedChecks.has(startQ)) groupedChecks.set(startQ, []);
+        groupedChecks.get(startQ).push(el);
+      });
+
+      groupedChecks.forEach((inputs) => {
+        inputs.forEach((input) => {
+          if (input.dataset.limitBound === "1") return;
+          input.dataset.limitBound = "1";
+          input.addEventListener("change", () => {
+            const checked = inputs.filter((el) => el.checked);
+            if (checked.length > 2) {
+              input.checked = false;
+              try {
+                window.alert("Please choose only TWO answers for this question.");
+              } catch (e) {}
+              return;
+            }
+            saveListeningAnswers();
+          });
+        });
+      });
     }
 
     function collectListeningPayload(reason) {
@@ -693,6 +756,7 @@ function applyActiveListeningContent() {
       }
 
       loadListeningAnswers();
+      enforceListeningCheckLimits();
       setupNavHandlers();
 
       setStatus("Status: Not started");

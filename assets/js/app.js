@@ -2574,6 +2574,27 @@ function startFreshExam() {
             safeCall('IELTS.Engines.Listening.initListeningSystem');
             return;
           }
+          if (id === 'startIelts4Btn' || /Start Test 4|Open Test 4/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts4']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
+          if (id === 'startIelts5Btn' || /Start Test 5|Open Test 5/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts5']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
+          if (id === 'startIelts6Btn' || /Start Test 6|Open Test 6/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts6']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {
             safeCall('IELTS.History.openHistory');
             return;

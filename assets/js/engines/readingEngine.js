@@ -26,7 +26,7 @@
     const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
     const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const TEST_ID = (R().getScopedReadingTestId?.(ACTIVE_TEST_ID)) || (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
-    const DURATION_MINUTES = 1;
+    const DURATION_MINUTES = 60;
     const REVIEW_MODE = !!(LAUNCH_CONTEXT && (LAUNCH_CONTEXT.mode === "section" || LAUNCH_CONTEXT.mode === "practice"));
 
     // TIMER/STATE

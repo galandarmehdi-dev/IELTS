@@ -850,7 +850,9 @@
       });
       return;
     } catch (e) {}
-    const btnId = testId === "ielts6"
+    const btnId = testId === "ielts7"
+      ? "startIelts7Btn"
+      : testId === "ielts6"
       ? "startIelts6Btn"
       : testId === "ielts5"
       ? "startIelts5Btn"

@@ -308,17 +308,18 @@ So what causes mass strandings? It is probably many different components. And th
               ],
             },
             {
-              type: "shortAnswer",
+              type: "sentenceGaps",
               title: "Questions 18-21",
               instructions: [
-                "Complete the notes below.",
+                "Label the diagram below.",
                 "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+                "Write your answers in boxes 18-21 on your answer sheet.",
               ],
-              questions: [
-                { q: 18, text: "What happens to whales' sound waves on shallow beaches?" },
-                { q: 19, text: "What in the ocean can absorb whale clicks?" },
-                { q: 20, text: "What kind of weather generates more bubbles than usual?" },
-                { q: 21, text: "What is brought closer to the Australian coast in the climatic cycle described by Evans?" },
+              items: [
+                { q: 18, text: "Because", tail: " disappear on shallow beaches, whales don't realise the beach is near." },
+                { q: 19, text: "Extra", tail: " in the water attract fish and therefore whales to South Australian coasts." },
+                { q: 20, text: "Storms create", tail: " which absorb whales' clicks." },
+                { q: 21, text: "Sonar may result in a blocked supply of", tail: " in whale bodies." },
               ],
             },
             {

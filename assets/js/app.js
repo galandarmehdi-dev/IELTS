@@ -2595,6 +2595,13 @@ function startFreshExam() {
             safeCall('IELTS.Engines.Listening.initListeningSystem');
             return;
           }
+          if (id === 'startIelts7Btn' || /Start Test 7|Open Test 7/i.test(id)) {
+            safeCall('IELTS.Registry.setActiveTestId', ['ielts7']);
+            safeCall('IELTS.UI.setExamStarted', [true]);
+            safeCall('IELTS.UI.showOnly', ['listening']);
+            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            return;
+          }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {
             safeCall('IELTS.History.openHistory');
             return;

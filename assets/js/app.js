@@ -898,6 +898,29 @@
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {}
       try {
+        const submissionMetaUrl = R()?.buildAdminApiUrl?.({
+          action: "submissionMeta",
+          submittedAt: row.submittedAt || "",
+          studentFullName: row.studentFullName || "",
+          examId: row.examId || "",
+          reason: row.reason || "",
+          t: Date.now(),
+        });
+        const token = await window.IELTS?.Auth?.getAccessToken?.();
+        if (submissionMetaUrl) {
+          const metaRes = await fetch(submissionMetaUrl.toString(), {
+            method: "GET",
+            cache: "no-store",
+            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          });
+          const metaData = await metaRes.json().catch(() => null);
+          if (metaRes.ok && metaData?.ok === true && metaData.record) {
+            const providerText = String(metaData.record.provider || "email").replace(/-/g, " ");
+            $("adminDetailMeta").innerHTML += `<br>Email: <b>${escapeHtml(metaData.record.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
+          }
+        }
+      } catch (e) {}
+      try {
         const objectiveResult = await fetchObjectiveDetailForRow(row);
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {

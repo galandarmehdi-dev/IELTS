@@ -10,6 +10,12 @@
     "directory": ".",
     "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "STUDENT_REGISTRY",
+      "id": "33f5ef7fded14776a07630b3fea32702"
+    }
+  ],
   "send_email": [
     {
       "name": "CONTACT_EMAIL",

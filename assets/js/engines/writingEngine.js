@@ -495,11 +495,16 @@
 
         const testNumber = String(activeTestId).replace("ielts", "");
         const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
+        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const studentEmail = String(authUser?.email || "").trim().toLowerCase();
+        const signInMethod = String(authUser?.provider || "email").trim().toLowerCase() || "email";
 
         const finalPayload = {
           examId,
           submittedAt,
           studentFullName: fullName,
+          studentEmail,
+          signInMethod,
           reason: submitReason,
           listening,
           reading,

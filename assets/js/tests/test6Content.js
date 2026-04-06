@@ -181,7 +181,7 @@
     },
 
     writing: {
-      task1Type: "Table",
+      task1Type: "Bar chart",
       task2Type: "Opinion essay",
       task1Html: `
         You should spend about 20 minutes on this task.<br>

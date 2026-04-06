@@ -61,6 +61,13 @@ async function handleSharedStudentLogin(request, env) {
     },
   };
 
+  await upsertStudentRegistry(env, {
+    email,
+    fullName: displayName,
+    provider: "shared-password",
+    isSharedPassword: true,
+  });
+
   return json(200, { ok: true, token, user });
 }
 
@@ -141,6 +148,21 @@ async function handleAdminApi(request, env) {
     return proxy(request, backendUrl.toString());
   }
 
+  if (request.method === "GET" && action === "studentRegistry") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!env.STUDENT_REGISTRY) return json(200, { ok: true, students: [] });
+
+    const listed = await env.STUDENT_REGISTRY.list({ prefix: "student:", limit: 500 });
+    const students = [];
+    for (const key of listed.keys || []) {
+      const value = await readJsonKv(env.STUDENT_REGISTRY, key.name);
+      if (value) students.push(value);
+    }
+    students.sort((a, b) => Date.parse(String(b?.lastSeenAt || "")) - Date.parse(String(a?.lastSeenAt || "")));
+    return json(200, { ok: true, students });
+  }
+
   if (request.method === "GET" && action === "writingSamples") {
     const response = await fetch(WRITING_SHEET_CSV_URL, { method: "GET" });
     const csvText = await response.text();
@@ -211,6 +233,76 @@ async function handleAdminApi(request, env) {
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
     return proxy(request, backendUrl.toString());
+  }
+
+  if (request.method === "GET" && action === "submissionMeta") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const key = buildSubmissionMetaKey({
+      submittedAt: url.searchParams.get("submittedAt") || "",
+      studentFullName: url.searchParams.get("studentFullName") || "",
+      examId: url.searchParams.get("examId") || "",
+      reason: url.searchParams.get("reason") || "",
+    });
+    if (!key) return json(400, { ok: false, error: "Missing submission lookup fields." });
+
+    const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+    return json(200, { ok: true, record: record || null });
+  }
+
+  if (request.method === "POST" && action === "studentSessionPing") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const payload = await request.json().catch(() => null);
+    const email = normalizeEmail(auth.user?.email || payload?.email || "");
+    if (!email) return json(400, { ok: false, error: "Missing student email." });
+
+    const provider = oneLine(payload?.provider || auth.user?.app_metadata?.provider || "email");
+    const fullName = oneLine(payload?.fullName || auth.user?.user_metadata?.name || auth.user?.user_metadata?.preferred_name || deriveNameFromEmail(email));
+    const record = await upsertStudentRegistry(env, {
+      email,
+      fullName,
+      provider,
+      isSharedPassword: provider === "shared-password",
+    });
+    return json(200, { ok: true, record });
+  }
+
+  if (request.method === "POST" && action === "recordSubmissionMeta") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const payload = await request.json().catch(() => null);
+    const submittedAt = oneLine(payload?.submittedAt);
+    const studentFullName = oneLine(payload?.studentFullName);
+    const examId = oneLine(payload?.examId);
+    const reason = oneLine(payload?.reason);
+    const email = normalizeEmail(payload?.email || auth.user?.email || "");
+    const provider = oneLine(payload?.provider || auth.user?.app_metadata?.provider || "email");
+    if (!submittedAt || !studentFullName || !examId || !email) {
+      return json(400, { ok: false, error: "Missing submission metadata." });
+    }
+
+    const key = buildSubmissionMetaKey({ submittedAt, studentFullName, examId, reason });
+    const record = {
+      email,
+      provider,
+      studentFullName,
+      examId,
+      submittedAt,
+      reason,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeJsonKv(env.STUDENT_REGISTRY, `submission:${key}`, record);
+    await upsertStudentRegistry(env, {
+      email,
+      fullName: studentFullName,
+      provider,
+      isSharedPassword: provider === "shared-password",
+    });
+    return json(200, { ok: true, record });
   }
 
   if (request.method === "GET" && action === "studentObjectiveDetail") {
@@ -467,6 +559,63 @@ function buildWritingSamplesFromSheet(csvText) {
     });
   });
   return samples;
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function buildSubmissionMetaKey(row) {
+  return [
+    normalizeMatchString(row?.submittedAt || row?.submitted_at || ""),
+    normalizeMatchString(row?.studentFullName || row?.student_full_name || ""),
+    normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id || ""),
+    normalizeMatchString(row?.reason || ""),
+  ].join("::");
+}
+
+async function readJsonKv(binding, key) {
+  if (!binding || !key) return null;
+  try {
+    const raw = await binding.get(key, "text");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function writeJsonKv(binding, key, value) {
+  if (!binding || !key) return null;
+  await binding.put(key, JSON.stringify(value));
+  return value;
+}
+
+async function upsertStudentRegistry(env, payload) {
+  const email = normalizeEmail(payload?.email);
+  if (!env.STUDENT_REGISTRY || !email) return null;
+
+  const key = `student:${email}`;
+  const current = (await readJsonKv(env.STUDENT_REGISTRY, key)) || {};
+  const provider = oneLine(payload?.provider || current.lastProvider || "email");
+  const now = new Date().toISOString();
+  const methods = {
+    ...(current.methods && typeof current.methods === "object" ? current.methods : {}),
+    [provider]: true,
+  };
+
+  const next = {
+    email,
+    fullName: oneLine(payload?.fullName || current.fullName || deriveNameFromEmail(email)),
+    firstSeenAt: current.firstSeenAt || now,
+    lastSeenAt: now,
+    lastProvider: provider,
+    signInCount: Number(current.signInCount || 0) + 1,
+    sharedPasswordSignInCount: Number(current.sharedPasswordSignInCount || 0) + (payload?.isSharedPassword ? 1 : 0),
+    methods,
+  };
+
+  await writeJsonKv(env.STUDENT_REGISTRY, key, next);
+  return next;
 }
 
 function parseCsv(text) {

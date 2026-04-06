@@ -292,6 +292,42 @@
       };
     }
 
+    async function recordSubmissionMeta(finalPayload) {
+      try {
+        const url = R().buildAdminApiUrl?.({ action: "recordSubmissionMeta" });
+        if (!url) return { ok: false, skipped: true };
+        const user = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const token = await window.IELTS?.Auth?.getAccessToken?.();
+        if (!token || !user?.email) return { ok: false, skipped: true };
+
+        const payload = {
+          submittedAt: finalPayload?.submittedAt || "",
+          studentFullName: finalPayload?.studentFullName || user?.name || "",
+          examId: finalPayload?.examId || "",
+          reason: finalPayload?.reason || "",
+          email: String(user?.email || "").trim().toLowerCase(),
+          provider: String(user?.provider || "").trim().toLowerCase() || "email",
+        };
+
+        const res = await fetch(url.toString(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.ok !== true) {
+          return { ok: false, error: data?.error || `HTTP ${res.status}` };
+        }
+        return { ok: true };
+      } catch (err) {
+        console.error("Submission metadata save failed:", err);
+        return { ok: false, error: err };
+      }
+    }
+
     async function saveAttemptToSupabase(finalPayload) {
       try {
         const supabase = window.IELTS?.Auth?.supabase;
@@ -477,6 +513,7 @@
 
         const hasWritingText = hasAnyWritingText(writingPayload);
         const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
+        await recordSubmissionMeta(finalPayload);
 
         // Save history immediately so a flaky backend response does not erase the student's record.
         const historyResult = await saveAttemptToSupabase(finalPayload);

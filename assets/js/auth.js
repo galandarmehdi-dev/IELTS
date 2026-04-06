@@ -353,6 +353,42 @@ function notifyAuthChanged() {
   } catch (e) {}
 }
 
+async function pingStudentSession(userLike) {
+  const email = normalizeEmail(userLike?.email || getSavedUser()?.email || "");
+  if (!email) return;
+  const url = window.IELTS?.Registry?.buildAdminApiUrl?.({ action: "studentSessionPing" });
+  if (!url) return;
+
+  const provider =
+    String(userLike?.app_metadata?.provider || userLike?.provider || getSavedUser()?.provider || "email").trim().toLowerCase() || "email";
+  const fullName =
+    String(
+      userLike?.user_metadata?.preferred_name ||
+      userLike?.user_metadata?.name ||
+      userLike?.name ||
+      getSavedUser()?.name ||
+      ""
+    ).trim();
+
+  const token = await getAccessToken().catch(() => null);
+  if (!token) return;
+
+  try {
+    await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        email,
+        provider,
+        fullName,
+      }),
+    });
+  } catch (e) {}
+}
+
 function hideBlockingModals() {
   const mainModal = getEl("modal");
   if (mainModal) mainModal.classList.add("hidden");
@@ -578,6 +614,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     showProtectedApp(true);
     setMessage("");
     authReady = true;
+    pingStudentSession(user).catch(() => null);
 
     if (forceHome) {
       routeHomeAfterLogin();
@@ -605,6 +642,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     showProtectedApp(true);
     setMessage("");
     authReady = true;
+    pingStudentSession(shared.user).catch(() => null);
     if (forceHome) {
       routeHomeAfterLogin();
     } else {
@@ -740,6 +778,7 @@ async function signInWithSharedPassword() {
   syncAuthExport();
   showProtectedApp(true);
   setMessage("");
+  pingStudentSession(data.user).catch(() => null);
   routeHomeAfterLogin();
   notifyAuthChanged();
 }

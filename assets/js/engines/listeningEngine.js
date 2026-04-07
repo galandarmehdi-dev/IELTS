@@ -24,6 +24,9 @@
     const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const L_KEYS = (R().getScopedKeys?.(testId)?.listening) || (R().keysFor?.(testId)?.listening) || R().TESTS?.listeningKeys;
     const REVIEW_MODE = !!(LAUNCH_CONTEXT && LAUNCH_CONTEXT.mode === "section" && LAUNCH_CONTEXT.section === "listening");
+    const LISTENING_STARTED_AT_KEY = `${L_KEYS.answers}:startedAt`;
+    const LISTENING_AUDIO_ENDS_AT_KEY = `${L_KEYS.answers}:audioEndsAt`;
+    const LISTENING_TRANSFER_ENDS_AT_KEY = `${L_KEYS.answers}:transferEndsAt`;
 
     // Auto-migrate legacy single-test keys on this browser (so nothing breaks mid-attempt)
     const LEG = R().LEGACY?.listeningKeys;
@@ -65,6 +68,8 @@
 
     let submitted = S().get(L_KEYS.submitted, "false") === "true";
     let started = S().get(L_KEYS.started, "false") === "true";
+    let startedAt = Number(S().get(LISTENING_STARTED_AT_KEY, "0")) || 0;
+    let audioEndsAt = Number(S().get(LISTENING_AUDIO_ENDS_AT_KEY, "0")) || 0;
 
     // 2-minute review/transfer time after audio ends (computer-delivered IELTS style)
     let transferActive = false;
@@ -138,6 +143,35 @@ function applyActiveListeningContent() {
     function setStatus(t) {
       const el = statusEl();
       if (el) el.textContent = t;
+    }
+
+    function persistListeningClockState() {
+      if (startedAt > 0) S().set(LISTENING_STARTED_AT_KEY, String(startedAt));
+      if (audioEndsAt > 0) S().set(LISTENING_AUDIO_ENDS_AT_KEY, String(audioEndsAt));
+      if (transferEndsAt > 0) {
+        S().set(LISTENING_TRANSFER_ENDS_AT_KEY, String(transferEndsAt));
+      } else {
+        S().remove(LISTENING_TRANSFER_ENDS_AT_KEY);
+      }
+    }
+
+    function clearListeningClockState() {
+      startedAt = 0;
+      audioEndsAt = 0;
+      transferEndsAt = 0;
+      S().remove(LISTENING_STARTED_AT_KEY);
+      S().remove(LISTENING_AUDIO_ENDS_AT_KEY);
+      S().remove(LISTENING_TRANSFER_ENDS_AT_KEY);
+    }
+
+    function primeListeningClockFromAudio(aud) {
+      if (!aud) return;
+      const duration = Number(aud.duration || 0);
+      if (!startedAt) startedAt = Date.now();
+      if (duration > 0 && !audioEndsAt) {
+        audioEndsAt = startedAt + duration * 1000;
+      }
+      persistListeningClockState();
     }
 
     function lockReading(lock) {
@@ -521,6 +555,7 @@ function applyActiveListeningContent() {
     function stopTransferTime() {
       transferActive = false;
       transferEndsAt = 0;
+      persistListeningClockState();
       if (transferInterval) {
         try { clearInterval(transferInterval); } catch (_) {}
       }
@@ -532,7 +567,8 @@ function applyActiveListeningContent() {
       if (submitted || transferActive) return;
 
       transferActive = true;
-      transferEndsAt = Date.now() + 2 * 60 * 1000;
+      transferEndsAt = transferEndsAt > Date.now() ? transferEndsAt : Date.now() + 2 * 60 * 1000;
+      persistListeningClockState();
 
       // Show warning once, then let students keep editing answers during the countdown
       try {
@@ -583,6 +619,7 @@ function applyActiveListeningContent() {
       submitted = true;
       strictActive = false;
       saveListeningAnswers();
+      clearListeningClockState();
 
       const payload = collectListeningPayload(reason);
       S().setJSON(L_KEYS.lastSubmission, payload);
@@ -745,21 +782,29 @@ function applyActiveListeningContent() {
       lockReading(true);
       s.classList.remove("hidden");
 
-      started = false;
-      S().set(L_KEYS.started, "false");
-      s.classList.remove("started");
-
       const m = modal();
-      if (m) {
+      if (m && !started) {
         m.classList.remove("hidden");
         m.style.display = "flex";
+      } else if (m) {
+        m.classList.add("hidden");
+        m.style.display = "none";
       }
 
       loadListeningAnswers();
       enforceListeningCheckLimits();
       setupNavHandlers();
+      s.classList.toggle("started", started);
 
-      setStatus("Status: Not started");
+      if (submitted) {
+        setStatus("Status: Submitted");
+      } else if (transferActive) {
+        setStatus("Status: Listening — check answers");
+      } else if (started) {
+        setStatus("Status: Resuming Listening");
+      } else {
+        setStatus("Status: Not started");
+      }
 
       if (!s.dataset.listenBound) {
         s.dataset.listenBound = "1";
@@ -789,14 +834,37 @@ function applyActiveListeningContent() {
       aud.muted = false;
       aud.volume = 1;
 
+      const resumeOffsetSeconds =
+        startedAt > 0 && audioEndsAt > startedAt
+          ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+          : 0;
+
       try { aud.currentTime = 0; } catch (e) {}
       aud.load();
+
+      if (!startedAt) {
+        startedAt = Date.now();
+      }
+      const applyResumeOffset = () => {
+        primeListeningClockFromAudio(aud);
+        if (resumeOffsetSeconds > 0 && Number(aud.duration || 0) > 0) {
+          try {
+            aud.currentTime = Math.max(0, Math.min(Number(aud.duration || 0) - 0.25, resumeOffsetSeconds));
+          } catch (e) {}
+        }
+      };
+      if (Number(aud.readyState || 0) >= 1) {
+        applyResumeOffset();
+      } else {
+        aud.addEventListener("loadedmetadata", applyResumeOffset, { once: true });
+      }
 
       try {
         await aud.play();
 
         started = true;
         S().set(L_KEYS.started, "true");
+        primeListeningClockFromAudio(aud);
 
         s.classList.add("started");
         if (m) {
@@ -809,19 +877,27 @@ function applyActiveListeningContent() {
         enableStrictAudio(aud);
       } catch (err) {
         console.warn("Audio play failed:", err);
-
-        started = false;
-        S().set(L_KEYS.started, "false");
-
-        s.classList.remove("started");
-        if (m) m.style.display = "flex";
+        const wasResume = startedAt > 0;
+        if (!wasResume) {
+          started = false;
+          S().set(L_KEYS.started, "false");
+          s.classList.remove("started");
+        } else {
+          started = true;
+          S().set(L_KEYS.started, "true");
+          s.classList.add("started");
+        }
+        if (m) {
+          m.classList.remove("hidden");
+          m.style.display = "flex";
+        }
 
         const code = aud.error?.code;
         const reason = !aud.currentSrc
           ? "No audio source loaded (check URL)"
           : code
           ? "Audio error code: " + code
-          : "Audio blocked by browser. Student must click START.";
+          : (wasResume ? "Audio resume was blocked by the browser. Click START to continue from your saved time." : "Audio blocked by browser. Student must click START.");
 
         setStatus("Status: " + reason);
       }
@@ -830,6 +906,21 @@ function applyActiveListeningContent() {
     function setupListeningUI() {
   applyActiveListeningContent();
   injectListeningReviewStyles();
+
+  const aud = audio();
+  if (started && !submitted) {
+    const savedTransferEndsAt = Number(S().get(LISTENING_TRANSFER_ENDS_AT_KEY, "0")) || 0;
+    transferEndsAt = savedTransferEndsAt;
+    if (audioEndsAt > 0 && Date.now() >= audioEndsAt) {
+      if (savedTransferEndsAt > 0 && Date.now() >= savedTransferEndsAt) {
+        finishListening("Listening time elapsed while the device was away.");
+      } else {
+        startTransferTime();
+      }
+    } else if (aud) {
+      primeListeningClockFromAudio(aud);
+    }
+  }
 
   // Admin gate (students must NOT be able to submit early / control flow)
   const isAdmin =
@@ -854,6 +945,11 @@ function applyActiveListeningContent() {
 
   const sBtn = startBtn();
   if (sBtn) sBtn.onclick = startAudioFromUserGesture;
+  if (started && !submitted && !transferActive && aud) {
+    window.setTimeout(() => {
+      Promise.resolve(startAudioFromUserGesture()).catch(() => {});
+    }, 30);
+  }
 
   const submitNow = $("submitListeningBtn");
   if (submitNow) {

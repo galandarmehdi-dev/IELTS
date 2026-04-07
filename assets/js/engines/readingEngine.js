@@ -30,11 +30,13 @@
     const REVIEW_MODE = !!(LAUNCH_CONTEXT && (LAUNCH_CONTEXT.mode === "section" || LAUNCH_CONTEXT.mode === "practice"));
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 1;
+    let remainingSeconds = DURATION_MINUTES * 60;
     let timerInterval = null;
+    let deadlineAt = 0;
 
     const storageKey = (suffix) => `${TEST_ID}:${suffix}`;
     const reviewStorageKey = (suffix) => storageKey(`review:${suffix}`);
+    const deadlineStorageKey = storageKey("deadlineAt");
 
     let hasSubmittedReading = S().get(storageKey("submitted"), "false") === "true";
     let hasTransitionedToWriting = false;
@@ -661,7 +663,9 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const snapshot = { ...(answers || {}) };
       if (typeof answersRef !== "undefined" && answersRef) answersRef.current = snapshot;
       S().setJSON(storageKey("answers"), snapshot);
+      remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
       S().set(storageKey("remainingSeconds"), String(remainingSeconds));
+      S().set(deadlineStorageKey, String(deadlineAt));
       if ($("autosaveStatus")) $("autosaveStatus").textContent = `Autosave: saved at ${new Date().toLocaleTimeString()}`;
     }
 
@@ -982,6 +986,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       answersRef.current = latest;
 
       S().set(storageKey("submitted"), "true");
+      S().remove(deadlineStorageKey);
       S().set(storageKey("remainingSeconds"), String(remainingSeconds));
       S().setJSON(storageKey("answers"), latest);
       S().setJSON(storageKey("lastSubmission"), collectPayload(latest, reason));
@@ -1032,9 +1037,18 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
     function loadState() {
       const answers = S().getJSON(storageKey("answers"), {}) || {};
+      const savedDeadline = S().get(deadlineStorageKey, null);
       const savedRemaining = S().get(storageKey("remainingSeconds"), null);
-      if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
+      if (savedDeadline && !Number.isNaN(Number(savedDeadline))) {
+        deadlineAt = Math.max(0, Number(savedDeadline));
+        remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
+      } else if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
         remainingSeconds = Math.max(0, Number(savedRemaining));
+        deadlineAt = Date.now() + remainingSeconds * 1000;
+        S().set(deadlineStorageKey, String(deadlineAt));
+      } else {
+        deadlineAt = Date.now() + DURATION_MINUTES * 60 * 1000;
+        S().set(deadlineStorageKey, String(deadlineAt));
       }
       return { answers };
     }
@@ -1718,6 +1732,7 @@ qnum.textContent = `${item.q}`;
     }
 
     function startTimer(answersRef) {
+      remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
       if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
 
       if (hasSubmittedReading) {
@@ -1732,8 +1747,16 @@ qnum.textContent = `${item.q}`;
         return;
       }
 
+      if (remainingSeconds === 0) {
+        answersRef.current = collectCurrentAnswersFromDOM(loadState().answers);
+        saveAnswers(answersRef.current);
+        if (!hasSubmittedReading) submitReading("Reading time ended. Auto-submitted.", answersRef.current);
+        transitionToWritingOnce();
+        return;
+      }
+
       timerInterval = setInterval(() => {
-        remainingSeconds = Math.max(0, remainingSeconds - 1);
+        remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
 
         if ($("timeLeft")) $("timeLeft").textContent = UI().formatTime(remainingSeconds);
 

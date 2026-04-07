@@ -135,8 +135,12 @@
   }
 
   function getHistoryEmail() {
-    const user = Auth()?.getSavedUser?.();
+    const user = getHistoryUser();
     return String(user?.email || "").trim().toLowerCase();
+  }
+
+  function getHistoryUser() {
+    return Auth()?.getSavedUser?.() || Auth()?.getSharedSession?.()?.user || null;
   }
 
   function getLocalHistoryStorageKey(email) {
@@ -162,12 +166,13 @@
 
   async function loadRows() {
     const supabase = Auth()?.supabase;
-    const user = Auth()?.getSavedUser?.();
+    const user = getHistoryUser();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
     const email = String(user?.email || "").trim().toLowerCase();
     const localRows = email ? loadLocalRows(email) : [];
+    const isSharedPassword = String(user?.provider || user?.app_metadata?.provider || "").trim().toLowerCase() === "shared-password";
     if (!email) return [];
-    if (!supabase) return localRows;
+    if (!supabase || isSharedPassword) return localRows;
 
     const query = supabase
       .from(table)
@@ -248,7 +253,7 @@
   }
 
   function buildLocalAttemptRow(finalPayload) {
-    const user = Auth()?.getSavedUser?.() || {};
+    const user = getHistoryUser() || {};
     const listening = finalPayload?.listening || {};
     const reading = finalPayload?.reading || {};
     const writing = finalPayload?.writing || {};
@@ -381,9 +386,11 @@
 
   async function syncRowToSupabase(row, result) {
     const supabase = Auth()?.supabase;
-    const user = Auth()?.getSavedUser?.();
+    const user = getHistoryUser();
     const table = Registry()?.HISTORY_TABLE || "exam_attempts";
     const email = String(user?.email || "").trim().toLowerCase();
+    const isSharedPassword = String(user?.provider || user?.app_metadata?.provider || "").trim().toLowerCase() === "shared-password";
+    if (isSharedPassword) return false;
     if (!supabase || !email || !row?.id || !result) return false;
 
     const patch = {
@@ -530,7 +537,7 @@
 
   async function openHistory() {
     try {
-      if (!Auth()?.getSavedUser?.()) return;
+      if (!getHistoryUser()) return;
       UI()?.showOnly?.("history");
       try {
         const testId = Registry()?.getActiveTestId?.() || Registry()?.TESTS?.defaultTestId || "ielts1";

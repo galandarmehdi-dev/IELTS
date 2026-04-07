@@ -293,13 +293,23 @@
     function clearAllStudentAttemptKeys() {
       // Keep admin session, wipe everything else that belongs to attempts.
       try {
-        const keep = new Set(["IELTS:ADMIN:session","IELTS:EXAM:activeTestId","IELTS:AUTH:user"]);
+        const keep = new Set([
+          "IELTS:ADMIN:session",
+          "IELTS:EXAM:activeTestId",
+          "IELTS:AUTH:user",
+          "IELTS:AUTH:sharedSession",
+          "IELTS:AUTH:sharedPasswordOverrides",
+          "IELTS:AUTH:personalPasswordEmails",
+          "IELTS:AUTH:profileByEmail",
+          "IELTS:LOCAL:HISTORY:lastOpen",
+        ]);
         const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
           if (!k) continue;
           if (keep.has(k)) continue;
+          if (k.startsWith("IELTS:LOCAL:HISTORY:")) continue;
           if (prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
         }
         toRemove.forEach((k) => localStorage.removeItem(k));

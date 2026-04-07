@@ -656,7 +656,7 @@
         (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
         (window.IELTS?.Access?.isAdmin?.() === true) ||
         false;
-      const canStudentEndEarly = !isAdmin && ALLOW_STUDENT_EARLY_END === true;
+      const canStudentEndEarly = !isAdmin && ALLOW_STUDENT_EARLY_END === false;
 
       if (canStudentEndEarly) {
         endBtn.classList.remove("hidden");

@@ -675,7 +675,7 @@
         (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
         (window.IELTS?.Access?.isAdmin?.() === true) ||
         false;
-      const canStudentEndEarly = !isAdmin && ALLOW_STUDENT_EARLY_END === false;
+      const canStudentEndEarly = !isAdmin && ALLOW_STUDENT_EARLY_END === true;
 
       if (canStudentEndEarly) {
         endBtn.classList.remove("hidden");
@@ -694,12 +694,8 @@
         if (!isAdmin && ALLOW_STUDENT_EARLY_END === true) {
           const ensuredName = ensureStudentFullNameForEarlySubmit();
           if (!UI().isValidFullName(ensuredName)) return;
-          const confirmed = window.confirm("Are you sure you want to end the exam and submit?");
-          if (!confirmed) return;
-          submitFinalExam("Student ended the exam.");
-          return;
         }
-        openFinalSubmitModal("Admin ended the exam.", {
+        openFinalSubmitModal(isAdmin ? "Admin ended the exam." : "Student ended the exam.", {
           title: "End exam",
           text: "Are you sure you want to end the exam and submit?",
           showCancel: true,

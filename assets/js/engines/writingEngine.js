@@ -3,6 +3,10 @@
 (function () {
   "use strict";
 
+  // Toggle this to true if students should be allowed to see and use
+  // the "End the exam" button before the timer finishes.
+  const ALLOW_STUDENT_EARLY_END = false;
+
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
@@ -648,9 +652,26 @@
 
     const endBtn = $("endExamBtn");
     if (endBtn) {
+      const isAdmin =
+        (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
+        (window.IELTS?.Access?.isAdmin?.() === true) ||
+        false;
+      const canStudentEndEarly = !isAdmin && ALLOW_STUDENT_EARLY_END === true;
+
+      if (canStudentEndEarly) {
+        endBtn.classList.remove("hidden");
+        endBtn.style.setProperty("display", "inline-flex", "important");
+      } else {
+        endBtn.style.removeProperty("display");
+      }
+
       endBtn.onclick = () => {
-        const isAdmin = (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) || (window.IELTS?.Access?.isAdmin?.() === true) || false;
-        if (!isAdmin) return;
+        const isAdmin =
+          (UI && typeof UI().isAdminView === "function" && UI().isAdminView() === true) ||
+          (window.IELTS?.Access?.isAdmin?.() === true) ||
+          false;
+        const canEnd = isAdmin || ALLOW_STUDENT_EARLY_END === true;
+        if (!canEnd) return;
         openFinalSubmitModal("Admin ended the exam.", {
           title: "End exam",
           text: "Are you sure you want to end the exam and submit?",

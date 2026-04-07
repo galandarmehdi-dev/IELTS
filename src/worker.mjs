@@ -817,12 +817,21 @@ function matchStudentResultRow(requestedRow, results) {
     const name = normalizeMatchString(row?.studentFullName || row?.student_full_name);
     return exam === wantedExam && name === wantedName;
   });
-  if (!filtered.length) return null;
+  const fallbackByExam = results.filter((row) => {
+    const exam = normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id);
+    return exam === wantedExam;
+  });
+  if (!filtered.length && !fallbackByExam.length) return null;
 
   const withReason = wantedReason
     ? filtered.filter((row) => normalizeMatchString(row?.reason) === wantedReason)
     : filtered;
-  const pool = withReason.length ? withReason : filtered;
+  const fallbackWithReason = wantedReason
+    ? fallbackByExam.filter((row) => normalizeMatchString(row?.reason) === wantedReason)
+    : fallbackByExam;
+  const pool = withReason.length
+    ? withReason
+    : (filtered.length ? filtered : (fallbackWithReason.length ? fallbackWithReason : fallbackByExam));
 
   if (!Number.isFinite(wantedTs)) return pool[0];
 

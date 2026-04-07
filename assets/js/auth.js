@@ -285,6 +285,7 @@ function syncAuthExport() {
   window.IELTS.Auth = {
     supabase,
     getSavedUser,
+    getSharedSession,
     getIdentityKey,
     isSignedIn,
     isSharedPasswordUser,

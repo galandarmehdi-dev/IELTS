@@ -12,6 +12,14 @@
   const R = () => window.IELTS.Registry;
   const Modal = () => window.IELTS.Modal;
 
+  function getCurrentAuthUser() {
+    const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+    if (authUser?.email) return authUser;
+    const sharedUser = window.IELTS?.Auth?.getSharedSession?.()?.user || null;
+    if (sharedUser?.email) return sharedUser;
+    return authUser || sharedUser || null;
+  }
+
   function startWritingSystem() {
     if (window.__IELTS_WRITING_INIT__) return;
     window.__IELTS_WRITING_INIT__ = true;
@@ -319,7 +327,7 @@
       try {
         const url = R().buildAdminApiUrl?.({ action: "recordSubmissionMeta" });
         if (!url) return { ok: false, skipped: true };
-        const user = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const user = getCurrentAuthUser();
         const token = await window.IELTS?.Auth?.getAccessToken?.();
         if (!token || !user?.email) return { ok: false, skipped: true };
 
@@ -354,7 +362,7 @@
     async function saveAttemptToSupabase(finalPayload) {
       try {
         const supabase = window.IELTS?.Auth?.supabase;
-        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const authUser = getCurrentAuthUser();
         const identityKey = window.IELTS?.Auth?.getIdentityKey?.() || authUser?.identityKey || authUser?.email || authUser?.id || "";
         const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
         if (!supabase || !identityKey || !authUser?.email) return { ok: false, skipped: true };
@@ -518,7 +526,7 @@
 
         const testNumber = String(activeTestId).replace("ielts", "");
         const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
-        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const authUser = getCurrentAuthUser();
         const studentEmail = String(authUser?.email || "").trim().toLowerCase();
         const signInMethod = String(authUser?.provider || "email").trim().toLowerCase() || "email";
 

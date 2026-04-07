@@ -5,7 +5,7 @@
 
   // Toggle this to true if students should be allowed to see and use
   // the "End the exam" button before the timer finishes.
-  const ALLOW_STUDENT_EARLY_END = true;
+  const ALLOW_STUDENT_EARLY_END = false;
 
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;

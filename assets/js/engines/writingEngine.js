@@ -57,10 +57,21 @@
 
     UI().showOnly("writing");
 
+    const WRITING_DEADLINE_KEY = `${W.keys.remaining}:deadlineAt`;
     let remainingSeconds = W.DURATION_MINUTES * 60;
+    let deadlineAt = 0;
     const savedRemaining = S().get(W.keys.remaining, null);
-    if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
+    const savedDeadline = S().get(WRITING_DEADLINE_KEY, null);
+    if (savedDeadline && !Number.isNaN(Number(savedDeadline))) {
+      deadlineAt = Math.max(0, Number(savedDeadline));
+      remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
+    } else if (savedRemaining && !Number.isNaN(Number(savedRemaining))) {
       remainingSeconds = Math.max(0, Number(savedRemaining));
+      deadlineAt = Date.now() + remainingSeconds * 1000;
+      S().set(WRITING_DEADLINE_KEY, String(deadlineAt));
+    } else {
+      deadlineAt = Date.now() + W.DURATION_MINUTES * 60 * 1000;
+      S().set(WRITING_DEADLINE_KEY, String(deadlineAt));
     }
 
     let hasSubmitted = S().get(W.keys.submitted, "false") === "true";
@@ -172,7 +183,9 @@
         task2: wt2 ? wt2.value : "",
       };
       S().setJSON(W.keys.answers, payload);
+      remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
       S().set(W.keys.remaining, String(remainingSeconds));
+      S().set(WRITING_DEADLINE_KEY, String(deadlineAt));
       setAutosave("Autosave: saved");
       updateCounts();
     }
@@ -506,6 +519,7 @@
 
         hasSubmitted = true;
         S().set(W.keys.submitted, "true");
+        S().remove(WRITING_DEADLINE_KEY);
         if (timer) clearInterval(timer);
 
         saveWriting();
@@ -648,6 +662,7 @@
 
     function startTimer() {
       const paint = () => {
+        remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
         const t = UI().formatTime(remainingSeconds);
         if (timeEl) timeEl.textContent = t;
         UI().setExamNavTimer?.(`Time left: ${t}`);
@@ -655,10 +670,15 @@
 
       paint();
 
+      if (remainingSeconds === 0) {
+        submitFinalExam("Writing time is up. Auto-submitted.");
+        return;
+      }
+
       timer = setInterval(() => {
         if (hasSubmitted) return;
 
-        remainingSeconds = Math.max(0, remainingSeconds - 1);
+        remainingSeconds = Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000));
         paint();
 
         if (remainingSeconds % 5 === 0) saveWriting();

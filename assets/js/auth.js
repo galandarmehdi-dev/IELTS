@@ -564,29 +564,104 @@ function restoreViewAfterAuth() {
 }
 
 function routeHomeAfterLogin() {
+  const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+  const registry = window.IELTS?.Registry || {};
+  const scoped = registry.getScopedKeys?.(activeTestId) || registry.keysFor?.(activeTestId) || {};
+  const listeningKeys = scoped.listening || {};
+  const writingKeys = scoped.writing || {};
+  const readingTestId =
+    registry.getScopedReadingTestId?.(activeTestId) ||
+    registry.getTestConfig?.(activeTestId)?.readingTestId ||
+    "ielts-reading-3parts-001";
+  const finalSubmittedKey = registry?.EXAM?.keys?.finalSubmitted || "IELTS:EXAM:finalSubmitted";
+
+  const hasNonEmptyObject = (value) =>
+    !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length > 0;
+
+  const getJSON = (key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const getResumeView = () => {
+    try {
+      if (localStorage.getItem(finalSubmittedKey) === "true") return "";
+      const listeningSubmitted = localStorage.getItem(listeningKeys.submitted || "") === "true";
+      const listeningStarted = localStorage.getItem(listeningKeys.started || "") === "true";
+      const writingSubmitted = localStorage.getItem(writingKeys.submitted || "") === "true";
+      const writingStarted = localStorage.getItem(writingKeys.started || "") === "true";
+      const readingSubmitted = localStorage.getItem(`${readingTestId}:submitted`) === "true";
+      const listeningAnswers = getJSON(listeningKeys.answers || "");
+      const readingAnswers = getJSON(`${readingTestId}:answers`);
+      const writingAnswers = getJSON(writingKeys.answers || "");
+
+      if ((writingStarted && !writingSubmitted) || (!writingSubmitted && hasNonEmptyObject(writingAnswers))) return "writing";
+      if (readingSubmitted && !writingSubmitted) return "writing";
+      if (!readingSubmitted && hasNonEmptyObject(readingAnswers)) return "reading";
+      if (listeningSubmitted && !readingSubmitted) return "reading";
+      if ((listeningStarted && !listeningSubmitted) || (!listeningSubmitted && hasNonEmptyObject(listeningAnswers))) return "listening";
+    } catch (e) {}
+    return "";
+  };
+
+  const resumeView = getResumeView();
   try {
-    localStorage.setItem("IELTS:HOME:lastView", "home");
-    localStorage.setItem("IELTS:EXAM:started", "false");
+    localStorage.setItem("IELTS:HOME:lastView", resumeView || "home");
+    localStorage.setItem("IELTS:EXAM:started", resumeView ? "true" : "false");
   } catch (e) {}
 
   hideBlockingModals();
   forceHideAllAppSections();
 
   try {
-    const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
     if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute(activeTestId, "home");
+      window.IELTS.Router.setHashRoute(activeTestId, resumeView || "home");
     } else {
-      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
+      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/${resumeView || "home"}`);
     }
   } catch (e) {}
 
   try {
+    if (resumeView === "listening") {
+      window.__IELTS_LISTENING_INIT__ = false;
+      window.IELTS?.UI?.showOnly?.("listening");
+      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Listening");
+      window.IELTS?.UI?.setExamStarted?.(true);
+      window.IELTS?.Engines?.Listening?.initListeningSystem?.();
+      return;
+    }
+    if (resumeView === "reading") {
+      window.__IELTS_READING_INIT__ = false;
+      window.IELTS?.UI?.showOnly?.("reading");
+      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Reading");
+      window.IELTS?.UI?.setExamStarted?.(true);
+      window.IELTS?.Engines?.Reading?.startReadingSystem?.();
+      return;
+    }
+    if (resumeView === "writing") {
+      window.__IELTS_WRITING_INIT__ = false;
+      window.IELTS?.UI?.showOnly?.("writing");
+      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Writing");
+      window.IELTS?.UI?.setExamStarted?.(true);
+      window.IELTS?.Engines?.Writing?.startWritingSystem?.();
+      return;
+    }
+
     window.IELTS?.UI?.showOnly?.("home");
     window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
     window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
   } catch (e) {
-    const home = getEl("homeSection");
+    const fallbackIdMap = {
+      home: "homeSection",
+      listening: "listeningSection",
+      reading: "readingControls",
+      writing: "writingSection",
+    };
+    const home = getEl(fallbackIdMap[resumeView || "home"] || "homeSection");
     if (home) home.classList.remove("hidden");
   }
 }

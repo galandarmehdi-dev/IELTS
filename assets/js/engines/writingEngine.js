@@ -672,6 +672,12 @@
           false;
         const canEnd = isAdmin || ALLOW_STUDENT_EARLY_END === true;
         if (!canEnd) return;
+        if (!isAdmin && ALLOW_STUDENT_EARLY_END === true) {
+          const confirmed = window.confirm("Are you sure you want to end the exam and submit?");
+          if (!confirmed) return;
+          submitFinalExam("Student ended the exam.");
+          return;
+        }
         openFinalSubmitModal("Admin ended the exam.", {
           title: "End exam",
           text: "Are you sure you want to end the exam and submit?",

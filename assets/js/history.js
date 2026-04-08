@@ -10,7 +10,7 @@
   const Registry = () => window.IELTS?.Registry;
   const Router = () => window.IELTS?.Router;
 
-  const state = { rows: [] };
+  const state = { rows: [], email: "" };
   const detailState = { sourceRowId: null, sourceScrollY: 0 };
   const objectiveDetailCache = new Map();
   const objectivePrefetchPending = new Set();
@@ -422,7 +422,7 @@
     if (!email) return Promise.resolve([]);
     const now = Date.now();
     if (historyPrefetchState.promise && historyPrefetchState.email === email) return historyPrefetchState.promise;
-    if (state.rows.length && historyPrefetchState.email === email && now - historyPrefetchState.startedAt < 30000) {
+    if (state.rows.length && state.email === email && historyPrefetchState.email === email && now - historyPrefetchState.startedAt < 30000) {
       return Promise.resolve(state.rows.slice());
     }
     historyPrefetchState.email = email;
@@ -430,6 +430,7 @@
     historyPrefetchState.promise = fetchMergedHistoryRows(email)
       .then((rows) => {
         state.rows = rows;
+        state.email = email;
         return rows;
       })
       .finally(() => {
@@ -601,15 +602,17 @@
       const cachedRows = email ? mergeRowsByMatchKey(loadRemoteHistoryCache(email), loadLocalRows(email)) : [];
       if (cachedRows.length) {
         state.rows = cachedRows;
+        state.email = email;
         renderTable(cachedRows);
         prefetchObjectiveDetails(cachedRows, 4);
-      } else if (state.rows.length) {
+      } else if (state.rows.length && state.email === email) {
         renderTable(state.rows);
       } else if ($("historyTbody")) {
         $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       }
       let rows = await prefetchHistoryRows();
       state.rows = rows;
+      state.email = email;
       renderTable(rows);
       prefetchObjectiveDetails(rows, 4);
       const pendingOpenKey = getLastOpenHistoryKey();
@@ -635,6 +638,7 @@
         if (!updated) return;
         let refreshedRows = await fetchMergedHistoryRows(email);
         state.rows = refreshedRows;
+        state.email = email;
         if (email) saveRemoteHistoryCache(email, refreshedRows);
         renderTable(refreshedRows);
         prefetchObjectiveDetails(refreshedRows, 4);

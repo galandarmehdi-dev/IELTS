@@ -314,6 +314,9 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth.user?.email, env);
+    if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
+
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
     return proxy(request, backendUrl.toString());
@@ -393,6 +396,9 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth.user?.email, env);
+    if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
+
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
@@ -421,6 +427,13 @@ async function handleAdminApi(request, env) {
     const rows = Array.isArray(payload?.rows) ? payload.rows : [];
     if (!rows.length) return json(200, { ok: true, results: [] });
 
+    const ownedRows = [];
+    for (const row of rows) {
+      const owned = await authorizeStudentSubmissionAccess(row, auth.user?.email, env);
+      if (owned.ok) ownedRows.push(row);
+    }
+    if (!ownedRows.length) return json(200, { ok: true, results: [] });
+
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "results");
     backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
@@ -432,7 +445,7 @@ async function handleAdminApi(request, env) {
       return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
     }
 
-    const matches = rows
+    const matches = ownedRows
       .map((row) => {
         const match = matchStudentResultRow(row, data.results);
         if (!match) return null;
@@ -700,6 +713,35 @@ async function upsertStudentRegistry(env, payload) {
 
   await writeJsonKv(env.STUDENT_REGISTRY, key, next);
   return next;
+}
+
+async function authorizeStudentSubmissionAccess(rowLike, userEmail, env) {
+  const email = normalizeEmail(userEmail);
+  if (!email) {
+    return { ok: false, status: 401, error: "Missing student email." };
+  }
+  if (!env.STUDENT_REGISTRY) {
+    return { ok: false, status: 503, error: "Student registry is not configured." };
+  }
+
+  const key = buildSubmissionMetaKey({
+    submittedAt: rowLike?.submittedAt || rowLike?.submitted_at || "",
+    studentFullName: rowLike?.studentFullName || rowLike?.student_full_name || "",
+    examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
+    reason: rowLike?.reason || "",
+  });
+  if (!key) {
+    return { ok: false, status: 400, error: "Missing submission lookup fields." };
+  }
+
+  const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+  if (!record?.email) {
+    return { ok: false, status: 403, error: "This submission is not available for the current account." };
+  }
+  if (normalizeEmail(record.email) !== email) {
+    return { ok: false, status: 403, error: "This submission is not available for the current account." };
+  }
+  return { ok: true, status: 200, record };
 }
 
 function parseCsv(text) {

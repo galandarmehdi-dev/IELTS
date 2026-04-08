@@ -2,6 +2,8 @@ import { EmailMessage } from "cloudflare:email";
 
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
+const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
+const ADMIN_RESULTS_SUMMARY_TTL_MS = 60 * 1000;
 
 export default {
   async fetch(request, env) {
@@ -146,6 +148,61 @@ async function handleAdminApi(request, env) {
     backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
     backendUrl.searchParams.set("t", String(Date.now()));
     return proxy(request, backendUrl.toString());
+  }
+
+  if (request.method === "GET" && action === "resultsSummary") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const search = normalizeMatchString(url.searchParams.get("q") || "");
+    const examFilter = oneLine(url.searchParams.get("examId") || "");
+    const monthFilter = oneLine(url.searchParams.get("month") || "");
+    const yearFilter = oneLine(url.searchParams.get("year") || "");
+    const sortValue = oneLine(url.searchParams.get("sort") || "submittedAt_desc");
+    const limitValue = Number(url.searchParams.get("limit") || 0);
+
+    const summaries = await getAdminResultsSummary(env);
+    let rows = summaries.slice();
+
+    if (search) {
+      rows = rows.filter((row) => {
+        const hay = [row.studentFullName, row.reason, row.examId]
+          .map((value) => normalizeMatchString(value || ""))
+          .join(" ");
+        return hay.includes(search);
+      });
+    }
+
+    if (examFilter) {
+      rows = rows.filter((row) => String(row.examId || "") === examFilter);
+    }
+
+    if (monthFilter || yearFilter) {
+      rows = rows.filter((row) => {
+        const d = new Date(row?.submittedAt || 0);
+        if (Number.isNaN(d.getTime())) return false;
+        const rowMonth = String(d.getMonth() + 1).padStart(2, "0");
+        const rowYear = String(d.getFullYear());
+        if (monthFilter && rowMonth !== monthFilter) return false;
+        if (yearFilter && rowYear !== yearFilter) return false;
+        return true;
+      });
+    }
+
+    const [field, direction] = String(sortValue || "submittedAt_desc").split("_");
+    rows.sort((a, b) => compareAdminSummaryRows(a, b, field, direction));
+
+    if (Number.isFinite(limitValue) && limitValue > 0) {
+      rows = rows.slice(0, limitValue);
+    }
+
+    return json(200, {
+      ok: true,
+      results: rows,
+      total: summaries.length,
+      filteredTotal: rows.length,
+      generatedAt: new Date().toISOString(),
+    });
   }
 
   if (request.method === "GET" && action === "studentRegistry") {
@@ -772,6 +829,90 @@ function setCachedObjectiveDetail(key, value) {
     value,
     expiresAt: Date.now() + OBJECTIVE_DETAIL_TTL_MS,
   });
+}
+
+function getCachedAdminResultsSummary(key) {
+  if (!key) return null;
+  const entry = ADMIN_RESULTS_SUMMARY_CACHE.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    ADMIN_RESULTS_SUMMARY_CACHE.delete(key);
+    return null;
+  }
+  return Array.isArray(entry.value) ? entry.value : null;
+}
+
+function setCachedAdminResultsSummary(key, value) {
+  if (!key || !Array.isArray(value)) return;
+  ADMIN_RESULTS_SUMMARY_CACHE.set(key, {
+    value,
+    expiresAt: Date.now() + ADMIN_RESULTS_SUMMARY_TTL_MS,
+  });
+}
+
+async function getAdminResultsSummary(env) {
+  const cacheKey = "all";
+  const cached = getCachedAdminResultsSummary(cacheKey);
+  if (cached) return cached;
+
+  const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+  backendUrl.searchParams.set("action", "results");
+  backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
+  backendUrl.searchParams.set("t", String(Date.now()));
+
+  const response = await fetch(backendUrl.toString(), { method: "GET" });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
+    throw new Error(data?.error || "Could not load admin results summary.");
+  }
+
+  const summaries = data.results.map(summarizeAdminResultRow);
+  setCachedAdminResultsSummary(cacheKey, summaries);
+  return summaries;
+}
+
+function summarizeAdminResultRow(row) {
+  return {
+    submittedAt: oneLine(row?.submittedAt || row?.submitted_at || ""),
+    studentFullName: oneLine(row?.studentFullName || row?.student_full_name || ""),
+    examId: oneLine(row?.examId || row?.exam_id || row?.active_test_id || ""),
+    reason: oneLine(row?.reason || ""),
+    listeningTotal: toSafeNumber(row?.listeningTotal ?? row?.listening_total),
+    listeningBand: oneLine(row?.listeningBand || row?.listening_band || ""),
+    readingTotal: toSafeNumber(row?.readingTotal ?? row?.reading_total),
+    readingBand: oneLine(row?.readingBand || row?.reading_band || ""),
+    finalWritingBand: oneLine(row?.finalWritingBand || row?.final_writing_band || ""),
+    task1Words: toSafeNumber(row?.task1Words ?? row?.task1_words),
+    task2Words: toSafeNumber(row?.task2Words ?? row?.task2_words),
+    task1Band: oneLine(row?.task1Band || row?.task1_band || ""),
+    task2Band: oneLine(row?.task2Band || row?.task2_band || ""),
+  };
+}
+
+function compareAdminSummaryRows(a, b, field, direction) {
+  const dir = String(direction || "desc").toLowerCase() === "asc" ? 1 : -1;
+  let av = a?.[field];
+  let bv = b?.[field];
+
+  if (field === "submittedAt") {
+    av = toTimestamp(av);
+    bv = toTimestamp(bv);
+  } else if (["listeningTotal", "readingTotal", "task1Words", "task2Words", "finalWritingBand", "task1Band", "task2Band"].includes(field)) {
+    av = toSafeNumber(av);
+    bv = toSafeNumber(bv);
+  } else {
+    av = normalizeMatchString(av);
+    bv = normalizeMatchString(bv);
+  }
+
+  if (av < bv) return -1 * dir;
+  if (av > bv) return 1 * dir;
+  return 0;
+}
+
+function toSafeNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
 
 function formatSampleLabel(band) {

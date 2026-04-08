@@ -218,23 +218,18 @@
       return (S().get(W.keys.studentName, "") || "").trim().replace(/\s+/g, " ");
     }
 
-    function ensureStudentFullNameForEarlySubmit() {
-      let fullName = getStudentFullName();
+    function primeStudentFullNameFromAuth() {
+      const fullName = getStudentFullName();
       if (UI().isValidFullName(fullName)) return fullName;
 
-      const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+      const authUser = getCurrentAuthUser();
       const authName = String(authUser?.name || "").trim().replace(/\s+/g, " ");
       if (UI().isValidFullName(authName)) {
         S().set(W.keys.studentName, authName);
         return authName;
       }
 
-      const typed = String(window.prompt("Please type your Name and Surname to submit the exam.", fullName || authName || "") || "")
-        .trim()
-        .replace(/\s+/g, " ");
-      if (!UI().isValidFullName(typed)) return "";
-      S().set(W.keys.studentName, typed);
-      return typed;
+      return fullName;
     }
 
     function openFinalSubmitModal(reason, opts = {}) {
@@ -735,8 +730,7 @@
         const canEnd = isAdmin || ALLOW_STUDENT_EARLY_END === true;
         if (!canEnd) return;
         if (!isAdmin && ALLOW_STUDENT_EARLY_END === true) {
-          const ensuredName = ensureStudentFullNameForEarlySubmit();
-          if (!UI().isValidFullName(ensuredName)) return;
+          primeStudentFullNameFromAuth();
         }
         openFinalSubmitModal(isAdmin ? "Admin ended the exam." : "Student ended the exam.", {
           title: "End exam",

@@ -737,12 +737,16 @@
       ].join("::");
     }
 
-    async function fetchAdminResults() {
+    async function fetchAdminResults(options = {}) {
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint, window.location.origin);
       url.searchParams.set("action", "resultsSummary");
+      if (options.forceRefresh === true) {
+        url.searchParams.set("refresh", "1");
+        url.searchParams.set("t", String(Date.now()));
+      }
 
       const res = await fetch(url.toString(), {
         method: "GET",
@@ -758,42 +762,6 @@
       return data.results;
     }
 
-    function findAdminFullResult(requestedRow, results) {
-      const wantedKey = buildAdminResultCacheKey(requestedRow);
-      const exact = (results || []).find((row) => buildAdminResultCacheKey(row) === wantedKey);
-      if (exact) return exact;
-
-      const wantedExam = String(requestedRow?.examId || "").trim().toLowerCase();
-      const wantedName = String(requestedRow?.studentFullName || "").replace(/\s+/g, " ").trim().toLowerCase();
-      const wantedReason = String(requestedRow?.reason || "").replace(/\s+/g, " ").trim().toLowerCase();
-      const wantedTs = new Date(requestedRow?.submittedAt || 0).getTime();
-
-      const pool = (results || []).filter((row) => {
-        const exam = String(row?.examId || "").trim().toLowerCase();
-        const name = String(row?.studentFullName || "").replace(/\s+/g, " ").trim().toLowerCase();
-        return exam === wantedExam && name === wantedName;
-      });
-      const narrowed = wantedReason
-        ? pool.filter((row) => String(row?.reason || "").replace(/\s+/g, " ").trim().toLowerCase() === wantedReason)
-        : pool;
-      const candidates = narrowed.length ? narrowed : pool;
-      if (!candidates.length) return null;
-      if (!Number.isFinite(wantedTs)) return candidates[0];
-
-      let best = candidates[0];
-      let bestDelta = Number.POSITIVE_INFINITY;
-      candidates.forEach((row) => {
-        const ts = new Date(row?.submittedAt || 0).getTime();
-        if (!Number.isFinite(ts)) return;
-        const delta = Math.abs(ts - wantedTs);
-        if (delta < bestDelta) {
-          best = row;
-          bestDelta = delta;
-        }
-      });
-      return best;
-    }
-
     async function fetchAdminFullResultForRow(row) {
       const cacheKey = buildAdminResultCacheKey(row);
       if (adminFullResultCache.has(cacheKey)) return adminFullResultCache.get(cacheKey);
@@ -802,7 +770,11 @@
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("action", "results");
+      url.searchParams.set("action", "resultDetail");
+      url.searchParams.set("submittedAt", String(row.submittedAt || ""));
+      url.searchParams.set("studentFullName", String(row.studentFullName || ""));
+      url.searchParams.set("examId", String(row.examId || ""));
+      url.searchParams.set("reason", String(row.reason || ""));
       url.searchParams.set("t", String(Date.now()));
 
       const res = await fetch(url.toString(), {
@@ -813,26 +785,22 @@
       let data = null;
       try { data = JSON.parse(text); } catch (e) {}
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!data || data.ok !== true || !Array.isArray(data.results)) {
+      if (!data || data.ok !== true || !data.result) {
         throw new Error((data && data.error) || "Could not load full admin result.");
       }
-      const match = findAdminFullResult(row, data.results);
-      if (match) {
-        adminFullResultCache.set(cacheKey, match);
-        return match;
-      }
-      return null;
+      adminFullResultCache.set(cacheKey, data.result);
+      return data.result;
     }
 
-    function prefetchAdminResults() {
+    function prefetchAdminResults(options = {}) {
       if (!isAdminView()) return Promise.resolve(adminState.rows.slice());
       const now = Date.now();
       if (adminResultsPrefetchState.promise) return adminResultsPrefetchState.promise;
-      if (adminState.rows.length && now - adminResultsPrefetchState.startedAt < 30000) {
+      if (!options.forceRefresh && adminState.rows.length && now - adminResultsPrefetchState.startedAt < 30000) {
         return Promise.resolve(adminState.rows.slice());
       }
       adminResultsPrefetchState.startedAt = now;
-      adminResultsPrefetchState.promise = fetchAdminResults()
+      adminResultsPrefetchState.promise = fetchAdminResults(options)
         .then((rows) => {
           adminState.rows = rows;
           saveAdminResultsCache(rows);
@@ -951,6 +919,24 @@
       } catch (e) {
         return [];
       }
+    }
+
+    function clearAdminResultsCache() {
+      try { sessionStorage.removeItem(ADMIN_RESULTS_CACHE_KEY); } catch (e) {}
+      try { localStorage.removeItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY); } catch (e) {}
+      adminState.rows = [];
+      adminState.filtered = [];
+      adminResultsPrefetchState.startedAt = 0;
+      adminResultsPrefetchState.promise = null;
+    }
+
+    function mergeAdminRowIntoState(updatedRow) {
+      if (!updatedRow) return;
+      const targetKey = buildAdminResultCacheKey(updatedRow);
+      adminState.rows = adminState.rows.map((row) =>
+        buildAdminResultCacheKey(row) === targetKey ? { ...row, ...updatedRow } : row
+      );
+      saveAdminResultsCache(adminState.rows);
     }
 
     function renderSummary(rows) {
@@ -1095,6 +1081,7 @@
         const objectivePromise = fetchObjectiveDetailForRow(row).catch(() => null);
         const [metaResult, fullResult, objectiveResult] = await Promise.all([metaPromise, fullResultPromise, objectivePromise]);
         const metaRecord = metaResult?.ok && metaResult.data?.ok === true ? metaResult.data.record : null;
+        if (fullResult) mergeAdminRowIntoState(fullResult);
         renderAdminDetailFields(fullResult || row, { submissionRecord: metaRecord, loadingDetail: !fullResult });
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {
@@ -1117,13 +1104,14 @@
       }
     }
 
-    async function openAdminResultsView() {
+    async function openAdminResultsView(forceRefresh = false) {
       if (!isAdminView()) return;
       UI().showOnly("adminResults");
       UI().setExamNavStatus("Status: Admin results");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
       const tbody = $("adminResultsTbody");
       try {
+        if (forceRefresh) clearAdminResultsCache();
         const cachedRows = loadAdminResultsCache();
         let usedCachedRows = false;
         if (cachedRows.length) {
@@ -1140,7 +1128,7 @@
         } else if (tbody) {
           tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
         }
-        const refresh = prefetchAdminResults()
+        const refresh = prefetchAdminResults({ forceRefresh })
           .then((rows) => {
             adminState.rows = rows;
             saveAdminResultsCache(rows);
@@ -2680,7 +2668,7 @@ function startFreshExam() {
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
-    if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView();
+    if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView(true);
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
     renderHomeMenus();
     renderHomeMetrics();

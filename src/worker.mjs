@@ -153,11 +153,12 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "resultsSummary") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const forceRefresh = url.searchParams.get("refresh") === "1";
 
     const cacheUrl = buildAdminResultsSummaryCacheUrl(url);
     const cache = caches.default;
     const cacheRequest = new Request(cacheUrl.toString(), { method: "GET" });
-    const cachedResponse = await cache.match(cacheRequest);
+    const cachedResponse = forceRefresh ? null : await cache.match(cacheRequest);
     if (cachedResponse) {
       return cachedResponse;
     }
@@ -169,7 +170,7 @@ async function handleAdminApi(request, env) {
     const sortValue = oneLine(url.searchParams.get("sort") || "submittedAt_desc");
     const limitValue = Number(url.searchParams.get("limit") || 0);
 
-    const summaries = await getAdminResultsSummary(env);
+    const summaries = await getAdminResultsSummary(env, { forceRefresh });
     let rows = summaries.slice();
 
     if (search) {
@@ -215,6 +216,20 @@ async function handleAdminApi(request, env) {
     });
     await cache.put(cacheRequest, response.clone());
     return response;
+  }
+
+  if (request.method === "GET" && action === "resultDetail") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.searchParams.set("action", "studentResult");
+    backendUrl.searchParams.set("submittedAt", oneLine(url.searchParams.get("submittedAt") || ""));
+    backendUrl.searchParams.set("studentFullName", oneLine(url.searchParams.get("studentFullName") || ""));
+    backendUrl.searchParams.set("examId", oneLine(url.searchParams.get("examId") || ""));
+    backendUrl.searchParams.set("reason", oneLine(url.searchParams.get("reason") || ""));
+    backendUrl.searchParams.set("t", String(Date.now()));
+    return proxy(request, backendUrl.toString());
   }
 
   if (request.method === "GET" && action === "studentRegistry") {
@@ -868,9 +883,10 @@ function setCachedAdminResultsSummary(key, value) {
   });
 }
 
-async function getAdminResultsSummary(env) {
+async function getAdminResultsSummary(env, options = {}) {
   const cacheKey = "all";
-  const cached = getCachedAdminResultsSummary(cacheKey);
+  const forceRefresh = options?.forceRefresh === true;
+  const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
   const backendUrl = new URL(env.ADMIN_BACKEND_URL);

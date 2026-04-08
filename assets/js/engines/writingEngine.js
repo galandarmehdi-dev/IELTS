@@ -71,6 +71,18 @@
 
     const wt1 = $("writingTask1");
     const wt2 = $("writingTask2");
+
+    function applyNoAssistAttrs(el) {
+      if (!el) return;
+      el.setAttribute("spellcheck", "false");
+      el.setAttribute("autocorrect", "off");
+      el.setAttribute("autocapitalize", "off");
+      el.setAttribute("autocomplete", "off");
+      el.setAttribute("data-gramm", "false");
+      el.setAttribute("data-gramm_editor", "false");
+      el.setAttribute("data-enable-grammarly", "false");
+      try { el.spellcheck = false; } catch (e) {}
+    }
     const wt1Count = $("wt1Count");
     const wt2Count = $("wt2Count");
     const autosaveEl = $("writingAutosave");
@@ -129,6 +141,9 @@
         setGraphZoom(current + (e.deltaY < 0 ? 0.1 : -0.1));
       }, { passive: false });
     }
+
+    applyNoAssistAttrs(wt1);
+    applyNoAssistAttrs(wt2);
 
     applyActiveWritingContent();
     initGraphZoomControls();

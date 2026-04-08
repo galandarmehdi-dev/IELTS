@@ -30,7 +30,7 @@
     const REVIEW_MODE = !!(LAUNCH_CONTEXT && (LAUNCH_CONTEXT.mode === "section" || LAUNCH_CONTEXT.mode === "practice"));
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 60;
+    let remainingSeconds = DURATION_MINUTES * 1;
     let timerInterval = null;
     let deadlineAt = 0;
 

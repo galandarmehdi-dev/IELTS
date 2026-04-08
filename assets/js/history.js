@@ -16,6 +16,7 @@
   const objectivePrefetchPending = new Set();
   const LOCAL_HISTORY_KEY_PREFIX = "IELTS:LOCAL:HISTORY:";
   const LOCAL_HISTORY_LAST_OPEN_KEY = "IELTS:LOCAL:HISTORY:lastOpen";
+  const HISTORY_REMOTE_CACHE_KEY_PREFIX = "IELTS:REMOTE:HISTORY:";
 
   function escapeHtml(value) {
     return String(value ?? "")
@@ -164,6 +165,24 @@
     } catch (e) {}
   }
 
+  function getRemoteHistoryCacheKey(email) {
+    return `${HISTORY_REMOTE_CACHE_KEY_PREFIX}${String(email || "").trim().toLowerCase()}`;
+  }
+
+  function loadRemoteHistoryCache(email) {
+    try {
+      return window.IELTS?.Storage?.getJSON?.(getRemoteHistoryCacheKey(email), []) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveRemoteHistoryCache(email, rows) {
+    try {
+      window.IELTS?.Storage?.setJSON?.(getRemoteHistoryCacheKey(email), Array.isArray(rows) ? rows.slice(0, 50) : []);
+    } catch (e) {}
+  }
+
   async function loadRows() {
     const supabase = Auth()?.supabase;
     const user = getHistoryUser();
@@ -183,7 +202,9 @@
 
     const { data, error } = await withTimeout(query, Number(Registry()?.TIMEOUTS?.historyLoadMs || 20000), "History load");
     if (error) throw error;
-    return mergeRowsByMatchKey(Array.isArray(data) ? data : [], localRows);
+    const merged = mergeRowsByMatchKey(Array.isArray(data) ? data : [], localRows);
+    saveRemoteHistoryCache(email, merged);
+    return merged;
   }
 
 
@@ -544,15 +565,18 @@
         Router()?.setHashRoute?.(testId, "history");
       } catch (e) {}
       if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
-      let rows = await loadRows();
-      const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
-      if (backendResults.length) {
-        const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
-        rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+      const email = getHistoryEmail();
+      const cachedRows = email ? mergeRowsByMatchKey(loadRemoteHistoryCache(email), loadLocalRows(email)) : [];
+      if (cachedRows.length) {
+        state.rows = cachedRows;
+        renderTable(cachedRows);
+        prefetchObjectiveDetails(cachedRows, 4);
       }
+      let rows = await loadRows();
       state.rows = rows;
       renderTable(rows);
-      prefetchObjectiveDetails(rows, 6);
+      prefetchObjectiveDetails(rows, 4);
+      const backendPromise = fetchStudentResultsForRows(rows).catch(() => []);
       const pendingOpenKey = getLastOpenHistoryKey();
       if (pendingOpenKey) {
         const idx = rows.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
@@ -572,18 +596,29 @@
           }
         }
       }
-      const updated = await refreshPendingRows(rows);
-      if (updated) {
-        rows = await loadRows();
-        const backendResultsAfter = await fetchStudentResultsForRows(rows).catch(() => []);
+      backendPromise.then((backendResults) => {
+        if (!backendResults.length) return;
+        const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
+        const mergedRows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+        state.rows = mergedRows;
+        if (email) saveRemoteHistoryCache(email, mergedRows);
+        renderTable(mergedRows);
+        prefetchObjectiveDetails(mergedRows, 4);
+      }).catch(() => {});
+
+      refreshPendingRows(rows).then(async (updated) => {
+        if (!updated) return;
+        let refreshedRows = await loadRows();
+        const backendResultsAfter = await fetchStudentResultsForRows(refreshedRows).catch(() => []);
         if (backendResultsAfter.length) {
           const byKey = new Map(backendResultsAfter.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
-          rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+          refreshedRows = refreshedRows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
         }
-        state.rows = rows;
-        renderTable(rows);
-        prefetchObjectiveDetails(rows, 6);
-      }
+        state.rows = refreshedRows;
+        if (email) saveRemoteHistoryCache(email, refreshedRows);
+        renderTable(refreshedRows);
+        prefetchObjectiveDetails(refreshedRows, 4);
+      }).catch(() => {});
     } catch (err) {
       const tbody = $("historyTbody");
       if (tbody) tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;

@@ -663,6 +663,8 @@
     // -----------------------------
     const adminState = { rows: [], filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
+    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT";
+    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 
@@ -741,7 +743,6 @@
 
       const url = new URL(endpoint, window.location.origin);
       url.searchParams.set("action", "resultsSummary");
-      url.searchParams.set("t", String(Date.now()));
 
       const res = await fetch(url.toString(), {
         method: "GET",
@@ -929,16 +930,24 @@
 
     function saveAdminResultsCache(rows) {
       try {
-        sessionStorage.setItem(ADMIN_RESULTS_CACHE_KEY, JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() }));
+        const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
+        sessionStorage.setItem(ADMIN_RESULTS_CACHE_KEY, payload);
+        localStorage.setItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY, payload);
       } catch (e) {}
     }
 
     function loadAdminResultsCache() {
       try {
-        const raw = sessionStorage.getItem(ADMIN_RESULTS_CACHE_KEY);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed?.rows) ? parsed.rows : [];
+        const sessionRaw = sessionStorage.getItem(ADMIN_RESULTS_CACHE_KEY);
+        const localRaw = localStorage.getItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY);
+        const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : null;
+        const localParsed = localRaw ? JSON.parse(localRaw) : null;
+        const sessionSavedAt = Number(sessionParsed?.savedAt || 0);
+        const localSavedAt = Number(localParsed?.savedAt || 0);
+        const picked = sessionSavedAt >= localSavedAt ? sessionParsed : localParsed;
+        if (!picked) return [];
+        if (Date.now() - Number(picked.savedAt || 0) > ADMIN_RESULTS_CACHE_MAX_AGE_MS) return [];
+        return Array.isArray(picked?.rows) ? picked.rows : [];
       } catch (e) {
         return [];
       }
@@ -1116,25 +1125,36 @@
       const tbody = $("adminResultsTbody");
       try {
         const cachedRows = loadAdminResultsCache();
+        let usedCachedRows = false;
         if (cachedRows.length) {
           adminState.rows = cachedRows;
           fillExamFilter(cachedRows);
           fillMonthYearFilters(cachedRows);
           applyAdminFilters();
+          usedCachedRows = true;
         } else if (adminState.rows.length) {
           fillExamFilter(adminState.rows);
           fillMonthYearFilters(adminState.rows);
           applyAdminFilters();
+          usedCachedRows = true;
         } else if (tbody) {
           tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
         }
-        const rows = await prefetchAdminResults();
-        adminState.rows = rows;
-        saveAdminResultsCache(rows);
-        fillExamFilter(rows);
-        fillMonthYearFilters(rows);
-        applyAdminFilters();
-        prefetchAdminObjectiveDetails(rows, 4);
+        const refresh = prefetchAdminResults()
+          .then((rows) => {
+            adminState.rows = rows;
+            saveAdminResultsCache(rows);
+            fillExamFilter(rows);
+            fillMonthYearFilters(rows);
+            applyAdminFilters();
+            prefetchAdminObjectiveDetails(rows, 4);
+            return rows;
+          });
+        if (!usedCachedRows) {
+          await refresh;
+        } else {
+          refresh.catch(() => null);
+        }
       } catch (e) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
         renderSummary([]);

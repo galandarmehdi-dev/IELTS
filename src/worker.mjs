@@ -3,7 +3,7 @@ import { EmailMessage } from "cloudflare:email";
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
-const ADMIN_RESULTS_SUMMARY_TTL_MS = 60 * 1000;
+const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
 
 export default {
   async fetch(request, env) {
@@ -154,6 +154,14 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const cacheUrl = buildAdminResultsSummaryCacheUrl(url);
+    const cache = caches.default;
+    const cacheRequest = new Request(cacheUrl.toString(), { method: "GET" });
+    const cachedResponse = await cache.match(cacheRequest);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
     const search = normalizeMatchString(url.searchParams.get("q") || "");
     const examFilter = oneLine(url.searchParams.get("examId") || "");
     const monthFilter = oneLine(url.searchParams.get("month") || "");
@@ -196,13 +204,17 @@ async function handleAdminApi(request, env) {
       rows = rows.slice(0, limitValue);
     }
 
-    return json(200, {
+    const response = json(200, {
       ok: true,
       results: rows,
       total: summaries.length,
       filteredTotal: rows.length,
       generatedAt: new Date().toISOString(),
+    }, {
+      "Cache-Control": `private, max-age=${Math.floor(ADMIN_RESULTS_SUMMARY_TTL_MS / 1000)}`
     });
+    await cache.put(cacheRequest, response.clone());
+    return response;
   }
 
   if (request.method === "GET" && action === "studentRegistry") {
@@ -842,6 +854,12 @@ function getCachedAdminResultsSummary(key) {
   return Array.isArray(entry.value) ? entry.value : null;
 }
 
+function buildAdminResultsSummaryCacheUrl(url) {
+  const cacheUrl = new URL(url.toString());
+  cacheUrl.searchParams.delete("t");
+  return cacheUrl;
+}
+
 function setCachedAdminResultsSummary(key, value) {
   if (!key || !Array.isArray(value)) return;
   ADMIN_RESULTS_SUMMARY_CACHE.set(key, {
@@ -1004,12 +1022,13 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-function json(status, payload) {
+function json(status, payload, extraHeaders = {}) {
   return new Response(JSON.stringify(payload), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
+      ...extraHeaders,
     },
   });
 }

@@ -651,6 +651,7 @@
     // Admin results dashboard
     // -----------------------------
     const adminState = { rows: [], filtered: [] };
+    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
 
     function num(value) {
@@ -803,6 +804,49 @@
       sel.value = exams.includes(current) ? current : "";
     }
 
+    function fillMonthYearFilters(rows) {
+      const monthSel = $("adminResultsMonthFilter");
+      const yearSel = $("adminResultsYearFilter");
+      if (!monthSel || !yearSel) return;
+      const currentMonth = monthSel.value || "";
+      const currentYear = yearSel.value || "";
+      const monthMap = new Map();
+      const years = new Set();
+      (rows || []).forEach((row) => {
+        const d = new Date(row?.submittedAt || 0);
+        if (Number.isNaN(d.getTime())) return;
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = String(d.getFullYear());
+        if (!monthMap.has(month)) monthMap.set(month, d.toLocaleString(undefined, { month: "long" }));
+        years.add(year);
+      });
+      monthSel.innerHTML = '<option value="">All months</option>' + Array.from(monthMap.entries())
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("");
+      yearSel.innerHTML = '<option value="">All years</option>' + Array.from(years)
+        .sort((a, b) => Number(b) - Number(a))
+        .map((year) => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`).join("");
+      monthSel.value = monthMap.has(currentMonth) ? currentMonth : "";
+      yearSel.value = years.has(currentYear) ? currentYear : "";
+    }
+
+    function saveAdminResultsCache(rows) {
+      try {
+        sessionStorage.setItem(ADMIN_RESULTS_CACHE_KEY, JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() }));
+      } catch (e) {}
+    }
+
+    function loadAdminResultsCache() {
+      try {
+        const raw = sessionStorage.getItem(ADMIN_RESULTS_CACHE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed?.rows) ? parsed.rows : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
     function renderSummary(rows) {
       const count = rows.length;
       const avgListening = count ? (rows.reduce((a, r) => a + num(r.listeningBand), 0) / count) : 0;
@@ -844,6 +888,8 @@
     function applyAdminFilters() {
       const q = String($("adminResultsSearch")?.value || "").trim().toLowerCase();
       const examFilter = String($("adminResultsExamFilter")?.value || "").trim();
+      const monthFilter = String($("adminResultsMonthFilter")?.value || "").trim();
+      const yearFilter = String($("adminResultsYearFilter")?.value || "").trim();
       const sortValue = String($("adminResultsSort")?.value || "submittedAt_desc");
       let rows = adminState.rows.slice();
 
@@ -854,6 +900,17 @@
         });
       }
       if (examFilter) rows = rows.filter((row) => String(row.examId || "") === examFilter);
+      if (monthFilter || yearFilter) {
+        rows = rows.filter((row) => {
+          const d = new Date(row?.submittedAt || 0);
+          if (Number.isNaN(d.getTime())) return false;
+          const rowMonth = String(d.getMonth() + 1).padStart(2, "0");
+          const rowYear = String(d.getFullYear());
+          if (monthFilter && rowMonth !== monthFilter) return false;
+          if (yearFilter && rowYear !== yearFilter) return false;
+          return true;
+        });
+      }
 
       const [field, dir] = sortValue.split("_");
       rows.sort((a, b) => {
@@ -898,6 +955,7 @@
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {}
       try {
+        const token = await window.IELTS?.Auth?.getAccessToken?.();
         const submissionMetaUrl = R()?.buildAdminApiUrl?.({
           action: "submissionMeta",
           submittedAt: row.submittedAt || "",
@@ -906,22 +964,19 @@
           reason: row.reason || "",
           t: Date.now(),
         });
-        const token = await window.IELTS?.Auth?.getAccessToken?.();
-        if (submissionMetaUrl) {
-          const metaRes = await fetch(submissionMetaUrl.toString(), {
-            method: "GET",
-            cache: "no-store",
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          });
-          const metaData = await metaRes.json().catch(() => null);
-          if (metaRes.ok && metaData?.ok === true && metaData.record) {
-            const providerText = String(metaData.record.provider || "email").replace(/-/g, " ");
-            $("adminDetailMeta").innerHTML += `<br>Email: <b>${escapeHtml(metaData.record.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
-          }
+        const metaPromise = submissionMetaUrl
+          ? fetch(submissionMetaUrl.toString(), {
+              method: "GET",
+              cache: "no-store",
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            }).then((res) => res.json().catch(() => null).then((data) => ({ ok: res.ok, data })))
+          : Promise.resolve(null);
+        const objectivePromise = fetchObjectiveDetailForRow(row).catch(() => null);
+        const [metaResult, objectiveResult] = await Promise.all([metaPromise, objectivePromise]);
+        if (metaResult?.ok && metaResult.data?.ok === true && metaResult.data.record) {
+          const providerText = String(metaResult.data.record.provider || "email").replace(/-/g, " ");
+          $("adminDetailMeta").innerHTML += `<br>Email: <b>${escapeHtml(metaResult.data.record.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
         }
-      } catch (e) {}
-      try {
-        const objectiveResult = await fetchObjectiveDetailForRow(row);
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {
         renderObjectiveReview("adminDetail", null);
@@ -951,11 +1006,20 @@
       const tbody = $("adminResultsTbody");
       if (tbody) tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
       try {
+        const cachedRows = loadAdminResultsCache();
+        if (cachedRows.length) {
+          adminState.rows = cachedRows;
+          fillExamFilter(cachedRows);
+          fillMonthYearFilters(cachedRows);
+          applyAdminFilters();
+        }
         const rows = await fetchAdminResults();
         adminState.rows = rows;
+        saveAdminResultsCache(rows);
         fillExamFilter(rows);
+        fillMonthYearFilters(rows);
         applyAdminFilters();
-        prefetchAdminObjectiveDetails(rows, 8);
+        prefetchAdminObjectiveDetails(rows, 4);
       } catch (e) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
         renderSummary([]);

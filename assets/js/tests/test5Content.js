@@ -76,57 +76,59 @@
               <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">21</span> The students are mainly discussing</div>
-                <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) a proposal for reducing traffic pollution</label>
-                <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) a presentation on alternative energy</label>
-                <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) a report on farming methods</label>
+                <div class="mcq-q"><span class="qnum">21</span> Mike suggests they begin their presentation by</div>
+                <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) explaining what kind of harm is caused by fossil fuels.</label>
+                <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) pointing out that biofuels were in use before fossil fuels.</label>
+                <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) ensuring students know the difference between fossil fuels and biofuels.</label>
               </div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">22</span> What does the tutor say about the students' main case study?</div>
-                <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) It needs more historical background</label>
-                <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) It focuses on the wrong geographical area</label>
-                <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) It is suitable but needs clearer explanation</label>
+                <div class="mcq-q"><span class="qnum">22</span> Karina doesn't want to discuss the production of ethanol because</div>
+                <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) other students will already be familiar with the process.</label>
+                <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) there will not be time to cover more important information.</label>
+                <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) they may not provide an accurate description.</label>
               </div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">23</span> The students agree that one advantage of biofuels is that they</div>
-                <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) cost less than fossil fuels</label>
-                <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) can be produced from renewable sources</label>
-                <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) do not need any government support</label>
+                <div class="mcq-q"><span class="qnum">23</span> Which source of biofuel do the students agree is least environmentally friendly?</div>
+                <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) sugar cane</label>
+                <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) corn</label>
+                <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) canola</label>
               </div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">24</span> What point does the tutor make about public opinion?</div>
-                <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) It changes quickly when energy prices rise</label>
-                <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) It is influenced by environmental reporting</label>
-                <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) It is difficult to measure accurately</label>
+                <div class="mcq-q"><span class="qnum">24</span> What is the main problem facing the development of the biofuel industry in the USA?</div>
+                <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) inadequate infrastructure for transporting ethanol</label>
+                <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) not enough farmers growing biofuel crops</label>
+                <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) little government support of biofuel development</label>
               </div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">25</span> The tutor suggests the conclusion should</div>
-                <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) recommend one fuel source only</label>
-                <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) repeat the statistics from the main body</label>
-                <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) balance opportunities and limitations</label>
+                <div class="mcq-q"><span class="qnum">25</span> Karina doubts that sugar cane production in Brazil will</div>
+                <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) lead to the loss of wildlife habitats.</label>
+                <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) create a large number of jobs in the biofuel sector.</label>
+                <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) continue to provide enough energy for the country's needs.</label>
               </div>
 
               <div class="mcq">
-                <div class="mcq-q"><span class="qnum">26</span> The students decide to improve their report by</div>
-                <label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) reducing the number of case studies</label>
-                <label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) linking each argument to evidence more clearly</label>
-                <label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) collecting data from another university</label>
+                <div class="mcq-q"><span class="qnum">26</span> Karina and Mike conclude that in order to increase the use of biofuels</div>
+                <label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) the price of fossil fuels must go up.</label>
+                <label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) more machinery must be adapted to use them.</label>
+                <label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) production methods must be more energy-efficient.</label>
               </div>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 27-30</div>
-              <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
-              <div class="listen-card-title">Problems associated with some biofuels</div>
+              <div class="listen-inst">Answer the questions below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
               <div class="listen-notes">
-                <div class="note-row"><span class="qnum">27</span> <input data-lq="27" class="l-input"> may increase if land is taken away from food production</div>
-                <div class="note-row"><span class="qnum">28</span> <input data-lq="28" class="l-input"> can rise if forests are cleared</div>
-                <div class="note-row">Some biofuels are produced from <span class="qnum">29</span> <input data-lq="29" class="l-input"> or crop waste</div>
-                <div class="note-row">Research is also examining fast-growing <span class="qnum">30</span> <input data-lq="30" class="l-input"></div>
+                <div class="listen-card-title">What TWO biofuel-related problems do Mike and Karina decide to focus on in the last section of their presentation?</div>
+                <div class="note-row">• <span class="qnum">27</span> <input data-lq="27" class="l-input"></div>
+                <div class="note-row">• <span class="qnum">28</span> <input data-lq="28" class="l-input"></div>
+                <div class="listen-card-title" style="margin-top:18px;">Which two sources of biofuel do Mike and Karina say are being tried out?</div>
+                <div class="note-row">• <span class="qnum">29</span> <input data-lq="29" class="l-input"></div>
+                <div class="note-row">• algae</div>
+                <div class="note-row">• <span class="qnum">30</span> <input data-lq="30" class="l-input"></div>
               </div>
             </div>
           </div>
@@ -140,44 +142,44 @@
               <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
               <div class="listen-card-title">Lecture on social networks and weak ties</div>
               <div class="listen-notes">
-                <div class="note-row">Online networking has changed the way people build <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
-                <div class="note-row">It is useful for discovering shared <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
-                <div class="note-row">Weak ties can help people find <span class="qnum">33</span> <input data-lq="33" class="l-input"></div>
-                <div class="note-row">Some researchers connect wider networks with better <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
+                <div class="note-row">In 1973, Mark Granovetter claimed that the influence of weak ties can affect the behaviour of populations in the fields of information science, politics and <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+                <div class="note-row">Although friends-of-friends may be unlike us, they have similar enough <span class="qnum">32</span> <input data-lq="32" class="l-input"> to have a beneficial effect on our lives.</div>
+                <div class="note-row">An example of this influence is when we hear about <span class="qnum">33</span> <input data-lq="33" class="l-input"> because information about them is provided by weak ties.</div>
+                <div class="note-row">Since Granovetter proposed his theory, other studies have shown that weak-tie networks also benefit our <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
               </div>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 35-36</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
-              <div class="mcq-q">Which TWO benefits of online social networking are mentioned?</div>
-              <label class="mcq-opt" for="lq35a"><input id="lq35a" name="lq35group" type="checkbox" data-lq-check="35" value="A" autocomplete="off"> A) It improves marketing campaigns automatically</label>
-              <label class="mcq-opt" for="lq35b"><input id="lq35b" name="lq35group" type="checkbox" data-lq-check="35" value="B" autocomplete="off"> B) It helps people maintain a sense of belonging</label>
-              <label class="mcq-opt" for="lq35c"><input id="lq35c" name="lq35group" type="checkbox" data-lq-check="35" value="C" autocomplete="off"> C) It removes the need for face-to-face meetings</label>
-              <label class="mcq-opt" for="lq35d"><input id="lq35d" name="lq35group" type="checkbox" data-lq-check="35" value="D" autocomplete="off"> D) It makes communities more transparent</label>
-              <label class="mcq-opt" for="lq35e"><input id="lq35e" name="lq35group" type="checkbox" data-lq-check="35" value="E" autocomplete="off"> E) It guarantees more accurate news</label>
+              <div class="mcq-q">Which does the speaker believe are TWO real benefits of online social networking?</div>
+              <label class="mcq-opt" for="lq35a"><input id="lq35a" name="lq35group" type="checkbox" data-lq-check="35" value="A" autocomplete="off"> A) people can gain higher self-esteem</label>
+              <label class="mcq-opt" for="lq35b"><input id="lq35b" name="lq35group" type="checkbox" data-lq-check="35" value="B" autocomplete="off"> B) people can access useful medical information</label>
+              <label class="mcq-opt" for="lq35c"><input id="lq35c" name="lq35group" type="checkbox" data-lq-check="35" value="C" autocomplete="off"> C) people can form relationships more quickly</label>
+              <label class="mcq-opt" for="lq35d"><input id="lq35d" name="lq35group" type="checkbox" data-lq-check="35" value="D" autocomplete="off"> D) people can improve academic performance</label>
+              <label class="mcq-opt" for="lq35e"><input id="lq35e" name="lq35group" type="checkbox" data-lq-check="35" value="E" autocomplete="off"> E) people can be reliably informed about current affairs</label>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 37-38</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
-              <div class="mcq-q">Which TWO disadvantages are mentioned?</div>
-              <label class="mcq-opt" for="lq37a"><input id="lq37a" name="lq37group" type="checkbox" data-lq-check="37" value="A" autocomplete="off"> A) Personal boundaries can become less clear</label>
-              <label class="mcq-opt" for="lq37b"><input id="lq37b" name="lq37group" type="checkbox" data-lq-check="37" value="B" autocomplete="off"> B) Weak ties are usually unreliable</label>
-              <label class="mcq-opt" for="lq37c"><input id="lq37c" name="lq37group" type="checkbox" data-lq-check="37" value="C" autocomplete="off"> C) People have less access to information</label>
-              <label class="mcq-opt" for="lq37d"><input id="lq37d" name="lq37group" type="checkbox" data-lq-check="37" value="D" autocomplete="off"> D) News from contacts can be inaccurate</label>
-              <label class="mcq-opt" for="lq37e"><input id="lq37e" name="lq37group" type="checkbox" data-lq-check="37" value="E" autocomplete="off"> E) It becomes impossible to maintain close friendships</label>
+              <div class="mcq-q">Which TWO problems related to online social networking will increase, according to the speaker?</div>
+              <label class="mcq-opt" for="lq37a"><input id="lq37a" name="lq37group" type="checkbox" data-lq-check="37" value="A" autocomplete="off"> A) criminal activity</label>
+              <label class="mcq-opt" for="lq37b"><input id="lq37b" name="lq37group" type="checkbox" data-lq-check="37" value="B" autocomplete="off"> B) poorer grades at school</label>
+              <label class="mcq-opt" for="lq37c"><input id="lq37c" name="lq37group" type="checkbox" data-lq-check="37" value="C" autocomplete="off"> C) a decline in physical fitness</label>
+              <label class="mcq-opt" for="lq37d"><input id="lq37d" name="lq37group" type="checkbox" data-lq-check="37" value="D" autocomplete="off"> D) less work done by employees</label>
+              <label class="mcq-opt" for="lq37e"><input id="lq37e" name="lq37group" type="checkbox" data-lq-check="37" value="E" autocomplete="off"> E) loss of career prospects</label>
             </div>
 
             <div class="listen-card">
               <div class="listen-card-title">Questions 39-40</div>
               <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
-              <div class="mcq-q">Which TWO claims are associated with Robin Dunbar?</div>
-              <label class="mcq-opt" for="lq39a"><input id="lq39a" name="lq39group" type="checkbox" data-lq-check="39" value="A" autocomplete="off"> A) Humans can manage only a limited number of meaningful relationships</label>
-              <label class="mcq-opt" for="lq39b"><input id="lq39b" name="lq39group" type="checkbox" data-lq-check="39" value="B" autocomplete="off"> B) Online tools are ideal for forming entirely new relationships</label>
-              <label class="mcq-opt" for="lq39c"><input id="lq39c" name="lq39group" type="checkbox" data-lq-check="39" value="C" autocomplete="off"> C) Physical contact still matters when forming close ties</label>
-              <label class="mcq-opt" for="lq39d"><input id="lq39d" name="lq39group" type="checkbox" data-lq-check="39" value="D" autocomplete="off"> D) Social networks should replace newspapers</label>
-              <label class="mcq-opt" for="lq39e"><input id="lq39e" name="lq39group" type="checkbox" data-lq-check="39" value="E" autocomplete="off"> E) Better-connected users always dominate online discussions</label>
+              <div class="mcq-q">Which TWO claims are made by Robin Dunbar about social networking sites?</div>
+              <label class="mcq-opt" for="lq39a"><input id="lq39a" name="lq39group" type="checkbox" data-lq-check="39" value="A" autocomplete="off"> A) They are not helpful for developing certain social skills.</label>
+              <label class="mcq-opt" for="lq39b"><input id="lq39b" name="lq39group" type="checkbox" data-lq-check="39" value="B" autocomplete="off"> B) They cannot fully reveal a person's real character.</label>
+              <label class="mcq-opt" for="lq39c"><input id="lq39c" name="lq39group" type="checkbox" data-lq-check="39" value="C" autocomplete="off"> C) They are not a good starting point for building new relationships.</label>
+              <label class="mcq-opt" for="lq39d"><input id="lq39d" name="lq39group" type="checkbox" data-lq-check="39" value="D" autocomplete="off"> D) They do not encourage people to widen their social circle.</label>
+              <label class="mcq-opt" for="lq39e"><input id="lq39e" name="lq39group" type="checkbox" data-lq-check="39" value="E" autocomplete="off"> E) They will not retain their popularity with the young generation.</label>
             </div>
           </div>
         </div>

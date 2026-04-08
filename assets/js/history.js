@@ -14,6 +14,7 @@
   const detailState = { sourceRowId: null, sourceScrollY: 0 };
   const objectiveDetailCache = new Map();
   const objectivePrefetchPending = new Set();
+  const historyPrefetchState = { promise: null, email: "", startedAt: 0 };
   const LOCAL_HISTORY_KEY_PREFIX = "IELTS:LOCAL:HISTORY:";
   const LOCAL_HISTORY_LAST_OPEN_KEY = "IELTS:LOCAL:HISTORY:lastOpen";
   const HISTORY_REMOTE_CACHE_KEY_PREFIX = "IELTS:REMOTE:HISTORY:";
@@ -405,6 +406,38 @@
     return data.results;
   }
 
+  async function fetchMergedHistoryRows(email) {
+    let rows = await loadRows();
+    const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
+    if (backendResults.length) {
+      const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
+      rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
+    }
+    if (email) saveRemoteHistoryCache(email, rows);
+    return rows;
+  }
+
+  function prefetchHistoryRows() {
+    const email = getHistoryEmail();
+    if (!email) return Promise.resolve([]);
+    const now = Date.now();
+    if (historyPrefetchState.promise && historyPrefetchState.email === email) return historyPrefetchState.promise;
+    if (state.rows.length && historyPrefetchState.email === email && now - historyPrefetchState.startedAt < 30000) {
+      return Promise.resolve(state.rows.slice());
+    }
+    historyPrefetchState.email = email;
+    historyPrefetchState.startedAt = now;
+    historyPrefetchState.promise = fetchMergedHistoryRows(email)
+      .then((rows) => {
+        state.rows = rows;
+        return rows;
+      })
+      .finally(() => {
+        historyPrefetchState.promise = null;
+      });
+    return historyPrefetchState.promise;
+  }
+
   async function syncRowToSupabase(row, result) {
     const supabase = Auth()?.supabase;
     const user = getHistoryUser();
@@ -575,11 +608,10 @@
       } else if ($("historyTbody")) {
         $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       }
-      let rows = await loadRows();
+      let rows = await prefetchHistoryRows();
       state.rows = rows;
       renderTable(rows);
       prefetchObjectiveDetails(rows, 4);
-      const backendPromise = fetchStudentResultsForRows(rows).catch(() => []);
       const pendingOpenKey = getLastOpenHistoryKey();
       if (pendingOpenKey) {
         const idx = rows.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
@@ -599,24 +631,9 @@
           }
         }
       }
-      backendPromise.then((backendResults) => {
-        if (!backendResults.length) return;
-        const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
-        const mergedRows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
-        state.rows = mergedRows;
-        if (email) saveRemoteHistoryCache(email, mergedRows);
-        renderTable(mergedRows);
-        prefetchObjectiveDetails(mergedRows, 4);
-      }).catch(() => {});
-
       refreshPendingRows(rows).then(async (updated) => {
         if (!updated) return;
-        let refreshedRows = await loadRows();
-        const backendResultsAfter = await fetchStudentResultsForRows(refreshedRows).catch(() => []);
-        if (backendResultsAfter.length) {
-          const byKey = new Map(backendResultsAfter.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
-          refreshedRows = refreshedRows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
-        }
+        let refreshedRows = await fetchMergedHistoryRows(email);
         state.rows = refreshedRows;
         if (email) saveRemoteHistoryCache(email, refreshedRows);
         renderTable(refreshedRows);
@@ -661,12 +678,16 @@
   });
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows, rememberLocalAttempt };
+  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows, rememberLocalAttempt, prefetch: prefetchHistoryRows };
 
   document.addEventListener("partials:loaded", () => {
     $("openHistoryBtn")?.addEventListener("click", openHistory);
     $("historyRefreshBtn")?.addEventListener("click", openHistory);
     $("historyBackBtn")?.addEventListener("click", closeHistory);
     $("historyDetailCloseBtn")?.addEventListener("click", () => $("historyDetail")?.classList.add("hidden"));
+    window.addEventListener("ielts:authchanged", () => {
+      if (getHistoryUser()) prefetchHistoryRows().catch(() => {});
+    });
+    if (getHistoryUser()) prefetchHistoryRows().catch(() => {});
   }, { once: true });
 })();

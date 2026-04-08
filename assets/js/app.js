@@ -13,6 +13,7 @@
     const writingSampleCache = { rows: null, promise: null };
     const adminObjectiveDetailCache = new Map();
     const adminObjectivePrefetchPending = new Set();
+    const adminResultsPrefetchState = { promise: null, startedAt: 0 };
 
   async function getAuthHeaders() {
     try {
@@ -746,6 +747,26 @@
       return data.results;
     }
 
+    function prefetchAdminResults() {
+      if (!isAdminView()) return Promise.resolve(adminState.rows.slice());
+      const now = Date.now();
+      if (adminResultsPrefetchState.promise) return adminResultsPrefetchState.promise;
+      if (adminState.rows.length && now - adminResultsPrefetchState.startedAt < 30000) {
+        return Promise.resolve(adminState.rows.slice());
+      }
+      adminResultsPrefetchState.startedAt = now;
+      adminResultsPrefetchState.promise = fetchAdminResults()
+        .then((rows) => {
+          adminState.rows = rows;
+          saveAdminResultsCache(rows);
+          return rows;
+        })
+        .finally(() => {
+          adminResultsPrefetchState.promise = null;
+        });
+      return adminResultsPrefetchState.promise;
+    }
+
     async function fetchObjectiveDetailForRow(row) {
       const cacheKey = [
         String(row.submittedAt || "").trim(),
@@ -1028,7 +1049,7 @@
         } else if (tbody) {
           tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
         }
-        const rows = await fetchAdminResults();
+        const rows = await prefetchAdminResults();
         adminState.rows = rows;
         saveAdminResultsCache(rows);
         fillExamFilter(rows);
@@ -2577,6 +2598,15 @@ function startFreshExam() {
     $("adminResultsMonthFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsYearFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
+    window.addEventListener("ielts:viewmodechange", (event) => {
+      if (event?.detail?.isAdmin) {
+        prefetchAdminResults().catch(() => {});
+      }
+    });
+    window.addEventListener("ielts:authchanged", () => {
+      if (isAdminView()) prefetchAdminResults().catch(() => {});
+    });
+    if (isAdminView()) prefetchAdminResults().catch(() => {});
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-admin-view]");

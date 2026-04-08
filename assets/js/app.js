@@ -664,6 +664,7 @@
     const adminState = { rows: [], filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
+    const adminFullResultCache = new Map();
 
     function num(value) {
       const n = Number(value);
@@ -725,7 +726,77 @@
       `;
     }
 
+    function buildAdminResultCacheKey(row) {
+      return [
+        String(row?.submittedAt || "").trim(),
+        String(row?.studentFullName || "").trim().toLowerCase(),
+        String(row?.examId || "").trim().toLowerCase(),
+        String(row?.reason || "").trim().toLowerCase(),
+      ].join("::");
+    }
+
     async function fetchAdminResults() {
+      const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
+      if (!endpoint) throw new Error("Admin endpoint is missing.");
+
+      const url = new URL(endpoint, window.location.origin);
+      url.searchParams.set("action", "resultsSummary");
+      url.searchParams.set("t", String(Date.now()));
+
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        headers: await getAuthHeaders(),
+      });
+      const text = await res.text();
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!data || data.ok !== true || !Array.isArray(data.results)) {
+        throw new Error((data && data.error) || "Could not load admin results.");
+      }
+      return data.results;
+    }
+
+    function findAdminFullResult(requestedRow, results) {
+      const wantedKey = buildAdminResultCacheKey(requestedRow);
+      const exact = (results || []).find((row) => buildAdminResultCacheKey(row) === wantedKey);
+      if (exact) return exact;
+
+      const wantedExam = String(requestedRow?.examId || "").trim().toLowerCase();
+      const wantedName = String(requestedRow?.studentFullName || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const wantedReason = String(requestedRow?.reason || "").replace(/\s+/g, " ").trim().toLowerCase();
+      const wantedTs = new Date(requestedRow?.submittedAt || 0).getTime();
+
+      const pool = (results || []).filter((row) => {
+        const exam = String(row?.examId || "").trim().toLowerCase();
+        const name = String(row?.studentFullName || "").replace(/\s+/g, " ").trim().toLowerCase();
+        return exam === wantedExam && name === wantedName;
+      });
+      const narrowed = wantedReason
+        ? pool.filter((row) => String(row?.reason || "").replace(/\s+/g, " ").trim().toLowerCase() === wantedReason)
+        : pool;
+      const candidates = narrowed.length ? narrowed : pool;
+      if (!candidates.length) return null;
+      if (!Number.isFinite(wantedTs)) return candidates[0];
+
+      let best = candidates[0];
+      let bestDelta = Number.POSITIVE_INFINITY;
+      candidates.forEach((row) => {
+        const ts = new Date(row?.submittedAt || 0).getTime();
+        if (!Number.isFinite(ts)) return;
+        const delta = Math.abs(ts - wantedTs);
+        if (delta < bestDelta) {
+          best = row;
+          bestDelta = delta;
+        }
+      });
+      return best;
+    }
+
+    async function fetchAdminFullResultForRow(row) {
+      const cacheKey = buildAdminResultCacheKey(row);
+      if (adminFullResultCache.has(cacheKey)) return adminFullResultCache.get(cacheKey);
+
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
@@ -742,9 +813,14 @@
       try { data = JSON.parse(text); } catch (e) {}
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (!data || data.ok !== true || !Array.isArray(data.results)) {
-        throw new Error((data && data.error) || "Could not load admin results.");
+        throw new Error((data && data.error) || "Could not load full admin result.");
       }
-      return data.results;
+      const match = findAdminFullResult(row, data.results);
+      if (match) {
+        adminFullResultCache.set(cacheKey, match);
+        return match;
+      }
+      return null;
     }
 
     function prefetchAdminResults() {
@@ -768,12 +844,7 @@
     }
 
     async function fetchObjectiveDetailForRow(row) {
-      const cacheKey = [
-        String(row.submittedAt || "").trim(),
-        String(row.studentFullName || "").trim().toLowerCase(),
-        String(row.examId || "").trim().toLowerCase(),
-        String(row.reason || "").trim().toLowerCase(),
-      ].join("::");
+      const cacheKey = buildAdminResultCacheKey(row);
       if (adminObjectiveDetailCache.has(cacheKey)) return adminObjectiveDetailCache.get(cacheKey);
 
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
@@ -801,12 +872,7 @@
       (rows || [])
         .slice(0, Math.max(0, Number(limit) || 0))
         .forEach((row) => {
-          const cacheKey = [
-            String(row.submittedAt || "").trim(),
-            String(row.studentFullName || "").trim().toLowerCase(),
-            String(row.examId || "").trim().toLowerCase(),
-            String(row.reason || "").trim().toLowerCase(),
-          ].join("::");
+          const cacheKey = buildAdminResultCacheKey(row);
           if (!cacheKey || adminObjectiveDetailCache.has(cacheKey) || adminObjectivePrefetchPending.has(cacheKey)) return;
           adminObjectivePrefetchPending.add(cacheKey);
           fetchObjectiveDetailForRow(row)
@@ -965,21 +1031,35 @@
       renderAdminTable(rows);
     }
 
+    function buildAdminDetailMetaHtml(row, submissionRecord) {
+      let html = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
+      if (submissionRecord) {
+        const providerText = String(submissionRecord.provider || "email").replace(/-/g, " ");
+        html += `<br>Email: <b>${escapeHtml(submissionRecord.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
+      }
+      return html;
+    }
+
+    function renderAdminDetailFields(row, options = {}) {
+      const loadingDetail = options.loadingDetail === true;
+      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
+      $("adminDetailMeta").innerHTML = buildAdminDetailMetaHtml(row, options.submissionRecord || null);
+      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.readingBand))})<br>Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
+      $("adminDetailTask1Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task1Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task1Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      $("adminDetailTask1").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask1 || "");
+      $("adminDetailTask1Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task1Feedback, "");
+      $("adminDetailTask2Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task2Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task2Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      $("adminDetailTask2").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask2 || "");
+      $("adminDetailTask2Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task2Feedback, "");
+      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${loadingDetail ? "Loading overall writing feedback..." : escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
+    }
+
     async function renderAdminDetail(row, options = {}) {
       const detail = $("adminResultDetail");
       if (!detail || !row) return;
       adminDetailState.sourceRowId = options.sourceRowId || null;
       adminDetailState.sourceScrollY = window.scrollY || 0;
-      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
-      $("adminDetailMeta").innerHTML = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.readingBand))})<br>Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
-      $("adminDetailTask1Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task1Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${escapeHtml(plainText(row.task1Breakdown)).replace(/\n/g, "<br>")}</div>`;
-      $("adminDetailTask1").textContent = row.writingTask1 || "";
-      $("adminDetailTask1Feedback").textContent = plainText(row.task1Feedback, "");
-      $("adminDetailTask2Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task2Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${escapeHtml(plainText(row.task2Breakdown)).replace(/\n/g, "<br>")}</div>`;
-      $("adminDetailTask2").textContent = row.writingTask2 || "";
-      $("adminDetailTask2Feedback").textContent = plainText(row.task2Feedback, "");
-      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
+      renderAdminDetailFields(row, { loadingDetail: true });
       renderObjectiveReview("adminDetail", null);
       detail.classList.remove("hidden");
       try {
@@ -1002,12 +1082,11 @@
               headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             }).then((res) => res.json().catch(() => null).then((data) => ({ ok: res.ok, data })))
           : Promise.resolve(null);
+        const fullResultPromise = fetchAdminFullResultForRow(row).catch(() => null);
         const objectivePromise = fetchObjectiveDetailForRow(row).catch(() => null);
-        const [metaResult, objectiveResult] = await Promise.all([metaPromise, objectivePromise]);
-        if (metaResult?.ok && metaResult.data?.ok === true && metaResult.data.record) {
-          const providerText = String(metaResult.data.record.provider || "email").replace(/-/g, " ");
-          $("adminDetailMeta").innerHTML += `<br>Email: <b>${escapeHtml(metaResult.data.record.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
-        }
+        const [metaResult, fullResult, objectiveResult] = await Promise.all([metaPromise, fullResultPromise, objectivePromise]);
+        const metaRecord = metaResult?.ok && metaResult.data?.ok === true ? metaResult.data.record : null;
+        renderAdminDetailFields(fullResult || row, { submissionRecord: metaRecord, loadingDetail: !fullResult });
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {
         renderObjectiveReview("adminDetail", null);

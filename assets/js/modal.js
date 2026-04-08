@@ -15,6 +15,18 @@
     return document.getElementById(id);
   }
 
+  function getActiveWritingKeys() {
+    const activeTestId =
+      (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
+      S().get(R().KEYS?.ACTIVE_TEST_ID, R().TESTS?.defaultTestId || "ielts1");
+    return (
+      (typeof R().getScopedKeys === "function" && R().getScopedKeys(activeTestId)?.writing) ||
+      (typeof R().keysFor === "function" && R().keysFor(activeTestId)?.writing) ||
+      R().LEGACY?.writingKeys ||
+      {}
+    );
+  }
+
   function hideModal() {
     if (MODAL_MODE === "locked") return; // locked means cannot close
     const modal = $("modal");
@@ -65,14 +77,8 @@
     }
 
     if (nameInput && isFinal) {
-      // preload saved name from the active test's writing namespace (fallback to legacy key)
-      const activeTestId =
-        (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
-        S().get(R().KEYS?.ACTIVE_TEST_ID, R().TESTS?.defaultTestId || "ielts1");
-      const writingKeys =
-        (typeof R().keysFor === "function" && R().keysFor(activeTestId)?.writing) ||
-        R().LEGACY?.writingKeys ||
-        {};
+      // preload saved name from the active writing namespace, including section-only scoped launches
+      const writingKeys = getActiveWritingKeys();
       const saved = (S().get(writingKeys.studentName, "") || "").trim();
       if (saved) nameInput.value = saved;
     }
@@ -167,13 +173,7 @@
           return;
         }
 
-        const activeTestId =
-          (typeof R().getActiveTestId === "function" && R().getActiveTestId()) ||
-          S().get(R().KEYS?.ACTIVE_TEST_ID, R().TESTS?.defaultTestId || "ielts1");
-        const writingKeys =
-          (typeof R().keysFor === "function" && R().keysFor(activeTestId)?.writing) ||
-          R().LEGACY?.writingKeys ||
-          {};
+        const writingKeys = getActiveWritingKeys();
 
         if (writingKeys.studentName) {
           S().set(writingKeys.studentName, fullName);

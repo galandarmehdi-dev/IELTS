@@ -564,13 +564,16 @@
         const testId = Registry()?.getActiveTestId?.() || Registry()?.TESTS?.defaultTestId || "ielts1";
         Router()?.setHashRoute?.(testId, "history");
       } catch (e) {}
-      if ($("historyTbody")) $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       const email = getHistoryEmail();
       const cachedRows = email ? mergeRowsByMatchKey(loadRemoteHistoryCache(email), loadLocalRows(email)) : [];
       if (cachedRows.length) {
         state.rows = cachedRows;
         renderTable(cachedRows);
         prefetchObjectiveDetails(cachedRows, 4);
+      } else if (state.rows.length) {
+        renderTable(state.rows);
+      } else if ($("historyTbody")) {
+        $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
       }
       let rows = await loadRows();
       state.rows = rows;

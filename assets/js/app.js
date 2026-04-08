@@ -1014,7 +1014,6 @@
       UI().setExamNavStatus("Status: Admin results");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
       const tbody = $("adminResultsTbody");
-      if (tbody) tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
       try {
         const cachedRows = loadAdminResultsCache();
         if (cachedRows.length) {
@@ -1022,6 +1021,12 @@
           fillExamFilter(cachedRows);
           fillMonthYearFilters(cachedRows);
           applyAdminFilters();
+        } else if (adminState.rows.length) {
+          fillExamFilter(adminState.rows);
+          fillMonthYearFilters(adminState.rows);
+          applyAdminFilters();
+        } else if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
         }
         const rows = await fetchAdminResults();
         adminState.rows = rows;
@@ -2569,6 +2574,8 @@ function startFreshExam() {
     };
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
+    $("adminResultsMonthFilter")?.addEventListener("change", applyAdminFilters);
+    $("adminResultsYearFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {

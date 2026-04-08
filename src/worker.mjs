@@ -314,7 +314,7 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth.user?.email, env);
+    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
     if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -396,7 +396,7 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth.user?.email, env);
+    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
     if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
 
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
@@ -429,7 +429,7 @@ async function handleAdminApi(request, env) {
 
     const ownedRows = [];
     for (const row of rows) {
-      const owned = await authorizeStudentSubmissionAccess(row, auth.user?.email, env);
+      const owned = await authorizeStudentSubmissionAccess(row, auth, request, env);
       if (owned.ok) ownedRows.push(row);
     }
     if (!ownedRows.length) return json(200, { ok: true, results: [] });
@@ -715,8 +715,8 @@ async function upsertStudentRegistry(env, payload) {
   return next;
 }
 
-async function authorizeStudentSubmissionAccess(rowLike, userEmail, env) {
-  const email = normalizeEmail(userEmail);
+async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
+  const email = normalizeEmail(auth?.user?.email);
   if (!email) {
     return { ok: false, status: 401, error: "Missing student email." };
   }
@@ -735,13 +735,49 @@ async function authorizeStudentSubmissionAccess(rowLike, userEmail, env) {
   }
 
   const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
-  if (!record?.email) {
+  if (record?.email) {
+    if (normalizeEmail(record.email) !== email) {
+      return { ok: false, status: 403, error: "This submission is not available for the current account." };
+    }
+    return { ok: true, status: 200, record };
+  }
+
+  const canFallbackToSupabase =
+    auth?.kind === "supabase" &&
+    !!request?.headers?.get("Authorization") &&
+    !!env.SUPABASE_URL &&
+    !!env.SUPABASE_PUBLISHABLE_KEY;
+
+  if (!canFallbackToSupabase) {
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
-  if (normalizeEmail(record.email) !== email) {
+
+  const submittedAt = oneLine(rowLike?.submittedAt || rowLike?.submitted_at || "");
+  const examId = oneLine(rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "");
+  if (!submittedAt || !examId) {
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
-  return { ok: true, status: 200, record };
+
+  const verifyUrl = new URL(`${String(env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/exam_attempts`);
+  verifyUrl.searchParams.set("select", "id");
+  verifyUrl.searchParams.set("submitted_at", `eq.${submittedAt}`);
+  verifyUrl.searchParams.set("exam_id", `eq.${examId}`);
+  verifyUrl.searchParams.set("user_email", `eq.${email}`);
+  verifyUrl.searchParams.set("limit", "1");
+
+  const verifyRes = await fetch(verifyUrl.toString(), {
+    method: "GET",
+    headers: {
+      Authorization: request.headers.get("Authorization"),
+      apikey: String(env.SUPABASE_PUBLISHABLE_KEY || ""),
+    },
+  });
+  const rows = await verifyRes.json().catch(() => null);
+  if (!verifyRes.ok || !Array.isArray(rows) || !rows.length) {
+    return { ok: false, status: 403, error: "This submission is not available for the current account." };
+  }
+
+  return { ok: true, status: 200, record: null };
 }
 
 function parseCsv(text) {

@@ -874,7 +874,7 @@ async function getAdminResultsSummary(env) {
   if (cached) return cached;
 
   const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-  backendUrl.searchParams.set("action", "results");
+  backendUrl.searchParams.set("action", "resultsSummary");
   backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
   backendUrl.searchParams.set("t", String(Date.now()));
 

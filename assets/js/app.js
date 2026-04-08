@@ -2101,6 +2101,7 @@
           label: "Writing",
           items: [
             { label: "Open writing page", copy: "Writing task launchers, sample answers, and guidance.", onClick: () => openResourceHub("writing") },
+            { label: "Take whole writing section", copy: "Open both Task 1 and Task 2 together with the normal writing submit flow.", onClick: () => openResourceHub("writing", "writing-full-exams") },
             { label: "Writing Task 1", copy: "Open Task 1-focused writing access.", onClick: () => openResourceHub("writing", "writing-task1") },
             { label: "Writing Task 2", copy: "Open Task 2-focused writing access.", onClick: () => openResourceHub("writing", "writing-task2") },
             { label: "Task 1 sample library", copy: "Browse Task 1 sample answers in a dedicated page.", onClick: () => openResourceHub("writingSamplesTask1") },
@@ -2389,6 +2390,21 @@
         resourceHubBadge.textContent = "Writing page";
         resourceHubTitle.textContent = "Writing tasks, model bands, and writing support";
         resourceHubSubtitle.textContent = "Separate task entry points and sample-answer guidance live here instead of crowding the homepage.";
+        addSection("writing-full-exams", "Whole Writing Section", "Open the complete Writing section with both Task 1 and Task 2, plus the same writing submission flow used in the full exam.", () => {
+          const grid = document.createElement("div");
+          grid.className = "resource-hub-grid";
+          (catalog.sections.writing || []).forEach((item) => {
+            grid.appendChild(createCatalogCard({
+              kicker: "Whole Writing",
+              title: `${R()?.getTestLabel?.(item.testId) || item.label} · Writing`,
+              copy: "Launch the full Writing section with both tasks and submit it the same way as the full exam.",
+              meta: ["Task 1 + Task 2", "Normal submission flow"],
+              primaryLabel: "Open Writing",
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId)),
+            }));
+          });
+          return grid;
+        });
         addSection("writing-task1", "Writing Task 1", "Open Task 1-focused writing work from each uploaded test.", () => {
           const grid = document.createElement("div");
           grid.className = "resource-hub-grid";

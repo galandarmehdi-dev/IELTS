@@ -451,7 +451,7 @@
     async function updateAttemptScoresInSupabase(finalPayload, markedResult) {
       try {
         const supabase = window.IELTS?.Auth?.supabase;
-        const authUser = window.IELTS?.Auth?.getSavedUser?.() || null;
+        const authUser = getCurrentAuthUser();
         const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
         const email = String(authUser?.email || "").trim().toLowerCase();
         if (!supabase || !email || !markedResult) return { ok: false, skipped: true };

@@ -216,7 +216,7 @@
     const $ = UI().$;
     
     const EXAM_DISPLAY_BUTTONS = {
-      darkMode: off,
+      darkMode: false,
       brightness: true,
       textSize: true,
     };

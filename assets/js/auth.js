@@ -505,21 +505,72 @@ function getDesiredView() {
   return "home";
 }
 
-function sanitizeDesiredView(view) {
+function hasResumableStoredAttempt(activeTestId) {
+  try {
+    const registry = window.IELTS?.Registry || {};
+    const scoped = registry.getScopedKeys?.(activeTestId) || registry.keysFor?.(activeTestId) || {};
+    const listeningKeys = scoped.listening || {};
+    const writingKeys = scoped.writing || {};
+    const readingTestId =
+      registry.getScopedReadingTestId?.(activeTestId) ||
+      registry.getTestConfig?.(activeTestId)?.readingTestId ||
+      "ielts-reading-3parts-001";
+    const finalSubmittedKey = registry?.EXAM?.keys?.finalSubmitted || "IELTS:EXAM:finalSubmitted";
+
+    const hasNonEmptyObject = (value) =>
+      !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length > 0;
+
+    const getJSON = (key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    };
+
+    if (localStorage.getItem(finalSubmittedKey) === "true") return false;
+
+    const listeningSubmitted = localStorage.getItem(listeningKeys.submitted || "") === "true";
+    const listeningStarted = localStorage.getItem(listeningKeys.started || "") === "true";
+    const writingSubmitted = localStorage.getItem(writingKeys.submitted || "") === "true";
+    const writingStarted = localStorage.getItem(writingKeys.started || "") === "true";
+    const readingSubmitted = localStorage.getItem(`${readingTestId}:submitted`) === "true";
+    const listeningAnswers = getJSON(listeningKeys.answers || "");
+    const readingAnswers = getJSON(`${readingTestId}:answers`);
+    const writingAnswers = getJSON(writingKeys.answers || "");
+
+    return (
+      (listeningStarted && !listeningSubmitted) ||
+      (!listeningSubmitted && hasNonEmptyObject(listeningAnswers)) ||
+      (!readingSubmitted && hasNonEmptyObject(readingAnswers)) ||
+      (writingStarted && !writingSubmitted) ||
+      (!writingSubmitted && hasNonEmptyObject(writingAnswers))
+    );
+  } catch (e) {
+    return false;
+  }
+}
+
+function sanitizeDesiredView(view, activeTestId) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
   const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
+  if (["listening", "reading", "writing"].includes(normalized)) {
+    if (window.IELTS?.Access?.isAdmin?.() === true) return normalized;
+    if (!hasResumableStoredAttempt(activeTestId)) return "home";
+  }
   return normalized;
 }
 
 function restoreViewAfterAuth() {
   hideBlockingModals();
 
-  const view = sanitizeDesiredView(getDesiredView());
   const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+  const view = sanitizeDesiredView(getDesiredView(), activeTestId);
 
   try {
     if (window.IELTS?.Router?.setHashRoute) {
@@ -735,6 +786,12 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   showProtectedApp(false);
   authReady = true;
   try {
+    const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
+    if (window.IELTS?.Router?.setHashRoute) {
+      window.IELTS.Router.setHashRoute(activeTestId, "home");
+    }
+    localStorage.setItem("IELTS:HOME:lastView", "home");
+    localStorage.setItem("IELTS:EXAM:started", "false");
     window.IELTS?.UI?.showOnly?.("home");
     window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
     window.IELTS?.UI?.updateHomeStatusLine?.("Status: Browse the platform or log in to start a test");

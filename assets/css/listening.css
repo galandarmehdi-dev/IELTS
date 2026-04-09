@@ -96,8 +96,20 @@
 }
 .listen-nav-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
-.listening-screen:not(.started) .listen-body{ display:none; }
-.listening-screen.started .listen-body{ display:block; }
+.listening-screen:not(.started) .listening-shell{
+  min-height:calc(100vh - 48px);
+}
+.listening-screen:not(.started) .listen-body{
+  display:block;
+  min-height:calc(100vh - 260px);
+  visibility:hidden;
+  pointer-events:none;
+}
+.listening-screen.started .listen-body{
+  display:block;
+  visibility:visible;
+  pointer-events:auto;
+}
 .listen-page.hidden{ display:none !important; }
 
 .listen-modal.hidden{ display:none !important; }

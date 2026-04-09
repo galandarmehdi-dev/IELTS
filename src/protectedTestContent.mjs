@@ -1,4 +1,1557 @@
 /* src/protectedTestContent.mjs */
+const readingLegacyFactory1 = function (H) {
+      const { renderHeadingsTask, renderShortAnswerBlock, renderNotesBlock, renderSentenceGapsBlock, renderTFNGBlock, renderMCQBlock, renderEndingsMatchBlock, renderSummarySelectBlock } = H;
+      const PART1_PASSAGE_TEXT = `
+The Life of Sir Isaac Newton
+
+A. Isaac Newton was born on January 4, 1643, in Lincolnshire, England. The son of a farmer, who died three months before he was born, Newton spent most of his early years with his maternal grandmother after his mother remarried. Following an education interrupted by a failed attempt to turn him into a farmer, he attended the King’s School in Grantham before enrolling at the University of Cambridge’s Trinity College in 1661, where he soon became fascinated by the works of modern philosophers such as René Descartes. When the Great Plague shut Cambridge off from the rest of England in 1665, Newton returned home and began formulating his theories on calculus, light and color, his farm the setting for the supposed falling apple that inspired his work on gravity.
+
+B. Newton returned to Cambridge in 1667. He constructed the first reflecting telescope in 1668, and the following year he received his Master of Arts degree and took over as Cambridge’s Professor of Mathematics. In 1671 he was asked to give a demonstration of his telescope to the Royal Society of London in 1671, the same year he was elected to the prestigious Society. The following year, fascinated with the study of light, he published his notes on optics for his peers. Through his experiments, Newton determined that white light was a composite of all the colors on the spectrum, and he asserted that light was composed of particles instead of waves. His methods were heavily criticized by established Society member Robert Hooke, who was also unwilling to compromise again with Newton’s follow-up paper in 1675. Known for his temperamental defense of his work, Newton engaged in heated correspondence with Hooke before suffering a nervous breakdown and withdrawing from the public eye in 1678. In the following years, he returned to his earlier studies on the forces governing gravity.
+
+C. In 1684, English astronomer Edmund Halley paid a visit to the reclusive Newton. Upon learning that Newton had mathematically worked out the elliptical paths of celestial bodies, such as the movement of the planets around the sun, Halley urged him to organize his notes. The result was the 1687 publication of “Philosophiae Naturalis Principia Mathematica” (Mathematical Principles of Natural Philosophy), which established the three laws of motion and the law of universal gravity. Principia made Newton a star in intellectual circles, eventually earning him widespread acclaim as one of the most important figures in modern science.
+
+D. As a now influential figure, Newton opposed King James II’s attempts to reinstate Catholic teachings at English Universities, and was elected to represent Cambridge in Parliament in 1689. He moved to London permanently after being named warden of the Royal Mint in 1696, earning a promotion to master of the Mint three years later. Determined to prove his position wasn’t merely symbolic, Newton moved the pound sterling from the silver to the gold standard and sought to punish forgers.
+
+E. The death of Hooke in 1703 allowed Newton to take over as president of the Royal Society, and the following year he published his second major work, “Opticks.” Composed largely from his earlier notes on the subject, the book detailed Newton’s experiments with refraction and the color spectrum, and also contained his conclusions on such matters as energy and electricity. In 1705, he was knighted by Queen Anne of England.
+
+F. Around this time, the debate over Newton’s claims to originating the field of calculus, the mathematical study of change, exploded into a nasty dispute. Newton had developed his mathematical concept of ‘fluxions’ (differentials) in the mid-1660s to account for celestial orbits, though there was no public record of his work. In the meantime, German mathematician Gottfried Leibniz formulated his own theories and published them in 1684. As president of the Royal Society, Newton oversaw an investigation that ruled his work to be the founding basis of the field, but the debate continued even after Leibniz’s death in 1716. Researchers later concluded that both men likely arrived at their conclusions independent of one another.
+
+G. Newton was also obsessed with history and religious doctrines, and his writings on those subjects were collected into multiple books that were published after his death. Having never married, Newton spent his later years living with his niece at Cranbury Park, near Winchester, England. He died on March 31, 1727, and was buried in Westminster Abbey. A giant even among the brilliant minds that drove the Scientific Revolution, Newton is remembered as an extraordinary scholar, inventor and writer. His theories about the movement of bodies in the solar system transformed our understanding of the universe and his precise methodology helped to give birth to what is known as the scientific method. Although his theories of space-time and gravity were eventually superseded by those of Einstein his work remains the foundation stone of modern physics was built.
+`.trim();
+
+    // =========================
+    // PART 1 / 2 / 3 (UNCHANGED)
+    // =========================
+
+      const PART1 = {
+      id: "part1",
+      title: "Part 1",
+      renderQuestions: (answers) => {
+        const HEADINGS_TASK = {
+          title: "Questions 1–6",
+          instructions: [
+            "The text has seven paragraphs labelled A–G.",
+            "Choose the correct headings for paragraphs B–G from the list of headings below.",
+            "Write the correct number, i–ix, in the gaps.",
+          ],
+          listTitle: "List of Headings",
+          headings: [
+            { value: "i", label: "Continued breakthroughs in research" },
+            { value: "ii", label: "Competing claims of originality" },
+            { value: "iii", label: "The early years of Sir Isaac Newton" },
+            { value: "iv", label: "The legacy of an exceptional mind" },
+            { value: "v", label: "Routine life at a 17th century university" },
+            { value: "vi", label: "Heated academic disputes" },
+            { value: "vii", label: "A new venture" },
+            { value: "viii", label: "His crowning achievement" },
+            { value: "ix", label: "A controversial theory about planets" },
+          ],
+          example: { paragraph: "Paragraph A", value: "iii" },
+          questions: [
+            { q: 1, paragraph: "Paragraph B" },
+            { q: 2, paragraph: "Paragraph C" },
+            { q: 3, paragraph: "Paragraph D" },
+            { q: 4, paragraph: "Paragraph E" },
+            { q: 5, paragraph: "Paragraph F" },
+            { q: 6, paragraph: "Paragraph G" },
+          ],
+        };
+
+        const SHORT_Q = {
+          title: "Questions 7–8",
+          instructions: [
+            "Answer the questions below.",
+            "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+            "Write your answers in the gaps.",
+          ],
+          questions: [
+            { q: 7, text: "With which scientific organization was Newton associated for much of his career?" },
+            { q: 8, text: "With whom did Newton live as he got older?" },
+          ],
+        };
+
+        const NOTES = {
+          title: "Questions 9–13",
+          instructions: [
+            "Complete the notes below.",
+            "Choose ONE WORD from the passage for each answer.",
+            "Write your answers in the gaps.",
+          ],
+          boxTitle: "Sir Isaac Newton’s achievements",
+        };
+
+        const wrap = document.createElement("div");
+        wrap.appendChild(renderHeadingsTask(HEADINGS_TASK, answers));
+        wrap.appendChild(renderShortAnswerBlock(SHORT_Q, answers));
+        wrap.appendChild(renderNotesBlock(NOTES, answers));
+        return wrap;
+      },
+    };
+
+      const PART2_PASSAGE_TEXT = `
+The Geography of Antarctica
+
+The continent of Antarctica makes up most of the Antarctic region. The Antarctic is a cold, remote area in the Southern Hemisphere encompassed by the Antarctic Convergence, an uneven line of latitude where cold, northward-flowing Antarctic waters meet the warmer waters of the world’s oceans. The whole Antarctic region covers approximately 20 percent of the Southern Hemisphere. Antarctica is the fifth-largest continent in terms of total area, larger than both Oceania and Europe. It is unique in that it does not have a native population. There are no countries in Antarctica, although seven nations claim different parts of it: New Zealand, Australia, France, Norway, the United Kingdom, Chile, and Argentina.
+
+The Antarctic Ice Sheet dominates the region. It is the single piece of ice on Earth covering the greatest area. This ice sheet even extends beyond the continent when snow and ice are at their most extreme. The ice surface dramatically expands from about 3 million square kilometers (1.2 million square miles) at the end of summer to about 19 million square kilometers (7.3 million square miles) by winter. Ice sheet growth mainly occurs at the coastal ice shelves, primarily the Ross Ice Shelf and the Ronne Ice Shelf. Ice shelves are floating sheets of ice that are connected to the continent. Glacial ice moves from the continent’s interior to these lower-elevation ice shelves at rates of 10 to 1,000 meters (33-32,808 feet) per year.
+
+Antarctica has numerous mountain summits, including the Transantarctic Mountains, which divide the continent into eastern and western regions. A few of these summits reach altitudes of more than 4,500 meters (14,764 feet). The elevation of the Antarctic Ice Sheet itself is about 2,000 meters (6,562 feet) and reaches 4,000 meters (13,123 feet) above sealevel near the center of the continent.
+
+Without any ice, the continent would emerge as two distinct areas: a giant peninsula and archipelago of mountainous islands, known as Lesser Antarctica, and a single large landmass about the size of Australia, known as Greater Antarctica. These regions have different geologies; Greater Antarctica, or East Antarctica, is composed of older, igneous rocks whereas Lesser Antarctica, or West Antarctica, is made up of younger, volcanic rock. Lesser Antarctica, in fact, is part of the “Ring of Fire,” a tectonically active area around the Pacific Ocean. Tectonic activity is the interaction of plates on Earth’s crust, often resulting in earthquakes and volcanoes. Mount Erebus, located on Antarctica’s Ross Island, is the southernmost active volcano on Earth.
+
+Antarctica has an extremely cold, dry climate. Winter temperatures along Antarctica’s coast generally range from -10° Celsius to -30° Celsius (14° Fahrenheit to -22° Fahrenheit). During the summer, coastal areas hover around 0°C (32°F) but can reach temperatures as high as 9°C (48°F). In the mountainous, interior regions, temperatures are much colder, dropping below -60°C (-76°F) in winter and -20°C (-4°F) in summer. In 1983, Russia’s Vostok Research Station measured the coldest temperature ever recorded on Earth: -89.2°C (-128.6°F). An even lower temperature was measured using satellite data taken in 2010: -93.2°C (-135.8°F)
+
+Precipitation in the Antarctic is hard to measure. It always falls as snow. Antarctica’s interior is believed to receive only 50 to 100 millimeters (2-4 inches) of water (in the form of snow) every year. The Antarctic desert is one of the driest deserts in the world. The oceans surrounding Antarctica provide an important physical component of the Antarctic region. The waters surrounding Antarctica are relatively deep, reaching 4,000 to 5,000 meters (13,123 to 16,404 feet) in depth.
+
+The Antarctic region has an important role in global climate processes. It is an integral part of the Earth’s heat balance. This balance, also called the energy balance, is the relationship between the amount of solar heat absorbed by Earth’s atmosphere and the amount deflected back into space. Antarctica has a larger role than most continents in maintaining Earth’s heat balance and ice is more reflective than land or water surfaces. As a result, the massive Antarctic Ice Sheet reflects a large amount of solar radiation away from Earth’s surface. As global ice cover (ice sheets and glaciers) decreases, the reflectivity of Earth’s surface also diminishes. This allows more incoming solar radiation to be absorbed by the Earth’s surface, causing an unequal heat balance linked to global warming, the current period of climate change.
+
+Interestingly, NASA scientists have found that climate change has caused more ice to form in some parts of Antarctica. They say this is happening because of new climate patterns caused by this change, which in turn create a strong wind pattern called the ‘polar vortex.’ These kinds of polar winds lower temperatures in the Antarctic and have been building in strength in recent decades—as much as 15 percent since 1980. This effect is not seen throughout the Antarctic, however, and some parts are experiencing ice melt
+`;
+
+      const PART2 = {
+      id: "part2",
+      title: "Part 2",
+      renderQuestions: (answers) => {
+        const wrap = document.createElement("div");
+
+        wrap.appendChild(
+          renderSentenceGapsBlock(
+            {
+              title: "Questions 14–17",
+              instructions: [
+                "Answer the questions below.",
+                "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+                "Write your answers in the gaps.",
+              ],
+              items: [
+                { q: 14, text: "Antarctica’s location far from other continents means that it is very", tail: "." },
+                { q: 15, text: "Antarctica is alone among the continents in having no", tail: "." },
+                { q: 16, text: "The Antarctic ice sheet holds the record as the largest", tail: " ice sheet on Earth." },
+                { q: 17, leadingBlank: true, text2: "are blocks of ice connected to the Antarctic ice sheet." },
+              ],
+            },
+            answers
+          )
+        );
+
+        wrap.appendChild(
+          renderTFNGBlock(
+            {
+              title: "Questions 18–21",
+              instructions: [
+                "Do the following statements agree with the information in the passage?",
+                "Choose TRUE / FALSE / NOT GIVEN.",
+                "Write your answers in the gaps.",
+              ],
+              items: [
+                { q: 18, text: "Some of Antarctica’s mountains are popular with climbers." },
+                { q: 19, text: "The temperature in Antarctica never rises above 0°C." },
+                { q: 20, text: "Antarctica constitutes around one-fifth of the southern half of the world." },
+                { q: 21, text: "Rain in Antarctica is rare but falls occasionally." },
+              ],
+            },
+            answers
+          )
+        );
+
+        wrap.appendChild(
+          renderSummarySelectBlock(
+            {
+              title: "Questions 22–26",
+              instructions: [
+                "Complete the summary using the list of words, A–G, below.",
+                "Choose the correct letter for each answer.",
+                "Write your answers in the gaps.",
+              ],
+              summaryTitle: "Antarctica and the Changing Climate",
+              summaryLines: [
+                { text: "Antarctica plays an important role in regulating the Earth’s climate through the process of", blankQ: 22, tail: "." },
+                { text: "", blankQ: 23, before: "", after: " is diverted away from the Earth by the huge Antarctic ice sheet." },
+                { text: "As the size and", blankQ: 24, tail: " of the ice sheet have decreased," },
+                { text: "", blankQ: 25, before: "", after: " has caused melting in some parts of the continent." },
+                { text: "However, other areas of Antarctica have experienced falling temperatures in recent years, due to", blankQ: 26, tail: ", climate patterns leading to reduced temperatures." },
+              ],
+              optionsTitle: "List of Words",
+              options: [
+                { letter: "A", word: "reflectivity" },
+                { letter: "B", word: "ice melt" },
+                { letter: "C", word: "solar radiation" },
+                { letter: "D", word: "polar vortex winds" },
+                { letter: "E", word: "heat balance" },
+                { letter: "F", word: "water surfaces" },
+                { letter: "G", word: "global warming" },
+              ],
+            },
+            answers
+          )
+        );
+
+        return wrap;
+      },
+    };
+
+      const PART3_PASSAGE_TEXT = `
+Thinking, Fast and Slow
+
+The idea that we are ignorant of our true selves surged in the 20th century and became common. It's still a commonplace, but it’s changing shape. These days, the bulk of the explanation is done by something else: the ‘dual-process’ model of the brain. We now know that we apprehend the world in two radically opposed ways, employing two fundamentally different modes of thought: ‘System 1’ and ‘System 2’. System 1 is fast; it's intuitive, associative and automatic and it can't be switched off. Its operations involve no sense of intentional control, but it's the "secret author of many of the choices and judgments you make" and it's the hero of Daniel Kahneman's alarming, intellectually stimulating book Thinking, Fast and Slow.
+
+System 2 is slow, deliberate and effortful. Its operations require attention. (To set it going now, ask yourself the question "What is 13 x 27?"). System 2 takes over, rather unwillingly, when things get tricky. It's "the conscious being you call 'I'", and one of Kahneman's main points is that this is a mistake. You're wrong to identify with System 2, for you are also and equally and profoundly System 1. Kahneman compares System 2 to a supporting character who believes herself to be the lead actor and often has little idea of what's going on.
+
+System 2 is slothful, and tires easily (a process called ‘ego depletion’) – so it usually accepts what System 1 tells it. It's often right to do so, because System 1 is for the most part pretty good at what it does; it's highly sensitive to subtle environmental cues, signs of danger, and so on. It does, however, pay a high price for speed. It loves to simplify, to assume WYSIATI (‘what you see is all there is’). It's hopelessly bad at the kind of statistical thinking often required for good decisions, it jumps wildly to conclusions and it's subject to a fantastic range of irrational cognitive biases and interference effects, such as confirmation bias and hindsight bias, to name but two.
+
+The general point about our self-ignorance extends beyond the details of Systems 1 and 2. We're astonishingly susceptible to being influenced by features of our surroundings. One famous (pre-mobile phone) experiment centred on a New York City phone booth. Each time a person came out of the booth after having made a call, an accident was staged – someone dropped all her papers on the pavement. Sometimes a dime had been placed in the phone booth, sometimes not (a dime was then enough to make a call). If there was no dime in the phone booth, only 4% of the exiting callers helped to pick up the papers. If there was a dime, no fewer than 88% helped.
+
+Since then, thousands of other experiments have been conducted, all to the same general effect. We don't know who we are or what we're like, we don't know what we're really doing and we don't know why we're doing it. For example, Judges think they make considered decisions about parole based strictly on the facts of the case. It turns out (to simplify only slightly) that it is their blood-sugar levels really sitting in judgment. If you hold a pencil between your teeth, forcing your mouth into the shape of a smile, you'll find a cartoon funnier than if you hold the pencil pointing forward, by pursing your lips round it in a frown-inducing way.
+
+In an experiment designed to test the ‘anchoring effect’, highly experienced judges were given a description of a shoplifting offence. They were then ‘anchored’ to different numbers by being asked to roll a pair of dice that had been secretly loaded to produce only two totals – three or nine. Finally, they were asked whether the prison sentence for the shoplifting offence should be greater or fewer, in months, than the total showing on the dice. Normally the judges would have made extremely similar judgments, but those who had just rolled nine proposed an average of eight months while those who had rolled three proposed an average of only five months. All were unaware of the anchoring effect.
+
+The same goes for all of us, almost all the time. We think we're smart; we're confident we won't be unconsciously swayed by the high list price of a house. We're wrong. (Kahneman admits his own inability to counter some of these effects.) For example, another systematic error involves ‘duration neglect’ and the ‘peak-end rule’. Looking back on our experience of pain, we prefer a larger, longer amount to a shorter, smaller amount, just so long as the closing stages of the greater pain were easier to bear than the closing stages of the lesser one.
+`;
+
+      const PART3 = {
+      id: "part3",
+      title: "Part 3",
+      renderQuestions: (answers) => {
+        const wrap = document.createElement("div");
+
+        wrap.appendChild(
+          renderMCQBlock(
+            {
+              title: "Questions 27–31",
+              instructions: ["Choose the correct letter, A, B, C or D.", "Write your answers in the gaps."],
+              items: [
+                {
+                  q: 27,
+                  text: "The dual process model of the brain is",
+                  choices: {
+                    A: "The common practice of thinking about two things at the same time.",
+                    B: "The conflicting impulses pushing the brain to make both more and less effort.",
+                    C: "The feeling of liking and not liking something simultaneously.",
+                    D: "The natural tendency to make sense of the world in two different ways.",
+                  },
+                },
+                {
+                  q: 28,
+                  text: "System 2 takes charge of decision-making when",
+                  choices: {
+                    A: "When the brain needs a rest.",
+                    B: "When more mental effort is required.",
+                    C: "When a person feels excessively confident.",
+                    D: "When a dangerous situation is developing.",
+                  },
+                },
+                {
+                  q: 29,
+                  text: "‘Confirmation bias’ is an example of",
+                  choices: {
+                    A: "System 1 rushing to judgment.",
+                    B: "System 1 making a careful judgment.",
+                    C: "System 1 making a brave judgment.",
+                    D: "System 1 judging a situation based on facts.",
+                  },
+                },
+                {
+                  q: 30,
+                  text: "The main conclusion of the phone booth experiment was that",
+                  choices: {
+                    A: "People are more likely to help someone that they are attracted to.",
+                    B: "People are more responsive to their environment than they realize.",
+                    C: "People are more likely to be helpful if they think they will be rewarded.",
+                    D: "People are generally selfish and will always do what is best for themselves.",
+                  },
+                },
+                {
+                  q: 31,
+                  text: "The ‘anchoring effect’ is the process by which",
+                  choices: {
+                    A: "Decisions are made using a numerical system.",
+                    B: "A subconscious factor may strongly influence our decision-making.",
+                    C: "Decisions about prison sentences are made by rolling a dice.",
+                    D: "We may emphasize certain factor too much in our decision-making.",
+                  },
+                },
+              ],
+            },
+            answers
+          )
+        );
+
+        wrap.appendChild(
+          renderTFNGBlock(
+            {
+              title: "Questions 32–36",
+              instructions: [
+                "Do the following statements agree with the claims of the writer?",
+                "Choose TRUE / NO / NOT GIVEN.",
+                "Write your answers in the gaps.",
+              ],
+              customChoices: ["TRUE", "NO", "NOT GIVEN"],
+              items: [
+                { q: 32, text: "In general, humans have become less rational over the last 100 years." },
+                { q: 33, text: "Most people lack a clear sense of their own personal identity." },
+                { q: 34, text: "A person can train themselves to use System 2 most of the time." },
+                { q: 35, text: "People who make important decisions should be made aware of the dual-process model." },
+                { q: 36, text: "In most everyday situations, people are capable of making calm and rational decisions." },
+              ],
+            },
+            answers
+          )
+        );
+
+        wrap.appendChild(
+          renderEndingsMatchBlock(
+            {
+              title: "Questions 37–39",
+              instructions: [
+                "Complete each sentence with the correct ending, A–E, below.",
+                "Choose the correct letter for each answer.",
+                "Write your answers in the gaps.",
+              ],
+              endings: {
+                A: "feeling a certain way at the conclusion of an experience decides how we remember it.",
+                B: "decision-making and judgments are made too quickly.",
+                C: "having less energy means we are more likely to succumb to an irrational bias.",
+                D: "being sensitive to one’s surroundings is a useful survival skill.",
+                E: "wanting more food or drink may distract us from the decision we are making.",
+              },
+              items: [
+                { q: 37, text: "In the course of evolutionary history System 1 has served humans well because" },
+                { q: 38, text: "Low blood sugar or tiredness may be factors in decision making because" },
+                { q: 39, text: "The ‘peak-end rule’ shows us that" },
+              ],
+            },
+            answers
+          )
+        );
+
+        wrap.appendChild(
+          renderMCQBlock(
+            {
+              title: "Question 40",
+              instructions: ["Choose the correct letter, A, B, C or D.", "Write your answer in the gap."],
+              items: [
+                {
+                  q: 40,
+                  text: "What is the writer’s primary purpose in writing this article?",
+                  choices: {
+                    A: "to introduce their own research to the general reader",
+                    B: "to summarize and review a recently published book",
+                    C: "to argue against a commonly-held theory",
+                    D: "to encourage readers to question their own decision-making processes",
+                  },
+                },
+              ],
+            },
+            answers
+          )
+        );
+
+        return wrap;
+      },
+    };
+
+
+
+      return {
+        parts: [
+          { id: "part1", passageText: PART1_PASSAGE_TEXT, renderQuestions: PART1.renderQuestions },
+          { id: "part2", passageText: PART2_PASSAGE_TEXT, renderQuestions: PART2.renderQuestions },
+          { id: "part3", passageText: PART3_PASSAGE_TEXT, renderQuestions: PART3.renderQuestions },
+        ],
+      };
+  };
+
+const test1 = {
+  listening: {
+  "audioSrc": "https://audio.ieltsmock.org/listening_tp_part1.mp3",
+  "html": "<!-- PAGE 1 -->\n<div class=\"listen-page\" id=\"listenSec1\">\n<div class=\"listen-block\">\n<div class=\"listen-h\">SECTION 1 — Questions 1–10</div>\n<div class=\"listen-inst\">\n              Complete the notes/table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.\n              Write your answers <b>in the gaps</b>.\n            </div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Transport from Bayswater</div>\n<div class=\"listen-example\">\n<div><b>Example</b></div>\n<div>Destination: <b><i>Harbour City</i></b></div>\n</div>\n<div class=\"listen-notes\">\n<div class=\"note-row\"><span class=\"qnum\">1</span> Express train leaves at <input class=\"l-input\" data-lq=\"1\"/>.</div>\n<div class=\"note-row\"><span class=\"qnum\">2</span> Nearest station is <input class=\"l-input\" data-lq=\"2\"/>.</div>\n<div class=\"note-row\"><span class=\"qnum\">3</span> Number 706 bus goes to <input class=\"l-input\" data-lq=\"3\"/>.</div>\n<div class=\"note-row\"><span class=\"qnum\">4</span> Number <input class=\"l-input small\" data-lq=\"4\"/> bus goes to station.</div>\n<div class=\"note-row\"><span class=\"qnum\">5</span> Earlier bus leaves at <input class=\"l-input\" data-lq=\"5\"/>.</div>\n</div>\n</div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Questions 6–10</div>\n<div class=\"listen-table-wrap\">\n<table class=\"listen-table\">\n<thead>\n<tr>\n<th>Transport</th>\n<th>Cash fare</th>\n<th>Card fare</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Bus</td>\n<td>$ <span class=\"qnum\">6</span> <input class=\"l-input tiny\" data-lq=\"6\"/></td>\n<td>$1.50</td>\n</tr>\n<tr>\n<td>Train (peak)</td>\n<td>$10</td>\n<td>$10</td>\n</tr>\n<tr>\n<td>Train (off-peak)<br/>\n<span class=\"muted\">before 5pm or after <span class=\"qnum\">7</span> <input class=\"l-input tiny\" data-lq=\"7\"/> pm</span>\n</td>\n<td>$10</td>\n<td>$ <span class=\"qnum\">8</span> <input class=\"l-input tiny\" data-lq=\"8\"/></td>\n</tr>\n<tr>\n<td><span class=\"qnum\">9</span> <input class=\"l-input tiny\" data-lq=\"9\"/> ferry</td>\n<td>$4.50</td>\n<td>$3.55</td>\n</tr>\n<tr>\n<td>Tourist ferry (<span class=\"qnum\">10</span> <input class=\"l-input tiny\" data-lq=\"10\"/>)</td>\n<td>$35</td>\n<td>–</td>\n</tr>\n<tr>\n<td>Tourist ferry (whole day)</td>\n<td>$65</td>\n<td>–</td>\n</tr>\n</tbody>\n</table>\n</div>\n</div>\n</div>\n</div>\n<!-- PAGE 2 -->\n<div class=\"listen-page hidden\" id=\"listenSec2\">\n<div class=\"listen-block\">\n<div class=\"listen-h\">SECTION 2 — Questions 11–20</div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Questions 11–14</div>\n<div class=\"listen-inst\">Which counsellor should you see? Write the correct letter, <b>A, B or C</b>, in the gaps.</div>\n<div class=\"people-box\">\n<div><b>A</b> Louise Bagshaw</div>\n<div><b>B</b> Tony Denby</div>\n<div><b>C</b> Naomi Flynn</div>\n</div>\n<div class=\"note-row\"><span class=\"qnum\">11</span> if you do not have an appointment\n                <select class=\"l-select\" data-lq=\"11\">\n<option value=\"\"></option><option>A</option><option>B</option><option>C</option>\n</select>\n</div>\n<div class=\"note-row\"><span class=\"qnum\">12</span> if it is your first time seeing a counsellor\n                <select class=\"l-select\" data-lq=\"12\">\n<option value=\"\"></option><option>A</option><option>B</option><option>C</option>\n</select>\n</div>\n<div class=\"note-row\"><span class=\"qnum\">13</span> if your concerns are related to anxiety\n                <select class=\"l-select\" data-lq=\"13\">\n<option value=\"\"></option><option>A</option><option>B</option><option>C</option>\n</select>\n</div>\n<div class=\"note-row\"><span class=\"qnum\">14</span> if you are unable to see a counsellor during normal office hours\n                <select class=\"l-select\" data-lq=\"14\">\n<option value=\"\"></option><option>A</option><option>B</option><option>C</option>\n</select>\n</div>\n</div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Questions 15–20</div>\n<div class=\"listen-inst\">Complete the table below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>\n<div class=\"listen-table-wrap\">\n<table class=\"listen-table\">\n<thead>\n<tr>\n<th>Workshop</th>\n<th>Content</th>\n<th>Target group</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Adjusting</td>\n<td>what you need to succeed academically</td>\n<td><span class=\"qnum\">15</span> <input class=\"l-input tiny\" data-lq=\"15\"/> students</td>\n</tr>\n<tr>\n<td>Getting Organised</td>\n<td>use time effectively, find <span class=\"qnum\">16</span> <input class=\"l-input tiny\" data-lq=\"16\"/> between study and leisure</td>\n<td>all students</td>\n</tr>\n<tr>\n<td>Communicating</td>\n<td>talking with staff, communicating across cultures</td>\n<td>all students, especially <span class=\"qnum\">17</span> <input class=\"l-input tiny\" data-lq=\"17\"/></td>\n</tr>\n<tr>\n<td>Anxiety</td>\n<td><span class=\"qnum\">18</span> <input class=\"l-input tiny\" data-lq=\"18\"/>, breathing techniques, meditation, etc.</td>\n<td>students about to sit exams</td>\n</tr>\n<tr>\n<td><span class=\"qnum\">19</span> <input class=\"l-input tiny\" data-lq=\"19\"/></td>\n<td>staying on track for long periods</td>\n<td><span class=\"qnum\">20</span> <input class=\"l-input tiny\" data-lq=\"20\"/> students only</td>\n</tr>\n</tbody>\n</table>\n</div>\n</div>\n</div>\n</div>\n<!-- PAGE 3 -->\n<div class=\"listen-page hidden\" id=\"listenSec3\">\n<div class=\"listen-block\">\n<div class=\"listen-h\">SECTION 3 — Questions 21–30</div>\n<div class=\"listen-inst\">Complete the notes below. Write <b>NO MORE THAN THREE WORDS</b> for each answer.</div>\n<div class=\"listen-card section3-notes\">\n<!-- BASIC INFO -->\n<div class=\"s3-group\">\n<div class=\"note-row\"><b>Novel:</b> <span class=\"qnum\">21</span> <input class=\"l-input\" data-lq=\"21\"/></div>\n<div class=\"note-row\"><b>Protagonists:</b> Mary Lennox; Colin Craven</div>\n<div class=\"note-row\"><b>Time period:</b> Early in <span class=\"qnum\">22</span> <input class=\"l-input\" data-lq=\"22\"/></div>\n<div class=\"note-row\">\n<b>Plot:</b> Mary → UK — meets Colin who thinks he’ll never be able to\n      <span class=\"qnum\">23</span> <input class=\"l-input\" data-lq=\"23\"/>. They become friends.\n    </div>\n<div class=\"note-row\">\n<b>Point of view:</b> “Omniscient” — narrator knows all about characters’ feelings, opinions and\n      <span class=\"qnum\">24</span> <input class=\"l-input\" data-lq=\"24\"/>.\n    </div>\n<div class=\"note-row\"><b>Audience:</b> Good for children — story simple to follow</div>\n</div>\n<!-- SYMBOLS -->\n<div class=\"s3-group\">\n<div class=\"note-row s3-title\">\n<b>Symbols</b> (physical items that represent\n      <span class=\"qnum\">25</span> <input class=\"l-input\" data-lq=\"25\"/>):\n    </div>\n<div class=\"note-row bullet\">• the robin redbreast</div>\n<div class=\"note-row bullet\">• <span class=\"qnum\">26</span> <input class=\"l-input\" data-lq=\"26\"/></div>\n<div class=\"note-row bullet\">• the portrait of Mistress Craven</div>\n</div>\n<!-- MOTIFS -->\n<div class=\"s3-group\">\n<div class=\"note-row s3-title\"><b>Motifs</b> (patterns in the story):</div>\n<div class=\"note-row bullet\">• the Garden of Eden</div>\n<div class=\"note-row bullet\">\n      • secrecy — metaphorical and literal transition from\n      <span class=\"qnum\">27</span> <input class=\"l-input\" data-lq=\"27\"/>\n</div>\n</div>\n<!-- THEMES -->\n<div class=\"s3-group\">\n<div class=\"note-row s3-title\"><b>Themes:</b> Connections between</div>\n<div class=\"note-row bullet\">\n      • <span class=\"qnum\">28</span> <input class=\"l-input\" data-lq=\"28\"/> and outlook\n    </div>\n<div class=\"note-row bullet\">\n      • <span class=\"qnum\">29</span> <input class=\"l-input\" data-lq=\"29\"/> and well-being\n    </div>\n<div class=\"note-row bullet\">\n      • individuals and the need for <span class=\"qnum\">30</span> <input class=\"l-input\" data-lq=\"30\"/>\n</div>\n</div>\n</div>\n</div>\n</div>\n<!-- PAGE 4 -->\n<div class=\"listen-page hidden\" id=\"listenSec4\">\n<div class=\"listen-block\">\n<div class=\"listen-h\">SECTION 4 — Questions 31–40</div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Questions 31–35</div>\n<div class=\"listen-inst\">Complete the table below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n<div class=\"listen-card-title\">Time Perspectives</div>\n<div class=\"listen-table-wrap\">\n<table class=\"listen-table\">\n<thead>\n<tr><th>Time Zone</th><th>Outlook</th><th>Features &amp; Consequences</th></tr>\n</thead>\n<tbody>\n<tr>\n<td>Past</td>\n<td>Positive</td>\n<td>Remember good times, e.g. birthdays. Keep family records, photo albums, etc.</td>\n</tr>\n<tr>\n<td></td>\n<td><span class=\"qnum\">31</span> <input class=\"l-input tiny\" data-lq=\"31\"/></td>\n<td>Focus on disappointments, failures, bad decisions.</td>\n</tr>\n<tr>\n<td>Present</td>\n<td>Hedonistic</td>\n<td>Live for <span class=\"qnum\">32</span> <input class=\"l-input tiny\" data-lq=\"32\"/>; seek sensation; avoid pain.</td>\n</tr>\n<tr>\n<td></td>\n<td>Fatalistic</td>\n<td>Life is governed by <span class=\"qnum\">33</span> <input class=\"l-input tiny\" data-lq=\"33\"/>, religious beliefs, social conditions. Life’s path can’t be changed.</td>\n</tr>\n<tr>\n<td>Future</td>\n<td><span class=\"qnum\">34</span> <input class=\"l-input tiny\" data-lq=\"34\"/></td>\n<td>Prefer work to play. Don’t give in to temptation.</td>\n</tr>\n<tr>\n<td></td>\n<td>Fatalistic</td>\n<td>Have a strong belief in life after death and importance of <span class=\"qnum\">35</span> <input class=\"l-input tiny\" data-lq=\"35\"/> in life.</td>\n</tr>\n</tbody>\n</table>\n</div>\n</div>\n<div class=\"listen-card\">\n<div class=\"listen-card-title\">Questions 36–40</div>\n<div class=\"listen-inst\">Choose the correct letter, <b>A, B or C</b>.</div>\n<div class=\"mcq\">\n<div class=\"mcq-q\"><span class=\"qnum\">36</span> We are all present hedonists</div>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q36\" value=\"A\" data-lq-radio=\"36\"/> A) at school</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q36\" value=\"B\" data-lq-radio=\"36\"/> B) at birth</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q36\" value=\"C\" data-lq-radio=\"36\"/> C) while eating and drinking</label>\n</div>\n<div class=\"mcq\">\n<div class=\"mcq-q\"><span class=\"qnum\">37</span> American boys drop out of school at a higher rate than girls because</div>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q37\" value=\"A\" data-lq-radio=\"37\"/> A) they need to be in control of the way they learn</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q37\" value=\"B\" data-lq-radio=\"37\"/> B) they play video games instead of doing school work</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q37\" value=\"C\" data-lq-radio=\"37\"/> C) they are not as intelligent as girls</label>\n</div>\n<div class=\"mcq\">\n<div class=\"mcq-q\"><span class=\"qnum\">38</span> Present-orientated children</div>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q38\" value=\"A\" data-lq-radio=\"38\"/> A) do not realise present actions can have negative future effects</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q38\" value=\"B\" data-lq-radio=\"38\"/> B) are unable to learn lessons from past mistakes</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q38\" value=\"C\" data-lq-radio=\"38\"/> C) know what could happen if they do something bad, but do it anyway</label>\n</div>\n<div class=\"mcq\">\n<div class=\"mcq-q\"><span class=\"qnum\">39</span> If Americans had an extra day per week, they would spend it</div>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q39\" value=\"A\" data-lq-radio=\"39\"/> A) working harder</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q39\" value=\"B\" data-lq-radio=\"39\"/> B) building relationships</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q39\" value=\"C\" data-lq-radio=\"39\"/> C) sharing family meals</label>\n</div>\n<div class=\"mcq\">\n<div class=\"mcq-q\"><span class=\"qnum\">40</span> Understanding how people think about time can help us</div>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q40\" value=\"A\" data-lq-radio=\"40\"/> A) become more virtuous</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q40\" value=\"B\" data-lq-radio=\"40\"/> B) work together better</label>\n<label class=\"mcq-opt\"><input type=\"radio\" name=\"q40\" value=\"C\" data-lq-radio=\"40\"/> C) identify careless or ambitious people</label>\n</div>\n</div>\n</div>\n</div>\n<div class=\"listen-footer\">\n<div class=\"muted\" id=\"listenAutosave\">Autosave: ready</div>\n<button class=\"btn secondary\" id=\"downloadListeningBtn\" type=\"button\">Download Listening answers (JSON)</button>\n<button class=\"btn secondary\" id=\"copyListeningBtn\" type=\"button\">Copy Listening answers</button>\n<button class=\"btn\" id=\"submitListeningBtn\" type=\"button\">Submit Listening now</button>\n</div>"
+},
+  writing: {
+  "task1Type": "Mixed chart",
+  "task2Type": "Opinion essay",
+  "task1Html": "You should spend about 20 minutes on this task.<br/>\n            The graphs below give information about computer ownership as a percentage of the population between 2002 and 2010,\n            and by level of education for the years 2002 and 2010.<br/>\n            Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/>\n<b>Write at least 150 words.</b>",
+  "task1ImageSrc": "https://static.wixstatic.com/media/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg/v1/fill/w_568,h_650,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/6d9e77_cf5acdc4f237496ea2d3611301fe0319~mv2.jpg",
+  "task2Html": "You should spend about 40 minutes on this task.<br/><br/>\n            A person’s worth nowadays seems to be judged according to social status and material possessions.\n            Old-fashioned values, such as honour, kindness and trust, no longer seem important.<br/>\n<b>To what extent do you agree or disagree with this opinion?</b><br/>\n            Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br/>\n<b>Write at least 250 words.</b>",
+  "sampleAnswers": {
+    "task1": {
+      "bandScore": "Band 7.0",
+      "explanation": "This model gives a clear overview, highlights the main trends, and makes useful comparisons between education groups. It reaches Band 7 because the organization is strong and the language is mostly accurate, although the data commentary could be even more selective and precise.",
+      "sampleAnswer": "The graphs compare computer ownership in the population as a whole between 2002 and 2010 and show how ownership varied by level of education in 2002 and 2010.\n\nOverall, computer ownership increased steadily over the period. It is also clear that people with higher levels of education were more likely to own a computer in both years, although all educational groups saw growth by 2010.\n\nIn the first graph, the proportion of people who owned a computer rose from just over half in 2002 to around three quarters in 2010. The increase was gradual and consistent, with no decline at any point during the period.\n\nThe second graph shows a clear connection between education and computer ownership. In 2002, the lowest ownership levels were among people without a high-school diploma, while postgraduates had the highest figure. By 2010, all groups had experienced growth. Ownership among the most educated groups rose to very high levels, while the least educated groups, although still lower overall, recorded some of the strongest gains. This suggests that computer access became much more widespread over time, even though educational background remained an important factor.",
+      "correctedForm": "The graphs illustrate changes in computer ownership from 2002 to 2010 and compare ownership rates across education levels in 2002 and 2010.\n\nOverall, computer ownership rose steadily throughout the period. In addition, ownership was consistently higher among better-educated people, although every educational group experienced an increase by 2010.\n\nAccording to the first graph, the share of the population owning a computer grew from slightly above 50% in 2002 to roughly 75% in 2010. The trend was upward across the whole period.\n\nThe second graph indicates that education level had a strong impact on ownership. In 2002, people without a high-school diploma had the lowest rate, whereas postgraduates recorded the highest. By 2010, ownership had risen in all categories. The more highly educated groups remained at the top, but the lower educational groups also made noticeable progress. Overall, the data shows both expanding computer access and a continuing link between education and computer ownership."
+    },
+    "task2": {
+      "bandScore": "Band 7.5",
+      "explanation": "This essay presents a clear position, develops both sides sensibly, and supports the ideas with relevant reasoning. It fits the upper bands because the response is coherent and controlled, though a few arguments could be pushed slightly further for a stronger Band 8 performance.",
+      "sampleAnswer": "In modern society, many people appear to be valued according to their wealth, possessions and social position, while traditional qualities such as kindness, trust and honour seem less visible. I partly agree with this statement because material success has become an obvious measure of status, although I do not believe that moral values have lost their importance.\n\nThere is no doubt that modern life encourages people to judge others by external success. Social media, advertising and celebrity culture place great emphasis on income, luxury goods and lifestyle. As a result, expensive houses, fashionable brands and prestigious jobs are often seen as signs that someone is successful or important. In some cases, people form opinions about others before learning anything about their real character.\n\nHowever, this does not mean that old-fashioned values have disappeared. In everyday life, trust, honesty and kindness are still essential. Families depend on them, friendships are built on them, and workplaces function more effectively when people act with integrity. During difficult times, people usually value those who are reliable and supportive rather than those who simply have status or money.\n\nIn my opinion, the main change is that traditional values are less visible in public life. Wealth can be displayed immediately, whereas character is revealed only through long-term behaviour. Because of this, society may seem more materialistic than it really is.\n\nIn conclusion, social status and possessions have become powerful ways of judging people in the modern world, but values such as honour, kindness and trust still define a person’s true worth in the long run.",
+      "correctedForm": "Nowadays, many people seem to judge others by social status and material possessions rather than by qualities such as kindness, honour and trust. I partly agree, because visible success has become a powerful social signal, but I do not think traditional values are no longer important.\n\nOn the one hand, material success is often treated as a measure of personal worth. Media and online culture regularly present wealth, influence and luxury as proof of achievement. This encourages people to admire others for what they own rather than for how they behave.\n\nOn the other hand, traditional values still matter deeply in real life. Trust is essential in families and business, kindness strengthens communities, and honour shapes how people are remembered. When people face genuine difficulty, they usually depend on loyal and decent individuals rather than on those with the highest social position.\n\nI believe the real difference is one of visibility. Status can be displayed instantly, while good character becomes clear only over time. For that reason, modern society may look more superficial than it actually is.\n\nTo conclude, social status and possessions have gained too much importance, but values such as trust, honour and kindness still remain the true basis of human worth."
+    }
+  }
+},
+  reading: { legacyFactory: readingLegacyFactory1 },
+};
+
+const test2 = {
+  "listening": {
+    "audioSrc": "https://audio.ieltsmock.org/listening_tp_part2.mp3",
+    "html": "\n        <div class=\"listen-page\" id=\"listenSec1\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 1 — Questions 1–10</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 1–6</div>\n              <div class=\"listen-inst\">Complete the form below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>\n              <div class=\"listen-card-title\">Application Form for use of Library Internet Service</div>\n              <div class=\"listen-example\">\n                <div><b>Example</b></div>\n                <div>Existing cardholder? <b>Yes</b></div>\n              </div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\">Family name: Milton</div>\n                <div class=\"note-row\"><span class=\"qnum\">1</span> First names: <input data-lq=\"1\" class=\"l-input\"> Jayne</div>\n                <div class=\"note-row\"><span class=\"qnum\">2</span> Address: <input data-lq=\"2\" class=\"l-input\"></div>\n                <div class=\"note-row\">35 Maximilian Way</div>\n                <div class=\"note-row\">Whitfield</div>\n                <div class=\"note-row\"><span class=\"qnum\">3</span> Post Code: <input data-lq=\"3\" class=\"l-input small\"></div>\n                <div class=\"note-row\">Occupation: Nurse</div>\n                <div class=\"note-row\">(works the <span class=\"qnum\">4</span> <input data-lq=\"4\" class=\"l-input small\">)</div>\n                <div class=\"note-row\">Home phone: N/A</div>\n                <div class=\"note-row\">Mobile: 0412 214 418</div>\n                <div class=\"note-row\"><span class=\"qnum\">5</span> Type of ID: <input data-lq=\"5\" class=\"l-input\"></div>\n                <div class=\"note-row\">ID number: AZ 1985331</div>\n                <div class=\"note-row\">Date of Birth: 25th <span class=\"qnum\">6</span> <input data-lq=\"6\" class=\"l-input small\"></div>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 7 and 8</div>\n              <div class=\"listen-inst\">What will the woman use the internet for? Choose <b>TWO</b> letters, A–E. Type one letter in each box.</div>\n              <div class=\"endings-box\">\n                <div><b>A</b> trade &amp; exchange</div>\n                <div><b>B</b> research</div>\n                <div><b>C</b> email</div>\n                <div><b>D</b> social networking</div>\n                <div><b>E</b> job vacancies</div>\n              </div>\n              <div class=\"note-row\"><span class=\"qnum\">7</span> First choice: <input data-lq=\"7\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">8</span> Second choice: <input data-lq=\"8\" class=\"l-input tiny\"></div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 9 and 10</div>\n              <div class=\"listen-inst\">Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>\n              <div class=\"note-row\"><span class=\"qnum\">9</span> How much does it cost to register as an internet user? <input data-lq=\"9\" class=\"l-input\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">10</span> What is the maximum amount of time allowed per single daily internet session? <input data-lq=\"10\" class=\"l-input\"></div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec2\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 2 — Questions 11–20</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 11–15</div>\n              <div class=\"listen-inst\">Choose the correct letter, <b>A, B or C</b>.</div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">11</span> The guided bushwalk is suitable for</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"A\" data-lq-radio=\"11\"> A) adults only</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"B\" data-lq-radio=\"11\"> B) children over 12 and adults</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"C\" data-lq-radio=\"11\"> C) children over 8 accompanied by a parent</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">12</span> On the bird observation outing, it is recommended that you have</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"A\" data-lq-radio=\"12\"> A) waterproof footwear</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"B\" data-lq-radio=\"12\"> B) a bird identification book</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"C\" data-lq-radio=\"12\"> C) binoculars</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">13</span> For the trip to the sand dunes, a company will donate</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"A\" data-lq-radio=\"13\"> A) water</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"B\" data-lq-radio=\"13\"> B) tools</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"C\" data-lq-radio=\"13\"> C) gloves</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">14</span> The bush tucker excursion will cost (per person)</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"A\" data-lq-radio=\"14\"> A) $15</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"B\" data-lq-radio=\"14\"> B) $12</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"C\" data-lq-radio=\"14\"> C) $7</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">15</span> The deadline to register for the bush tucker outing is</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"A\" data-lq-radio=\"15\"> A) 25 November</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"B\" data-lq-radio=\"15\"> B) 15 November</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"C\" data-lq-radio=\"15\"> C) 10 November</label>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 16–20</div>\n              <div class=\"listen-inst\">Complete the table below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>\n              <div class=\"listen-table-wrap\">\n                <table class=\"listen-table\">\n                  <thead><tr><th>Activity</th><th>Leader</th><th>Date</th><th>Venue</th><th>Time</th></tr></thead>\n                  <tbody>\n                    <tr><td>Bush walk</td><td>Glenn Ford</td><td><span class=\"qnum\">16</span> <input data-lq=\"16\" class=\"l-input tiny\"></td><td>Springvale</td><td><span class=\"qnum\">17</span> <input data-lq=\"17\" class=\"l-input tiny\">–1pm</td></tr>\n                    <tr><td>Bird watching</td><td>Joy Black, club <span class=\"qnum\">18</span> <input data-lq=\"18\" class=\"l-input tiny\"></td><td>10 September</td><td>Camford</td><td>4.30–6.30pm</td></tr>\n                    <tr><td>Sand dunes</td><td>Rex Rose</td><td>26 November</td><td><span class=\"qnum\">19</span> <input data-lq=\"19\" class=\"l-input tiny\"></td><td>8.30–10.30am</td></tr>\n                    <tr><td>Bush tucker</td><td>Jim Kerr, ranger</td><td>3 December</td><td>Carson Hills</td><td>10am–<span class=\"qnum\">20</span> <input data-lq=\"20\" class=\"l-input tiny\"></td></tr>\n                  </tbody>\n                </table>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec3\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 3 — Questions 21–30</div>\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 21–25</div>\n              <div class=\"listen-inst\">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>\n              <div class=\"note-row\"><span class=\"qnum\">21</span> Students must follow <input data-lq=\"21\" class=\"l-input\"> to prevent accidents in the lab.</div>\n              <div class=\"note-row\"><span class=\"qnum\">22</span> The students have not been using <input data-lq=\"22\" class=\"l-input\"> while in the lab.</div>\n              <div class=\"note-row\"><span class=\"qnum\">23</span> Students cannot eat or drink until <input data-lq=\"23\" class=\"l-input\"> is finished and they have washed their hands.</div>\n              <div class=\"note-row\"><span class=\"qnum\">24</span> Tessa should tie her hair back to avoid danger when she is working with a <input data-lq=\"24\" class=\"l-input\"> or chemicals.</div>\n              <div class=\"note-row\"><span class=\"qnum\">25</span> Students must wear long sleeves and shoes made of <input data-lq=\"25\" class=\"l-input\"> in the lab.</div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 26–28</div>\n              <div class=\"listen-inst\">Choose the correct letter, <b>A, B or C</b>.</div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">26</span> Which student is currently using an appropriate notebook?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"A\" data-lq-radio=\"26\"> A) Vincent</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"B\" data-lq-radio=\"26\"> B) Tessa</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"C\" data-lq-radio=\"26\"> C) Neither student</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">27</span> The tutor says that writing observations in complete sentences</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q27\" value=\"A\" data-lq-radio=\"27\"> A) is often not a good use of time</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q27\" value=\"B\" data-lq-radio=\"27\"> B) makes them easier to interpret later</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q27\" value=\"C\" data-lq-radio=\"27\"> C) means that others can understand them</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">28</span> The students must write dates</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q28\" value=\"A\" data-lq-radio=\"28\"> A) next to each drawing</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q28\" value=\"B\" data-lq-radio=\"28\"> B) next to each written section</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q28\" value=\"C\" data-lq-radio=\"28\"> C) next to each drawing and written section</label>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 29 and 30</div>\n              <div class=\"listen-inst\">Which <b>TWO</b> things must be included in the conclusion to the experiment? Type one letter in each box.</div>\n              <div class=\"endings-box\">\n                <div><b>A</b> the questions investigated</div>\n                <div><b>B</b> the solutions to the questions</div>\n                <div><b>C</b> the student’s own thoughts about the experiment</div>\n                <div><b>D</b> the length of time spent on the experiment</div>\n                <div><b>E</b> the student’s signature</div>\n              </div>\n              <div class=\"note-row\"><span class=\"qnum\">29</span> First choice: <input data-lq=\"29\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">30</span> Second choice: <input data-lq=\"30\" class=\"l-input tiny\"></div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec4\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 4 — Questions 31–40</div>\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 31–40</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>\n              <div class=\"listen-card-title\">Climate change</div>\n              <div class=\"note-row\"><b>HUMAN FACTORS</b></div>\n              <div class=\"note-row bullet\">• Cutting down trees for <span class=\"qnum\">31</span> <input data-lq=\"31\" class=\"l-input\"></div>\n              <div class=\"note-row bullet\">• Industrial Revolution</div>\n              <div class=\"note-row bullet\">• <span class=\"qnum\">32</span> <input data-lq=\"32\" class=\"l-input\"></div>\n              <div class=\"note-row bullet\">• Increase in population → deforestation</div>\n              <div class=\"note-row\"><b>KNOWN EFFECTS</b></div>\n              <div class=\"note-row bullet\">• Over previous 130 yrs: temp. ↑ by 0.6 °C</div>\n              <div class=\"note-row bullet\">• Since Ind. Rev.: CO2 ↑ by 30% &amp; Methane ↑ by <span class=\"qnum\">33</span> <input data-lq=\"33\" class=\"l-input tiny\"> (from mining, animals, rice paddies)</div>\n              <div class=\"note-row bullet\">• N2O ↑ (from <span class=\"qnum\">34</span> <input data-lq=\"34\" class=\"l-input\"> esp. fertiliser; waste management; car exhausts)</div>\n              <div class=\"note-row bullet\">• Greenhouse Effect: gases form <span class=\"qnum\">35</span> <input data-lq=\"35\" class=\"l-input\"> → heat trapped → Earth warms up</div>\n              <div class=\"note-row\"><b>FUTURE EFFECTS</b></div>\n              <div class=\"listen-table-wrap\">\n                <table class=\"listen-table\">\n                  <thead><tr><th>Sea level</th><th>Number of people at risk</th></tr></thead>\n                  <tbody>\n                    <tr><td>1998 levels</td><td><span class=\"qnum\">36</span> <input data-lq=\"36\" class=\"l-input tiny\"></td></tr>\n                    <tr><td>+50 cm</td><td>92 million</td></tr>\n                    <tr><td>+1 metre</td><td><span class=\"qnum\">37</span> <input data-lq=\"37\" class=\"l-input tiny\"></td></tr>\n                  </tbody>\n                </table>\n              </div>\n              <div class=\"note-row bullet\">2. Change in <span class=\"qnum\">38</span> <input data-lq=\"38\" class=\"l-input\"> → more arid areas → population movement to cities</div>\n              <div class=\"note-row bullet\">3. Increase in pests and <span class=\"qnum\">39</span> <input data-lq=\"39\" class=\"l-input\"> e.g. malaria</div>\n              <div class=\"note-row bullet\">4. Change in ecosystems: shift in <span class=\"qnum\">40</span> <input data-lq=\"40\" class=\"l-input\"> – some die, others multiply</div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-footer\">\n          <div class=\"muted\" id=\"listenAutosave\">Autosave: ready</div>\n          <button class=\"btn secondary\" id=\"downloadListeningBtn\" type=\"button\">Download Listening answers (JSON)</button>\n          <button class=\"btn secondary\" id=\"copyListeningBtn\" type=\"button\">Copy Listening answers</button>\n          <button class=\"btn\" id=\"submitListeningBtn\" type=\"button\">Submit Listening now</button>\n        </div>\n      "
+  },
+  "writing": {
+    "task1Type": "Line graph",
+    "task2Type": "Discussion essay",
+    "task1Html": "You should spend about 20 minutes on this task.<br>\nThe graph below shows the proportion of four different materials that were recycled from 1982 to 2010 in a particular country.<br>\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>\n<b>Write at least 150 words.</b>",
+    "task1ImageSrc": "https://www.ieltsbuddy.com/images/ielts-line-graph-recycling-different-materials-21962309.jpg",
+    "task2Html": "You should spend about 40 minutes on this task.<br><br>\nSome parents and teachers think that children's behavior should be strictly controlled. While some think that children should be free to behave.<br>\n<b>Discuss both views and give your opinion.</b><br>\nWrite at least 250 words.",
+    "sampleAnswers": {
+      "task1": {
+        "bandScore": "Band 7.0",
+        "explanation": "This report identifies the key trends clearly and compares the four materials rather than describing every point mechanically. It reaches Band 7 because the overview is effective and the language is controlled, although some data support could be slightly more specific.",
+        "sampleAnswer": "The line graph shows the proportion of four materials that were recycled in one country between 1982 and 2010.\n\nOverall, paper and cardboard remained the most widely recycled material for most of the period, although its figure declined slightly at the end. By contrast, aluminium cans showed the most dramatic growth. Glass recovered after an early fall, while plastics remained by far the least recycled material throughout.\n\nPaper and cardboard started at around 65% in 1982 and rose to a peak of about 80% in the mid-1990s. After that, the figure fell gradually, finishing at roughly 70% in 2010. Glass began at approximately 50%, dropped to about 40% by 1990, and then climbed steadily to around 60% at the end of the period.\n\nAluminium cans recorded the fastest growth. Recycling began at a very low level, at only a few percent, but rose sharply after 1990 and reached about 45% by 2010. Plastics changed the least. Despite a small increase over time, the figure stayed low and ended at under 10%.\n\nIn summary, paper and cardboard dominated recycling overall, but aluminium experienced the strongest upward trend, while plastics remained comparatively insignificant.",
+        "correctedForm": "The graph illustrates the percentage of four materials that were recycled in a particular country from 1982 to 2010.\n\nOverall, paper and cardboard had the highest recycling rates during most of the period, although their figure declined slightly in the later years. Aluminium cans, in contrast, rose sharply, while plastics remained the least recycled material throughout. Glass fell at first but then recovered steadily.\n\nPaper and cardboard started at about 65% in 1982 and peaked at roughly 80% in 1994 before decreasing to around 70% by 2010. Glass began at approximately 50%, dropped to about 40% by 1990, and then increased gradually to end at around 60%.\n\nAluminium cans showed the most significant growth. Their recycling rate was very low at the beginning, but it rose rapidly after 1990 and reached about 45% by the end of the period. Plastics, by comparison, saw only a slight increase and finished at under 10%.\n\nOverall, the graph shows strong long-term growth in aluminium and a continuing dominance of paper and cardboard, whereas plastics remained far less commonly recycled."
+      },
+      "task2": {
+        "bandScore": "Band 7.5",
+        "explanation": "This essay covers both views clearly and gives a balanced personal position. It reaches Band 7.5 because the ideas are logically developed and supported, though some arguments could be illustrated even more fully for a higher band.",
+        "sampleAnswer": "Some people believe that children should be raised under strict control, while others argue that they should be given more freedom. This essay will discuss both perspectives before explaining why I believe children need freedom, but within reasonable boundaries.\n\nThose who support strict control argue that children are not mature enough to make sensible decisions on their own. Clear rules can protect them from danger, encourage discipline and help them understand acceptable behavior. For example, school rules and parental limits on screen time can prevent harmful habits and create a more stable environment for learning. Without guidance, some children may struggle to develop self-control.\n\nOn the other hand, people who favour freedom believe that children learn best by making choices and experiencing the consequences of those choices. If every action is controlled, children may become dependent, insecure or less creative. Freedom can also help them develop confidence, independence and problem-solving skills, which are essential in adult life.\n\nIn my opinion, children should not be either completely controlled or completely free. They need a structured environment, but they also need opportunities to express themselves and make age-appropriate decisions. Parents and teachers should therefore provide firm guidance while gradually increasing freedom as children become more responsible.\n\nIn conclusion, strict control can protect children and teach discipline, whereas freedom helps them grow into independent individuals. A balanced approach is the most effective way to support healthy development.",
+        "correctedForm": "Some parents and teachers believe that children's behaviour should be tightly controlled, whereas others think children should have greater freedom. Both views have merit, but I believe the best approach is to combine clear limits with increasing independence.\n\nSupporters of strict control argue that children need firm guidance because they are still developing judgement and self-discipline. Rules at home and school can protect them from harm, establish boundaries and promote responsible behaviour. For instance, limits on internet use or school attendance can prevent poor habits from forming early.\n\nBy contrast, those who favour freedom argue that children must learn to think and act for themselves. If adults control every decision, children may become overly dependent and less confident. Freedom allows them to make choices, learn from mistakes and build independence.\n\nIn my view, neither extreme is ideal. Children need structure, but they also need room to grow. Adults should set clear rules on important matters while allowing children to make smaller decisions appropriate to their age and maturity.\n\nTo conclude, strict control offers safety and discipline, while freedom encourages confidence and responsibility. A balanced combination of both is the most effective way to guide children's behaviour."
+      }
+    }
+  },
+  "reading": {
+    "parts": [
+      {
+        "id": "part1",
+        "passageText": "The MAGIC of KEFIR\n\nA The shepherds of the North Caucasus region of Europe were only trying to transport milk the best way they knew how – in leather pouches strapped to the side of donkeys – when they made a significant discovery. A fermentation process would sometimes inadvertently occur en route, and when the pouches were opened up on arrival they would no longer contain milk but rather a pungent, effervescent, low-alcoholic substance instead. This unexpected development was a blessing in disguise. The new drink – which acquired the name kefir – turned out to be a health tonic, a naturally-preserved dairy product and a tasty addition to our culinary repertoire.\n\nB Although their exact origin remains a mystery, we do know that yeast-based kefir grains have always been at the root of the kefir phenomenon. These grains are capable of a remarkable feat: in contradistinction to most other items you might find in a grocery store, they actually expand and propagate with use. This is because the grains, which are granular to the touch and bear a slight resemblance to cauliflower rosettes, house active cultures that feed on lactose when added to milk. Consequently, a bigger problem for most kefir drinkers is not where to source new kefir grains, but what to do with the ones they already have!\n\nC The great thing about kefir is that it does not require a manufacturing line in order to be produced. Grains can be simply thrown in with a batch of milk for ripening to begin. The mixture then requires a cool, dark place to live and grow, with periodic unsettling to prevent clumping (Caucasus inhabitants began storing the concoction in animal-skin satchels on the back of doors – every time someone entered the room the mixture would get lightly shaken). After about 24 hours the yeast cultures in the grains have multiplied and devoured most of the milk sugars, and the final product is then ready for human consumption.\n\nD Nothing compares to a person’s first encounter with kefir. The smooth, uniform consistency rolls over the tongue in a manner akin to liquefied yogurt. The sharp, tart pungency of unsweetened yogurt is there too, but there is also a slight hint of effervescence, something most users will have previously associated only with mineral waters, soda or beer. Kefir also comes with a subtle aroma of yeast, and depending on the type of milk and ripening conditions, ethanol content can reach up to two or three percent – about on par with a decent lager – although you can expect around 0.8 to one per cent for a typical day-old preparation. This can bring out a tiny edge of alcohol in the kefir’s flavour.\n\nE Although it has prevailed largely as a fermented milk drink, over the years kefir has acquired a number of other uses. Many bakers use it instead of starter yeast in the preparation of sourdough, and the tangy flavour also makes kefir an ideal buttermilk substitute in pancakes. Kefir also accompanies sour cream as one of the main ingredients in cold beetroot soup and can be used in lieu of regular cow’s milk on granola or cereal. As a way to keep their digestive systems fine-tuned, athletes sometimes combine kefir with yoghurt in protein shakes.\n\nF Associated for centuries with pictures of Slavic babushkas clutching a shawl in one hand and a cup of kefir in the other, the unassuming beverage has become a minor celebrity of the nascent health food movement in the contemporary West. Every day, more studies pour out supporting the benefits of a diet high in probiotics. This trend toward consuming probiotics has engulfed the leisure classes in these countries to the point that it is poised to become, according to some commentators, “the next multivitamin”. These days the word kefir is consequently more likely to bring to mind glamorous, yoga mat-toting women from Los Angeles than austere visions of blustery Eastern Europe.\n\nG Kefir’s rise in popularity has encouraged producers to take short cuts or alter the production process. Some home users have omitted the ripening and culturation process while commercial dealers often add thickeners, stabilisers and sweeteners. But the beauty of kefir is that, at its healthiest and tastiest, it is a remarkably affordable, uncluttered process, as any accidental invention is bound to be. All that is necessary are some grains, milk and a little bit of patience. A return to the unadulterated kefir-making of old is in everyone’s interest.",
+        "blocks": [
+          {
+            "type": "headings",
+            "title": "Questions 1–7",
+            "instructions": [
+              "Reading Passage 1 has seven paragraphs, A–G.",
+              "Choose the correct heading for each paragraph from the list of headings below.",
+              "Write the correct number, i–x, in the gaps."
+            ],
+            "listTitle": "List of Headings",
+            "headings": [
+              {
+                "value": "i",
+                "label": "A unique sensory experience"
+              },
+              {
+                "value": "ii",
+                "label": "Getting back to basics"
+              },
+              {
+                "value": "iii",
+                "label": "The gift that keeps on giving"
+              },
+              {
+                "value": "iv",
+                "label": "Variations in alcohol content"
+              },
+              {
+                "value": "v",
+                "label": "Old methods of transportation"
+              },
+              {
+                "value": "vi",
+                "label": "Culinary applications"
+              },
+              {
+                "value": "vii",
+                "label": "Making kefir"
+              },
+              {
+                "value": "viii",
+                "label": "A fortunate accident"
+              },
+              {
+                "value": "ix",
+                "label": "Kefir gets an image makeover"
+              },
+              {
+                "value": "x",
+                "label": "Ways to improve taste"
+              }
+            ],
+            "questions": [
+              {
+                "q": 1,
+                "paragraph": "Section A"
+              },
+              {
+                "q": 2,
+                "paragraph": "Section B"
+              },
+              {
+                "q": 3,
+                "paragraph": "Section C"
+              },
+              {
+                "q": 4,
+                "paragraph": "Section D"
+              },
+              {
+                "q": 5,
+                "paragraph": "Section E"
+              },
+              {
+                "q": 6,
+                "paragraph": "Section F"
+              },
+              {
+                "q": 7,
+                "paragraph": "Section G"
+              }
+            ]
+          },
+          {
+            "type": "shortAnswer",
+            "title": "Questions 8–11",
+            "instructions": [
+              "Answer the questions below using NO MORE THAN TWO WORDS from the passage for each answer.",
+              "Write your answers in the gaps."
+            ],
+            "questions": [
+              {
+                "q": 8,
+                "text": "What do kefir grains look like?"
+              },
+              {
+                "q": 9,
+                "text": "What needs to happen to kefir while it is ripening?"
+              },
+              {
+                "q": 10,
+                "text": "What will the yeast cultures have consumed before kefir is ready to drink?"
+              },
+              {
+                "q": 11,
+                "text": "The texture of kefir in the mouth is similar to what?"
+              }
+            ]
+          },
+          {
+            "type": "multiTextChoices",
+            "title": "Questions 12 and 13",
+            "instructions": [
+              "Which TWO products are NOT mentioned as things which kefir can replace?",
+              "Choose TWO letters, A–E. Type one letter in each box."
+            ],
+            "choices": [
+              {
+                "letter": "A",
+                "text": "Ordinary cow’s milk"
+              },
+              {
+                "letter": "B",
+                "text": "Buttermilk"
+              },
+              {
+                "letter": "C",
+                "text": "Sour cream"
+              },
+              {
+                "letter": "D",
+                "text": "Starter yeast"
+              },
+              {
+                "letter": "E",
+                "text": "Yoghurt"
+              }
+            ],
+            "items": [
+              {
+                "q": 12,
+                "text": "First answer"
+              },
+              {
+                "q": 13,
+                "text": "Second answer"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part2",
+        "passageText": "FOOD FOR THOUGHT\n\nA Why not eat insects? So asked British entomologist Vincent M. Holt in the title of his 1885 treatise on the benefits of what he named entomophagy – the consumption of insects (and similar creatures) as a food source. The prospect of eating dishes such as “wireworm sauce” and “slug soup” failed to garner favour amongst those in the stuffy, proper, Victorian social milieu of his time, however, and Holt’s visionary ideas were considered at best eccentric, at worst an offense to every refined palate. Anticipating such a reaction, Holt acknowledged the difficulty in unseating deep-rooted prejudices against insect cuisine, but quietly asserted his confidence that “we shall some day quite gladly cook and eat them”.\n\nB It has taken nearly 150 years but an eclectic Western-driven movement has finally mounted around the entomophagic cause. In Los Angeles and other cosmopolitan Western cities, insects have been caught up in the endless pursuit of novel and authentic delicacies. “Eating grasshoppers is a thing you do here”, bug-supplier Bricia Lopez has explained. “There’s more of a ‘cool’ factor involved.” Meanwhile, the Food and Agricultural Organization has considered a policy paper on the subject, initiated farming projects in Laos, and set down plans for a world congress on insect farming in 2013.\n\nC Eating insects is not a new phenomenon. In fact, insects and other such creatures are already eaten in 80 per cent of the world’s countries, prepared in customary dishes ranging from deep-fried tarantula in Cambodia to bowls of baby bees in China. With the specialist knowledge that Western companies and organisations can bring to the table, however, these hand-prepared delicacies have the potential to be produced on a scale large enough to lower costs and open up mass markets. A new American company, for example, is attempting to develop pressurisation machines that would de-shell insects and make them available in the form of cutlets. According to the entrepreneur behind the company, Matthew Krisiloff, this will be the key to pleasing the uninitiated palate.\n\nD Insects certainly possess some key advantages over traditional Western meat sources. According to research findings from Professor Arnold van Huis, a Dutch entomologist, breeding insects results in far fewer noxious by-products. Insects produce less ammonia than pig and poultry farming, ten times less methane than livestock, and 300 times less nitrous oxide. Huis also notes that insects – being cold-blooded creatures – can convert food to protein at a rate far superior to that of cows, since the latter exhaust much of their energy just keeping themselves warm.\n\nE Although insects are sometimes perceived by Westerners as unhygienic or disease-ridden, they are a reliable option in light of recent global epidemics. Because bugs are genetically distant from humans, species-hopping diseases such as swine flu or mad cow disease are much less likely to start or spread amongst grasshoppers or slugs than in poultry and cattle. Furthermore, the squalid, cramped quarters that encourage diseases to propagate among many animal populations are actually the residence of choice for insects, which thrive in such conditions.\n\nF Then, of course, there are the commercial gains. As FAO Forestry Manager Patrick Durst notes, in developing countries many rural people and traditional forest dwellers have remarkable knowledge about managing insect populations to produce food. Until now, they have only used this knowledge to meet their own subsistence needs, but Durst believes that, with the adoption of modern technology and improved promotional methods, opportunities to expand the market to new consumers will flourish. This could provide a crucial step into the global economic arena for those primarily rural, impoverished populations who have been excluded from the rise of manufacturing and large-scale agriculture.\n\nG Nevertheless, much stands in the way of the entomophagic movement. One problem is the damage that has been caused, and continues to be caused, by Western organisations prepared to kill off grasshoppers and locusts – complete food proteins – in favour of preserving the incomplete protein crops of millet, wheat, barley and maize. Entomologist Florence Dunkel has described the consequences of such interventions. While examining children’s diets as a part of her field work in Mali, Dunkel discovered that a protein deficiency syndrome called kwashiorkor was increasing in incidence. Children in the area were once protected against kwashiorkor by a diet high in grasshoppers, but these had become unsafe to eat after pesticide use in the area increased.\n\nH A further issue is the persistent fear many Westerners still have about eating insects. “The problem is the ick factor—the eyes, the wings, the legs,” Krisiloff has said. “It’s not as simple as hiding it in a bug nugget. People won’t accept it beyond the novelty. When you think of a chicken, you think of a chicken breast, not the eyes, wings, and beak.” For Marcel Dicke, the key lies in camouflaging the fact that people are eating insects at all. Insect flour is one of his propositions, as is changing the language of insect cuisine. “If you say it’s mealworms, it makes people think of ringworm”, he notes. “So stop saying ‘worm’. If we use Latin names, say it’s a Tenebrio quiche, it sounds much more fancy”. For Krisiloff, Dicke and others, keeping quiet about the gritty reality of our food is often the best approach.\n\nI It is yet to be seen if history will truly redeem Vincent Holt and his suggestion that British families should gather around their dining tables for a breakfast of “moths on toast”. It is clear, however, that entomophagy, far from being a kooky sideshow to the real business of food production, has much to offer in meeting the challenges that global societies in the 21st century will face.",
+        "blocks": [
+          {
+            "type": "headings",
+            "title": "Questions 14–21",
+            "instructions": [
+              "Reading Passage 2 has nine paragraphs, A–I.",
+              "Choose the correct heading for paragraphs A–H from the list of headings below.",
+              "Write the correct number, i–xi, in the gaps."
+            ],
+            "listTitle": "List of Headings",
+            "headings": [
+              {
+                "value": "i",
+                "label": "A historical delicacy"
+              },
+              {
+                "value": "ii",
+                "label": "The poor may benefit"
+              },
+              {
+                "value": "iii",
+                "label": "Presentation is key to changing attitudes"
+              },
+              {
+                "value": "iv",
+                "label": "Environmentally friendly production"
+              },
+              {
+                "value": "v",
+                "label": "Tradition meets technology"
+              },
+              {
+                "value": "vi",
+                "label": "A cultural pioneer"
+              },
+              {
+                "value": "vii",
+                "label": "Western practices harm locals"
+              },
+              {
+                "value": "viii",
+                "label": "Good source of nutrients"
+              },
+              {
+                "value": "ix",
+                "label": "Growing popularity"
+              },
+              {
+                "value": "x",
+                "label": "A healthy choice"
+              },
+              {
+                "value": "xi",
+                "label": "A safety risk"
+              }
+            ],
+            "questions": [
+              {
+                "q": 14,
+                "paragraph": "Section A"
+              },
+              {
+                "q": 15,
+                "paragraph": "Section B"
+              },
+              {
+                "q": 16,
+                "paragraph": "Section C"
+              },
+              {
+                "q": 17,
+                "paragraph": "Section D"
+              },
+              {
+                "q": 18,
+                "paragraph": "Section E"
+              },
+              {
+                "q": 19,
+                "paragraph": "Section F"
+              },
+              {
+                "q": 20,
+                "paragraph": "Section G"
+              },
+              {
+                "q": 21,
+                "paragraph": "Section H"
+              }
+            ]
+          },
+          {
+            "type": "sentenceGaps",
+            "title": "Questions 22–26",
+            "instructions": [
+              "Complete the notes below.",
+              "Choose NO MORE THAN THREE WORDS from the passage for each answer."
+            ],
+            "items": [
+              {
+                "q": 22,
+                "text": "Insects use food intake economically in the production of protein as they waste less",
+                "tail": "."
+              },
+              {
+                "q": 23,
+                "text": "Traditional knowledge could be combined with modern methods for mass production instead of just covering",
+                "tail": "."
+              },
+              {
+                "q": 24,
+                "text": "This could help",
+                "tail": " people gain access to world markets."
+              },
+              {
+                "q": 25,
+                "text": "Due to increased",
+                "tail": ", more children in Mali are suffering from"
+              },
+              {
+                "q": 26,
+                "inlineWithPrevious": true,
+                "text2": "."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part3",
+        "passageText": "Love stories\n\n“Love stories” are often associated – at least in the popular imagination – with fairy tales, adolescent day dreams, Disney movies and other frivolous pastimes. For psychologists developing taxonomies of affection and attachment, however, this is an area of rigorous academic pursuit. Beginning in the early 1970s with the groundbreaking contributions of John Alan Lee, researchers have developed classifications that they believe better characterise our romantic predispositions. This involves examining not a single, universal, emotional expression (“love”), but rather a series of divergent behaviours and narratives that each has an individualised purpose, desired outcome and state of mind. Lee’s gritty methodology painstakingly involved participants matching 170 typical romantic encounters with nearly 1500 possible reactions. The patterns unknowingly expressed by respondents culminated in a taxonomy of six distinct love “styles” that continue to inform research in the area forty years later.\n\nThe first of these styles – eros – is closely tied in with images of romantic love that are promulgated in Western popular culture. Characteristic of this style is a passionate emotional intensity, a strong physical magnetism – as if the two partners were literally being “pulled” together – and a sense of inevitability about the relationship. A related but more frantic style of love called mania involves an obsessive, compulsive attitude toward one’s partner. Vast swings in mood from ecstasy to agony – dependent on the level of attention a person is receiving from his or her partner – are typical of manic love.\n\nTwo styles were much more subdued, however. Storge is a quiet, companionate type of loving – “love by evolution” rather than “love by revolution”, according to some theorists. Relationships built on a foundation of platonic affection and caring are archetypal of storge. When care is extended to a sacrificial level of doting, however, it becomes another style – agape. In an agape relationship one partner becomes a “caretaker”, exalting the welfare of the other above his or her own needs.\n\nThe final two styles of love seem to lack aspects of emotion and reciprocity altogether. The ludus style envisions relationships primarily as a game in which it is best to “play the field” or experience a diverse set of partners over time. Mutually-gratifying outcomes in relationships are not considered necessary, and deception of a partner and lack of disclosure about one’s activities are also typical. While Lee found that college students in his study overwhelmingly disagreed with the tenets of this style, substantial numbers of them acted in a typically ludic style while dating, a finding that proves correct the deceit inherent in ludus. Pragma lovers also downplayed emotive aspects of relationships but favoured practical, sensible connections. Successful arranged marriages are a great example of pragma, in that the couple decide to make the relationship work; but anyone who seeks an ideal partner with a shopping list of necessary attributes fits the classification.\n\nRobert J. Sternberg’s contemporary research on love stories has elaborated on how these narratives determine the shape of our relationships and our lives. Sternberg and others have proposed and tested the theory of love as a story, whereby the interaction of our personal attributes with the environment leads to the development of stories about love that we then seek to fulfil, to the extent possible, in our lives. Sternberg’s taxonomy of love stories numbers far more, at twenty-six, than Lee’s taxonomy of love styles, but as Sternberg himself admits there is plenty of overlap. The seventh story, Game, coincides with ludus, for example, while the nineteenth story, Sacrifice, fits neatly on top of agape.\n\nSternberg’s research demonstrates that we may have predilections toward multiple love stories, each represented in a mental hierarchy and varying in weight in terms of their personal significance. This explains the frustration many of us experience when comparing potential partners. One person often fulfils some expected narratives – such as a need for mystery and fantasy – while lacking the ability to meet the demands of others. It is also the case that stories have varying abilities to adapt to a given cultural milieu and its respective demands. Love stories are, therefore, interactive and adaptive phenomena in our lives rather than rigid prescriptions.\n\nSternberg also explores how our love stories interact with the love stories of our partners. What happens when someone who sees love as art collides with someone who sees love as business? Can a Sewing story coexist with a Theatre story? Certainly, it is clear that we look for partners with love stories that complement and are compatible with our own narratives. But they do not have to be an identical match. Not all love stories, however, are equally well predisposed to relationship longevity; stories that view love as a game, as a kind of surveillance or as an addiction are all unlikely to prove durable.\n\nResearch on love stories continues apace. Defying the myth that rigorous science and the romantic persuasions of ordinary people are incompatible, this research demonstrates that good psychology can clarify and comment on the way we give affection and form attachments.",
+        "blocks": [
+          {
+            "type": "endingsMatch",
+            "title": "Questions 27–34",
+            "instructions": [
+              "Match each statement with the correct term, A–F.",
+              "Write the correct letter, A–F, in the gaps.",
+              "You may use any letter more than once."
+            ],
+            "endings": {
+              "A": "Eros",
+              "B": "Mania",
+              "C": "Storge",
+              "D": "Agape",
+              "E": "Ludus",
+              "F": "Pragma"
+            },
+            "items": [
+              {
+                "q": 27,
+                "text": "My most important concern is that my partner is happy."
+              },
+              {
+                "q": 28,
+                "text": "I enjoy having many romantic partners."
+              },
+              {
+                "q": 29,
+                "text": "I feel that my partner and I were always going to end up together."
+              },
+              {
+                "q": 30,
+                "text": "I want to be friends first and then let romance develop later."
+              },
+              {
+                "q": 31,
+                "text": "I always feel either very excited or absolutely miserable about my relationship."
+              },
+              {
+                "q": 32,
+                "text": "I prefer to keep many aspects of my love life to myself."
+              },
+              {
+                "q": 33,
+                "text": "When I am in love, that is all I can think about."
+              },
+              {
+                "q": 34,
+                "text": "I know before I meet someone what qualities I need in a partner."
+              }
+            ]
+          },
+          {
+            "type": "tfng",
+            "title": "Questions 35–40",
+            "instructions": [
+              "Do the following statements agree with the claims of the writer?",
+              "Choose YES / NO / NOT GIVEN."
+            ],
+            "customChoices": [
+              "YES",
+              "NO",
+              "NOT GIVEN"
+            ],
+            "items": [
+              {
+                "q": 35,
+                "text": "People’s notions of love affect their relationships, rather than vice versa."
+              },
+              {
+                "q": 36,
+                "text": "Some of our love stories are more important to us than others."
+              },
+              {
+                "q": 37,
+                "text": "Our love stories can change to meet the needs of particular social environments."
+              },
+              {
+                "q": 38,
+                "text": "We look for romantic partners with a love story just like our own."
+              },
+              {
+                "q": 39,
+                "text": "The most successful partners have matching love stories."
+              },
+              {
+                "q": 40,
+                "text": "No love story is more suited to a long relationship than any other."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+const test3 = {
+  "listening": {
+    "audioSrc": "https://audio.ieltsmock.org/88_we%20(1).mp3",
+    "html": "\n        <div class=\"listen-page\" id=\"listenSec1\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 1 — Questions 1–10</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 1–10</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>\n              <div class=\"listen-card-title\">Hilary Lodge Retirement Home</div>\n              <div class=\"listen-example\">\n                <div><b>Example</b></div>\n                <div>The name of the <b>manager</b> is Cathy.</div>\n              </div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\"><b>Activities programme involving volunteers</b></div>\n                <div class=\"note-row\">Monday evenings: computer training</div>\n                <div class=\"note-row bullet\">• Training needed in how to produce <span class=\"qnum\">1</span> <input data-lq=\"1\" class=\"l-input\"></div>\n                <div class=\"note-row\">Tuesday afternoons: singing</div>\n                <div class=\"note-row bullet\">• The home has a <span class=\"qnum\">2</span> <input data-lq=\"2\" class=\"l-input\"> and someone to play it</div>\n                <div class=\"note-row\">Thursday mornings: growing <span class=\"qnum\">3</span> <input data-lq=\"3\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• The home doesn’t have many <span class=\"qnum\">4</span> <input data-lq=\"4\" class=\"l-input\"> for gardening</div>\n                <div class=\"note-row\">Once a month: meeting for volunteers and staff</div>\n                <div class=\"note-row\"><b>Interview</b></div>\n                <div class=\"note-row bullet\">• Go in on <span class=\"qnum\">5</span> <input data-lq=\"5\" class=\"l-input\">, any time</div>\n                <div class=\"note-row bullet\">• Interview with assistant called <span class=\"qnum\">6</span> <input data-lq=\"6\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• Address of home: 73 <span class=\"qnum\">7</span> <input data-lq=\"7\" class=\"l-input\"> Road</div>\n                <div class=\"note-row\"><b>'Open house' days</b></div>\n                <div class=\"note-row bullet\">• Agreed to help on <span class=\"qnum\">8</span> <input data-lq=\"8\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• Will show visitors where to <span class=\"qnum\">9</span> <input data-lq=\"9\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• Possibility of talking to a <span class=\"qnum\">10</span> <input data-lq=\"10\" class=\"l-input\"> reporter</div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec2\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 2 — Questions 11–20</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 11–15</div>\n            <div class=\"listen-inst\">Label the plan below. Write the correct letter, <b>A–H</b>, next to Questions 11–15.</div>\n<div class=\"img-wrap\" style=\"background:#fff;border:1px solid #d7dce5;border-radius:14px;padding:12px;margin-bottom:14px;\">\n  <img src=\"https://audio.ieltsmock.org/Screenshot%202026-03-13%20at%2021.50.32.png\" alt=\"Plan of Learning Resource Centre (Ground Floor)\" style=\"width:100%;height:auto;display:block;border-radius:10px;\">\n</div>\n              <div class=\"note-row\"><span class=\"qnum\">11</span> Newspapers <input data-lq=\"11\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">12</span> Computers <input data-lq=\"12\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">13</span> Photocopier <input data-lq=\"13\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">14</span> Café <input data-lq=\"14\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">15</span> Sports books <input data-lq=\"15\" class=\"l-input tiny\"></div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 16–20</div>\n              <div class=\"listen-inst\">Complete the table below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-table-wrap\">\n                <table class=\"listen-table\">\n                  <thead><tr><th>Name</th><th>New responsibility</th></tr></thead>\n                  <tbody>\n                    <tr><td>Jenny Reed</td><td>Buying <span class=\"qnum\">16</span> <input data-lq=\"16\" class=\"l-input tiny\"> for the Centre</td></tr>\n                    <tr><td>Phil Penshurst</td><td>Help with writing <span class=\"qnum\">17</span> <input data-lq=\"17\" class=\"l-input tiny\"> for courses</td></tr>\n                    <tr><td>Tom Salisbury</td><td>Information on topics related to the <span class=\"qnum\">18</span> <input data-lq=\"18\" class=\"l-input tiny\"></td></tr>\n                    <tr><td>Saeed Aktar</td><td>Finding a <span class=\"qnum\">19</span> <input data-lq=\"19\" class=\"l-input tiny\"></td></tr>\n                    <tr><td>Shilpa Desai</td><td>Help with <span class=\"qnum\">20</span> <input data-lq=\"20\" class=\"l-input tiny\"></td></tr>\n                  </tbody>\n                </table>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec3\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 3 — Questions 21–30</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 21–27</div>\n              <div class=\"listen-inst\">What helped Stewart with each of the following stages in making his training film for museum employees? Choose <b>SEVEN</b> answers from the box and write the correct letter, <b>A–I</b>, next to Questions 21–27.</div>\n              <div class=\"endings-box\">\n                <div><b>A</b> advice from friends</div>\n                <div><b>B</b> information on a website</div>\n                <div><b>C</b> being allowed extra time</div>\n                <div><b>D</b> meeting a professional film maker</div>\n                <div><b>E</b> good weather conditions</div>\n                <div><b>F</b> getting a better computer</div>\n                <div><b>G</b> support of a manager</div>\n                <div><b>H</b> help from a family member</div>\n                <div><b>I</b> work on a previous assignment</div>\n              </div>\n              <div class=\"note-row\"><span class=\"qnum\">21</span> finding a location <input data-lq=\"21\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">22</span> deciding on equipment <input data-lq=\"22\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">23</span> writing the script <input data-lq=\"23\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">24</span> casting <input data-lq=\"24\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">25</span> filming <input data-lq=\"25\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">26</span> editing <input data-lq=\"26\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">27</span> designing the DVD cover <input data-lq=\"27\" class=\"l-input tiny\"></div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 28–30</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-card-title\">Stewart’s work placement: benefits to the Central Museum Association</div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row bullet\">• his understanding of the Association’s <span class=\"qnum\">28</span> <input data-lq=\"28\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• the reduction in expense</div>\n                <div class=\"note-row bullet\">• increased co-operation between <span class=\"qnum\">29</span> <input data-lq=\"29\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• continuous <span class=\"qnum\">30</span> <input data-lq=\"30\" class=\"l-input\"> which led to a better product</div>\n                <div class=\"note-row bullet\">• ideas for distribution of the film</div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec4\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 4 — Questions 31–40</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 31–40</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-card-title\">New Caledonian crows and the use of tools</div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\"><b>Examples of animals using tools</b></div>\n                <div class=\"note-row bullet\">• some chimpanzees use stones to break nuts</div>\n                <div class=\"note-row bullet\">• Betty (New Caledonian crow) made a <span class=\"qnum\">31</span> <input data-lq=\"31\" class=\"l-input\"> out of wire to move a bucket of food</div>\n                <div class=\"note-row bullet\">• Barney (New Caledonian crow) used sticks to find food</div>\n                <div class=\"note-row\"><b>New Zealand and Oxford experiment</b></div>\n                <div class=\"note-row bullet\">• three stages: crows needed to move a <span class=\"qnum\">32</span> <input data-lq=\"32\" class=\"l-input\"> in order to reach a short stick; then use the short stick to reach a long stick; then use the long stick to reach food</div>\n                <div class=\"note-row\"><b>Oxford research</b></div>\n                <div class=\"note-row bullet\">• crows used sticks to investigate whether there was any <span class=\"qnum\">33</span> <input data-lq=\"33\" class=\"l-input\"> from an object</div>\n                <div class=\"note-row bullet\">• research was inspired by seeing crows using tools on a piece of cloth to investigate a spider design</div>\n                <div class=\"note-row bullet\">• Barney used a stick to investigate a snake made of <span class=\"qnum\">34</span> <input data-lq=\"34\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• Pierre used a stick to investigate a <span class=\"qnum\">35</span> <input data-lq=\"35\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• Corbeau used a stick to investigate a metal toad</div>\n                <div class=\"note-row bullet\">• the crows only used sticks for the first contact</div>\n                <div class=\"note-row\"><b>Conclusions of above research</b></div>\n                <div class=\"note-row bullet\">• ability to plan provides interesting evidence of the birds’ cognition</div>\n                <div class=\"note-row bullet\">• unclear whether this is evidence of the birds’ <span class=\"qnum\">36</span> <input data-lq=\"36\" class=\"l-input\"></div>\n                <div class=\"note-row\"><b>Exeter and Oxford research in New Caledonia</b></div>\n                <div class=\"note-row bullet\">• scientists have attached very small cameras to birds’ <span class=\"qnum\">37</span> <input data-lq=\"37\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">• food in the form of beetle larvae provides plenty of <span class=\"qnum\">38</span> <input data-lq=\"38\" class=\"l-input\"> for the birds</div>\n                <div class=\"note-row bullet\">• larvae’s specific <span class=\"qnum\">39</span> <input data-lq=\"39\" class=\"l-input\"> composition can be identified in birds that feed on them</div>\n                <div class=\"note-row bullet\">• scientists will analyse what the birds include in their <span class=\"qnum\">40</span> <input data-lq=\"40\" class=\"l-input\"></div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-footer\">\n          <div class=\"muted\" id=\"listenAutosave\">Autosave: ready</div>\n          <button class=\"btn secondary\" id=\"downloadListeningBtn\" type=\"button\">Download Listening answers (JSON)</button>\n          <button class=\"btn secondary\" id=\"copyListeningBtn\" type=\"button\">Copy Listening answers</button>\n          <button class=\"btn\" id=\"submitListeningBtn\" type=\"button\">Submit Listening now</button>\n        </div>\n      "
+  },
+  "writing": {
+    "task1Type": "Pie chart",
+    "task2Type": "Positive or negative development",
+    "task1Html": "You should spend about 20 minutes on this task.<br>\nThe pie charts give information about the world's forest in five different regions.<br>\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>\n<b>Write at least 150 words.</b>",
+    "task1ImageSrc": "https://ieltscity.vn/wp-content/uploads/2024/08/de-thi-ielts-writing-task-1-ngay-07-10-2024-updated.jpg",
+    "task2Html": "You should spend about 40 minutes on this task.<br><br>\nToday more people put their private information (address, telephone and plastic card numbers) online to do their daily activities (banking, shopping, socializing).<br>\n<b>Is it a positive or negative development?</b><br>\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.<br>\n<b>Write at least 250 words.</b>",
+    "sampleAnswers": {
+      "task1": {
+        "bandScore": "Band 6.5",
+        "explanation": "This report gives an overall picture and makes comparisons, but it stays slightly general because the visual details are summarised more broadly than in a stronger Band 7+ answer. The structure is clear and the language is mostly accurate.",
+        "sampleAnswer": "The pie charts compare the distribution of the world's forests across five regions.\n\nOverall, the world's forest resources were not shared equally. Two regions accounted for the largest proportions, whereas the remaining areas made up noticeably smaller shares of the total.\n\nEurope represented the biggest segment of global forest area, while South America also occupied a substantial proportion. North America formed another important share, although it was smaller than the first two regions. By contrast, Asia and Africa contributed much smaller percentages overall, with Africa appearing to have the smallest share among the five regions.\n\nThe charts therefore suggest that the majority of the world's forests were concentrated in a limited number of regions rather than being spread evenly across the globe. The gap between the largest and smallest categories is clearly significant.\n\nIn summary, Europe and South America dominated the global distribution of forests, North America occupied a moderate proportion, and the smallest shares belonged to Asia and Africa.",
+        "correctedForm": "The pie charts illustrate how the world's forests are distributed among five regions.\n\nOverall, forest resources are unevenly spread, with the largest proportions concentrated in Europe and South America, while Asia and Africa account for noticeably smaller shares.\n\nEurope makes up the biggest segment of the total, and South America is also responsible for a considerable proportion. North America contributes a moderate share in comparison with these two regions. By contrast, Asia represents a smaller part of the global total, and Africa has the smallest proportion among the five regions shown.\n\nTaken together, the charts indicate that a large percentage of the world's forests is concentrated in just a few areas, whereas the remaining regions hold much less.\n\nIn short, Europe and South America dominate the global picture, North America occupies a middle position, and Asia and Africa account for the smallest proportions."
+      },
+      "task2": {
+        "bandScore": "Band 7.5",
+        "explanation": "This response presents a clear position, weighs benefits against risks, and keeps the argument focused. It reaches Band 7.5 because the ideas are well organized and supported, although a few points could be expanded further for an even stronger high-band essay.",
+        "sampleAnswer": "More people now share private information online in order to shop, bank and communicate more conveniently. In my view, this is both a useful and an unavoidable development, but overall it is negative because the risks to privacy and security are too serious.\n\nOn the positive side, putting information online has made daily life faster and more efficient. People can transfer money, buy goods and keep in contact with others without visiting banks or shops in person. This saves time and often reduces cost. For many users, online systems are also more convenient because services are available at any hour.\n\nHowever, the disadvantages are more significant. Once personal data is stored online, it can be stolen, misused or sold without the user's knowledge. Cybercrime, identity theft and online fraud have become common problems, and even large companies are not always able to protect customer information completely. A single data leak can expose addresses, telephone numbers and bank details to criminals.\n\nAnother concern is that many people do not fully understand how much information they are giving away. Some users accept terms and conditions without reading them, while others share personal details too freely on social media. This creates long-term privacy risks that are difficult to reverse.\n\nIn conclusion, although online services make modern life easier, I believe that putting private information online is a negative development overall. The convenience is real, but the potential harm to privacy and personal security is greater.",
+        "correctedForm": "Today, many people provide personal information online in order to carry out everyday activities such as banking, shopping and socialising. Although this trend offers clear convenience, I believe it is a negative development overall because it exposes individuals to serious privacy and security risks.\n\nThere are obvious benefits to storing and using information online. Digital services save time, allow instant transactions and make communication easier. People can shop from home, pay bills quickly and stay connected across long distances. In that sense, online access has made daily life far more efficient.\n\nNevertheless, the main drawback is the danger of misuse. Personal data can be hacked, leaked or exploited by companies and criminals. Identity theft, financial fraud and privacy breaches have become increasingly common, and even well-known organisations are vulnerable to cyberattacks.\n\nIn addition, many users are unaware of how widely their information may be shared. They may agree to weak privacy settings or disclose too much on social platforms without considering the long-term consequences.\n\nIn conclusion, while putting private information online is convenient and often practical, it is ultimately a negative development because the threats to privacy and security outweigh the benefits."
+      }
+    }
+  },
+  "reading": {
+    "parts": [
+      {
+        "id": "part1",
+        "passageText": "The Phoenicians: an almost forgotten people\n\nThe Phoenicians inhabited the region of modern Lebanon and Syria from about 3000 BC. They became the greatest traders of the pre-classical world, and were the first people to establish a large colonial network. Both of these activities were based on seafaring, an ability the Phoenicians developed from the example of their maritime predecessors, the Minoans of Crete.\n\nAn Egyptian narrative of about 1080 BC, the Story of Wen-Amon, provides an insight into the sea-faring trading activity. One of the characters is Werek-Ba, a Phoenician merchant living at Tanis in Egypt. Little more than 50 ships carry out his business, plying back and forth between the Nile and the Phoenician port of Sidon.\n\nThe most prosperous period for Phoenicia was the 10th century BC, when the surrounding region was stable. Hiram, the king of the Phoenician city of Tyre, was an ally and business partner of Solomon, king of Israel. For Solomon's temple in Jerusalem, Hiram provided craftsmen with particular skills that were needed for this major construction project. He also supplied materials - particularly timber, including cedar from the forests of Lebanon. And the two kings went into trade in partnership. They sent out Phoenician vessels on long expeditions (of up to three years for return trips) to bring back gold, sandalwood, ivory, monkeys and peacocks from Ophir. This is an unidentified place, probably on the east coast of Africa or the west coast of India.\n\nPhoenicia was famous for its luxury goods. The cedar wood was not only exported as top-quality timber for architecture and shipbuilding. It was also carved by the Phoenicians, and the same skill was adapted to even more precious work in ivory. The rare and expensive dye for cloth, Tyrian purple, complemented another famous local product, fine linen. The metalworkers of the region, particularly those working in gold, were famous. Tyre and Sidon were also known for their glass.\n\nThese were the main products which the Phoenicians exported. In addition, as traders and middlemen, they took a commission on much larger trade of precious goods that they transported from elsewhere.\n\nThe extensive trade of Phoenicia required much shipbuilding and correspondingly, a need for the field of writing that the Phoenicians made their most lasting contribution to world history. The scripts in use in the world up to the second millennium BC in Egypt, Mesopotamia or China all required the writer to learn a large number of separate characters - each of them expressing either a whole word or an element of its meaning. By contrast, the Phoenicians, in about 1500 BC, developed an entirely new approach to writing. The marks made (with a pointed tool called a stylus, on damp clay) now intended to capture the sound of a word. This required an alphabet of individual letters.\n\nThe trading and seafaring skills of the Phoenicians resulted in a network of colonies, spreading westwards through the Mediterranean. The first was probably Citium, in Cyprus, established in the 9th century BC. But the main expansion came from the 8th century BC onwards, when pressure from Assyria to the east disrupted the patterns of trade on which the Phoenician coast depended.\n\nTrading colonies were developed on the fringe islands in the centre of the Mediterranean - Crete, Sicily, Malta, Sardinia, Ibiza - and also on the coast of north Africa. The African colonies clustered in particular around the great promontory which, with Sicily opposite, forms the narrowest channel in the Mediterranean sea route. This is the site of Carthage, the largest of the towns founded by the Phoenicians on the north African coast, and it rapidly assumed a leading position among the newly founded colonies. The traditional date of its founding is 814 BC, but archaeological evidence suggests that it was probably settled a little over a century later.\n\nThe subsequent spread and growth of Phoenician colonies in the western Mediterranean, and even out to the Atlantic coasts of Africa and Spain, was as much the achievement of Carthage as of original Phoenician trading cities such as Tyre and Sidon. But local interests remained with the homeland, and new colonies continued to travel west.\n\nFrom the 8th century BC, many of the coastal cities of Phoenicia came under the control of repeated and imperial powers, each of them defeated and replaced in the region by the next: first the Assyrians, then the Babylonians, Persians and the Hellenistic Greek.\n\nIn 64 BC, the area of Phoenicia became part of the Roman province of Syria. The Phoenicians as an identifiable people then faded from history, merging into the populations of modern Lebanon and northern Syria.",
+        "blocks": [
+          {
+            "type": "sentenceGaps",
+            "title": "Questions 1–8",
+            "instructions": [
+              "Complete the sentences below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+              "Write your answers in the gaps."
+            ],
+            "items": [
+              {
+                "q": 1,
+                "text": "The Phoenicians' skill at",
+                "tail": "helped them to trade."
+              },
+              {
+                "q": 2,
+                "text": "In an ancient story, a",
+                "tail": "from Phoenicia, who lived in Egypt, owned over 50 ships."
+              },
+              {
+                "q": 3,
+                "text": "A king of Israel built a",
+                "tail": "using supplies from Phoenicia."
+              },
+              {
+                "q": 4,
+                "text": "Phoenicia supplied Solomon with skilled",
+                "tail": "."
+              },
+              {
+                "q": 5,
+                "text": "The main material that Phoenicia sent to Israel was",
+                "tail": "."
+              },
+              {
+                "q": 6,
+                "text": "The kings of Phoenicia and Israel formed a business",
+                "tail": "in order to carry out trade."
+              },
+              {
+                "q": 7,
+                "text": "Phoenicians carved",
+                "tail": "as well as cedar."
+              },
+              {
+                "q": 8,
+                "text": "The Phoenicians also earned a",
+                "tail": "for shipping goods."
+              }
+            ]
+          },
+          {
+            "type": "tfng",
+            "title": "Questions 9–13",
+            "instructions": [
+              "Do the following statements agree with the information given in Reading Passage 1?",
+              "In boxes 9–13 on your answer sheet, write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, or NOT GIVEN if there is no information on this."
+            ],
+            "items": [
+              {
+                "q": 9,
+                "text": "Problems with Assyria led to the establishment of a number of Phoenician colonies."
+              },
+              {
+                "q": 10,
+                "text": "Carthage was an enemy town which the Phoenicians won in battle."
+              },
+              {
+                "q": 11,
+                "text": "Phoenicians reached the Atlantic ocean."
+              },
+              {
+                "q": 12,
+                "text": "Parts of Phoenicia were conquered by a series of empires."
+              },
+              {
+                "q": 13,
+                "text": "The Phoenicians welcomed Roman control of the area."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part2",
+        "passageText": "The Hollywood Film Industry\n\nA This chapter examines the 'Golden Age' of the Hollywood film studio system and explores how a particular kind of filmmaking developed during this period in US film history. It also focuses on two key elements which influenced the emergence of the classic Hollywood studio system: the advent of sound and the business ideal of vertical integration. In addition to its historical interest, inspecting the growth of the studio system may offer clues regarding the factors of structural change within the growth of new media. It might, in fact, be intriguing to examine which changes occurred during the growth of the Hollywood studio, and compare those changes to contemporary struggles in which production companies are trying to define and control emerging industries, such as online film and interactive television.\n\nB The shift of the industry away from 'silent' films began during the late 1920s. Warner Bros.' 1927 film The Jazz Singer was the first to feature synchronized speech and, with it, came a period of turmoil for the industry. Studios now had proof that talked films would make them money, but the financial investment this kind of filmmaking would require, from new camera equipment to new projection facilities, made the studios hesitant to invest at first. In the power of one nation seemed to be more audiences and enhance the story pervaded studios that talks were worth investing in. Overall, the use of sound in film was well-received by audiences, but there were still many technical factors to consider. Although full integration of sound into movies was complete by 1930, it would take somewhat longer for them to regain their stylistic elegance and dexterity. The camera now had to be encased in a big, clumsy, unmovable soundproof box. In addition, actors struggled, having to direct their speech to awkwardly-hidden microphones in huge plants, telephones or even costumes.\n\nC Vertical integration is the other key component in the rise of the Hollywood studio system. The major studios realized they could increase their profits by handling each stage of a film's life: production (making the film), distribution (getting the film out to people) and exhibition (owning the theaters in major cities where films were shown first). Five studios, The Big Five, worked to achieve vertical integration through the mid 1940s, owning first and second run which to construct elaborate sets. In addition, these studios set the exact terms of films' release dates and patterns. Warner Bros., Paramount, 20th Century Fox, MGM and RKO formed this exclusive club. The Little Three - Universal, Columbia and United Artists - also maintained their own kind of vertical integration. Together these eight companies operated as a mature oligopoly, essentially running the entire market.\n\nD During the Golden Age, the studios were remarkably consistent and stable enterprises, due in large part to long-term management heads - the infamous 'movie moguls' who ruled their kingdoms with iron fists. At MGM, Warner Bros. and Columbia, the same men ran their studios for decades. The rise of the studio system also hinges on the treatment of stars, who were constructed and exploited to suit a studio's image and schedule. Actors were bound up in seven-year contracts to a single studio, and the studio bosses generally held all the options. Stars could be loaned out to other production companies at any time. Studio bosses could also force bad roles on actors. and manipulate every single detail of stars' images with their mammoth in-house publicity departments. Some have compared the Hollywood studio system to a factory, and it is useful to remember that studios were out to make money first and art second.\n\nE On the other hand, studios also had to cultivate flexibility, in addition to consistent factory output. Studio heads realized that they couldn't make virtually the same film over and over again with the same cast of stars and still expect to keep turning a profit. They also had to create product differentiation. Examining how production companies tried to differentiate products can lend itself to broader conceptualisations of individual studios' styles. MGM tended to put out a lot of all-star productions while Paramount excelled in comedy and Warner Bros. developed a reputation for gritty social realism. 20th Century Fox forged the musical and a great deal of prestige biographies, while Universal specialized in classic horror movies.\n\nF In 1948, struggling independent movie producers and exhibitors finally triumphed in their battle against the big studios' monopolistic behavior. In the United States versus Paramount federal decree of that year, the studios were ordered to give up their theaters in what is commonly referred to as divestiture - opening the market to smaller producers. This, coupled with the advent of television in the 1950s, seriously compromised the studio system's influence and profits. Hence, 1930 and 1948 are generally considered bookends to Hollywood's Golden Age.",
+        "blocks": [
+          {
+            "type": "headings",
+            "title": "Questions 14–19",
+            "instructions": [
+              "Reading Passage 2 has six paragraphs, A–F.",
+              "Choose the correct heading for each paragraph from the list of headings below.",
+              "Write the correct number, i–viii, in boxes 14–19 on your answer sheet."
+            ],
+            "listTitle": "List of Headings",
+            "headings": [
+              {
+                "value": "i",
+                "label": "The power within each studio"
+              },
+              {
+                "value": "ii",
+                "label": "The movie industry adapts to innovation"
+              },
+              {
+                "value": "iii",
+                "label": "Contrasts between cinema and other media of the time"
+              },
+              {
+                "value": "iv",
+                "label": "The value of studying Hollywood's Golden Age"
+              },
+              {
+                "value": "v",
+                "label": "Distinguishing themselves from the rest of the market"
+              },
+              {
+                "value": "vi",
+                "label": "A double attack on film studios' power"
+              },
+              {
+                "value": "vii",
+                "label": "Gaining control of the industry"
+              },
+              {
+                "value": "viii",
+                "label": "The top movies of Hollywood's Golden Age"
+              }
+            ],
+            "questions": [
+              {
+                "q": 14,
+                "paragraph": "Paragraph A"
+              },
+              {
+                "q": 15,
+                "paragraph": "Paragraph B"
+              },
+              {
+                "q": 16,
+                "paragraph": "Paragraph C"
+              },
+              {
+                "q": 17,
+                "paragraph": "Paragraph D"
+              },
+              {
+                "q": 18,
+                "paragraph": "Paragraph E"
+              },
+              {
+                "q": 19,
+                "paragraph": "Paragraph F"
+              }
+            ]
+          },
+          {
+            "type": "tfng",
+            "title": "Questions 20–23",
+            "instructions": [
+              "Do the following statements agree with the information in Reading Passage 2?",
+              "In boxes 20–23 on your answer sheet, write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, or NOT GIVEN if there is no information on this."
+            ],
+            "items": [
+              {
+                "q": 20,
+                "text": "After The Jazz Singer came out, other studios immediately began making movies with synchronized sound."
+              },
+              {
+                "q": 21,
+                "text": "There were some drawbacks to recording movie actors' voices in the early 1930s."
+              },
+              {
+                "q": 22,
+                "text": "There was intense competition between actors for contracts with the leading studios."
+              },
+              {
+                "q": 23,
+                "text": "Studios had total control over how their actors were perceived by the public."
+              }
+            ]
+          },
+          {
+            "type": "sentenceGaps",
+            "title": "Questions 24–26",
+            "instructions": [
+              "Complete the summary below.",
+              "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+              "Write your answers in boxes 24–26 on your answer sheet."
+            ],
+            "items": [
+              {
+                "q": 24,
+                "text": "Throughout its Golden Age, the Hollywood movie industry was controlled by a handful of studios. Using a system known as",
+                "tail": ", the biggest studios not only made movies, but handled their distribution and then finally showed them in their own theaters."
+              },
+              {
+                "q": 25,
+                "text": "These studios were often run by autocratic bosses – men known as",
+                "tail": " who often remained at the head of organisations for decades."
+              },
+              {
+                "q": 26,
+                "text": "However, the domination of the industry by the leading studios came to an end in 1948, when they were forced to open the market to smaller producers – a process known as",
+                "tail": "."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part3",
+        "passageText": "Left or right?\n\nAn overview of some research into lateralisation: the dominance of one side of the body over the other\n\nA Creatures across the animal kingdom have a preference for one foot, eye or even antenna. The cause of this trait, called lateralisation, is fairly simple: one side of the brain, which generally controls the opposite side of the body, is more dominant than the other when processing certain tasks. This does, on some occasions, let the animal down: such as when a food tile is snapped up by the stronger eye from the right, but because its right eye is worse at spotting danger than its left. So why would animals evolve a characteristic that seems to endanger them?\n\nB For many years it was assumed that lateralisation was a uniquely human trait, but this notion rapidly fell apart as researchers started uncovering evidence of lateralisation in all sorts of animals. For example, in the 1970s, Lesley Rogers, now at the University of New England in Australia, was studying memory and learning in chicks. She had been injecting a chemical into chicks' brains to stop them learning how to spot grains of food among distracting pebbles, and was surprised to observe that the chemical only worked when applied to the left hemisphere of the brain. That strongly suggested that the right side of the brain played little or no role in the learning of such behaviours. Similar evidence appeared in songbirds and rats around the same time, and since then, researchers have built up an impressive catalogue of animal lateralisation.\n\nC In some animals, lateralisation is simply a preference for a single paw or foot, while others it appears in more general patterns of behaviour. The left side of most vertebrate brains, for example, seems to process and control feeding. Since the left hemisphere processes input from the right side of the body, that means animals with their left heads and birds are more likely to tuck prey or food items viewed via their right side. Even humpback whales prefer to use the right side of their jaws to scrape and sift from the ocean floor.\n\nD Genetics plays a part in determining lateralisation, but environmental factors have an impact too. Rogers found that a chick's lateralisation depends on whether it is exposed to light before hatching from its egg - if it is kept in the dark during this period, neither hemisphere becomes dominant. In 2004, Rogers tested this observation, letting chicks with either strong or weak lateralisation feed while distracting them with some identical red beads. When she then presented the two groups with overheads and omitted some pebbles and the threatening shape of a fox predator flying overhead. As predicted, the birds incubated in the light looked for food mainly with their right eye, while using the other to check out the predator. The weakly-lateralised chicks, meanwhile, had difficulty performing these two activities simultaneously.\n\nE Similar results probably hold true for many other animals. In 2006, Angelo Bisazza at the University of Padua set out to observe the differences in feeding behavior between strongly-lateralised and weakly-lateralised fish. He found that strongly-lateralised individuals were able to feed twice as fast as weakly-lateralised ones when there was a threat of a predator looming above them. Assigning different jobs to different brain halves may be especially advantageous for animals such as birds or fish, whose eyes are placed on the sides of their heads. This enables them to process input from each eye separately, with different tasks in mind.\n\nF And what of those animals who favour a specific side for almost all tasks? In 2009, Maria Magat and Culum Brown at Macquarie University in Australia wanted to see if there was general cognitive advantage in lateralisation. To investigate, they turned to parrots, which can be either strongly right- or left-footed, or ambidextrous (without dominant limb). The parrots were given the intellectually demanding task of pulling a snack on a string up to their beaks, using a coordinated combination of claws and beak. The result showed that the parrots with the strongest foot preferences worked out the puzzle more quickly than their ambidextrous peers.\n\nG A further puzzle is why are there always a few exceptions, like left-handed humans, who are wired differently from the majority of the population? Giorgio Vallortigara, and Stefano Ghirlanda of Stockholm University seem to have solved the issue via mathematical models. These back up the idea that in life is better to answer an attack with the fewest casualties if the majority turn together in one direction while a very small proportion of the group escape in the direction that the predator is not expecting.\n\nH This imbalance of lateralisation within populations may also have advantages for individuals. Whereas most co-operative interactions require participants to react similarly, there are some situations - such as aggressive interactions - where it can benefit an individual to launch an attack from an unexpected quarter. Perhaps this can partly explain the existence of left-handers in human society. It has been suggested that when it comes to hand-to-hand fighting, left-handers may have the advantage over the right-handed majority. Where survival depends on the element of surprise, it may indeed pay to be different.",
+        "blocks": [
+          {
+            "type": "endingsMatch",
+            "title": "Questions 27–30",
+            "instructions": [
+              "Complete each sentence with the correct ending, A–F, below.",
+              "Write the correct letter, A–F, in boxes 27–30 on your answer sheet."
+            ],
+            "endings": {
+              "A": "lateralisation is more common in some species than in others.",
+              "B": "it benefits a population if some members have a different lateralisation than the majority.",
+              "C": "lateralisation helps animals to do two things at the same time.",
+              "D": "lateralisation is not confined to human beings.",
+              "E": "the greater an animal's lateralisation, the better it is at problem-solving.",
+              "F": "strong lateralisation may sometimes put groups of animals in danger."
+            },
+            "items": [
+              {
+                "q": 27,
+                "text": "In the 1970s, Lesley Rogers discovered that"
+              },
+              {
+                "q": 28,
+                "text": "Angelo Bisazza's experiments revealed that"
+              },
+              {
+                "q": 29,
+                "text": "Magat and Brown's studies show that"
+              },
+              {
+                "q": 30,
+                "text": "Vallortigara and Ghirlanda's research findings suggest that"
+              }
+            ]
+          },
+          {
+            "type": "sentenceGaps",
+            "title": "Questions 31–35",
+            "instructions": [
+              "Complete the summary below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+              "Write your answers in boxes 31–35 on your answer sheet."
+            ],
+            "items": [
+              {
+                "q": 31,
+                "text": "Lateralisation is determined by both genetic and",
+                "tail": " influences."
+              },
+              {
+                "q": 32,
+                "text": "Rogers found that chicks whose eggs are given",
+                "tail": " during the incubation period tend to have a stronger lateralisation."
+              },
+              {
+                "q": 33,
+                "text": "Her 2004 experiment set out to prove that these chicks were better at",
+                "tail": " than weakly lateralised chicks."
+              },
+              {
+                "q": 34,
+                "text": "As expected, the strongly lateralised birds in the experiment were more able to locate",
+                "tail": " using their right eye, while using their left eye to monitor an imitation"
+              },
+              {
+                "q": 35,
+                "inlineWithPrevious": true,
+                "text2": " located above them."
+              }
+            ]
+          },
+          {
+            "type": "endingsMatch",
+            "title": "Questions 36–40",
+            "instructions": [
+              "Reading Passage 3 has eight paragraphs, A–H.",
+              "Which paragraph contains the following information?",
+              "Write the correct letter, A–H, in boxes 36–40 on your answer sheet. You may use any letter more than once."
+            ],
+            "endings": {
+              "A": "Paragraph A",
+              "B": "Paragraph B",
+              "C": "Paragraph C",
+              "D": "Paragraph D",
+              "E": "Paragraph E",
+              "F": "Paragraph F",
+              "G": "Paragraph G",
+              "H": "Paragraph H"
+            },
+            "items": [
+              {
+                "q": 36,
+                "text": "description of a study which supports another scientist's findings"
+              },
+              {
+                "q": 37,
+                "text": "the suggestion that a person could gain from having an opposite lateralisation to most of the population"
+              },
+              {
+                "q": 38,
+                "text": "reference to the large amount of knowledge of animal lateralisation that has accumulated"
+              },
+              {
+                "q": 39,
+                "text": "research findings that were among the first to contradict a previous belief"
+              },
+              {
+                "q": 40,
+                "text": "a suggestion that lateralisation would seem to disadvantage animals"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+const test4 = {
+  "listening": {
+    "audioSrc": "https://audio.ieltsmock.org/87_we.mp3",
+    "html": "\n        <div class=\"listen-page\" id=\"listenSec1\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 1 — Questions 1–10</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 1–6</div>\n              <div class=\"listen-inst\">Complete the table below. Write <b>NO MORE THAN ONE WORD OR A NUMBER</b> for each answer.</div>\n              <div class=\"listen-card-title\">Hostel Accommodation in Darwin</div>\n              <div class=\"listen-table-wrap\">\n                <table class=\"listen-table\">\n                  <thead>\n                    <tr><th>Name</th><th>Price per person</th><th>Comments and reviews</th></tr>\n                  </thead>\n                  <tbody>\n                    <tr>\n                      <td>Top End Backpackers</td>\n                      <td>$19</td>\n                      <td>\n                        parking available<br>\n                        staff are <span class=\"qnum\">1</span> <input data-lq=\"1\" class=\"l-input tiny\"><br>\n                        nice pool<br>\n                        air conditioning is too <span class=\"qnum\">2</span> <input data-lq=\"2\" class=\"l-input tiny\">\n                      </td>\n                    </tr>\n                    <tr>\n                      <td>Gum Tree Lodge</td>\n                      <td><span class=\"qnum\">3</span> <input data-lq=\"3\" class=\"l-input tiny\"></td>\n                      <td>\n                        good quiet location<br>\n                        pool and gardens<br>\n                        <span class=\"qnum\">4</span> <input data-lq=\"4\" class=\"l-input tiny\"> in the dormitories\n                      </td>\n                    </tr>\n                    <tr>\n                      <td>Kangaroo Lodge</td>\n                      <td>$22</td>\n                      <td>\n                        downtown location<br>\n                        reception always open<br>\n                        no lockers in the rooms<br>\n                        the <span class=\"qnum\">5</span> <input data-lq=\"5\" class=\"l-input tiny\"> are very clean<br>\n                        seems to be a <span class=\"qnum\">6</span> <input data-lq=\"6\" class=\"l-input tiny\"> every night\n                      </td>\n                    </tr>\n                  </tbody>\n                </table>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 7–10</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-card-title\">Kangaroo Lodge</div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\">Address: on <span class=\"qnum\">7</span> <input data-lq=\"7\" class=\"l-input\"> Lane</div>\n                <div class=\"note-row\"><b>General information about hostel accommodation</b></div>\n                <div class=\"note-row bullet\">Sheets are provided</div>\n                <div class=\"note-row bullet\">Can hire a <span class=\"qnum\">8</span> <input data-lq=\"8\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\"><span class=\"qnum\">9</span> <input data-lq=\"9\" class=\"l-input\"> is included</div>\n                <div class=\"note-row bullet\">A shared <span class=\"qnum\">10</span> <input data-lq=\"10\" class=\"l-input\"> is available</div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec2\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 2 — Questions 11–20</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 11–16</div>\n              <div class=\"listen-inst\">Choose the correct letter, <b>A, B or C</b>.</div>\n              <div class=\"listen-card-title\">Anglia Sculpture Park</div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">11</span> The land where the Sculpture Park is located was previously</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"A\" data-lq-radio=\"11\"> A) completely covered by forest</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"B\" data-lq-radio=\"11\"> B) the site of a private house</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q11\" value=\"C\" data-lq-radio=\"11\"> C) occupied by a factory</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">12</span> What is unusual about the Anglia Sculpture Park?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"A\" data-lq-radio=\"12\"> A) Artists have made sculptures especially for it</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"B\" data-lq-radio=\"12\"> B) Some of its sculptures were donated by the artists</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q12\" value=\"C\" data-lq-radio=\"12\"> C) It only shows contemporary sculptures</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">13</span> What is the theme of Joe Tremain’s “burnt” sculptures?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"A\" data-lq-radio=\"13\"> A) the contrast between nature and urban life</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"B\" data-lq-radio=\"13\"> B) the effect of man on the environment</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q13\" value=\"C\" data-lq-radio=\"13\"> C) the violence of nature</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">14</span> The path by the Lower Lake</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"A\" data-lq-radio=\"14\"> A) is rather wet in some places</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"B\" data-lq-radio=\"14\"> B) has recently been repaired</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q14\" value=\"C\" data-lq-radio=\"14\"> C) is difficult to walk on</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">15</span> What does the speaker say about the Visitor Centre?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"A\" data-lq-radio=\"15\"> A) It is being enlarged at present</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"B\" data-lq-radio=\"15\"> B) It has received an international award</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q15\" value=\"C\" data-lq-radio=\"15\"> C) It was designed by a Canadian architect</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">16</span> Today, visitors can buy snacks and sandwiches</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q16\" value=\"A\" data-lq-radio=\"16\"> A) at the kiosk</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q16\" value=\"B\" data-lq-radio=\"16\"> B) in the Terrace Room</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q16\" value=\"C\" data-lq-radio=\"16\"> C) at the Lower Lake Cafe</label>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 17–20</div>\n              <div class=\"listen-inst\">Label the map below. Write the correct letter, <b>A–F</b>, next to Questions 17–20.</div>\n              <div class=\"img-wrap\" style=\"background:#fff;border:1px solid #d7dce5;border-radius:14px;padding:12px;margin-bottom:14px;\">\n                <img src=\"https://practicepteonline.com/wp-content/uploads/2024/09/lis-test87.png\" alt=\"Map of Anglia Sculpture Park\" style=\"width:auto;max-width:100%;max-height:420px;height:auto;display:block;margin:0 auto;border-radius:10px;\">\n              </div>\n              <div class=\"note-row\"><span class=\"qnum\">17</span> Joe Tremain sculptures <input data-lq=\"17\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">18</span> Giorgio Catalucci bird sculptures <input data-lq=\"18\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">19</span> Garden gallery <input data-lq=\"19\" class=\"l-input tiny\"></div>\n              <div class=\"note-row\"><span class=\"qnum\">20</span> Long house <input data-lq=\"20\" class=\"l-input tiny\"></div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec3\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 3 — Questions 21–30</div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 21–26</div>\n              <div class=\"listen-inst\">Choose the correct letter, <b>A, B or C</b>.</div>\n              <div class=\"listen-card-title\">Marketing report</div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">21</span> Why did Leo choose instant coffee as the topic for his marketing report?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q21\" value=\"A\" data-lq-radio=\"21\"> A) He found plenty of material on the topic</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q21\" value=\"B\" data-lq-radio=\"21\"> B) He had some practical experience in the area</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q21\" value=\"C\" data-lq-radio=\"21\"> C) He had an idea of a brand he wanted to target</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">22</span> Leo discovered that in Australia, recent technological developments</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q22\" value=\"A\" data-lq-radio=\"22\"> A) are producing less healthy types of instant coffee</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q22\" value=\"B\" data-lq-radio=\"22\"> B) are reducing the demand for instant coffee</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q22\" value=\"C\" data-lq-radio=\"22\"> C) are improving the quality of instant coffee</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">23</span> What do the speakers agree about Leo’s table of coffee products?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q23\" value=\"A\" data-lq-radio=\"23\"> A) It needs more explanation in the text</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q23\" value=\"B\" data-lq-radio=\"23\"> B) It is factually inaccurate in some places</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q23\" value=\"C\" data-lq-radio=\"23\"> C) It would be best to put this in the appendix</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">24</span> What do they decide about the description of Shaffers coffee as a market follower?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q24\" value=\"A\" data-lq-radio=\"24\"> A) Leo needs to define his terms</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q24\" value=\"B\" data-lq-radio=\"24\"> B) Leo needs to provide more evidence</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q24\" value=\"C\" data-lq-radio=\"24\"> C) Leo needs to put it in a different section</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">25</span> What does Anna say about originality in someone’s first marketing report?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q25\" value=\"A\" data-lq-radio=\"25\"> A) Clear analysis of data can be considered original</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q25\" value=\"B\" data-lq-radio=\"25\"> B) Graphs and diagrams should be original, not copied</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q25\" value=\"C\" data-lq-radio=\"25\"> C) Reports should contain some original data collected by the student</label>\n              </div>\n              <div class=\"mcq\">\n                <div class=\"mcq-q\"><span class=\"qnum\">26</span> What difference between his school assignments and this report has surprised Leo?</div>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"A\" data-lq-radio=\"26\"> A) not knowing the criteria for getting a good mark</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"B\" data-lq-radio=\"26\"> B) being required to produce work without assistance</label>\n                <label class=\"mcq-opt\"><input type=\"radio\" name=\"q26\" value=\"C\" data-lq-radio=\"26\"> C) having to do a great deal of research</label>\n              </div>\n            </div>\n\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 27–30</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-card-title\">Notes on specific sections of marketing report</div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\"><b>Executive summary</b></div>\n                <div class=\"note-row bullet\">Give a brief overview including the <span class=\"qnum\">27</span> <input data-lq=\"27\" class=\"l-input\"></div>\n                <div class=\"note-row\"><b>Problems</b></div>\n                <div class=\"note-row bullet\">Link each problem to a <span class=\"qnum\">28</span> <input data-lq=\"28\" class=\"l-input\"> which explains it</div>\n                <div class=\"note-row\"><b>Implementation</b></div>\n                <div class=\"note-row bullet\">Practical solutions to problems</div>\n                <div class=\"note-row bullet\">Include details such as participants, <span class=\"qnum\">29</span> <input data-lq=\"29\" class=\"l-input\"> and sequence</div>\n                <div class=\"note-row bullet\">Section is often poorly done because of lack of <span class=\"qnum\">30</span> <input data-lq=\"30\" class=\"l-input\"></div>\n                <div class=\"note-row\"><b>Conclusion</b></div>\n                <div class=\"note-row bullet\">Don’t use new material here</div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-page hidden\" id=\"listenSec4\">\n          <div class=\"listen-block\">\n            <div class=\"listen-h\">SECTION 4 — Questions 31–40</div>\n            <div class=\"listen-card\">\n              <div class=\"listen-card-title\">Questions 31–40</div>\n              <div class=\"listen-inst\">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>\n              <div class=\"listen-card-title\">History of fireworks in Europe</div>\n              <div class=\"listen-notes\">\n                <div class=\"note-row\"><b>13th–16th centuries</b></div>\n                <div class=\"note-row bullet\">Fireworks were introduced from China</div>\n                <div class=\"note-row bullet\">Their use was mainly to do with war and <span class=\"qnum\">31</span> <input data-lq=\"31\" class=\"l-input\"> (in plays and festivals)</div>\n                <div class=\"note-row\"><b>17th century</b></div>\n                <div class=\"note-row bullet\">Various features of <span class=\"qnum\">32</span> <input data-lq=\"32\" class=\"l-input\"> were shown in fireworks displays</div>\n                <div class=\"note-row bullet\">Scientists were interested in using ideas from fireworks displays to make human <span class=\"qnum\">33</span> <input data-lq=\"33\" class=\"l-input\"> possible</div>\n                <div class=\"note-row bullet\">They also used them to show the formation of <span class=\"qnum\">34</span> <input data-lq=\"34\" class=\"l-input\"></div>\n                <div class=\"note-row\"><b>London</b></div>\n                <div class=\"note-row bullet\">Scientists were distrustful at first</div>\n                <div class=\"note-row bullet\">Later they investigated <span class=\"qnum\">35</span> <input data-lq=\"35\" class=\"l-input\"> uses of fireworks</div>\n                <div class=\"note-row\"><b>St Petersburg</b></div>\n                <div class=\"note-row bullet\">Fireworks were seen as a work of <span class=\"qnum\">36</span> <input data-lq=\"36\" class=\"l-input\"> for people</div>\n                <div class=\"note-row\"><b>Paris</b></div>\n                <div class=\"note-row bullet\">Displays emphasized the power of the <span class=\"qnum\">37</span> <input data-lq=\"37\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">Scientists aimed to provide <span class=\"qnum\">38</span> <input data-lq=\"38\" class=\"l-input\"></div>\n                <div class=\"note-row\"><b>18th century</b></div>\n                <div class=\"note-row bullet\">Italian fireworks specialists became influential</div>\n                <div class=\"note-row bullet\">Servandoni’s fireworks display followed the same pattern as an <span class=\"qnum\">39</span> <input data-lq=\"39\" class=\"l-input\"></div>\n                <div class=\"note-row bullet\">Some displays demonstrated new scientific discoveries such as <span class=\"qnum\">40</span> <input data-lq=\"40\" class=\"l-input\"></div>\n              </div>\n            </div>\n          </div>\n        </div>\n\n        <div class=\"listen-footer\">\n          <div class=\"muted\" id=\"listenAutosave\">Autosave: ready</div>\n          <button class=\"btn secondary\" id=\"downloadListeningBtn\" type=\"button\">Download Listening answers (JSON)</button>\n          <button class=\"btn secondary\" id=\"copyListeningBtn\" type=\"button\">Copy Listening answers</button>\n          <button class=\"btn\" id=\"submitListeningBtn\" type=\"button\">Submit Listening now</button>\n        </div>\n      "
+  },
+  "writing": {
+    "task1Type": "Map",
+    "task2Type": "Advantages and disadvantages",
+    "task1Html": "You should spend about 20 minutes on this task.<br>\n        The two maps below show TV centre ten years ago and now.<br>\n        Summarize the information by selecting and reporting the main features and make comparisons where relevant.<br>\n        <b>Write at least 150 words.</b>",
+    "task1ImageSrc": "https://audio.ieltsmock.org/enhanced_tv_centre.png",
+    "task2Html": "You should spend about 40 minutes on this task.<br><br>\n        Many companies employ people from different age groups in the same team.<br>\n        <b>Do the advantages of this outweigh the disadvantages?</b><br>\n        Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>\n        <b>Write at least 250 words.</b>"
+  },
+  "reading": {
+    "parts": [
+      {
+        "id": "part1",
+        "passageText": "The hidden histories of exploration exhibition\n\nA We have all heard tales of lone, heroic explorers, but what about the local individuals who guided and protected European explorers in many different parts of the globe? Or the go-betweens – including interpreters and traders – who translated the needs and demands of explorers into a language that locals could understand? Such questions have received surprisingly little attention in standard histories, where European explorers are usually the heroes, sometimes the villains. The Hidden Histories of Exploration exhibition at Britain’s Royal Geographical Society in London sets out to present an alternative view, in which exploration is a fundamentally collective experience of work, involving many different people. Many of the most famous examples of explorers said to have been 'lone travellers' – say, Mungo Park or David Livingstone in Africa – were anything but 'alone' on their travels. They depended on local support of various kinds – for food, shelter, protection, information, guidance and solace – as well as on other resources from elsewhere.\n\nB The Royal Geographical Society (RGS) seeks to record this story in its Hidden Histories project, using its astonishingly rich collections. The storage of geographical information was one of the main rationales for the foundation of the RGS in 1830, and the Society’s collections now contain more than two million individual items, including books, manuscripts, maps, photographs, artworks, artefacts and film – a rich storehouse of material reflecting the wide geographical extent of British interest across the globe. In addition to their remarkable scope and range, these collections contain a striking visual record of exploration: the impulse to collect the world is reflected in a large and diverse image archive. For the researcher, this archive can yield many surprises: materials gathered for one purpose – say, maps relating to an international boundary dispute or photographs taken on a scientific expedition – may today be put to quite different uses.\n\nC In their published narratives, European explorers rarely portrayed themselves as vulnerable or dependent on others, despite the fact that without this support they were quite literally lost. Archival research confirms that Europeans were not merely dependent on the work of porters, soldiers, translators, cooks, pilots, guides, hunters and collectors: they also relied on local expertise. Such assistance was essential in identifying potential dangers – poisonous species, unpredictable rivers, uncharted territories – which could mean the difference between life and death. The assistants themselves were usually in a strong bargaining position. In the Amazon, for example, access to entire regions would depend on the willingness of local crew members and other assistants to enter areas inhabited by relatively powerful Amerindian groups. In an account of his journey across South America published in 1836, William Smyth thus complained of frequent desertion by his helpers: without them it was impossible to get on.\n\nD Those providing local support and information to explorers were themselves often not 'locals'. For example, the history of African exploration in the nineteenth century is dominated by the use of Zanzibar as a recruiting station for porters, soldiers and guides who would then travel thousands of miles across the continent. In some accounts, the leading African members of expedition parties – the 'officers' or 'foremen' – are identified, and their portraits published alongside those of European explorers.\n\nE The information provided by locals and intermediaries was of potential importance to geographical science. How was this evidence judged? The formal procedures of scientific evaluation provided one framework. Alongside these were more 'common sense' notions of veracity and reliability, religiously inspired judgments about the authenticity of testimony, and the routine procedures for cross-checking empirical observations developed in many professions.\n\nF Given explorers’ need for local information and support, it was in their interests to develop effective working partnerships with knowledgeable intermediaries who could act as brokers in their dealings with local inhabitants. Many of these people acquired far more experience of exploration than most Europeans could hope to attain. Some managed large groups of men and women, piloted the explorers’ river craft, or undertook mapping work. The tradition was continued with the Everest expeditions in the 1920s and 1930s, which regularly employed the Tibetan interpreter Karma Paul. In Europe, exploration was increasingly thought of as a career; the same might be said of the non-Europeans on whom their expeditions depended.\n\nG These individuals often forged close working relationships with European explorers. Such partnerships depended on mutual respect, though they were not always easy or intimate, as is particularly clear from the history of the Everest expeditions depicted in the Hidden Histories exhibition. The entire back wall is covered by an enlarged version of a single sheet of photographs of Sherpas taken during the 1936 Everest expedition. The document is a powerful reminder of the manpower on which European mountaineering expeditions depended, and also of the importance of local knowledge and assistance. Transformed from archive to wall display, it tells a powerful story through the medium of individual portraits – including Karma Paul, veteran of previous expeditions, and the young Tensing Norgay, 17 years before his successful 1953 ascent. This was a highly charged and transitional moment as the contribution of the Sherpas, depicted here with identity tags round their necks, was beginning to be much more widely recognised. These touching portraits encourage us to see them as agents rather than simply colonial subjects or paid employees. Here is a living history, which looks beyond what we already know about exploration: a larger history in which we come to recognise the contribution of everyone involved.",
+        "blocks": [
+          {
+            "type": "tfng",
+            "title": "Questions 1–7",
+            "instructions": [
+              "Do the following statements agree with the information given in Reading Passage 1?",
+              "Choose TRUE / FALSE / NOT GIVEN."
+            ],
+            "items": [
+              {
+                "q": 1,
+                "text": "The Hidden Histories of Exploration exhibition aims to show the wide range of people involved in expeditions."
+              },
+              {
+                "q": 2,
+                "text": "The common belief about how Park and Livingstone travelled is accurate."
+              },
+              {
+                "q": 3,
+                "text": "The RGS has organised a number of exhibitions since it was founded."
+              },
+              {
+                "q": 4,
+                "text": "Some of the records in the RGS archives are more useful than others."
+              },
+              {
+                "q": 5,
+                "text": "Materials owned by the RGS can be used in ways that were not originally intended."
+              },
+              {
+                "q": 6,
+                "text": "In their publications, European explorers often describe their dependence on their helpers."
+              },
+              {
+                "q": 7,
+                "text": "Local helpers refused to accompany William Smyth during parts of his journey."
+              }
+            ]
+          },
+          {
+            "type": "endingsMatch",
+            "title": "Questions 8–13",
+            "instructions": [
+              "Reading Passage 1 has seven paragraphs, A–G.",
+              "Which paragraph contains the following information?",
+              "You may use any letter more than once."
+            ],
+            "endings": {
+              "A": "Paragraph A",
+              "B": "Paragraph B",
+              "C": "Paragraph C",
+              "D": "Paragraph D",
+              "E": "Paragraph E",
+              "F": "Paragraph F",
+              "G": "Paragraph G"
+            },
+            "items": [
+              {
+                "q": 8,
+                "text": "reference to the distances that some non-European helpers travelled"
+              },
+              {
+                "q": 9,
+                "text": "description of a wide range of different types of documents"
+              },
+              {
+                "q": 10,
+                "text": "belief about the effect of an exhibition on people seeing it"
+              },
+              {
+                "q": 11,
+                "text": "examples of risks explorers might have been unaware of without local help"
+              },
+              {
+                "q": 12,
+                "text": "reference to various approaches to assessing data from local helpers"
+              },
+              {
+                "q": 13,
+                "text": "reference to people whose long-term occupation was to organise local assistance for European explorers"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part2",
+        "passageText": "Fatal Attraction\n\nEvolutionist Charles Darwin first marvelled at flesh-eating plants in the mid-19th century. Today, biologists, using 21st-century tools to study cells and DNA, are beginning to understand how these plants hunt, eat and digest – and how such bizarre adaptations arose in the first place.\n\nA The leaves of the Venus flytrap plant are covered in hairs. When an insect brushes against them, this triggers a tiny electric charge, which travels down tunnels in the leaf and opens up pores in the leaf’s cell membranes. Water surges from the cells on the inside of the leaf to those on the outside, causing the leaf to rapidly flip in shape from convex to concave, like a soft contact lens. As the leaves flip, they snap together, trapping the insect in their sharp-toothed jaws.\n\nB The bladderwort has an equally sophisticated way of setting its underwater trap. It pumps water out of tiny bag-like bladders, making a vacuum inside. When small creatures swim past, they bend the hairs on the bladder, causing a flap to open. The low pressure sucks water in, carrying the animal along with it. In one five-hundredth of a second, the door swings shut again. The Drosera sundew, meanwhile, has a thick, sweet liquid oozing from its leaves, which first attracts insects, then holds them fast before the leaves snap shut. Pitcher plants use yet another strategy, growing long tube-shaped leaves to imprison their prey. Raffles’ pitcher plant, from the jungles of Borneo, produces nectar that both lures insects and forms a slick surface on which they can’t get a grip. Insects that land on the rim of the pitcher slide on the liquid and tumble in.\n\nC Many carnivorous plants secrete enzymes to penetrate the hard exoskeleton of insects so they can absorb nutrients from inside their prey. But the purple pitcher plant, which lives in bogs and infertile sandy soils in North America, enlists other organisms to process its food. It is home to an intricate food web of mosquito larvae, midges and bacteria, many of which can survive only in this unique habitat. These animals shred the prey that fall into the pitcher, and the smaller organisms feed on the debris. Finally, the plant absorbs the nutrients released.\n\nD While such plants clearly thrive on being carnivorous, the benefits of eating flesh are not the ones you might expect. Carnivorous animals such as ourselves use the carbon in protein and the fat in meat to build muscles and store energy. Carnivorous plants instead draw nitrogen, phosphorus, and other critical nutrients from their prey in order to build light-harvesting enzymes. Eating animals, in other words, lets carnivorous plants do what all plants do: carry out photosynthesis, that is, grow by harnessing energy directly from the sun.\n\nE Carnivorous plants are, in fact, very inefficient at converting sunlight into tissue. This is because of all the energy they expend to make the equipment to catch animals – the enzymes, the pumps, and so on. A pitcher or a flytrap cannot carry out much photosynthesis because, unlike plants with ordinary leaves, they do not have flat solar panels that can grab lots of sunlight. There are, however, some special conditions in which the benefits of being carnivorous do outweigh the costs. The poor soil of bogs, for example, offers little nitrogen and phosphorus, so carnivorous plants enjoy an advantage over plants that obtain these nutrients by more conventional means. Bogs are also flooded with sunshine, so even an inefficient carnivorous plant can photosynthesise enough light to survive.\n\nF Evolution has repeatedly made this trade-off. By comparing the DNA of carnivorous plants with other species, scientists have found that they evolved independently on at least six separate occasions. Some carnivorous plants that look nearly identical turn out to be only distantly related. The two kinds of pitcher plants – the tropical genus Nepenthes and the North American Sarracenia – have, surprisingly, evolved from different ancestors, although both grow deep pitcher-shaped leaves and employ the same strategy for capturing prey.\n\nG In several cases, scientists can see how complex carnivorous plants evolved from simpler ones. Venus flytraps, for example, share an ancestor with Portuguese sundews, which only catch prey passively, via 'flypaper' glands on their stems. They share a more recent ancestor with Drosera sundews, which can also curl their leaves over their prey. Venus flytraps appear to have evolved an even more elaborate version of this kind of trap, complete with jaw-like leaves.\n\nH Unfortunately, the adaptations that enable carnivorous plants to thrive in marginal habitats also make them exquisitely sensitive. Agricultural run-off and pollution from power plants are adding extra nitrogen to many bogs in North America. Carnivorous plants are so finely tuned to low levels of nitrogen that this extra fertilizer is overloading their systems, and they eventually burn themselves out and die.\n\nI Humans also threaten carnivorous plants in other ways. The black market trade in exotic carnivorous plants is so vigorous now that botanists are keeping the location of some rare species a secret. But even if the poaching of carnivorous plants can be halted, they will continue to suffer from other assaults. In the pine savannah of North Carolina, the increasing suppression of fires is allowing other plants to grow too quickly and outcompete the flytraps in their native environment. Good news, perhaps, for flies. But a loss for all who, like Darwin, delight in the sheer inventiveness of evolution.",
+        "blocks": [
+          {
+            "type": "sentenceGaps",
+            "title": "Questions 14–18",
+            "instructions": [
+              "Complete the notes below.",
+              "Choose NO MORE THAN TWO WORDS from the passage for each answer."
+            ],
+            "items": [
+              {
+                "q": 14,
+                "text": "Insect touches",
+                "tail": " on leaf of plant"
+              },
+              {
+                "q": 15,
+                "text": "Small",
+                "tail": " passes through leaf"
+              },
+              {
+                "q": 16,
+                "text": "",
+                "leadingBlank": true,
+                "text2": " in cell membrane open"
+              },
+              {
+                "q": 17,
+                "text": "Outside cells of leaves fill with",
+                "tail": ""
+              },
+              {
+                "q": 18,
+                "text": "Leaves change so that they have a",
+                "tail": " shape and snap shut"
+              }
+            ]
+          },
+          {
+            "type": "endingsMatch",
+            "title": "Questions 19–22",
+            "instructions": [
+              "Match each statement with the correct plant, A–E.",
+              "Write the correct letter, A, B, C, D or E."
+            ],
+            "endings": {
+              "A": "Venus flytrap",
+              "B": "Bladderwort",
+              "C": "Drosera sundew",
+              "D": "Raffles’ pitcher plant",
+              "E": "Purple pitcher plant"
+            },
+            "items": [
+              {
+                "q": 19,
+                "text": "It uses other creatures to help it digest insects."
+              },
+              {
+                "q": 20,
+                "text": "It produces a slippery substance to make insects fall inside it."
+              },
+              {
+                "q": 21,
+                "text": "It creates an empty space into which insects are sucked."
+              },
+              {
+                "q": 22,
+                "text": "It produces a sticky substance which traps insects on its surface."
+              }
+            ]
+          },
+          {
+            "type": "endingsMatch",
+            "title": "Questions 23–26",
+            "instructions": [
+              "Reading Passage 2 has nine paragraphs, A–I.",
+              "Which paragraph contains the following information?",
+              "You may use any letter more than once."
+            ],
+            "endings": {
+              "A": "Paragraph A",
+              "B": "Paragraph B",
+              "C": "Paragraph C",
+              "D": "Paragraph D",
+              "E": "Paragraph E",
+              "F": "Paragraph F",
+              "G": "Paragraph G",
+              "H": "Paragraph H",
+              "I": "Paragraph I"
+            },
+            "items": [
+              {
+                "q": 23,
+                "text": "a mention of a disadvantage of the leaf shape of some carnivorous plants"
+              },
+              {
+                "q": 24,
+                "text": "an example of an effort made to protect carnivorous plants"
+              },
+              {
+                "q": 25,
+                "text": "unexpected information about the origins of certain carnivorous plants"
+              },
+              {
+                "q": 26,
+                "text": "an example of environmental changes that shorten the life cycles of carnivorous plants"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "part3",
+        "passageText": "Want to be friends?\n\nA For many hundreds of thousands of people worldwide, online networking has become enmeshed in our daily lives. However, it is a decades-old insight from a study of traditional social networks that best illuminates one of the most important aspects of today’s online networking. In 1973 sociologist Mark Granovetter showed how the loose acquaintances, or 'weak ties', in our social network exert a disproportionate influence over our behaviour and choices. Granovetter’s research showed that a significant percentage of people get their jobs as a result of recommendations or advice provided by a weak tie. Today our number of weak-tie contacts has exploded via online social networking. 'You couldn’t maintain all of those weak ties on your own,' says Jennifer Golbeck of the University of Maryland. 'Online sites, such as Facebook, give you a way of cataloguing them.' The result? It’s now significantly easier for the schoolfriend you haven’t seen in years to pass you a tip that alters your behaviour, from recommendation of a low-cholesterol breakfast cereal to a party invite where you meet your future wife or husband.\n\nB The explosion of weak ties could have profound consequences for our social structures too, according to Judith Donath of the Berkman Center for Internet and Society at Harvard University. 'We’re already seeing changes,' she says. For example, many people now turn to their online social networks ahead of sources such as newspapers and television for trusted and relevant news or information. What they hear could well be inaccurate, but the change is happening nonetheless. If these huge 'supernets' – some of them numbering up to 5,000 people – continue to thrive and grow, they could fundamentally change the way we share information and transform our notions of relationships.\n\nC But are these vast networks really that relevant to us on a personal level? Robin Dunbar, an evolutionary anthropologist at the University of Oxford, believes that our primate brains place a cap on the number of genuine social relationships we can actually cope with: roughly 150. According to Dunbar, online social networking appears to be very good for 'servicing' relationships, but not for establishing them. He argues that our evolutionary roots mean we still depend heavily on physical and face-to-face contact to be able to create ties.\n\nD Nonetheless, there is evidence that online networking can transform our daily interactions. In an experiment at Cornell University, psychologist Jeff Hancock asked participants to try to encourage other participants to like them via instant messaging conversation. Beforehand, some members of the trial were allowed to view the Facebook profile of the person they were trying to win over. He found that those with Facebook access asked questions to which they already knew the answers or raised things they had in common, and as result were much more successful in their social relationships. Hancock concluded that people who use these sites to keep updated on the activities of their acquaintances are more likely to be liked in subsequent social interactions.\n\nE Online social networking may also have tangible effects on our well-being. Nicole Ellison of Michigan State University found that the frequency of networking site use correlates with greater self-esteem. Support and affirmation from the weak ties could be the explanation, says Ellison. 'Asking your close friends for help or advice is nothing new, but we are seeing a lowering of barriers among acquaintances,' she says. People are readily sharing personal feelings and experiences to a wider circle than they might once have done. Sandy Pentland at the Massachusetts Institute of Technology agrees. 'The ability to broadcast to our social group means we need never feel alone,' he says. 'The things that befall us are often due to a lack of social support. There’s more of a safety net now.'\n\nF Henry Holzman, also at MIT, who studies the interface between online social networking and the real world, points out that increased visibility also means our various social spheres – family, work, friends – are merging, and so we will have to prepare for new societal norms. 'We’ll have to learn how to live a more transparent life,' he says. 'We may have to give up some ability to show very limited glimpses of ourselves to others.'\n\nG Another way that online networking appears to be changing our social structures is through dominance. In one repeated experiment, Michael Kearns of the University of Pennsylvania asked 30 volunteers to quickly reach consensus in an online game over a choice between two colours. Each person was offered a cash reward if they succeeded in persuading the group to pick one or other colour. All participants could see the colour chosen by some of the other people, but certain participants had an extra advantage: the ability to see more of the participants’ chosen colours than others. Every time Kearns found that those who could see the choices of more participants (in other words, were better connected) persuaded the group to pick their colour, even when they had to persuade the vast majority to give up their financial incentive. While Kearns warns that the setting was artificial, he says it’s possible that greater persuasive power could lie with well-connected individuals in the everyday online world too.",
+        "blocks": [
+          {
+            "type": "headings",
+            "title": "Questions 27–32",
+            "instructions": [
+              "Reading Passage 3 has seven paragraphs, A–G.",
+              "Choose the correct heading for paragraphs B–G from the list of headings below."
+            ],
+            "listTitle": "List of Headings",
+            "headings": [
+              {
+                "value": "i",
+                "label": "A shift in our fact-finding habits"
+              },
+              {
+                "value": "ii",
+                "label": "How to be popular"
+              },
+              {
+                "value": "iii",
+                "label": "More personal information being known"
+              },
+              {
+                "value": "iv",
+                "label": "The origins of online social networks"
+              },
+              {
+                "value": "v",
+                "label": "The link between knowledge and influence"
+              },
+              {
+                "value": "vi",
+                "label": "Information that could change how you live"
+              },
+              {
+                "value": "vii",
+                "label": "The emotional benefits of online networking"
+              },
+              {
+                "value": "viii",
+                "label": "A change in how we view our online friendships"
+              },
+              {
+                "value": "ix",
+                "label": "The future of networking"
+              },
+              {
+                "value": "x",
+                "label": "Doubts about the value of online socialising"
+              }
+            ],
+            "questions": [
+              {
+                "q": 27,
+                "paragraph": "Paragraph B"
+              },
+              {
+                "q": 28,
+                "paragraph": "Paragraph C"
+              },
+              {
+                "q": 29,
+                "paragraph": "Paragraph D"
+              },
+              {
+                "q": 30,
+                "paragraph": "Paragraph E"
+              },
+              {
+                "q": 31,
+                "paragraph": "Paragraph F"
+              },
+              {
+                "q": 32,
+                "paragraph": "Paragraph G"
+              }
+            ]
+          },
+          {
+            "type": "endingsMatch",
+            "title": "Questions 33–36",
+            "instructions": [
+              "Match each finding with the correct researcher, A–F.",
+              "Write the correct letter, A–F."
+            ],
+            "endings": {
+              "A": "Mark Granovetter",
+              "B": "Judith Donath",
+              "C": "Robin Dunbar",
+              "D": "Jeff Hancock",
+              "E": "Nicole Ellison",
+              "F": "Michael Kearns"
+            },
+            "items": [
+              {
+                "q": 33,
+                "text": "People who network widely may be more able to exert pressure on others."
+              },
+              {
+                "q": 34,
+                "text": "We have become more willing to confide in an extensive number of people."
+              },
+              {
+                "q": 35,
+                "text": "There is a limit to how many meaningful relationships we can maintain."
+              },
+              {
+                "q": 36,
+                "text": "There is a social advantage in knowing about the lives of our online contacts."
+              }
+            ]
+          },
+          {
+            "type": "multiTextChoices",
+            "title": "Questions 37–40",
+            "instructions": [
+              "For Questions 37–40, choose the correct letter, A–E.",
+              "Questions 37 and 38 ask for TWO advantages mentioned in the passage.",
+              "Questions 39 and 40 ask for TWO disadvantages mentioned in the passage."
+            ],
+            "choices": [
+              {
+                "letter": "A",
+                "text": "Information from online social contacts may be unreliable."
+              },
+              {
+                "letter": "B",
+                "text": "Online socialising is an efficient way of keeping in touch with a lot of people."
+              },
+              {
+                "letter": "C",
+                "text": "It is very easy to establish new friendships online."
+              },
+              {
+                "letter": "D",
+                "text": "Online social networking can solve problems in real-world relationships."
+              },
+              {
+                "letter": "E",
+                "text": "It can be reassuring to be part of an online social network."
+              }
+            ],
+            "items": [
+              {
+                "q": 37,
+                "text": "Advantage mentioned 1"
+              },
+              {
+                "q": 38,
+                "text": "Advantage mentioned 2"
+              },
+              {
+                "q": 39,
+                "text": "Disadvantage mentioned 1"
+              },
+              {
+                "q": 40,
+                "text": "Disadvantage mentioned 2"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
 const test5 = {
     listening: {
       audioSrc: "https://audio.ieltsmock.org/test5.mp3",
@@ -1331,6 +2884,10 @@ F The greatest author of antiquity was actually, Parry argued, just "one of a lo
   };
 
 export const PROTECTED_TEST_CONTENT = {
+  ielts1: test1,
+  ielts2: test2,
+  ielts3: test3,
+  ielts4: test4,
   ielts5: test5,
   ielts6: test6,
   ielts7: test7,

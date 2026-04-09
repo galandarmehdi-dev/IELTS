@@ -2,6 +2,3 @@ ADMIN_RESULTS_PASSCODE=replace-with-google-apps-script-admin-passcode
 ADMIN_ALLOWED_EMAILS=admin@example.com
 SHARED_STUDENT_PASSWORD=replace-with-shared-student-password
 SHARED_STUDENT_TOKEN_SECRET=replace-with-shared-student-token-secret
-SHARED_STUDENT_ALLOWED_DOMAINS=leznik.edu.az
-# Optional exact allowlist override:
-# SHARED_STUDENT_ALLOWED_EMAILS=student1@example.com,student2@example.com

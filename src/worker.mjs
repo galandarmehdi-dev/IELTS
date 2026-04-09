@@ -59,10 +59,6 @@ async function handleSharedStudentLogin(request, env) {
   if (!isValidEmail(email)) {
     return json(400, { ok: false, error: "Please enter a valid email address." });
   }
-  const eligibility = validateSharedStudentEmailEligibility(email, env);
-  if (!eligibility.ok) {
-    return json(403, { ok: false, error: eligibility.error });
-  }
   if (!password || password !== expectedPassword) {
     return json(401, { ok: false, error: "Wrong shared password." });
   }
@@ -585,51 +581,6 @@ function deriveNameFromEmail(email) {
     .trim()
     .replace(/\b\w/g, (match) => match.toUpperCase());
   return pretty || "Student";
-}
-
-function parseEnvEmailList(value) {
-  return String(value || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function parseEnvDomainList(value) {
-  return String(value || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase().replace(/^@+/, ""))
-    .filter(Boolean);
-}
-
-function getEmailDomain(email) {
-  return String(email || "").trim().toLowerCase().split("@")[1] || "";
-}
-
-function validateSharedStudentEmailEligibility(email, env) {
-  const normalizedEmail = normalizeEmail(email);
-  const adminEmails = parseEnvEmailList(env.ADMIN_ALLOWED_EMAILS || "");
-  if (adminEmails.includes(normalizedEmail)) {
-    return { ok: false, error: "This email must use its own admin sign-in, not the shared student password." };
-  }
-
-  const allowedEmails = parseEnvEmailList(env.SHARED_STUDENT_ALLOWED_EMAILS || "");
-  const allowedDomains = parseEnvDomainList(env.SHARED_STUDENT_ALLOWED_DOMAINS || "");
-  const domain = getEmailDomain(normalizedEmail);
-
-  if (allowedEmails.length && allowedEmails.includes(normalizedEmail)) {
-    return { ok: true };
-  }
-  if (allowedDomains.length && domain && allowedDomains.includes(domain)) {
-    return { ok: true };
-  }
-  if (allowedEmails.length || allowedDomains.length) {
-    return {
-      ok: false,
-      error: "This email is not approved for shared student sign-in.",
-    };
-  }
-
-  return { ok: true };
 }
 
 function getSharedTokenSigningSecret(env) {

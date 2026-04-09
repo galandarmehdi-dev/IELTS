@@ -1,0 +1,267 @@
+:root{
+  --exam-display-brightness:1;
+  --exam-text-scale:1;
+}
+
+body[data-exam-brightness="soft"]{ --exam-display-brightness:.94; }
+body[data-exam-brightness="normal"]{ --exam-display-brightness:1; }
+body[data-exam-brightness="bright"]{ --exam-display-brightness:1.08; }
+
+body[data-exam-text-scale="normal"]{ --exam-text-scale:1; }
+body[data-exam-text-scale="large"]{ --exam-text-scale:1.12; }
+body[data-exam-text-scale="xlarge"]{ --exam-text-scale:1.25; }
+
+.exam-display-controls{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding-right:8px;
+  margin-right:2px;
+  border-right:1px solid rgba(23,50,77,.12);
+}
+
+.exam-display-btn{
+  min-height:42px;
+  padding:10px 14px;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.exam-display-btn-title,
+.exam-display-btn-value{
+  display:inline-flex;
+  align-items:center;
+}
+
+.exam-display-btn-title{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.exam-display-btn-value{
+  font-size:13px;
+  font-weight:800;
+}
+
+body[data-active-view="adminResults"] .exam-display-controls{
+  display:none;
+}
+
+.exam-nav,
+#listeningSection .listening-shell,
+#readingControls,
+#container,
+#writingSection .writing-shell{
+  filter:brightness(var(--exam-display-brightness));
+  transition:filter .18s ease, background-color .18s ease, color .18s ease, border-color .18s ease;
+}
+
+#listeningSection .listen-sub,
+#listeningSection .listen-inst,
+#listeningSection .listen-card,
+#listeningSection .listen-example,
+#listeningSection .people-box,
+#listeningSection .endings-box,
+#listeningSection .listen-notes,
+#listeningSection .note-row,
+#listeningSection .listen-table,
+#listeningSection .mcq,
+#listeningSection .mcq-q,
+#container .passage,
+#container .passage p,
+#container .passage li,
+#container .questions,
+#container .questions p,
+#container .questions li,
+#container .questions label,
+#container .task-instructions,
+#container .task-title,
+#container .headings-list,
+#container .answer-example,
+#container .qtext,
+#container .sentenceLine,
+#container .mcqPrompt,
+#writingSection .writing-inst,
+#writingSection .writing-label,
+#writingSection .writing-textarea,
+#writingSection .writing-card,
+#writingSection .writing-footer,
+#writingSection .writing-graph-toolbar{
+  font-size:calc(1em * var(--exam-text-scale));
+}
+
+#listeningSection .l-input,
+#container input,
+#container select,
+#writingSection textarea,
+#writingSection input,
+#writingSection select{
+  font-size:calc(1em * var(--exam-text-scale));
+}
+
+body[data-exam-theme="dark"] .exam-nav{
+  background:rgba(12,18,28,.94);
+  border-bottom:1px solid rgba(167,183,204,.14);
+  box-shadow:0 16px 34px rgba(0,0,0,.28);
+}
+
+body[data-exam-theme="dark"] .exam-nav-left,
+body[data-exam-theme="dark"] .exam-nav-left b,
+body[data-exam-theme="dark"] .exam-nav-status,
+body[data-exam-theme="dark"] .exam-nav-timer{
+  color:#edf3fb;
+}
+
+body[data-exam-theme="dark"] .exam-nav-timer,
+body[data-exam-theme="dark"] .exam-display-controls,
+body[data-exam-theme="dark"] .btn.secondary{
+  border-color:rgba(167,183,204,.18);
+}
+
+body[data-exam-theme="dark"] .btn.secondary,
+body[data-exam-theme="dark"] .exam-display-btn{
+  background:rgba(18,29,43,.96);
+  color:#edf3fb;
+}
+
+body[data-exam-theme="dark"] #listeningSection,
+body[data-exam-theme="dark"] #writingSection{
+  background:
+    radial-gradient(900px 420px at 0% 0%, rgba(78,118,164,.18), transparent 58%),
+    radial-gradient(760px 340px at 100% 0%, rgba(196,69,54,.16), transparent 56%),
+    linear-gradient(180deg, #0b1220 0%, #101827 100%);
+}
+
+body[data-exam-theme="dark"] #listeningSection .listening-shell,
+body[data-exam-theme="dark"] #writingSection .writing-shell,
+body[data-exam-theme="dark"] #readingControls,
+body[data-exam-theme="dark"] #container{
+  background:#101925 !important;
+  border-color:rgba(167,183,204,.14) !important;
+  box-shadow:0 30px 84px rgba(0,0,0,.36) !important;
+}
+
+body[data-exam-theme="dark"] #listeningSection .listen-top,
+body[data-exam-theme="dark"] #container .controls{
+  background:rgba(12,18,28,.94) !important;
+  border-color:rgba(167,183,204,.14) !important;
+}
+
+body[data-exam-theme="dark"] #listeningSection .listen-title,
+body[data-exam-theme="dark"] #listeningSection .listen-h,
+body[data-exam-theme="dark"] #listeningSection .listen-card-title,
+body[data-exam-theme="dark"] #writingSection .writing-title,
+body[data-exam-theme="dark"] #writingSection .writing-card-title,
+body[data-exam-theme="dark"] #container .passage h1,
+body[data-exam-theme="dark"] #container .passage h2,
+body[data-exam-theme="dark"] #container .passage h3,
+body[data-exam-theme="dark"] #container .passage h4,
+body[data-exam-theme="dark"] #container .questions h1,
+body[data-exam-theme="dark"] #container .questions h2,
+body[data-exam-theme="dark"] #container .questions h3,
+body[data-exam-theme="dark"] #container .questions h4,
+body[data-exam-theme="dark"] #container .task-title,
+body[data-exam-theme="dark"] #container .headings-list-title,
+body[data-exam-theme="dark"] #container .timer,
+body[data-exam-theme="dark"] #container .reading-resize-hint{
+  color:#f4f7fb !important;
+}
+
+body[data-exam-theme="dark"] #listeningSection .listen-sub,
+body[data-exam-theme="dark"] #listeningSection .listen-inst,
+body[data-exam-theme="dark"] #listeningSection .listen-card,
+body[data-exam-theme="dark"] #listeningSection .listen-example,
+body[data-exam-theme="dark"] #listeningSection .people-box,
+body[data-exam-theme="dark"] #listeningSection .endings-box,
+body[data-exam-theme="dark"] #listeningSection .listen-notes,
+body[data-exam-theme="dark"] #listeningSection .note-row,
+body[data-exam-theme="dark"] #listeningSection .listen-table,
+body[data-exam-theme="dark"] #listeningSection .mcq,
+body[data-exam-theme="dark"] #listeningSection .mcq-q,
+body[data-exam-theme="dark"] #writingSection .writing-inst,
+body[data-exam-theme="dark"] #writingSection .writing-label,
+body[data-exam-theme="dark"] #writingSection .writing-card,
+body[data-exam-theme="dark"] #writingSection .writing-footer,
+body[data-exam-theme="dark"] #container .passage,
+body[data-exam-theme="dark"] #container .passage p,
+body[data-exam-theme="dark"] #container .passage li,
+body[data-exam-theme="dark"] #container .passage div,
+body[data-exam-theme="dark"] #container .questions,
+body[data-exam-theme="dark"] #container .questions p,
+body[data-exam-theme="dark"] #container .questions li,
+body[data-exam-theme="dark"] #container .questions label,
+body[data-exam-theme="dark"] #container .questions span,
+body[data-exam-theme="dark"] #container .questions div,
+body[data-exam-theme="dark"] #container .task-instructions,
+body[data-exam-theme="dark"] #container .answer-example,
+body[data-exam-theme="dark"] #container .qtext,
+body[data-exam-theme="dark"] #container .sentenceLine,
+body[data-exam-theme="dark"] #container .mcqPrompt{
+  color:#d8e2ee !important;
+}
+
+body[data-exam-theme="dark"] #listeningSection .listen-status,
+body[data-exam-theme="dark"] #listeningSection .listenTab,
+body[data-exam-theme="dark"] #writingSection .writing-timer,
+body[data-exam-theme="dark"] #container .qnum,
+body[data-exam-theme="dark"] #container .qcard,
+body[data-exam-theme="dark"] #listeningSection .listen-card,
+body[data-exam-theme="dark"] #listeningSection .listen-example,
+body[data-exam-theme="dark"] #listeningSection .people-box,
+body[data-exam-theme="dark"] #listeningSection .endings-box,
+body[data-exam-theme="dark"] #writingSection .writing-card,
+body[data-exam-theme="dark"] #writingSection .writing-graph,
+body[data-exam-theme="dark"] #container .panel,
+body[data-exam-theme="dark"] #container .optionsBox,
+body[data-exam-theme="dark"] #container .passage,
+body[data-exam-theme="dark"] #container .questions{
+  background:#162130 !important;
+  border-color:rgba(167,183,204,.14) !important;
+  box-shadow:0 18px 42px rgba(0,0,0,.24) !important;
+}
+
+body[data-exam-theme="dark"] #writingSection textarea,
+body[data-exam-theme="dark"] #writingSection input,
+body[data-exam-theme="dark"] #writingSection select,
+body[data-exam-theme="dark"] #listeningSection input,
+body[data-exam-theme="dark"] #listeningSection select,
+body[data-exam-theme="dark"] #container input,
+body[data-exam-theme="dark"] #container select,
+body[data-exam-theme="dark"] #container textarea{
+  background:#0f1722 !important;
+  color:#edf3fb !important;
+  border-color:rgba(167,183,204,.18) !important;
+}
+
+body[data-exam-theme="dark"] #writingSection textarea::placeholder,
+body[data-exam-theme="dark"] #listeningSection input::placeholder,
+body[data-exam-theme="dark"] #container input::placeholder,
+body[data-exam-theme="dark"] #container textarea::placeholder{
+  color:#8fa0b5 !important;
+}
+
+@media (max-width: 1180px){
+  .exam-display-controls{
+    width:100%;
+    justify-content:flex-end;
+    padding-right:0;
+    margin-right:0;
+    border-right:none;
+    order:2;
+  }
+}
+
+@media (max-width: 760px){
+  .exam-display-controls{
+    justify-content:flex-start;
+  }
+
+  .exam-display-btn{
+    flex:1 1 140px;
+    justify-content:space-between;
+  }
+}

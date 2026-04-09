@@ -1,12 +1,5 @@
-/* assets/js/tests/test7Content.js */
-(function () {
-  "use strict";
-
-  window.IELTS = window.IELTS || {};
-  window.IELTS.Registry = window.IELTS.Registry || {};
-  const R = window.IELTS.Registry;
-
-  const test7 = {
+/* src/protectedTestContent.mjs */
+const test7 = {
     listening: {
       audioSrc: "https://audio.ieltsmock.org/Test%207.mp3",
       html: `
@@ -416,7 +409,10 @@ F The greatest author of antiquity was actually, Parry argued, just "one of a lo
     },
   };
 
-  if (R.TESTS && R.TESTS.byId && R.TESTS.byId.ielts7) {
-    R.TESTS.byId.ielts7.content = test7;
-  }
-})();
+export const PROTECTED_TEST_CONTENT = {
+  ielts7: test7,
+};
+
+export function getProtectedTestContent(testId) {
+  return PROTECTED_TEST_CONTENT[String(testId || '').trim()] || null;
+}

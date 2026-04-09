@@ -170,7 +170,16 @@
   function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
     const startAt = Date.now();
     return new Promise((resolve, reject) => {
-      const tick = () => {
+      const tick = async () => {
+        if (["Listening", "Reading", "Writing"].includes(String(engineName || ""))) {
+          try {
+            await R()?.ensureActiveTestContent?.();
+          } catch (e) {
+            console.error(`[IELTS] Failed to load protected test content for ${engineName}`, e);
+            reject(e);
+            return;
+          }
+        }
         const fn = window.IELTS?.Engines?.[engineName]?.[methodName];
         if (typeof fn === "function") {
           try {

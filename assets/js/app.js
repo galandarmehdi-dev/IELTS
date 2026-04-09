@@ -211,6 +211,12 @@
 
     const $ = UI().$;
     
+    const EXAM_DISPLAY_BUTTONS = {
+      darkMode: true,
+      brightness: true,
+      textSize: true,
+    };
+
     const PREF_KEYS = {
       fontScale: "fontScale",
       examBrightness: "examBrightness",
@@ -238,7 +244,7 @@
     }
 
     function applyExamBrightness(value) {
-      const allowed = new Set(["soft", "normal", "bright"]);
+      const allowed = new Set(["darker", "soft", "normal", "bright"]);
       const next = allowed.has(value) ? value : "normal";
       try { document.body.setAttribute("data-exam-brightness", next); } catch (e) {}
       return next;
@@ -262,7 +268,7 @@
       const darkLabel = $("examDarkModeLabel");
       const textLabel = $("examTextSizeLabel");
       const darkBtn = $("examDarkModeBtn");
-      const brightnessMap = { soft: "Soft", normal: "Normal", bright: "Bright" };
+      const brightnessMap = { darker: "Darker", soft: "Soft", normal: "Normal", bright: "Bright" };
       const textMap = { normal: "100%", large: "112%", xlarge: "125%" };
       if (brightnessLabel) brightnessLabel.textContent = brightnessMap[state.brightness] || "Normal";
       if (darkLabel) darkLabel.textContent = state.theme === "dark" ? "On" : "Off";
@@ -271,6 +277,23 @@
     }
 
     function initExamDisplayPreferences() {
+      const controlsWrap = $("examDisplayControls");
+      const darkBtn = $("examDarkModeBtn");
+      const brightnessBtn = $("examBrightnessBtn");
+      const textBtn = $("examTextSizeBtn");
+
+      if (!EXAM_DISPLAY_BUTTONS.darkMode && darkBtn) darkBtn.classList.add("hidden");
+      if (!EXAM_DISPLAY_BUTTONS.brightness && brightnessBtn) brightnessBtn.classList.add("hidden");
+      if (!EXAM_DISPLAY_BUTTONS.textSize && textBtn) textBtn.classList.add("hidden");
+      if (
+        controlsWrap &&
+        !EXAM_DISPLAY_BUTTONS.darkMode &&
+        !EXAM_DISPLAY_BUTTONS.brightness &&
+        !EXAM_DISPLAY_BUTTONS.textSize
+      ) {
+        controlsWrap.classList.add("hidden");
+      }
+
       const brightnessKey = getPreferenceStorageKey(PREF_KEYS.examBrightness);
       const themeKey = getPreferenceStorageKey(PREF_KEYS.examDarkMode);
       const textScaleKey = getPreferenceStorageKey(PREF_KEYS.examTextScale);
@@ -281,23 +304,23 @@
         textScale: applyExamTextScale((localStorage.getItem(textScaleKey) || "normal").trim()),
       };
 
-      const brightnessOrder = ["soft", "normal", "bright"];
+      const brightnessOrder = ["darker", "soft", "normal", "bright"];
       const textScaleOrder = ["normal", "large", "xlarge"];
 
-      $("examBrightnessBtn")?.addEventListener("click", () => {
+      brightnessBtn?.addEventListener("click", () => {
         const currentIndex = Math.max(0, brightnessOrder.indexOf(state.brightness));
         state.brightness = applyExamBrightness(brightnessOrder[(currentIndex + 1) % brightnessOrder.length]);
         try { localStorage.setItem(brightnessKey, state.brightness); } catch (e) {}
         updateExamDisplayControlLabels(state);
       });
 
-      $("examDarkModeBtn")?.addEventListener("click", () => {
+      darkBtn?.addEventListener("click", () => {
         state.theme = applyExamDarkMode(state.theme === "dark" ? "light" : "dark");
         try { localStorage.setItem(themeKey, state.theme); } catch (e) {}
         updateExamDisplayControlLabels(state);
       });
 
-      $("examTextSizeBtn")?.addEventListener("click", () => {
+      textBtn?.addEventListener("click", () => {
         const currentIndex = Math.max(0, textScaleOrder.indexOf(state.textScale));
         state.textScale = applyExamTextScale(textScaleOrder[(currentIndex + 1) % textScaleOrder.length]);
         try { localStorage.setItem(textScaleKey, state.textScale); } catch (e) {}

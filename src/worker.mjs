@@ -1,4 +1,5 @@
 import { EmailMessage } from "cloudflare:email";
+import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
 
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
@@ -27,8 +28,6 @@ export default {
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
-const ANSWER_KEY_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/gviz/tq?tqx=out:csv&sheet=AnswerKey";
 const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 async function handleSharedStudentLogin(request, env) {
@@ -265,7 +264,14 @@ async function handleAdminApi(request, env) {
     const payload = await request.json().catch(() => null);
     const testId = oneLine(payload?.testId || "");
     const skill = oneLine(payload?.skill || "").toLowerCase();
-    const reveal = payload?.reveal === true;
+    const revealRequested = payload?.reveal === true;
+    if (revealRequested) {
+      const adminAuth = await authenticateAdmin(request, env);
+      if (!adminAuth.ok) {
+        return json(403, { ok: false, error: "Only admin accounts can reveal correct answers." });
+      }
+    }
+    const reveal = revealRequested;
     const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
     const overrideMap = payload?.overrideMap && typeof payload.overrideMap === "object" ? payload.overrideMap : {};
     const questionNumbers = Array.isArray(payload?.questionNumbers)
@@ -276,14 +282,8 @@ async function handleAdminApi(request, env) {
       return json(400, { ok: false, error: "Missing grading inputs." });
     }
 
-    const response = await fetch(ANSWER_KEY_CSV_URL, { method: "GET" });
-    const csvText = await response.text();
-    if (!response.ok || !csvText) {
-      return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load answer key sheet." });
-    }
-
     const answerMap = {
-      ...buildObjectiveAnswerMap(csvText, testId, skill),
+      ...buildObjectiveAnswerMap(testId, skill),
       ...sanitizeObjectiveOverrideMap(overrideMap),
     };
     const review = questionNumbers
@@ -872,23 +872,18 @@ function formatBand(value) {
   return /^band\s+/i.test(text) ? text : `Band ${text}`;
 }
 
-function buildObjectiveAnswerMap(csvText, testId, skill) {
-  const rows = parseCsv(csvText).filter((row) => Array.isArray(row) && row.length);
-  const colMap = {
-    ielts1: { listening: 0, reading: 1 },
-    ielts2: { listening: 2, reading: 3 },
-    ielts3: { listening: 4, reading: 5 },
-    ielts4: { listening: 6, reading: 7 },
-  };
-  const testCols = colMap[String(testId || "").trim().toLowerCase()] || null;
-  if (!testCols) return {};
-  const colIndex = testCols[skill];
-  if (!Number.isInteger(colIndex)) return {};
-
+function buildObjectiveAnswerMap(testId, skill) {
+  const testKey = String(testId || "").trim().toLowerCase();
+  const skillKey = String(skill || "").trim().toLowerCase();
+  const source = OBJECTIVE_ANSWER_KEYS?.[testKey]?.[skillKey];
+  if (!source || typeof source !== "object") return {};
   const map = {};
-  rows.slice(0, 40).forEach((row, index) => {
-    const value = String(row[colIndex] || "").trim();
-    if (value) map[index + 1] = value;
+  Object.entries(source).forEach(([key, value]) => {
+    const q = Number(key);
+    if (!Number.isFinite(q) || q <= 0) return;
+    const next = String(value || "").trim();
+    if (!next) return;
+    map[q] = next;
   });
   return map;
 }

@@ -19,6 +19,14 @@ export default {
       return handleSharedStudentLogin(request, env);
     }
 
+    if (url.pathname === "/api/auth/shared-bypass") {
+      return handleSharedStudentBypass(request, env);
+    }
+
+    if (url.pathname === "/api/auth/shared-setup") {
+      return handleSharedStudentSetup(request, env);
+    }
+
     if (url.pathname === "/api/test-content") {
       return handleProtectedTestContentApi(request);
     }
@@ -174,39 +182,154 @@ async function handleSharedStudentLogin(request, env) {
   const email = oneLine(payload?.email).toLowerCase();
   const password = String(payload?.password || "");
   const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || DEFAULT_SHARED_STUDENT_PASSWORD);
+  const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
+  const hasPersonalPassword = !!(current?.passwordHash && current?.passwordSalt);
 
   if (!isValidEmail(email)) {
     await logSecurityEvent(env, request, "shared_login_invalid_email", { email });
     return json(400, { ok: false, error: "Please enter a valid email address." });
   }
-  if (!password || password !== expectedPassword) {
+
+  if (hasPersonalPassword) {
+    const matches = await verifyStudentPassword(current, email, password);
+    if (!matches) {
+      await logSecurityEvent(env, request, "shared_login_wrong_personal_password", { email });
+      return json(401, { ok: false, error: "Wrong email or password." });
+    }
+  } else if (!password || password !== expectedPassword) {
     await logSecurityEvent(env, request, "shared_login_wrong_password", { email });
     return json(401, { ok: false, error: "Wrong shared password." });
   }
 
-  const token = await issueSharedStudentToken(email, env);
-  const displayName = deriveNameFromEmail(email);
-  const user = {
-    id: `shared:${email}`,
-    email,
-    created_at: new Date().toISOString(),
-    last_sign_in_at: new Date().toISOString(),
-    app_metadata: { provider: "shared-password", is_shared_student_login: true },
-    user_metadata: {
-      full_name: displayName,
-      name: displayName,
-      preferred_name: displayName,
-    },
-  };
+  const displayName = oneLine(current?.fullName || deriveNameFromEmail(email));
+  const setupCompleted = hasPersonalPassword && !!oneLine(current?.fullName || "");
+  const token = await issueSharedStudentToken(email, env, { mode: setupCompleted ? "student" : "setup" });
+  const user = buildSharedStudentUser(email, {
+    fullName: displayName,
+    firstName: current?.firstName || "",
+    lastName: current?.lastName || "",
+    setupCompleted,
+  });
 
   await upsertStudentRegistry(env, {
     email,
     fullName: displayName,
+    firstName: current?.firstName || "",
+    lastName: current?.lastName || "",
     provider: "shared-password",
     isSharedPassword: true,
   });
 
-  return json(200, { ok: true, token, user });
+  return json(200, { ok: true, token, user, setupCompleted, requiresSetup: !setupCompleted });
+}
+
+async function handleSharedStudentBypass(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const email = oneLine(payload?.email).toLowerCase();
+  const bypassPassword = String(payload?.bypassPassword || "");
+  const expectedBypass = String(env.SHARED_STUDENT_BYPASS_PASSWORD || "").trim();
+
+  if (!isValidEmail(email)) {
+    await logSecurityEvent(env, request, "shared_bypass_invalid_email", { email });
+    return json(400, { ok: false, error: "Please enter a valid email address." });
+  }
+  if (!expectedBypass) {
+    return json(503, { ok: false, error: "Shared student bypass is not configured." });
+  }
+  if (!bypassPassword || bypassPassword !== expectedBypass) {
+    await logSecurityEvent(env, request, "shared_bypass_wrong_password", { email });
+    return json(401, { ok: false, error: "Wrong bypass password." });
+  }
+
+  const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
+  const displayName = oneLine(current?.fullName || deriveNameFromEmail(email));
+  const token = await issueSharedStudentToken(email, env, { mode: "setup", bypass: true });
+  const user = buildSharedStudentUser(email, {
+    fullName: displayName,
+    firstName: current?.firstName || "",
+    lastName: current?.lastName || "",
+    setupCompleted: false,
+  });
+
+  return json(200, {
+    ok: true,
+    token,
+    user,
+    setupCompleted: false,
+    requiresSetup: true,
+    recoveryMode: "bypass",
+  });
+}
+
+async function handleSharedStudentSetup(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+  const email = normalizeEmail(auth?.user?.email || "");
+  if (!email) return json(401, { ok: false, error: "Missing student email." });
+
+  const payload = await request.json().catch(() => null);
+  const firstName = oneLine(payload?.firstName || "");
+  const lastName = oneLine(payload?.lastName || "");
+  const password = String(payload?.password || "");
+
+  if (!firstName || !lastName) {
+    return json(400, { ok: false, error: "First name and surname are required." });
+  }
+  if (!password || password.length < 6) {
+    return json(400, { ok: false, error: "Choose a password with at least 6 characters." });
+  }
+
+  const fullName = `${firstName} ${lastName}`.replace(/\s+/g, " ").trim();
+  const salt = generateStudentPasswordSalt();
+  const passwordHash = await hashStudentPassword(email, password, salt);
+  const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || {};
+  const methods = {
+    ...(current.methods && typeof current.methods === "object" ? current.methods : {}),
+    "shared-password": true,
+  };
+  const next = {
+    ...current,
+    email,
+    fullName,
+    firstName,
+    lastName,
+    methods,
+    lastProvider: "shared-password",
+    passwordSalt: salt,
+    passwordHash,
+    passwordChangedAt: new Date().toISOString(),
+    setupCompleted: true,
+    lastSeenAt: new Date().toISOString(),
+    firstSeenAt: current.firstSeenAt || new Date().toISOString(),
+  };
+
+  await writeJsonKv(env.STUDENT_REGISTRY, `student:${email}`, next);
+
+  const token = await issueSharedStudentToken(email, env, { mode: "student" });
+  const user = buildSharedStudentUser(email, {
+    fullName,
+    firstName,
+    lastName,
+    setupCompleted: true,
+  });
+
+  return json(200, {
+    ok: true,
+    token,
+    user,
+    setupCompleted: true,
+    requiresSetup: false,
+    message: "Your student password is ready.",
+  });
 }
 
 async function handleContactApi(request, env) {
@@ -679,6 +802,8 @@ async function authenticateUser(request, env) {
           name: deriveNameFromEmail(payload.email),
           preferred_name: deriveNameFromEmail(payload.email),
         },
+        shared_mode: payload.mode || "student",
+        shared_bypass: payload.bypass === true,
       },
     };
   }
@@ -713,11 +838,13 @@ function getSharedTokenSigningSecret(env) {
   return String(env.SHARED_STUDENT_TOKEN_SECRET || env.ADMIN_RESULTS_PASSCODE || DEFAULT_SHARED_STUDENT_PASSWORD);
 }
 
-async function issueSharedStudentToken(email, env) {
+async function issueSharedStudentToken(email, env, options = {}) {
   const payload = {
     email: String(email || "").trim().toLowerCase(),
     type: "shared-student",
     exp: Date.now() + (1000 * 60 * 60 * 24 * 30),
+    mode: oneLine(options?.mode || "student") || "student",
+    bypass: options?.bypass === true,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
   const signature = await signSharedTokenPayload(encodedPayload, getSharedTokenSigningSecret(env));
@@ -736,6 +863,49 @@ async function verifySharedStudentToken(token, env) {
   if (!payload || payload.type !== "shared-student" || !payload.email) return null;
   if (!Number.isFinite(payload.exp) || Date.now() > payload.exp) return null;
   return payload;
+}
+
+function buildSharedStudentUser(email, options = {}) {
+  const fullName = oneLine(options?.fullName || deriveNameFromEmail(email));
+  const firstName = oneLine(options?.firstName || "");
+  const lastName = oneLine(options?.lastName || "");
+  return {
+    id: `shared:${email}`,
+    email,
+    created_at: new Date().toISOString(),
+    last_sign_in_at: new Date().toISOString(),
+    app_metadata: {
+      provider: "shared-password",
+      is_shared_student_login: true,
+      setup_completed: options?.setupCompleted === true,
+    },
+    user_metadata: {
+      full_name: fullName,
+      name: fullName,
+      preferred_name: fullName,
+      first_name: firstName,
+      last_name: lastName,
+    },
+  };
+}
+
+function generateStudentPasswordSalt() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return toBase64UrlFromBytes(bytes);
+}
+
+async function hashStudentPassword(email, password, salt) {
+  const raw = `${String(salt || "").trim()}::${normalizeEmail(email)}::${String(password || "")}`;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  return toBase64UrlFromBytes(new Uint8Array(digest));
+}
+
+async function verifyStudentPassword(record, email, password) {
+  const expected = String(record?.passwordHash || "").trim();
+  const salt = String(record?.passwordSalt || "").trim();
+  if (!expected || !salt || !password) return false;
+  const actual = await hashStudentPassword(email, password, salt);
+  return actual === expected;
 }
 
 async function signSharedTokenPayload(encodedPayload, secret) {
@@ -910,12 +1080,18 @@ async function upsertStudentRegistry(env, payload) {
   const next = {
     email,
     fullName: oneLine(payload?.fullName || current.fullName || deriveNameFromEmail(email)),
+    firstName: oneLine(payload?.firstName || current.firstName || ""),
+    lastName: oneLine(payload?.lastName || current.lastName || ""),
     firstSeenAt: current.firstSeenAt || now,
     lastSeenAt: now,
     lastProvider: provider,
     signInCount: Number(current.signInCount || 0) + 1,
     sharedPasswordSignInCount: Number(current.sharedPasswordSignInCount || 0) + (payload?.isSharedPassword ? 1 : 0),
     methods,
+    setupCompleted: payload?.setupCompleted === true || current.setupCompleted === true,
+    passwordHash: current.passwordHash || "",
+    passwordSalt: current.passwordSalt || "",
+    passwordChangedAt: current.passwordChangedAt || "",
   };
 
   await writeJsonKv(env.STUDENT_REGISTRY, key, next);

@@ -64,6 +64,10 @@
     return started || !!(ctx && typeof ctx === "object");
   }
 
+  function isExamRouteView(view) {
+    return ["listening", "reading", "writing"].includes(String(view || ""));
+  }
+
   function resetToPublicHomeFromStaleRoute() {
     try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
     try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
@@ -475,6 +479,96 @@
         try { startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to resume:', e)); } catch (e) {}
         try { UI().showOnly("writing"); } catch (e) {}
         try { UI().setExamNavStatus("Status: Resuming Writing"); } catch (e) {}
+      }
+    }
+
+    function promptResumeStudentExamRoute(route) {
+      if (!route?.view || window.__IELTS_RESUME_ROUTE_PROMPT_OPEN__) return;
+      window.__IELTS_RESUME_ROUTE_PROMPT_OPEN__ = true;
+      safe(() =>
+        Modal().showModal(
+          "Resume your exam?",
+          "We found an unfinished exam attempt. If you go back to the homepage instead of resuming, your current answers will be lost and the exam will start from the beginning next time.",
+          {
+            mode: "confirm",
+            showCancel: true,
+            submitText: "Resume exam",
+            cancelText: "Go to homepage",
+            onConfirm: () => {
+              window.__IELTS_RESUME_ROUTE_PROMPT_OPEN__ = false;
+              resumeStudentExamRoute(route);
+            },
+            onCancel: () => {
+              window.__IELTS_RESUME_ROUTE_PROMPT_OPEN__ = false;
+              clearAllStudentAttemptKeys();
+              resetToPublicHomeFromStaleRoute();
+            },
+          }
+        )
+      );
+    }
+
+    function openAdminRoute(route) {
+      if (!route?.view) return;
+      if (route.view === "listening") {
+        UI().setExamStarted(true);
+        startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
+        UI().showOnly("listening");
+        UI().setExamNavStatus("Status: Listening in progress");
+        return;
+      }
+      if (route.view === "reading") {
+        UI().setExamStarted(true);
+        window.__IELTS_READING_INIT__ = false;
+        startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
+        UI().showOnly("reading");
+        UI().setExamNavStatus("Status: Viewing Reading");
+        return;
+      }
+      if (route.view === "writing") {
+        UI().setExamStarted(true);
+        window.__IELTS_WRITING_INIT__ = false;
+        startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to start:', e));
+        UI().showOnly("writing");
+        UI().setExamNavStatus("Status: Viewing Writing");
+        return;
+      }
+      if (route.view === "results") {
+        openAdminResultsView();
+        return;
+      }
+      if (route.view === "dashboard") {
+        window.IELTS?.Dashboard?.open?.();
+        return;
+      }
+      if (route.view === "home") {
+        UI().showOnly("home");
+        UI().updateHomeStatusLine();
+        UI().setExamNavStatus("Status: Home");
+      }
+    }
+
+    function reconcileStartupRoute() {
+      const nextRoute = Router().parseHashRoute();
+      if (!nextRoute?.view) return;
+
+      if (isExamRouteView(nextRoute.view)) {
+        if (isAdminView()) {
+          if (document.body?.dataset?.activeView !== nextRoute.view) openAdminRoute(nextRoute);
+          return;
+        }
+        if (!hasResumableStudentAttempt()) {
+          resetToPublicHomeFromStaleRoute();
+          return;
+        }
+        if (!isStudentExamRouteActive()) {
+          promptResumeStudentExamRoute(nextRoute);
+        }
+        return;
+      }
+
+      if (isAdminView() && nextRoute.view === "results" && document.body?.dataset?.activeView !== "adminResults") {
+        openAdminResultsView();
       }
     }
 
@@ -1282,70 +1376,19 @@
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
     if (
       route &&
-      ["listening", "reading", "writing"].includes(String(route.view || "")) &&
+      isExamRouteView(route.view) &&
       !isAdminView()
     ) {
       if (!hasResumableStudentAttempt()) {
         resetToPublicHomeFromStaleRoute();
         return;
       }
-      safe(() =>
-        Modal().showModal(
-          "Resume your exam?",
-          "We found an unfinished exam attempt. If you go back to the homepage instead of resuming, your current answers will be lost and the exam will start from the beginning next time.",
-          {
-            mode: "confirm",
-            showCancel: true,
-            submitText: "Resume exam",
-            cancelText: "Go to homepage",
-            onConfirm: () => resumeStudentExamRoute(route),
-            onCancel: () => {
-              clearAllStudentAttemptKeys();
-              resetToPublicHomeFromStaleRoute();
-            },
-          }
-        )
-      );
+      promptResumeStudentExamRoute(route);
       return;
     }
     if (isAdminView() && route && route.view) {
-      if (route.view === "listening") {
-        UI().setExamStarted(true);
-        startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
-        UI().showOnly("listening");
-        UI().setExamNavStatus("Status: Listening in progress");
-        return;
-      }
-      if (route.view === "reading") {
-        UI().setExamStarted(true);
-        window.__IELTS_READING_INIT__ = false;
-        startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
-        UI().showOnly("reading");
-        UI().setExamNavStatus("Status: Viewing Reading");
-        return;
-      }
-      if (route.view === "writing") {
-        UI().setExamStarted(true);
-        window.__IELTS_WRITING_INIT__ = false;
-        startEngineWhenReady("Writing", "startWritingSystem").catch(e => console.error('[IELTS] Writing failed to start:', e));
-        UI().showOnly("writing");
-        UI().setExamNavStatus("Status: Viewing Writing");
-        return;
-      }
-      if (route.view === "results") {
-        openAdminResultsView();
-        return;
-      }
-      if (route.view === "dashboard") {
-        window.IELTS?.Dashboard?.open?.();
-        return;
-      }
-      if (route.view === "home") {
-        UI().showOnly("home");
-        UI().updateHomeStatusLine();
-        UI().setExamNavStatus("Status: Home");
-        return;
-      }
+      openAdminRoute(route);
+      return;
     }
 
     if (route && route.view) {
@@ -2808,11 +2851,14 @@ function startFreshExam() {
       if (event?.detail?.isAdmin) {
         prefetchAdminResults().catch(() => {});
       }
+      setTimeout(reconcileStartupRoute, 0);
     });
     window.addEventListener("ielts:authchanged", () => {
       if (isAdminView()) prefetchAdminResults().catch(() => {});
+      setTimeout(reconcileStartupRoute, 0);
     });
     if (isAdminView()) prefetchAdminResults().catch(() => {});
+    setTimeout(reconcileStartupRoute, 0);
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-admin-view]");

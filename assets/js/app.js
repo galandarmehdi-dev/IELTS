@@ -1372,6 +1372,7 @@
     // Hash route support (ADMIN ONLY)
     // -----------------------------
     let pendingResourceHubKind = null;
+    let pendingStartupRouteAction = null;
     const route = Router().parseHashRoute();
     if (route && route.testId) { try { setActiveTestId(route.testId); } catch (e) {} }
     if (
@@ -1380,15 +1381,12 @@
       !isAdminView()
     ) {
       if (!hasResumableStudentAttempt()) {
-        resetToPublicHomeFromStaleRoute();
-        return;
+        pendingStartupRouteAction = () => resetToPublicHomeFromStaleRoute();
+      } else {
+        pendingStartupRouteAction = () => promptResumeStudentExamRoute(route);
       }
-      promptResumeStudentExamRoute(route);
-      return;
-    }
-    if (isAdminView() && route && route.view) {
-      openAdminRoute(route);
-      return;
+    } else if (isAdminView() && route && route.view) {
+      pendingStartupRouteAction = () => openAdminRoute(route);
     }
 
     if (route && route.view) {
@@ -2834,6 +2832,13 @@ function startFreshExam() {
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
     renderHomeMenus();
     renderHomeMetrics();
+    if (pendingStartupRouteAction) {
+      setTimeout(() => {
+        try {
+          pendingStartupRouteAction();
+        } catch (e) {}
+      }, 0);
+    }
     if (pendingResourceHubKind) {
       openResourceHub(pendingResourceHubKind);
     }

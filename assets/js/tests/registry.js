@@ -24,7 +24,7 @@
     historyUpdateMs: 15000,
   };
 
-  const REMOTE_TEST_CONTENT = new Set(["ielts5", "ielts6", "ielts7"]);
+  const REMOTE_TEST_CONTENT = new Set(["ielts1", "ielts2", "ielts3", "ielts4", "ielts5", "ielts6", "ielts7"]);
   const remoteTestContentPromises = new Map();
 
   const POLLING = {

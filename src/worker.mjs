@@ -27,13 +27,53 @@ export default {
       return handleAdminApi(request, env);
     }
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    return applyDocumentSecurityHeaders(response);
   },
 };
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
 const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
+
+function applyDocumentSecurityHeaders(response) {
+  const headers = new Headers(response.headers);
+  const contentType = String(headers.get("content-type") || "").toLowerCase();
+  const isHtml = contentType.includes("text/html");
+
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set(
+    "Permissions-Policy",
+    "camera=(), geolocation=(), payment=(), usb=(), fullscreen=(self), microphone=(self)"
+  );
+
+  if (isHtml) {
+    headers.set("Content-Security-Policy", buildContentSecurityPolicy());
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function buildContentSecurityPolicy() {
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'self'",
+    "form-action 'self'",
+    "script-src 'self' 'unsafe-eval' https://esm.sh",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com",
+    "media-src 'self' blob: https://audio.ieltsmock.org",
+    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://script.google.com https://script.googleusercontent.com https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh",
+  ].join("; ");
+}
 
 async function handleProtectedTestContentApi(request) {
   if (request.method !== "GET") {

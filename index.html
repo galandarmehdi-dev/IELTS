@@ -19,6 +19,7 @@
 <link rel="stylesheet" href="assets/css/modal.css" />
 <link rel="stylesheet" href="assets/css/highlighting.css" />
 <link rel="stylesheet" href="assets/css/speaking.css" />
+<link rel="stylesheet" href="assets/css/exam-display.css" />
 </head>
   
 <body translate="no">
@@ -944,7 +945,21 @@
   </div>
 
   <div class="exam-nav-actions">
-<button class="btn secondary" type="button" id="navToHomeBtn">Home</button>
+    <div class="exam-display-controls" id="examDisplayControls" aria-label="Exam display controls">
+      <button class="btn secondary exam-display-btn" type="button" id="examBrightnessBtn" title="Cycle exam brightness">
+        <span class="exam-display-btn-title">Light</span>
+        <span class="exam-display-btn-value" id="examBrightnessLabel">Normal</span>
+      </button>
+      <button class="btn secondary exam-display-btn" type="button" id="examDarkModeBtn" aria-pressed="false" title="Toggle dark mode">
+        <span class="exam-display-btn-title">Dark</span>
+        <span class="exam-display-btn-value" id="examDarkModeLabel">Off</span>
+      </button>
+      <button class="btn secondary exam-display-btn" type="button" id="examTextSizeBtn" title="Increase exam text size">
+        <span class="exam-display-btn-title">Text</span>
+        <span class="exam-display-btn-value" id="examTextSizeLabel">100%</span>
+      </button>
+    </div>
+    <button class="btn secondary" type="button" id="navToHomeBtn">Home</button>
     <button class="btn secondary" type="button" id="navToListeningBtn">Listening</button>
     <button class="btn secondary" type="button" id="navToReadingBtn">Reading</button>
     <button class="btn secondary" type="button" id="navToWritingBtn">Writing</button>

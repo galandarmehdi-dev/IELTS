@@ -213,10 +213,20 @@
     
     const PREF_KEYS = {
       fontScale: "fontScale",
+      examBrightness: "examBrightness",
+      examDarkMode: "examDarkMode",
+      examTextScale: "examTextScale",
     };
 
     function getPreferenceStorageKey(key) {
-      const userId = window.IELTS?.Auth?.getSavedUser?.()?.id || "guest";
+      const authUser =
+        window.IELTS?.Auth?.getSavedUser?.() ||
+        window.IELTS?.Auth?.getSharedSession?.()?.user ||
+        null;
+      const userId =
+        authUser?.id ||
+        String(authUser?.email || "").trim().toLowerCase() ||
+        "guest";
       return `IELTSPREF:${userId}:${key}`;
     }
 
@@ -225,6 +235,76 @@
       const next = allowed.has(value) ? value : "medium";
       try { document.body.setAttribute("data-font-scale", next); } catch (e) {}
       return next;
+    }
+
+    function applyExamBrightness(value) {
+      const allowed = new Set(["soft", "normal", "bright"]);
+      const next = allowed.has(value) ? value : "normal";
+      try { document.body.setAttribute("data-exam-brightness", next); } catch (e) {}
+      return next;
+    }
+
+    function applyExamDarkMode(value) {
+      const next = value === "dark" ? "dark" : "light";
+      try { document.body.setAttribute("data-exam-theme", next); } catch (e) {}
+      return next;
+    }
+
+    function applyExamTextScale(value) {
+      const allowed = new Set(["normal", "large", "xlarge"]);
+      const next = allowed.has(value) ? value : "normal";
+      try { document.body.setAttribute("data-exam-text-scale", next); } catch (e) {}
+      return next;
+    }
+
+    function updateExamDisplayControlLabels(state) {
+      const brightnessLabel = $("examBrightnessLabel");
+      const darkLabel = $("examDarkModeLabel");
+      const textLabel = $("examTextSizeLabel");
+      const darkBtn = $("examDarkModeBtn");
+      const brightnessMap = { soft: "Soft", normal: "Normal", bright: "Bright" };
+      const textMap = { normal: "100%", large: "112%", xlarge: "125%" };
+      if (brightnessLabel) brightnessLabel.textContent = brightnessMap[state.brightness] || "Normal";
+      if (darkLabel) darkLabel.textContent = state.theme === "dark" ? "On" : "Off";
+      if (textLabel) textLabel.textContent = textMap[state.textScale] || "100%";
+      if (darkBtn) darkBtn.setAttribute("aria-pressed", state.theme === "dark" ? "true" : "false");
+    }
+
+    function initExamDisplayPreferences() {
+      const brightnessKey = getPreferenceStorageKey(PREF_KEYS.examBrightness);
+      const themeKey = getPreferenceStorageKey(PREF_KEYS.examDarkMode);
+      const textScaleKey = getPreferenceStorageKey(PREF_KEYS.examTextScale);
+
+      const state = {
+        brightness: applyExamBrightness((localStorage.getItem(brightnessKey) || "normal").trim()),
+        theme: applyExamDarkMode((localStorage.getItem(themeKey) || "light").trim()),
+        textScale: applyExamTextScale((localStorage.getItem(textScaleKey) || "normal").trim()),
+      };
+
+      const brightnessOrder = ["soft", "normal", "bright"];
+      const textScaleOrder = ["normal", "large", "xlarge"];
+
+      $("examBrightnessBtn")?.addEventListener("click", () => {
+        const currentIndex = Math.max(0, brightnessOrder.indexOf(state.brightness));
+        state.brightness = applyExamBrightness(brightnessOrder[(currentIndex + 1) % brightnessOrder.length]);
+        try { localStorage.setItem(brightnessKey, state.brightness); } catch (e) {}
+        updateExamDisplayControlLabels(state);
+      });
+
+      $("examDarkModeBtn")?.addEventListener("click", () => {
+        state.theme = applyExamDarkMode(state.theme === "dark" ? "light" : "dark");
+        try { localStorage.setItem(themeKey, state.theme); } catch (e) {}
+        updateExamDisplayControlLabels(state);
+      });
+
+      $("examTextSizeBtn")?.addEventListener("click", () => {
+        const currentIndex = Math.max(0, textScaleOrder.indexOf(state.textScale));
+        state.textScale = applyExamTextScale(textScaleOrder[(currentIndex + 1) % textScaleOrder.length]);
+        try { localStorage.setItem(textScaleKey, state.textScale); } catch (e) {}
+        updateExamDisplayControlLabels(state);
+      });
+
+      updateExamDisplayControlLabels(state);
     }
 
     function initFontPreference() {
@@ -252,6 +332,7 @@
     }
 
     initFontPreference();
+    initExamDisplayPreferences();
     // -----------------------------
     // Speaking exam (separate)
     // -----------------------------

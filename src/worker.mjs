@@ -1,5 +1,6 @@
 import { EmailMessage } from "cloudflare:email";
 import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
+import { getProtectedTestContent } from "./protectedTestContent.mjs";
 
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
@@ -18,6 +19,10 @@ export default {
       return handleSharedStudentLogin(request, env);
     }
 
+    if (url.pathname === "/api/test-content") {
+      return handleProtectedTestContentApi(request);
+    }
+
     if (url.pathname === "/api/admin") {
       return handleAdminApi(request, env);
     }
@@ -29,6 +34,31 @@ export default {
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
 const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
+
+async function handleProtectedTestContentApi(request) {
+  if (request.method !== "GET") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const url = new URL(request.url);
+  const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
+  const content = getProtectedTestContent(testId);
+  if (!content) {
+    return json(404, { ok: false, error: "Test content not found." });
+  }
+
+  return json(
+    200,
+    {
+      ok: true,
+      testId,
+      content,
+    },
+    {
+      "Cache-Control": "private, max-age=300",
+    }
+  );
+}
 
 async function handleSharedStudentLogin(request, env) {
   if (request.method !== "POST") {

@@ -24,6 +24,9 @@
     historyUpdateMs: 15000,
   };
 
+  const REMOTE_TEST_CONTENT = new Set(["ielts7"]);
+  const remoteTestContentPromises = new Map();
+
   const POLLING = {
     markedResultIntervalMs: 10000,
     markedResultMaxAttempts: 18,
@@ -188,6 +191,48 @@
       return buildReadingPracticeContent(ctx.taskType);
     }
     return getTestConfig(active)?.content || {};
+  }
+
+  function hasLoadedTestContent(content) {
+    return !!(
+      content &&
+      typeof content === "object" &&
+      (content.listening || content.reading || content.writing)
+    );
+  }
+
+  async function ensureTestContent(testId) {
+    const cfg = getTestConfig(testId);
+    const id = String(cfg?.id || testId || "").trim().toLowerCase();
+    if (!cfg || !id || !REMOTE_TEST_CONTENT.has(id) || hasLoadedTestContent(cfg.content)) {
+      return cfg?.content || {};
+    }
+
+    if (remoteTestContentPromises.has(id)) {
+      return remoteTestContentPromises.get(id);
+    }
+
+    const task = (async () => {
+      const url = new URL("/api/test-content", window.location.origin);
+      url.searchParams.set("testId", id);
+      const res = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true || !data.content) {
+        throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
+      }
+      cfg.content = data.content;
+      return cfg.content;
+    })()
+      .finally(() => {
+        remoteTestContentPromises.delete(id);
+      });
+
+    remoteTestContentPromises.set(id, task);
+    return task;
+  }
+
+  function ensureActiveTestContent() {
+    return ensureTestContent(getActiveTestId());
   }
 
   function setLaunchContext(context) {
@@ -663,6 +708,8 @@
     getScopedKeys,
     getScopedReadingTestId,
     getActiveTestContent,
+    ensureTestContent,
+    ensureActiveTestContent,
     setLaunchContext,
     getLaunchContext,
     clearLaunchContext,

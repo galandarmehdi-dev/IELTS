@@ -3,6 +3,7 @@
   --exam-text-scale:1;
 }
 
+body[data-exam-brightness="darker"]{ --exam-display-brightness:.82; }
 body[data-exam-brightness="soft"]{ --exam-display-brightness:.94; }
 body[data-exam-brightness="normal"]{ --exam-display-brightness:1; }
 body[data-exam-brightness="bright"]{ --exam-display-brightness:1.08; }

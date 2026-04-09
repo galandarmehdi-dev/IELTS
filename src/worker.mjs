@@ -338,6 +338,31 @@ async function handleAdminApi(request, env) {
     return json(200, { ok: true, record: record || null });
   }
 
+  if (request.method === "GET" && action === "objectiveDetailAdmin") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
+    const cached = getCachedObjectiveDetail(cacheKey);
+    if (cached) {
+      return json(200, { ok: true, result: cached, cached: true });
+    }
+
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("action", "studentObjectiveDetail");
+    const response = await fetch(backendUrl.toString(), {
+      method: "GET",
+      headers: filteredProxyHeaders(request),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data || data.ok !== true || !data.result) {
+      return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load objective detail." });
+    }
+    setCachedObjectiveDetail(cacheKey, data.result);
+    return json(200, { ok: true, result: data.result });
+  }
+
   if (request.method === "POST" && action === "studentSessionPing") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });

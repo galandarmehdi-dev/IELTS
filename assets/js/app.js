@@ -820,12 +820,11 @@
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("action", "studentObjectiveDetail");
+      url.searchParams.set("action", "objectiveDetailAdmin");
       url.searchParams.set("submittedAt", String(row.submittedAt || ""));
       url.searchParams.set("studentFullName", String(row.studentFullName || ""));
       url.searchParams.set("examId", String(row.examId || ""));
       url.searchParams.set("reason", String(row.reason || ""));
-      url.searchParams.set("t", String(Date.now()));
 
       const res = await fetch(url.toString(), {
         method: "GET",

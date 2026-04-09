@@ -26,6 +26,7 @@
 
   const REMOTE_TEST_CONTENT = new Set(["ielts1", "ielts2", "ielts3", "ielts4", "ielts5", "ielts6", "ielts7"]);
   const remoteTestContentPromises = new Map();
+  const remoteScriptPromises = new Map();
 
   const POLLING = {
     markedResultIntervalMs: 10000,
@@ -220,7 +221,7 @@
       if (!res.ok || !data || data.ok !== true || !data.content) {
         throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
       }
-      cfg.content = data.content;
+      cfg.content = await hydrateProtectedTestContent(id, data.content);
       return cfg.content;
     })()
       .finally(() => {
@@ -233,6 +234,56 @@
 
   function ensureActiveTestContent() {
     return ensureTestContent(getActiveTestId());
+  }
+
+  function loadScriptOnce(url) {
+    const key = String(url || "").trim();
+    if (!key) return Promise.resolve(false);
+    if (remoteScriptPromises.has(key)) return remoteScriptPromises.get(key);
+    const task = new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[data-protected-script="${CSS.escape(key)}"]`);
+      if (existing) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = key;
+      script.async = true;
+      script.dataset.protectedScript = key;
+      script.onload = () => resolve(true);
+      script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
+      document.head.appendChild(script);
+    }).finally(() => {
+      remoteScriptPromises.delete(key);
+    });
+    remoteScriptPromises.set(key, task);
+    return task;
+  }
+
+  async function hydrateProtectedTestContent(testId, content) {
+    const walk = async (value) => {
+      if (Array.isArray(value)) {
+        const out = [];
+        for (const item of value) out.push(await walk(item));
+        return out;
+      }
+      if (!value || typeof value !== "object") return value;
+
+      if (typeof value.legacyFactoryScript === "string" && value.legacyFactoryScript.trim()) {
+        await loadScriptOnce(value.legacyFactoryScript);
+        const factory =
+          window.IELTS?.Registry?.__protectedLegacyFactories?.[String(testId || "").trim().toLowerCase()] || null;
+        return factory ? { legacyFactory: factory } : {};
+      }
+
+      const out = {};
+      for (const [key, child] of Object.entries(value)) {
+        out[key] = await walk(child);
+      }
+      return out;
+    };
+
+    return walk(content);
   }
 
   function setLaunchContext(context) {

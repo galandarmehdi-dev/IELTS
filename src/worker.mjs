@@ -23,6 +23,10 @@ export default {
       return handleProtectedTestContentApi(request);
     }
 
+    if (url.pathname === "/api/test-content-script") {
+      return handleProtectedTestContentScriptApi(request);
+    }
+
     if (url.pathname === "/api/admin") {
       return handleAdminApi(request, env);
     }
@@ -66,7 +70,7 @@ function buildContentSecurityPolicy() {
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-eval' https://esm.sh",
+    "script-src 'self' https://esm.sh",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com",
@@ -88,17 +92,77 @@ async function handleProtectedTestContentApi(request) {
     return json(404, { ok: false, error: "Test content not found." });
   }
 
+  const clientContent = serializeProtectedTestContentForClient(content, testId, url.origin);
+
   return json(
     200,
     {
       ok: true,
       testId,
-      content,
+      content: clientContent,
     },
     {
       "Cache-Control": "private, max-age=300",
     }
   );
+}
+
+async function handleProtectedTestContentScriptApi(request) {
+  if (request.method !== "GET") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const url = new URL(request.url);
+  const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
+  const kind = oneLine(url.searchParams.get("kind") || "");
+  const content = getProtectedTestContent(testId);
+  if (!content || kind !== "reading-legacy" || typeof content?.reading?.legacyFactory !== "function") {
+    return json(404, { ok: false, error: "Protected script not found." });
+  }
+
+  const source = [
+    "(function () {",
+    '  "use strict";',
+    "  window.IELTS = window.IELTS || {};",
+    "  window.IELTS.Registry = window.IELTS.Registry || {};",
+    "  window.IELTS.Registry.__protectedLegacyFactories = window.IELTS.Registry.__protectedLegacyFactories || {};",
+    `  window.IELTS.Registry.__protectedLegacyFactories[${JSON.stringify(testId)}] = ${content.reading.legacyFactory.toString()};`,
+    "})();",
+  ].join("\n");
+
+  return new Response(source, {
+    status: 200,
+    headers: {
+      "content-type": "application/javascript; charset=utf-8",
+      "cache-control": "private, max-age=300",
+      "x-content-type-options": "nosniff",
+    },
+  });
+}
+
+function serializeProtectedTestContentForClient(content, testId, origin) {
+  const walk = (value, keyName = "") => {
+    if (typeof value === "function") {
+      if (keyName === "legacyFactory") {
+        return {
+          legacyFactoryScript: `${origin}/api/test-content-script?testId=${encodeURIComponent(testId)}&kind=reading-legacy`,
+        };
+      }
+      return undefined;
+    }
+    if (Array.isArray(value)) return value.map((item) => walk(item));
+    if (value && typeof value === "object") {
+      const out = {};
+      for (const [key, child] of Object.entries(value)) {
+        const next = walk(child, key);
+        if (next !== undefined) out[key] = next;
+      }
+      return out;
+    }
+    return value;
+  };
+
+  return walk(content);
 }
 
 async function handleSharedStudentLogin(request, env) {

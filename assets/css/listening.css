@@ -126,6 +126,7 @@
 .listen-modal-card{
   width:min(680px, calc(100vw - 40px));
   margin:0 auto;
+  display:inline-block;
   border-radius:30px;
   border:1px solid rgba(255,255,255,.7);
   background:linear-gradient(180deg, #fffdf9 0%, #f4ede4 100%);
@@ -141,9 +142,10 @@
   color:var(--ink);
 }
 .listen-modal-body{
+  display:block;
   overflow:visible;
   max-height:none;
-  min-height:auto;
+  min-height:0;
   padding-right:0;
 }
 .listen-modal-lead{

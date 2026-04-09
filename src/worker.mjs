@@ -44,6 +44,7 @@ async function handleProtectedTestContentApi(request) {
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
   const content = getProtectedTestContent(testId);
   if (!content) {
+    await logSecurityEvent(null, request, "protected_test_content_not_found", { testId });
     return json(404, { ok: false, error: "Test content not found." });
   }
 
@@ -71,9 +72,11 @@ async function handleSharedStudentLogin(request, env) {
   const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || DEFAULT_SHARED_STUDENT_PASSWORD);
 
   if (!isValidEmail(email)) {
+    await logSecurityEvent(env, request, "shared_login_invalid_email", { email });
     return json(400, { ok: false, error: "Please enter a valid email address." });
   }
   if (!password || password !== expectedPassword) {
+    await logSecurityEvent(env, request, "shared_login_wrong_password", { email });
     return json(401, { ok: false, error: "Wrong shared password." });
   }
 
@@ -298,6 +301,11 @@ async function handleAdminApi(request, env) {
     if (revealRequested) {
       const adminAuth = await authenticateAdmin(request, env);
       if (!adminAuth.ok) {
+        await logSecurityEvent(env, request, "student_answer_reveal_denied", {
+          email: auth?.user?.email || "",
+          testId,
+          skill,
+        });
         return json(403, { ok: false, error: "Only admin accounts can reveal correct answers." });
       }
     }
@@ -726,6 +734,46 @@ function buildSubmissionMetaKey(row) {
   ].join("::");
 }
 
+async function logSecurityEvent(env, request, type, details = {}) {
+  const event = {
+    type: oneLine(type || "unknown"),
+    at: new Date().toISOString(),
+    ip: getClientIp(request),
+    userAgent: oneLine(request?.headers?.get("user-agent") || ""),
+    ...sanitizeTelemetryDetails(details),
+  };
+
+  try {
+    console.warn("[IELTS security]", JSON.stringify(event));
+  } catch (e) {}
+
+  if (!env?.STUDENT_REGISTRY || !event.type) return event;
+  const key = `telemetry:${event.at.slice(0, 10)}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    await writeJsonKv(env.STUDENT_REGISTRY, key, event);
+  } catch (e) {}
+  return event;
+}
+
+function sanitizeTelemetryDetails(details) {
+  const out = {};
+  if (!details || typeof details !== "object") return out;
+  for (const [key, value] of Object.entries(details)) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "object") continue;
+    out[key] = oneLine(String(value));
+  }
+  return out;
+}
+
+function getClientIp(request) {
+  return oneLine(
+    request?.headers?.get("CF-Connecting-IP") ||
+    request?.headers?.get("x-forwarded-for") ||
+    ""
+  );
+}
+
 async function readJsonKv(binding, key) {
   if (!binding || !key) return null;
   try {
@@ -773,6 +821,7 @@ async function upsertStudentRegistry(env, payload) {
 async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   const email = normalizeEmail(auth?.user?.email);
   if (!email) {
+    await logSecurityEvent(env, request, "student_submission_missing_email", {});
     return { ok: false, status: 401, error: "Missing student email." };
   }
   if (!env.STUDENT_REGISTRY) {
@@ -786,12 +835,18 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
     reason: rowLike?.reason || "",
   });
   if (!key) {
+    await logSecurityEvent(env, request, "student_submission_missing_lookup_fields", { email });
     return { ok: false, status: 400, error: "Missing submission lookup fields." };
   }
 
   const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
   if (record?.email) {
     if (normalizeEmail(record.email) !== email) {
+      await logSecurityEvent(env, request, "student_submission_owner_mismatch", {
+        email,
+        requestedEmail: record.email,
+        examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
+      });
       return { ok: false, status: 403, error: "This submission is not available for the current account." };
     }
     return { ok: true, status: 200, record };
@@ -804,12 +859,17 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
     !!env.SUPABASE_PUBLISHABLE_KEY;
 
   if (!canFallbackToSupabase) {
+    await logSecurityEvent(env, request, "student_submission_denied_no_registry_match", {
+      email,
+      examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
+    });
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
 
   const submittedAt = oneLine(rowLike?.submittedAt || rowLike?.submitted_at || "");
   const examId = oneLine(rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "");
   if (!submittedAt || !examId) {
+    await logSecurityEvent(env, request, "student_submission_missing_verify_fields", { email, examId });
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
 
@@ -829,6 +889,11 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   });
   const rows = await verifyRes.json().catch(() => null);
   if (!verifyRes.ok || !Array.isArray(rows) || !rows.length) {
+    await logSecurityEvent(env, request, "student_submission_supabase_verify_denied", {
+      email,
+      examId,
+      submittedAt,
+    });
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
 

@@ -23,6 +23,10 @@ export default {
       return handleProtectedTestContentApi(request);
     }
 
+    if (url.pathname === "/api/test-asset") {
+      return handleProtectedTestAssetApi(request);
+    }
+
     if (url.pathname === "/api/admin") {
       return handleAdminApi(request, env);
     }
@@ -47,17 +51,160 @@ async function handleProtectedTestContentApi(request) {
     return json(404, { ok: false, error: "Test content not found." });
   }
 
+  const assetMap = buildProtectedTestAssetMap(testId, content);
+  const clientContent = serializeProtectedTestContentForClient(content, testId, url.origin, assetMap);
+
   return json(
     200,
     {
       ok: true,
       testId,
-      content,
+      content: clientContent,
     },
     {
       "Cache-Control": "private, max-age=300",
     }
   );
+}
+
+async function handleProtectedTestAssetApi(request) {
+  if (!["GET", "HEAD"].includes(request.method)) {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const url = new URL(request.url);
+  const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
+  const assetId = oneLine(url.searchParams.get("asset") || "");
+  if (!testId || !assetId) {
+    return json(400, { ok: false, error: "Missing asset request parameters." });
+  }
+
+  const content = getProtectedTestContent(testId);
+  if (!content) {
+    return json(404, { ok: false, error: "Test content not found." });
+  }
+
+  const assetMap = buildProtectedTestAssetMap(testId, content);
+  const upstreamUrl = assetMap[assetId] || "";
+  if (!upstreamUrl) {
+    return json(404, { ok: false, error: "Protected asset not found." });
+  }
+
+  const headers = new Headers();
+  const range = request.headers.get("Range");
+  if (range) headers.set("Range", range);
+
+  const upstream = await fetch(upstreamUrl, {
+    method: request.method,
+    headers,
+  });
+
+  const responseHeaders = new Headers();
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "content-type");
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "content-length");
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "content-range");
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "accept-ranges");
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "etag");
+  copyHeaderIfPresent(upstream.headers, responseHeaders, "last-modified");
+  responseHeaders.set("Cache-Control", "private, max-age=3600");
+  return new Response(request.method === "HEAD" ? null : upstream.body, {
+    status: upstream.status,
+    headers: responseHeaders,
+  });
+}
+
+function copyHeaderIfPresent(from, to, name) {
+  const value = from.get(name);
+  if (value) to.set(name, value);
+}
+
+function isProtectedAssetUrl(value) {
+  const url = String(value || "").trim();
+  if (!url.startsWith("https://")) return false;
+  return [
+    "https://audio.ieltsmock.org/",
+    "https://practicepteonline.com/wp-content/uploads/",
+    "https://static.wixstatic.com/",
+    "https://www.ieltsbuddy.com/",
+    "https://ieltscity.vn/",
+  ].some((prefix) => url.startsWith(prefix));
+}
+
+function buildProtectedTestAssetMap(testId, content) {
+  const urls = [];
+  const seen = new Set();
+
+  const visit = (value) => {
+    if (typeof value === "string") {
+      if (isProtectedAssetUrl(value) && !seen.has(value)) {
+        seen.add(value);
+        urls.push(value);
+      }
+      if (value.includes("https://")) {
+        const matches = value.match(/https:\/\/[^"'\\s>]+/g) || [];
+        for (const match of matches) {
+          if (isProtectedAssetUrl(match) && !seen.has(match)) {
+            seen.add(match);
+            urls.push(match);
+          }
+        }
+      }
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    if (value && typeof value === "object") {
+      Object.values(value).forEach(visit);
+    }
+  };
+
+  visit(content);
+  const map = {};
+  urls.forEach((url, index) => {
+    map[`a${index + 1}`] = url;
+  });
+  return map;
+}
+
+function serializeProtectedTestContentForClient(content, testId, origin, assetMap) {
+  const replaceAssetUrl = (value) => {
+    let next = String(value || "");
+    for (const [assetId, upstreamUrl] of Object.entries(assetMap || {})) {
+      const proxyUrl = `${origin}/api/test-asset?testId=${encodeURIComponent(testId)}&asset=${encodeURIComponent(assetId)}`;
+      next = next.split(upstreamUrl).join(proxyUrl);
+    }
+    return next;
+  };
+
+  const walk = (value, keyName = "") => {
+    if (typeof value === "function") {
+      return keyName === "legacyFactory" ? { legacyFactorySource: value.toString() } : undefined;
+    }
+    if (typeof value === "string") {
+      return replaceAssetUrl(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => walk(item));
+    }
+    if (value && typeof value === "object") {
+      const out = {};
+      for (const [key, child] of Object.entries(value)) {
+        const serialized = walk(child, key);
+        if (serialized === undefined) continue;
+        if (key === "legacyFactory" && serialized && typeof serialized === "object" && serialized.legacyFactorySource) {
+          out.legacyFactorySource = serialized.legacyFactorySource;
+        } else {
+          out[key] = serialized;
+        }
+      }
+      return out;
+    }
+    return value;
+  };
+
+  return walk(content);
 }
 
 async function handleSharedStudentLogin(request, env) {

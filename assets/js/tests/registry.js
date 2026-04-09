@@ -220,7 +220,7 @@
       if (!res.ok || !data || data.ok !== true || !data.content) {
         throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
       }
-      cfg.content = data.content;
+      cfg.content = hydrateProtectedTestContent(data.content);
       return cfg.content;
     })()
       .finally(() => {
@@ -233,6 +233,28 @@
 
   function ensureActiveTestContent() {
     return ensureTestContent(getActiveTestId());
+  }
+
+  function hydrateProtectedTestContent(content) {
+    const walk = (value) => {
+      if (Array.isArray(value)) return value.map(walk);
+      if (!value || typeof value !== "object") return value;
+
+      const out = {};
+      for (const [key, child] of Object.entries(value)) {
+        if (key === "legacyFactorySource" && typeof child === "string" && child.trim()) {
+          try {
+            out.legacyFactory = (0, eval)(`(${child})`);
+          } catch (e) {
+            console.error("[IELTS] Failed to hydrate protected legacy factory", e);
+          }
+          continue;
+        }
+        out[key] = walk(child);
+      }
+      return out;
+    };
+    return walk(content);
   }
 
   function setLaunchContext(context) {

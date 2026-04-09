@@ -148,6 +148,61 @@ function setPasswordResetMode(active, text) {
   if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
 }
 
+function setBypassRecoveryMode(active, text) {
+  const box = getEl("bypassResetBox");
+  if (box) box.classList.toggle("hidden", !active);
+  const help = getEl("bypassResetHelp");
+  if (help) help.textContent = text || "Enter the admin bypass password to reset this student password.";
+}
+
+function setSharedSetupMode(active, text) {
+  const box = getEl("sharedSetupBox");
+  if (box) box.classList.toggle("hidden", !active);
+  const help = getEl("sharedSetupHelp");
+  if (help) help.textContent = text || "Complete the student name and choose a personal password.";
+
+  const sharedBtn = getEl("sharedPasswordLoginBtn");
+  if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
+  const forgotBtn = getEl("forgotPasswordBtn");
+  if (forgotBtn) forgotBtn.classList.toggle("hidden", !!active);
+  const otpBtn = getEl("sendOtpBtn");
+  if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
+  const verifyBtn = getEl("verifyOtpBtn");
+  if (verifyBtn) verifyBtn.classList.toggle("hidden", !!active);
+  const codeRow = getEl("otpCode")?.closest(".auth-code-row");
+  if (codeRow) codeRow.classList.toggle("hidden", !!active);
+  const passwordField = getEl("sharedPasswordInput")?.closest(".auth-field-group");
+  if (passwordField) passwordField.classList.toggle("hidden", !!active);
+}
+
+function clearAuthFlowModes() {
+  setPasswordResetMode(false, "");
+  setBypassRecoveryMode(false, "");
+  setSharedSetupMode(false, "");
+}
+
+function parseNameParts(fullName) {
+  const pieces = String(fullName || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  return {
+    firstName: pieces[0] || "",
+    lastName: pieces.slice(1).join(" ") || "",
+  };
+}
+
+function prefillSharedSetupFields(userLike) {
+  const fullName = String(
+    userLike?.user_metadata?.full_name ||
+    userLike?.name ||
+    getSavedUser()?.name ||
+    ""
+  ).trim();
+  const parts = parseNameParts(fullName);
+  const first = getEl("sharedSetupFirstName");
+  const last = getEl("sharedSetupLastName");
+  if (first && !first.value.trim()) first.value = parts.firstName;
+  if (last && !last.value.trim()) last.value = parts.lastName;
+}
+
 function getIdentityKeyFromUserLike(user) {
   return normalizeEmail(user?.email) || String(user?.id || "").trim() || "guest";
 }
@@ -295,6 +350,7 @@ function syncAuthExport() {
     getSharedPasswordOverride,
     sendPasswordResetEmail,
     upgradeSharedStudentPassword,
+    completeSharedStudentSetup,
     showProtectedApp,
     openLoginGate,
     closeLoginGate,
@@ -423,6 +479,7 @@ function forceHideAllAppSections() {
 function closeLoginGate() {
   loginGateOpen = false;
   if (authGate) authGate.classList.add("hidden");
+  clearAuthFlowModes();
   setMessage("");
 }
 
@@ -766,10 +823,28 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   if (shared?.token && shared?.user?.email) {
     saveUser(shared.user);
     syncAuthExport();
-    showProtectedApp(true);
     setMessage("");
     authReady = true;
     pingStudentSession(shared.user).catch(() => null);
+    if (shared.requiresPasswordSetup === true) {
+      showProtectedApp(false);
+      openLoginGate(
+        shared.recoveryMode === "bypass"
+          ? "Bypass accepted. Set a new password before continuing."
+          : "Complete your name and student password before continuing."
+      );
+      clearAuthFlowModes();
+      setSharedSetupMode(
+        true,
+        shared.recoveryMode === "bypass"
+          ? "Reset this student's password and confirm the name before entering the platform."
+          : "This is the student's first sign-in. Save the name and choose a personal password now."
+      );
+      prefillSharedSetupFields(shared.user);
+      notifyAuthChanged();
+      return true;
+    }
+    showProtectedApp(true);
     if (forceHome) {
       routeHomeAfterLogin();
     } else {
@@ -785,6 +860,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   hideBlockingModals();
   showProtectedApp(false);
   authReady = true;
+  clearAuthFlowModes();
   try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
     if (window.IELTS?.Router?.setHashRoute) {
@@ -861,12 +937,9 @@ async function signInWithSharedPassword() {
     return;
   }
   if (!password) {
-    setMessage("Please enter the shared password.", { tone: "error" });
+    setMessage("Please enter your password.", { tone: "error" });
     return;
   }
-
-  const hasOverride = !!getSharedPasswordOverride(email);
-  const hasPersonalPassword = hasPersonalPasswordEnabled(email);
 
   try {
     const passwordLogin = await supabase.auth.signInWithPassword({
@@ -880,24 +953,11 @@ async function signInWithSharedPassword() {
     }
   } catch (e) {}
 
-  if (hasPersonalPassword) {
-    setMessage("Wrong email or password. If you forgot it, use Forgot password.", { tone: "error" });
-    return;
-  }
-
-  if (hasOverride) {
-    const matches = await verifySharedPasswordOverride(email, password);
-    if (!matches) {
-      setMessage("Wrong email or password. If you forgot it, use Forgot password.", { tone: "error" });
-      return;
-    }
-  }
-
   setMessage("Signing you in...", { sticky: true });
   const res = await fetch("/api/auth/shared-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password: hasOverride ? DEFAULT_SHARED_STUDENT_PASSWORD : password }),
+    body: JSON.stringify({ email, password }),
   }).catch(() => null);
 
   const data = res ? await res.json().catch(() => null) : null;
@@ -906,14 +966,16 @@ async function signInWithSharedPassword() {
     return;
   }
 
-  saveSharedSession({ token: data.token, user: data.user });
+  saveSharedSession({
+    token: data.token,
+    user: data.user,
+    requiresPasswordSetup: data.requiresSetup === true,
+    recoveryMode: data.recoveryMode || "",
+  });
   saveUser(data.user);
   syncAuthExport();
-  showProtectedApp(true);
-  setMessage("");
   pingStudentSession(data.user).catch(() => null);
-  routeHomeAfterLogin();
-  notifyAuthChanged();
+  await refreshAuthUI({ forceHome: data.requiresSetup !== true });
 }
 
 async function sendPasswordResetEmail() {
@@ -922,18 +984,9 @@ async function sendPasswordResetEmail() {
     setMessage("Please enter your email first.", { tone: "error" });
     return;
   }
-
-  setMessage("Sending password reset email...", { sticky: true });
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: SITE_URL,
-  });
-  if (error) {
-    console.error("[AUTH] reset password error:", error);
-    setMessage(error.message || "Could not send a reset email.", { tone: "error", sticky: true });
-    return;
-  }
-
-  setMessage("Password reset email sent. Open the link in your inbox to choose a new password.", { tone: "success", sticky: true });
+  clearAuthFlowModes();
+  setBypassRecoveryMode(true, "Enter the bypass password to recover this student account.");
+  setMessage("Enter the bypass password to reset this student's password.", { tone: "success", sticky: true });
 }
 
 async function finishPasswordReset() {
@@ -966,64 +1019,121 @@ async function finishPasswordReset() {
   await refreshAuthUI({ forceHome: true });
 }
 
-async function upgradeSharedStudentPassword(nextPassword) {
+async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   const email = String(getSavedUser()?.email || "").trim().toLowerCase();
   if (!email) throw new Error("We could not find the student email.");
   if (!nextPassword || nextPassword.length < 6) {
     throw new Error("Choose a password with at least 6 characters.");
   }
+  const currentName = parseNameParts(getSavedUser()?.name || "");
+  const firstName = String(profile?.firstName || currentName.firstName || "").trim();
+  const lastName = String(profile?.lastName || currentName.lastName || "").trim();
+  if (!firstName || !lastName) {
+    throw new Error("First name and surname are required.");
+  }
 
-  // Keep the existing local bridge so current-device sign-in works even if signup returns without a session.
-  await saveSharedPasswordOverride(email, nextPassword);
+  const token = await getAccessToken().catch(() => null);
+  if (!token) throw new Error("Your session expired. Please sign in again.");
 
-  const user = getSavedUser() || {};
-  const metadata = {
-    full_name: String(user?.name || "").trim(),
-    preferred_name: String(user?.profile?.preferredName || user?.name || "").trim(),
-    username: String(user?.profile?.username || "").trim(),
-    profile_headline: String(user?.profile?.headline || "").trim(),
-    profile_bio: String(user?.profile?.bio || "").trim(),
-    profile_avatar_url: String(user?.profile?.avatarUrl || user?.avatarUrl || "").trim(),
-    target_band: String(user?.profile?.targetBand || "").trim(),
-    focus_skill: String(user?.profile?.focusSkill || "").trim(),
-    preferred_test: String(user?.profile?.preferredTest || "").trim(),
-    daily_goal: String(user?.profile?.dailyGoal || "").trim(),
-    study_note: String(user?.profile?.studyNote || "").trim(),
-    font_scale: String(user?.profile?.fontScale || "").trim(),
-  };
+  const res = await fetch("/api/auth/shared-setup", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      firstName,
+      lastName,
+      password: nextPassword,
+    }),
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
+    throw new Error(data?.error || "Could not save the student password.");
+  }
 
-  const signUpResult = await supabase.auth.signUp({
-    email,
-    password: nextPassword,
-    options: {
-      emailRedirectTo: SITE_URL,
-      data: metadata,
-    }
+  saveSharedSession({
+    token: data.token,
+    user: data.user,
+    requiresPasswordSetup: false,
+    recoveryMode: "",
   });
-
-  if (signUpResult.error && !/already registered|already exists|User already registered/i.test(String(signUpResult.error.message || ""))) {
-    throw signUpResult.error;
-  }
-
-  const signInResult = await supabase.auth.signInWithPassword({ email, password: nextPassword });
-  if (signInResult.error || !signInResult.data?.user) {
-    if (signUpResult.data?.user) {
-      markPersonalPasswordEnabled(email);
-      return {
-        needsEmailConfirmation: true,
-        message: "Check your email to confirm the password change, then sign in with your new password.",
-      };
-    }
-    throw signInResult.error || new Error("Could not activate the new password.");
-  }
-
-  clearSharedSession();
+  saveUser(data.user);
+  syncAuthExport();
   markPersonalPasswordEnabled(email);
+  clearAuthFlowModes();
   await refreshAuthUI({ forceHome: true });
   return {
     needsEmailConfirmation: false,
-    message: "Your student password has been updated.",
+    message: data?.message || "Your student password has been updated.",
   };
+}
+
+async function completeSharedStudentSetup() {
+  const firstName = getEl("sharedSetupFirstName")?.value.trim() || "";
+  const lastName = getEl("sharedSetupLastName")?.value.trim() || "";
+  const password = getEl("sharedSetupPasswordInput")?.value || "";
+  const confirm = getEl("sharedSetupConfirmInput")?.value || "";
+
+  if (!firstName || !lastName) {
+    setMessage("Please enter the student's first name and surname.", { tone: "error" });
+    return;
+  }
+  if (!password || password.length < 6) {
+    setMessage("Choose a password with at least 6 characters.", { tone: "error" });
+    return;
+  }
+  if (password !== confirm) {
+    setMessage("The password confirmation does not match.", { tone: "error" });
+    return;
+  }
+
+  try {
+    setMessage("Saving student setup...", { sticky: true });
+    const result = await upgradeSharedStudentPassword(password, { firstName, lastName });
+    if (getEl("sharedSetupPasswordInput")) getEl("sharedSetupPasswordInput").value = "";
+    if (getEl("sharedSetupConfirmInput")) getEl("sharedSetupConfirmInput").value = "";
+    setMessage(result?.message || "Student setup complete.", { tone: "success", sticky: true });
+  } catch (e) {
+    console.error("[AUTH] shared setup error:", e);
+    setMessage(e?.message || "Could not complete student setup.", { tone: "error", sticky: true });
+  }
+}
+
+async function signInWithBypass() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  const bypassPassword = getEl("bypassPasswordInput")?.value || "";
+
+  if (!email) {
+    setMessage("Please enter the student email first.", { tone: "error" });
+    return;
+  }
+  if (!bypassPassword) {
+    setMessage("Please enter the bypass password.", { tone: "error" });
+    return;
+  }
+
+  setMessage("Verifying bypass...", { sticky: true });
+  const res = await fetch("/api/auth/shared-bypass", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, bypassPassword }),
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
+    setMessage(data?.error || "Bypass recovery failed.", { tone: "error", sticky: true });
+    return;
+  }
+
+  saveSharedSession({
+    token: data.token,
+    user: data.user,
+    requiresPasswordSetup: true,
+    recoveryMode: "bypass",
+  });
+  saveUser(data.user);
+  syncAuthExport();
+  await refreshAuthUI();
 }
 
 async function verifyOtpCode() {
@@ -1081,9 +1191,11 @@ getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sharedPasswordLoginBtn")?.addEventListener("click", signInWithSharedPassword);
 getEl("forgotPasswordBtn")?.addEventListener("click", sendPasswordResetEmail);
+getEl("useBypassBtn")?.addEventListener("click", signInWithBypass);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 getEl("finishPasswordResetBtn")?.addEventListener("click", finishPasswordReset);
+getEl("finishSharedSetupBtn")?.addEventListener("click", completeSharedStudentSetup);
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);
 authGate?.addEventListener("click", (e) => {
   if (e.target === authGate) closeLoginGate();
@@ -1100,6 +1212,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (session?.user) saveUser(session.user);
     showProtectedApp(false);
     openLoginGate("Reset your password to continue.");
+    clearAuthFlowModes();
     setPasswordResetMode(true, "Choose a new password for your student account.");
     authReady = true;
     return;
@@ -1109,6 +1222,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     saveUser(session.user);
     showProtectedApp(true);
     setMessage("");
+    clearAuthFlowModes();
     setPasswordResetMode(false, "");
     authReady = true;
     notifyAuthChanged();
@@ -1128,6 +1242,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     saveUser(session.user);
     showProtectedApp(true);
     setMessage("");
+    clearAuthFlowModes();
     setPasswordResetMode(false, "");
     authReady = true;
     notifyAuthChanged();
@@ -1138,10 +1253,9 @@ supabase.auth.onAuthStateChange((event, session) => {
     if (getSharedSession()?.token) {
       saveUser(getSharedSession().user);
       syncAuthExport();
-      showProtectedApp(true);
       setMessage("");
       authReady = true;
-      notifyAuthChanged();
+      refreshAuthUI().catch(() => null);
       return;
     }
     hideBlockingModals();
@@ -1150,6 +1264,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     clearSavedUser();
     syncAuthExport();
     setMessage("");
+    clearAuthFlowModes();
     setPasswordResetMode(false, "");
     authReady = true;
     hasHandledInitialLoginRedirect = false;

@@ -94,12 +94,42 @@
         <input id="otpEmail" type="email" placeholder="Enter your email">
       </div>
       <div class="auth-field-group">
-        <label class="auth-label" for="sharedPasswordInput">Shared password</label>
-        <input id="sharedPasswordInput" type="password" placeholder="Enter the shared student password" autocomplete="current-password">
+        <label class="auth-label" for="sharedPasswordInput">Password</label>
+        <input id="sharedPasswordInput" type="password" placeholder="Enter the shared or personal student password" autocomplete="current-password">
       </div>
       <button id="sharedPasswordLoginBtn" class="btn auth-full-btn">Continue with email and password</button>
       <button id="forgotPasswordBtn" class="btn secondary auth-full-btn" type="button">Forgot password</button>
       <button id="sendOtpBtn" class="btn auth-full-btn">Send code or magic link</button>
+
+      <div id="bypassResetBox" class="hidden">
+        <div class="auth-field-group">
+          <label class="auth-label" for="bypassPasswordInput">Bypass password</label>
+          <input id="bypassPasswordInput" type="password" placeholder="Enter the admin bypass password" autocomplete="current-password">
+        </div>
+        <button id="useBypassBtn" class="btn auth-full-btn" type="button">Use bypass and reset password</button>
+        <p id="bypassResetHelp" class="small auth-inline-help">Enter the bypass password to recover this student account.</p>
+      </div>
+
+      <div id="sharedSetupBox" class="hidden">
+        <div class="auth-field-group">
+          <label class="auth-label" for="sharedSetupFirstName">Name</label>
+          <input id="sharedSetupFirstName" type="text" placeholder="Enter the student's first name" autocomplete="given-name">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="sharedSetupLastName">Surname</label>
+          <input id="sharedSetupLastName" type="text" placeholder="Enter the student's surname" autocomplete="family-name">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="sharedSetupPasswordInput">New personal password</label>
+          <input id="sharedSetupPasswordInput" type="password" placeholder="Choose a personal password" autocomplete="new-password">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="sharedSetupConfirmInput">Confirm password</label>
+          <input id="sharedSetupConfirmInput" type="password" placeholder="Confirm the personal password" autocomplete="new-password">
+        </div>
+        <button id="finishSharedSetupBtn" class="btn auth-full-btn" type="button">Save student setup</button>
+        <p id="sharedSetupHelp" class="small auth-inline-help">Complete the student name and choose a personal password.</p>
+      </div>
 
       <div id="passwordResetBox" class="hidden">
         <div class="auth-field-group">
@@ -615,7 +645,7 @@
               </label>
               <div class="dashboard-password-card hidden" id="dashboardPasswordCard">
                 <div class="dashboard-card-topline">Student password</div>
-                <div class="dashboard-password-copy">Set a personal password for this student email. After it is saved, sign in with your own password instead of <strong>Leznik123</strong>. If needed, you can use the Forgot password email flow from the sign-in box.</div>
+                <div class="dashboard-password-copy">Set or change the personal password for this student email. After it is saved, use that personal password for normal sign-in. If the password is forgotten later, use the bypass recovery flow from the sign-in box.</div>
                 <div class="dashboard-settings-grid">
                   <label class="dashboard-field" for="dashboardNewPassword">
                     <span>New password</span>
@@ -628,7 +658,7 @@
                 </div>
                 <div class="dashboard-password-actions">
                   <button class="btn" type="button" id="dashboardSavePasswordBtn">Change password</button>
-                  <div class="small" id="dashboardPasswordStatus">Shared-password students can set a personal password here.</div>
+                  <div class="small" id="dashboardPasswordStatus">Shared-student accounts can save or change their own personal password here.</div>
                 </div>
               </div>
               <div class="dashboard-settings-footer">

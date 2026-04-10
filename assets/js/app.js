@@ -992,35 +992,6 @@
         .replace(/'/g, "&#39;");
     }
 
-    function buildObjectiveReviewHtml(items, emptyMessage) {
-      const rows = Array.isArray(items) ? items : [];
-      if (!rows.length) {
-        return `<div class="objective-review-empty">${escapeHtml(emptyMessage || "No answer review available yet.")}</div>`;
-      }
-      return `
-        <table class="objective-review-table">
-          <thead>
-            <tr>
-              <th>Q#</th>
-              <th>Student</th>
-              <th>Correct</th>
-              <th>Mark</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map((item) => `
-              <tr>
-                <td>${escapeHtml(String(item.q ?? "—"))}</td>
-                <td>${escapeHtml(String(item.student || "—"))}</td>
-                <td>${escapeHtml(String(item.correct || "—"))}</td>
-                <td><span class="objective-review-mark ${item.mark ? "ok" : "bad"}">${item.mark ? "Correct" : "Wrong"}</span></td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      `;
-    }
-
     function clearElement(el) {
       if (!el) return;
       while (el.firstChild) el.removeChild(el.firstChild);

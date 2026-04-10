@@ -46,7 +46,6 @@ export default {
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
-const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 function applyDocumentSecurityHeaders(response) {
   const headers = new Headers(response.headers);
@@ -190,7 +189,11 @@ async function handleSharedStudentLogin(request, env) {
     await logSecurityEvent(env, request, "shared_login_rate_limited", { email });
     return json(429, { ok: false, error: "Too many sign-in attempts. Please wait and try again." });
   }
-  const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || DEFAULT_SHARED_STUDENT_PASSWORD);
+  const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || "").trim();
+  if (!expectedPassword) {
+    await logSecurityEvent(env, request, "shared_login_not_configured", { email });
+    return json(503, { ok: false, error: "Shared student sign-in is not configured." });
+  }
   const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
   const hasPersonalPassword = !!(current?.passwordHash && current?.passwordSalt);
 
@@ -863,10 +866,12 @@ function deriveNameFromEmail(email) {
 }
 
 function getSharedTokenSigningSecret(env) {
-  return String(env.SHARED_STUDENT_TOKEN_SECRET || env.ADMIN_RESULTS_PASSCODE || DEFAULT_SHARED_STUDENT_PASSWORD);
+  return String(env.SHARED_STUDENT_TOKEN_SECRET || "").trim();
 }
 
 async function issueSharedStudentToken(email, env, options = {}) {
+  const secret = getSharedTokenSigningSecret(env);
+  if (!secret) throw new Error("Shared student token signing secret is not configured.");
   const payload = {
     email: String(email || "").trim().toLowerCase(),
     type: "shared-student",
@@ -875,16 +880,18 @@ async function issueSharedStudentToken(email, env, options = {}) {
     bypass: options?.bypass === true,
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
-  const signature = await signSharedTokenPayload(encodedPayload, getSharedTokenSigningSecret(env));
+  const signature = await signSharedTokenPayload(encodedPayload, secret);
   return `shared.${encodedPayload}.${signature}`;
 }
 
 async function verifySharedStudentToken(token, env) {
+  const secret = getSharedTokenSigningSecret(env);
+  if (!secret) return null;
   const parts = String(token || "").split(".");
   if (parts.length !== 3 || parts[0] !== "shared") return null;
   const encodedPayload = parts[1];
   const signature = parts[2];
-  const expected = await signSharedTokenPayload(encodedPayload, getSharedTokenSigningSecret(env));
+  const expected = await signSharedTokenPayload(encodedPayload, secret);
   if (signature !== expected) return null;
 
   const payload = JSON.parse(fromBase64Url(encodedPayload) || "null");

@@ -5,6 +5,7 @@
   const S = () => window.IELTS?.Storage;
   const R = () => window.IELTS?.Registry;
   const UI = () => window.IELTS?.UI;
+  const Modal = () => window.IELTS?.Modal;
 
   const KEY = "IELTS:ADMIN:session";
   const DEFAULT_TTL_MIN = 180; // 3 hours
@@ -16,6 +17,14 @@
 
   function nowMs() {
     return Date.now();
+  }
+
+  function showNotice(message, title = "Admin access") {
+    if (Modal()?.showModal) {
+      Modal().showModal(title, message, { mode: "confirm" });
+      return;
+    }
+    window.alert(message);
   }
 
   function getSession() {
@@ -92,13 +101,13 @@
 
     if (!url) {
       clearSession();
-      if (interactive) window.alert("Admin access is not configured right now.");
+      if (interactive) showNotice("Admin access is not configured right now.");
       return false;
     }
 
     if (!token) {
       clearSession();
-      if (interactive) window.alert("Sign in first, then try admin mode again.");
+      if (interactive) showNotice("Sign in first, then try admin mode again.");
       return false;
     }
 
@@ -113,7 +122,7 @@
       if (!res.ok || !data || data.ok !== true || data.authorized !== true) {
         clearSession();
         if (interactive) {
-          window.alert((data && data.error) || "Your account is not allowed to use admin tools.");
+          showNotice((data && data.error) || "Your account is not allowed to use admin tools.");
         }
         return false;
       }
@@ -129,7 +138,7 @@
       return true;
     } catch (e) {
       clearSession();
-      if (interactive) window.alert("Could not verify admin access right now.");
+      if (interactive) showNotice("Could not verify admin access right now.");
       return false;
     }
   }

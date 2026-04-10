@@ -17,6 +17,14 @@
     }
   }
 
+  function showNotice(message, title = "Listening") {
+    if (Modal()?.showModal) {
+      Modal().showModal(title, message, { mode: "confirm" });
+      return;
+    }
+    window.alert(message);
+  }
+
   function initListeningSystem() {
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
@@ -379,19 +387,32 @@ function applyActiveListeningContent() {
       getVisibleListeningQuestionNumbers().forEach((q) => {
         seed[q] = existing[q] || "";
       });
-      const raw = window.prompt(
-        "Set listening answers as JSON, for example {\"17\":\"A\",\"18\":\"B\",\"19\":\"garden gallery\"}",
-        JSON.stringify(seed, null, 2)
+      if (!Modal()?.showModal) return;
+      Modal().showModal(
+        "Manage listening answers",
+        "Set listening answers as JSON, for example {\"17\":\"A\",\"18\":\"B\",\"19\":\"garden gallery\"}.",
+        {
+          mode: "text",
+          showCancel: true,
+          submitText: "Save overrides",
+          cancelText: "Cancel",
+          inputLabel: "Listening override JSON",
+          inputValue: JSON.stringify(seed, null, 2),
+          inputPlaceholder: "{\"17\":\"A\"}",
+          onConfirm(value) {
+            try {
+              const parsed = JSON.parse(String(value || ""));
+              if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
+              saveManagedListeningOverrides(parsed);
+              showNotice("Listening answer overrides saved for this browser.");
+              return true;
+            } catch (e) {
+              Modal().setTextAreaError?.("Please paste a valid JSON object.");
+              return false;
+            }
+          },
+        }
       );
-      if (raw == null) return;
-      try {
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
-        saveManagedListeningOverrides(parsed);
-        window.alert("Listening answer overrides saved for this browser.");
-      } catch (e) {
-        window.alert("Please paste a valid JSON object.");
-      }
     }
 
     function syncListeningReviewButtons() {
@@ -445,7 +466,7 @@ function applyActiveListeningContent() {
             await fetchListeningReview(false);
             syncListeningReviewButtons();
           } catch (error) {
-            window.alert(error?.message || "Could not check listening answers.");
+            showNotice(error?.message || "Could not check listening answers.");
           }
         });
       }
@@ -457,7 +478,7 @@ function applyActiveListeningContent() {
             await fetchListeningReview(true);
             syncListeningReviewButtons();
           } catch (error) {
-            window.alert(error?.message || "Could not reveal listening answers.");
+            showNotice(error?.message || "Could not reveal listening answers.");
           }
         });
       }
@@ -532,7 +553,7 @@ function applyActiveListeningContent() {
             if (checked.length > 2) {
               input.checked = false;
               try {
-                window.alert("Please choose only TWO answers for this question.");
+                showNotice("Please choose only TWO answers for this question.");
               } catch (e) {}
               return;
             }
@@ -964,29 +985,31 @@ function applyActiveListeningContent() {
       // Admin can submit early (for testing / supervision)
       submitNow.onclick = () => {
         if (submitted) return;
-
-        const ok = confirm(
-          "Submit Listening now? You will NOT be able to change answers after submitting."
-        );
-        if (!ok) return;
-
-        finishListening("Admin submitted listening early.");
-
-        Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
+        Modal().showModal("Submit Listening now?", "You will not be able to change answers after submitting.", {
           mode: "confirm",
           showCancel: true,
-          submitText: "Start Reading",
-          cancelText: "Stay here",
+          submitText: "Submit now",
+          cancelText: "Cancel",
           onConfirm: () => {
-            try { window.__IELTS_READING_INIT__ = false; } catch (_) {}
-            try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (_) {}
-            window.IELTS.Engines.Reading.startReadingSystem();
-            UI().showOnly("reading");
-            UI().setExamNavStatus("Status: Reading in progress");
-          },
-          onCancel: () => {
-            UI().showOnly("listening");
-            UI().setExamNavStatus("Status: Listening submitted (review)");
+            finishListening("Admin submitted listening early.");
+
+            Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
+              mode: "confirm",
+              showCancel: true,
+              submitText: "Start Reading",
+              cancelText: "Stay here",
+              onConfirm: () => {
+                try { window.__IELTS_READING_INIT__ = false; } catch (_) {}
+                try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (_) {}
+                window.IELTS.Engines.Reading.startReadingSystem();
+                UI().showOnly("reading");
+                UI().setExamNavStatus("Status: Reading in progress");
+              },
+              onCancel: () => {
+                UI().showOnly("listening");
+                UI().setExamNavStatus("Status: Listening submitted (review)");
+              },
+            });
           },
         });
       };

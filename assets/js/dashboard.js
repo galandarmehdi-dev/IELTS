@@ -691,23 +691,33 @@
     if (!list || !empty) return;
     const rows = state.rows.slice(0, 5);
     if (!rows.length) {
-      list.innerHTML = "";
+      while (list.firstChild) list.removeChild(list.firstChild);
       empty.classList.remove("hidden");
       return;
     }
     empty.classList.add("hidden");
-    list.innerHTML = rows.map((row) => {
+    while (list.firstChild) list.removeChild(list.firstChild);
+    rows.forEach((row) => {
       const writing = writingStatusText(row);
       const listening = objectiveStatusText(row, "listening");
       const reading = objectiveStatusText(row, "reading");
-      return `
-        <div class="dashboard-activity-item">
-          <strong>${examLabel(row)} · ${formatDate(row.submitted_at)}</strong>
-          <span>Listening: ${listening} · Reading: ${reading} · Writing: ${writing}</span>
-          <span>${row.student_full_name || getUser()?.name || getUser()?.email || "Student"}</span>
-        </div>
-      `;
-    }).join("");
+      const item = document.createElement("div");
+      item.className = "dashboard-activity-item";
+
+      const title = document.createElement("strong");
+      title.textContent = `${examLabel(row)} · ${formatDate(row.submitted_at)}`;
+      item.appendChild(title);
+
+      const scores = document.createElement("span");
+      scores.textContent = `Listening: ${listening} · Reading: ${reading} · Writing: ${writing}`;
+      item.appendChild(scores);
+
+      const student = document.createElement("span");
+      student.textContent = row.student_full_name || getUser()?.name || getUser()?.email || "Student";
+      item.appendChild(student);
+
+      list.appendChild(item);
+    });
   }
 
   function syncFontSelectors(value) {

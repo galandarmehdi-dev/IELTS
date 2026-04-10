@@ -19,8 +19,6 @@ window.IELTS = window.IELTS || {};
 const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
-const SHARED_PASSWORD_OVERRIDE_KEY = "IELTS:AUTH:sharedPasswordOverrides";
-const PERSONAL_PASSWORD_MARKERS_KEY = "IELTS:AUTH:personalPasswordEmails";
 const PROFILE_CACHE_BY_EMAIL_KEY = "IELTS:AUTH:profileByEmail";
 
 let authReady = false;
@@ -51,84 +49,6 @@ function getSharedSession() {
   } catch (e) {
     return null;
   }
-}
-
-function getSharedPasswordOverrides() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SHARED_PASSWORD_OVERRIDE_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (e) {
-    return {};
-  }
-}
-
-function saveSharedPasswordOverrides(next) {
-  try {
-    localStorage.setItem(SHARED_PASSWORD_OVERRIDE_KEY, JSON.stringify(next || {}));
-  } catch (e) {}
-}
-
-function getPersonalPasswordMarkers() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(PERSONAL_PASSWORD_MARKERS_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (e) {
-    return {};
-  }
-}
-
-function savePersonalPasswordMarkers(next) {
-  try {
-    localStorage.setItem(PERSONAL_PASSWORD_MARKERS_KEY, JSON.stringify(next || {}));
-  } catch (e) {}
-}
-
-function markPersonalPasswordEnabled(email) {
-  const key = String(email || "").trim().toLowerCase();
-  if (!key) return;
-  const next = { ...getPersonalPasswordMarkers(), [key]: true };
-  savePersonalPasswordMarkers(next);
-}
-
-function hasPersonalPasswordEnabled(email) {
-  const key = String(email || "").trim().toLowerCase();
-  if (!key) return false;
-  return getPersonalPasswordMarkers()[key] === true;
-}
-
-function getSharedPasswordOverride(email) {
-  const key = String(email || "").trim().toLowerCase();
-  if (!key) return null;
-  const all = getSharedPasswordOverrides();
-  return all[key] || null;
-}
-
-async function hashSharedPassword(email, password) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const normalizedPassword = String(password || "");
-  const payload = new TextEncoder().encode(`${normalizedEmail}::${normalizedPassword}`);
-  const digest = await crypto.subtle.digest("SHA-256", payload);
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-async function saveSharedPasswordOverride(email, password) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) throw new Error("Missing student email.");
-  if (!password) throw new Error("Please enter a new password.");
-
-  const next = { ...getSharedPasswordOverrides() };
-  next[normalizedEmail] = {
-    hash: await hashSharedPassword(normalizedEmail, password),
-    changedAt: new Date().toISOString(),
-  };
-  saveSharedPasswordOverrides(next);
-}
-
-async function verifySharedPasswordOverride(email, password) {
-  const record = getSharedPasswordOverride(email);
-  if (!record?.hash) return false;
-  const actual = await hashSharedPassword(email, password);
-  return actual === record.hash;
 }
 
 function isSharedPasswordUser() {
@@ -381,8 +301,6 @@ function syncAuthExport() {
     isSharedPasswordUser,
     getAccessToken,
     updateProfileMetadata,
-    saveSharedPasswordOverride,
-    getSharedPasswordOverride,
     sendPasswordResetEmail,
     upgradeSharedStudentPassword,
     completeSharedStudentSetup,
@@ -1086,9 +1004,6 @@ async function finishPasswordReset() {
   }
 
   const email = String(data?.user?.email || getSavedUser()?.email || "").trim().toLowerCase();
-  if (email) {
-    markPersonalPasswordEnabled(email);
-  }
   setPasswordResetMode(false, "");
   setMessage("Your password has been reset. You can now sign in with your new password.", { tone: "success", sticky: true });
   await refreshAuthUI({ forceHome: true });
@@ -1135,7 +1050,6 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   });
   saveUser(data.user);
   syncAuthExport();
-  markPersonalPasswordEnabled(email);
   clearAuthFlowModes();
   await refreshAuthUI({ forceHome: true });
   return {

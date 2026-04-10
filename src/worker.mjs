@@ -1379,20 +1379,31 @@ async function getAdminResultsSummary(env, options = {}) {
 }
 
 function summarizeAdminResultRow(row) {
+  const task1Words = toNullableNumber(row?.task1Words ?? row?.task1_words);
+  const task2Words = toNullableNumber(row?.task2Words ?? row?.task2_words);
+  const task1Band = toNullableBand(row?.task1Band || row?.task1_band || "");
+  const task2Band = toNullableBand(row?.task2Band || row?.task2_band || "");
+  const finalWritingBand = toEffectiveWritingBand({
+    finalWritingBand: row?.finalWritingBand ?? row?.final_writing_band,
+    task1Words,
+    task2Words,
+    task1Band,
+    task2Band,
+  });
   return {
     submittedAt: oneLine(row?.submittedAt || row?.submitted_at || ""),
     studentFullName: oneLine(row?.studentFullName || row?.student_full_name || ""),
     examId: oneLine(row?.examId || row?.exam_id || row?.active_test_id || ""),
     reason: oneLine(row?.reason || ""),
-    listeningTotal: toSafeNumber(row?.listeningTotal ?? row?.listening_total),
-    listeningBand: oneLine(row?.listeningBand || row?.listening_band || ""),
-    readingTotal: toSafeNumber(row?.readingTotal ?? row?.reading_total),
-    readingBand: oneLine(row?.readingBand || row?.reading_band || ""),
-    finalWritingBand: oneLine(row?.finalWritingBand || row?.final_writing_band || ""),
-    task1Words: toSafeNumber(row?.task1Words ?? row?.task1_words),
-    task2Words: toSafeNumber(row?.task2Words ?? row?.task2_words),
-    task1Band: oneLine(row?.task1Band || row?.task1_band || ""),
-    task2Band: oneLine(row?.task2Band || row?.task2_band || ""),
+    listeningTotal: toNullableNumber(row?.listeningTotal ?? row?.listening_total),
+    listeningBand: toNullableBand(row?.listeningBand || row?.listening_band || ""),
+    readingTotal: toNullableNumber(row?.readingTotal ?? row?.reading_total),
+    readingBand: toNullableBand(row?.readingBand || row?.reading_band || ""),
+    finalWritingBand,
+    task1Words,
+    task2Words,
+    task1Band,
+    task2Band,
   };
 }
 
@@ -1405,8 +1416,8 @@ function compareAdminSummaryRows(a, b, field, direction) {
     av = toTimestamp(av);
     bv = toTimestamp(bv);
   } else if (["listeningTotal", "readingTotal", "task1Words", "task2Words", "finalWritingBand", "task1Band", "task2Band"].includes(field)) {
-    av = toSafeNumber(av);
-    bv = toSafeNumber(bv);
+    av = toSortableNumber(av);
+    bv = toSortableNumber(bv);
   } else {
     av = normalizeMatchString(av);
     bv = normalizeMatchString(bv);
@@ -1420,6 +1431,43 @@ function compareAdminSummaryRows(a, b, field, direction) {
 function toSafeNumber(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
+}
+
+function toNullableNumber(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toNullableBand(value) {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const n = Number(text);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toSortableNumber(value) {
+  const n = toNullableNumber(value);
+  return n === null ? -1 : n;
+}
+
+function toEffectiveWritingBand(row) {
+  const finalBand = toNullableBand(row?.finalWritingBand);
+  const task1Words = toNullableNumber(row?.task1Words);
+  const task2Words = toNullableNumber(row?.task2Words);
+  const task1Band = toNullableBand(row?.task1Band);
+  const task2Band = toNullableBand(row?.task2Band);
+  const hasTask1 = task1Words !== null && task1Words > 0;
+  const hasTask2 = task2Words !== null && task2Words > 0;
+
+  if (!hasTask1 && !hasTask2) return null;
+  if (hasTask1 && hasTask2) return finalBand;
+  if (hasTask1) return task1Band;
+  if (hasTask2) return task2Band;
+  return null;
 }
 
 function formatSampleLabel(band) {

@@ -135,11 +135,38 @@
     return m ? `IELTS Test ${Number(m[1])}` : (examId || "IELTS Test");
   }
 
+  function nullableNumber(value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+    const n = Number(text);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function taskHasContent(words, text) {
+    const wordCount = nullableNumber(words);
+    return (wordCount !== null && wordCount > 0) || String(text || "").trim() !== "";
+  }
+
+  function bandValue(row, key) {
+    if (key !== "final_writing_band") return nullableNumber(row?.[key]);
+    const finalBand = nullableNumber(row?.final_writing_band);
+    const task1Band = nullableNumber(row?.task1_band);
+    const task2Band = nullableNumber(row?.task2_band);
+    const hasTask1 = taskHasContent(row?.task1_words, row?.writing_task1);
+    const hasTask2 = taskHasContent(row?.task2_words, row?.writing_task2);
+    if (!hasTask1 && !hasTask2) return null;
+    if (hasTask1 && hasTask2) return finalBand;
+    if (hasTask1) return task1Band;
+    if (hasTask2) return task2Band;
+    return null;
+  }
+
   function average(rows, key) {
     const nums = (rows || [])
-      .map((row) => Number(row?.[key]))
-      .filter((value) => Number.isFinite(value) && value > 0);
-    if (!nums.length) return "0.0";
+      .map((row) => bandValue(row, key))
+      .filter((value) => value !== null);
+    if (!nums.length) return "null";
     return (nums.reduce((sum, value) => sum + value, 0) / nums.length).toFixed(1);
   }
 
@@ -149,8 +176,8 @@
 
   function averageNumber(rows, key) {
     const nums = (rows || [])
-      .map((row) => Number(row?.[key]))
-      .filter((value) => Number.isFinite(value) && value > 0);
+      .map((row) => bandValue(row, key))
+      .filter((value) => value !== null);
     if (!nums.length) return 0;
     return nums.reduce((sum, value) => sum + value, 0) / nums.length;
   }
@@ -166,9 +193,9 @@
       .map((row, index) => ({
         x: index,
         label: examLabel(row),
-        value: round1(row?.[key]),
+        value: round1(bandValue(row, key)),
       }))
-      .filter((point) => Number.isFinite(point.value) && point.value > 0);
+      .filter((point) => Number.isFinite(point.value));
   }
 
   function skillAverages(rows) {
@@ -195,8 +222,8 @@
 
   function latestNonZero(rows, key) {
     for (let i = 0; i < (rows || []).length; i += 1) {
-      const value = Number(rows[i]?.[key]);
-      if (Number.isFinite(value) && value > 0) return value;
+      const value = bandValue(rows[i], key);
+      if (value !== null) return value;
     }
     return 0;
   }
@@ -636,9 +663,12 @@
     }
     empty.classList.add("hidden");
     list.innerHTML = rows.map((row) => {
-      const writing = row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending";
-      const listening = row.listening_band ? `Band ${row.listening_band}` : "Saved";
-      const reading = row.reading_band ? `Band ${row.reading_band}` : "Saved";
+      const writingBand = bandValue(row, "final_writing_band");
+      const listeningBand = bandValue(row, "listening_band");
+      const readingBand = bandValue(row, "reading_band");
+      const writing = writingBand !== null ? `Band ${writingBand.toFixed(1)}` : "null";
+      const listening = listeningBand !== null ? `Band ${listeningBand.toFixed(1)}` : "null";
+      const reading = readingBand !== null ? `Band ${readingBand.toFixed(1)}` : "null";
       return `
         <div class="dashboard-activity-item">
           <strong>${examLabel(row)} · ${formatDate(row.submitted_at)}</strong>

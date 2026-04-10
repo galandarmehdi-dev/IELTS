@@ -6,6 +6,7 @@
   window.__IELTS_HIGHLIGHT_INIT__ = true;
 
   const S = () => window.IELTS?.Storage;
+  const Modal = () => window.IELTS?.Modal;
   const STORAGE_KEY = "IELTS:HIGHLIGHTS:v3";
   const ROOTS = [];
 
@@ -75,7 +76,21 @@
       const node = sel && sel.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : document.activeElement;
       const rootInfo = findRootInfo(node);
       if (!rootInfo) return;
-      if (!window.confirm("Clear ALL highlights in this section?")) return;
+      if (Modal()?.showModal) {
+        Modal().showModal("Clear highlights?", "Clear ALL highlights in this section?", {
+          mode: "confirm",
+          showCancel: true,
+          submitText: "Clear section",
+          cancelText: "Cancel",
+          onConfirm: () => {
+            clearAllHighlightsInRoot(rootInfo.el);
+            saveHighlightsFromDOM(rootInfo);
+            hideToolbar();
+            try { sel?.removeAllRanges?.(); } catch (e) {}
+          }
+        });
+        return;
+      }
 
       clearAllHighlightsInRoot(rootInfo.el);
       saveHighlightsFromDOM(rootInfo);

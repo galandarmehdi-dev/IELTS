@@ -29,7 +29,7 @@
       Modal().showModal(title, message, { mode: "confirm" });
       return;
     }
-    window.alert(message);
+    console.warn(`[${title}] ${message}`);
   }
 
   function isAdminView() {

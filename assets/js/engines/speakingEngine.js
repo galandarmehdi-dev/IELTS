@@ -206,11 +206,31 @@
       } catch (e) {}
     }
 
-    function showHome() {
-      if (examRunning) {
-        const leave = confirm("The speaking exam is still running. Do you want to leave?");
-        if (!leave) return;
+
+    function showSpeakingNotice(message, title = "Speaking") {
+      if (Modal()?.showModal) {
+        Modal().showModal(title, message, { mode: "confirm" });
+        return;
       }
+      console.warn(`[${title}] ${message}`);
+    }
+
+    function showSpeakingConfirm(title, message, onConfirm, opts = {}) {
+      if (Modal()?.showModal) {
+        Modal().showModal(title, message, {
+          mode: "confirm",
+          showCancel: true,
+          submitText: opts.submitText || "Continue",
+          cancelText: opts.cancelText || "Cancel",
+          onConfirm,
+        });
+        return true;
+      }
+      console.warn(`[${title}] ${message}`);
+      return false;
+    }
+
+    function hideSpeakingAndReturnHome() {
       if (speakingSection) speakingSection.classList.add("hidden");
       try {
         if (window.IELTS?.UI?.showOnly) {
@@ -222,6 +242,19 @@
         }
       } catch (e) {}
       if (homeSection) homeSection.classList.remove("hidden");
+    }
+
+    function showHome() {
+      if (examRunning) {
+        const handled = showSpeakingConfirm(
+          "Leave speaking exam?",
+          "The speaking exam is still running. Do you want to leave?",
+          () => hideSpeakingAndReturnHome(),
+          { submitText: "Leave", cancelText: "Stay" }
+        );
+        if (handled) return;
+      }
+      hideSpeakingAndReturnHome();
     }
 
     function setTimerText(totalSeconds) {
@@ -612,19 +645,19 @@
     async function uploadRecording() {
       if (uploadInProgress) return;
       if (!audioBlob) {
-        alert("No recording available yet.");
+        showSpeakingNotice("No recording available yet.");
         return;
       }
 
       const studentFullName = getStudentName();
       if (!studentFullName) {
-        alert("Please enter the student full name before uploading.");
+        showSpeakingNotice("Please enter the student full name before uploading.");
         return;
       }
 
       const endpoint = getUploadEndpoint();
       if (!endpoint) {
-        alert("Speaking upload endpoint is missing.");
+        showSpeakingNotice("Speaking upload endpoint is missing.");
         return;
       }
 
@@ -673,7 +706,7 @@
 
       const studentFullName = getStudentName();
       if (!studentFullName) {
-        alert("Please enter the student full name before starting the exam.");
+        showSpeakingNotice("Please enter the student full name before starting the exam.");
         return;
       }
 
@@ -782,7 +815,7 @@ mediaRecorder.ondataavailable = function (event) {
 
     function downloadRecording() {
       if (!audioUrl) {
-        alert("No recording available yet.");
+        showSpeakingNotice("No recording available yet.");
         return;
       }
       const a = document.createElement("a");

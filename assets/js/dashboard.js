@@ -231,6 +231,20 @@
       .filter((point) => Number.isFinite(point.value));
   }
 
+  function clearNodeChildren(node) {
+    if (!node) return;
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function createSvgNode(tag, attrs = {}, text = "") {
+    const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.entries(attrs).forEach(([key, value]) => {
+      node.setAttribute(key, String(value));
+    });
+    if (text) node.textContent = text;
+    return node;
+  }
+
   function skillAverages(rows) {
     return [
       { label: "Listening", value: averageNumber(rows, "listening_band") },
@@ -595,9 +609,9 @@
 
     if (!hasTrend) {
       empty.classList.remove("hidden");
-      grid.innerHTML = "";
-      axis.innerHTML = "";
-      pointsRoot.innerHTML = "";
+      clearNodeChildren(grid);
+      clearNodeChildren(axis);
+      clearNodeChildren(pointsRoot);
       $("dashboardTrendListening").setAttribute("d", "");
       $("dashboardTrendReading").setAttribute("d", "");
       $("dashboardTrendWriting").setAttribute("d", "");
@@ -613,38 +627,61 @@
     const usableHeight = height - padding.top - padding.bottom;
     const usableWidth = width - padding.left - padding.right;
 
-    grid.innerHTML = chartLevels.map((value) => {
+    clearNodeChildren(grid);
+    chartLevels.forEach((value) => {
       const y = padding.top + usableHeight - (((value - minY) / Math.max(0.1, maxY - minY)) * usableHeight);
-      return `<line class="dashboard-chart-grid-line" x1="${padding.left}" y1="${y.toFixed(2)}" x2="${width - padding.right}" y2="${y.toFixed(2)}"></line>`;
-    }).join("");
+      grid.appendChild(createSvgNode("line", {
+        class: "dashboard-chart-grid-line",
+        x1: padding.left.toFixed(2),
+        y1: y.toFixed(2),
+        x2: (width - padding.right).toFixed(2),
+        y2: y.toFixed(2),
+      }));
+    });
 
     const referenceSeries = [listening, reading, writing].sort((a, b) => b.length - a.length)[0];
-    axis.innerHTML = chartLevels.map((value) => {
+    clearNodeChildren(axis);
+    chartLevels.forEach((value) => {
       const y = padding.top + usableHeight - (((value - minY) / Math.max(0.1, maxY - minY)) * usableHeight);
-      return `<text class="dashboard-chart-axis-label" x="2" y="${(y + 4).toFixed(2)}">${value.toFixed(1)}</text>`;
-    }).join("") + referenceSeries.map((point, index) => {
+      axis.appendChild(createSvgNode("text", {
+        class: "dashboard-chart-axis-label",
+        x: 2,
+        y: (y + 4).toFixed(2),
+      }, value.toFixed(1)));
+    });
+    referenceSeries.forEach((point, index) => {
       const x = padding.left + (usableWidth * (index / Math.max(1, referenceSeries.length - 1)));
-      return `<text class="dashboard-chart-axis-label" x="${x.toFixed(2)}" y="${height - 6}" text-anchor="${index === 0 ? "start" : index === referenceSeries.length - 1 ? "end" : "middle"}">${index + 1}</text>`;
-    }).join("");
+      axis.appendChild(createSvgNode("text", {
+        class: "dashboard-chart-axis-label",
+        x: x.toFixed(2),
+        y: height - 6,
+        "text-anchor": index === 0 ? "start" : index === referenceSeries.length - 1 ? "end" : "middle",
+      }, String(index + 1)));
+    });
 
     $("dashboardTrendListening").setAttribute("d", buildLinePath(listening, width, height, minY, maxY, padding));
     $("dashboardTrendReading").setAttribute("d", buildLinePath(reading, width, height, minY, maxY, padding));
     $("dashboardTrendWriting").setAttribute("d", buildLinePath(writing, width, height, minY, maxY, padding));
 
-    const pointMarkup = [
+    clearNodeChildren(pointsRoot);
+    [
       ["is-listening", listening],
       ["is-reading", reading],
       ["is-writing", writing],
-    ].map(([klass, series]) => {
+    ].forEach(([klass, series]) => {
       const denomX = Math.max(1, series.length - 1);
       const denomY = Math.max(0.1, maxY - minY);
-      return series.map((point, index) => {
+      series.forEach((point, index) => {
         const x = padding.left + (usableWidth * (index / denomX));
         const y = padding.top + usableHeight - (((point.value - minY) / denomY) * usableHeight);
-        return `<circle class="dashboard-chart-point ${klass}" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="5"></circle>`;
-      }).join("");
-    }).join("");
-    pointsRoot.innerHTML = pointMarkup;
+        pointsRoot.appendChild(createSvgNode("circle", {
+          class: `dashboard-chart-point ${klass}`,
+          cx: x.toFixed(2),
+          cy: y.toFixed(2),
+          r: 5,
+        }));
+      });
+    });
   }
 
   function renderGoals() {

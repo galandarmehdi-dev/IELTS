@@ -467,7 +467,9 @@
       return (
         (listeningStarted && !listeningSubmitted) ||
         (!listeningSubmitted && hasNonEmptyObject(listeningAnswers)) ||
+        (isFullExamFlow() && listeningSubmitted && !readingSubmitted) ||
         (!readingSubmitted && hasNonEmptyObject(readingAnswers)) ||
+        (isFullExamFlow() && readingSubmitted && !writingSubmitted) ||
         (writingStarted && !writingSubmitted) ||
         (!writingSubmitted && hasNonEmptyObject(writingAnswers))
       );

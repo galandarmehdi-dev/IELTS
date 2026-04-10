@@ -2387,60 +2387,123 @@
 
       const card = document.createElement("article");
       card.className = "contact-highlight-card";
-      card.innerHTML = `
-        <div class="home-card-topline">Support email</div>
-        <h3>info@ieltsmock.org</h3>
-        <p>Use this address for platform support, account questions, writing sample issues, bug reports, and general IELTS Mock enquiries.</p>
-        <a class="btn" href="mailto:info@ieltsmock.org">Email support directly</a>
-      `;
+      const supportTopline = document.createElement("div");
+      supportTopline.className = "home-card-topline";
+      supportTopline.textContent = "Support email";
+      const supportTitle = document.createElement("h3");
+      supportTitle.textContent = "info@ieltsmock.org";
+      const supportCopy = document.createElement("p");
+      supportCopy.textContent = "Use this address for platform support, account questions, writing sample issues, bug reports, and general IELTS Mock enquiries.";
+      const supportLink = document.createElement("a");
+      supportLink.className = "btn";
+      supportLink.href = "mailto:info@ieltsmock.org";
+      supportLink.textContent = "Email support directly";
+      card.appendChild(supportTopline);
+      card.appendChild(supportTitle);
+      card.appendChild(supportCopy);
+      card.appendChild(supportLink);
       wrap.appendChild(card);
 
       const formCard = document.createElement("article");
       formCard.className = "contact-form-card";
-      formCard.innerHTML = `
-        <div class="home-card-topline">Contact form</div>
-        <h3>Report a problem or contact the team</h3>
-        <p class="contact-form-copy">Fill this in and we will send it directly to <strong>info@ieltsmock.org</strong>.</p>
-        <form class="contact-form" id="contactSupportForm">
-          <div class="contact-form-grid">
-            <label class="contact-field">
-              <span>Full name</span>
-              <input type="text" name="fullName" placeholder="Your full name" required>
-            </label>
-            <label class="contact-field">
-              <span>Email address</span>
-              <input type="email" name="email" placeholder="you@example.com" required>
-            </label>
-            <label class="contact-field">
-              <span>Phone number</span>
-              <input type="tel" name="phone" placeholder="+994..." required>
-            </label>
-            <label class="contact-field">
-              <span>Reason</span>
-              <select name="category" required>
-                <option value="General contact">General contact</option>
-                <option value="Technical issue">Technical issue</option>
-                <option value="Account support">Account support</option>
-                <option value="Writing sample issue">Writing sample issue</option>
-                <option value="Feedback or suggestion">Feedback or suggestion</option>
-              </select>
-            </label>
-          </div>
-          <label class="contact-field contact-field-full">
-            <span>Message</span>
-            <textarea name="message" rows="7" placeholder="Tell us what happened, what page you were on, or how we can help." required></textarea>
-          </label>
-          <div class="contact-form-actions">
-            <button class="btn" type="submit">Send message</button>
-            <div class="contact-form-status" id="contactFormStatus" aria-live="polite"></div>
-          </div>
-        </form>
-      `;
+      const formTopline = document.createElement("div");
+      formTopline.className = "home-card-topline";
+      formTopline.textContent = "Contact form";
+      const formTitle = document.createElement("h3");
+      formTitle.textContent = "Report a problem or contact the team";
+      const formCopy = document.createElement("p");
+      formCopy.className = "contact-form-copy";
+      formCopy.append("Fill this in and we will send it directly to ");
+      const formCopyStrong = document.createElement("strong");
+      formCopyStrong.textContent = "info@ieltsmock.org";
+      formCopy.appendChild(formCopyStrong);
+      formCopy.append(".");
 
-      const form = formCard.querySelector("#contactSupportForm");
-      const status = formCard.querySelector("#contactFormStatus");
-      const emailInput = formCard.querySelector('input[name="email"]');
-      const fullNameInput = formCard.querySelector('input[name="fullName"]');
+      const form = document.createElement("form");
+      form.className = "contact-form";
+      form.id = "contactSupportForm";
+
+      const grid = document.createElement("div");
+      grid.className = "contact-form-grid";
+
+      const buildField = (labelText, inputEl, extraClass = "") => {
+        const label = document.createElement("label");
+        label.className = `contact-field${extraClass ? ` ${extraClass}` : ""}`;
+        const span = document.createElement("span");
+        span.textContent = labelText;
+        label.appendChild(span);
+        label.appendChild(inputEl);
+        return label;
+      };
+
+      const fullNameInput = document.createElement("input");
+      fullNameInput.type = "text";
+      fullNameInput.name = "fullName";
+      fullNameInput.placeholder = "Your full name";
+      fullNameInput.required = true;
+
+      const emailInput = document.createElement("input");
+      emailInput.type = "email";
+      emailInput.name = "email";
+      emailInput.placeholder = "you@example.com";
+      emailInput.required = true;
+
+      const phoneInput = document.createElement("input");
+      phoneInput.type = "tel";
+      phoneInput.name = "phone";
+      phoneInput.placeholder = "+994...";
+      phoneInput.required = true;
+
+      const reasonSelect = document.createElement("select");
+      reasonSelect.name = "category";
+      reasonSelect.required = true;
+      [
+        "General contact",
+        "Technical issue",
+        "Account support",
+        "Writing sample issue",
+        "Feedback or suggestion",
+      ].forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        reasonSelect.appendChild(option);
+      });
+
+      grid.appendChild(buildField("Full name", fullNameInput));
+      grid.appendChild(buildField("Email address", emailInput));
+      grid.appendChild(buildField("Phone number", phoneInput));
+      grid.appendChild(buildField("Reason", reasonSelect));
+
+      const messageInput = document.createElement("textarea");
+      messageInput.name = "message";
+      messageInput.rows = 7;
+      messageInput.placeholder = "Tell us what happened, what page you were on, or how we can help.";
+      messageInput.required = true;
+
+      const messageField = buildField("Message", messageInput, "contact-field-full");
+
+      const actions = document.createElement("div");
+      actions.className = "contact-form-actions";
+      const submitBtnEl = document.createElement("button");
+      submitBtnEl.className = "btn";
+      submitBtnEl.type = "submit";
+      submitBtnEl.textContent = "Send message";
+      const status = document.createElement("div");
+      status.className = "contact-form-status";
+      status.id = "contactFormStatus";
+      status.setAttribute("aria-live", "polite");
+      actions.appendChild(submitBtnEl);
+      actions.appendChild(status);
+
+      form.appendChild(grid);
+      form.appendChild(messageField);
+      form.appendChild(actions);
+
+      formCard.appendChild(formTopline);
+      formCard.appendChild(formTitle);
+      formCard.appendChild(formCopy);
+      formCard.appendChild(form);
 
       try {
         const savedUser = window.IELTS?.Auth?.getSavedUser?.() || JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");

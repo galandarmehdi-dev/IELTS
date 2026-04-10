@@ -101,8 +101,33 @@
         <button id="sharedPasswordLoginBtn" class="btn auth-full-btn">Continue with email and password</button>
         <div class="auth-inline-actions">
           <button id="forgotPasswordBtn" class="btn secondary auth-inline-btn" type="button">Recovery options</button>
-          <button id="sendOtpBtn" class="btn secondary auth-inline-btn" type="button">Send code or magic link</button>
+          <button id="openSignUpBtn" class="btn secondary auth-inline-btn" type="button">Open sign up</button>
         </div>
+      </div>
+
+
+      <div id="signUpBox" class="auth-recovery-box hidden">
+        <div class="auth-recovery-header">
+          <div class="auth-recovery-title">Create student account</div>
+          <p id="signUpHelp" class="small auth-inline-help">Create a personal account with name, surname, and password.</p>
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="signUpFirstName">Name</label>
+          <input id="signUpFirstName" type="text" placeholder="Enter your first name" autocomplete="given-name">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="signUpLastName">Surname</label>
+          <input id="signUpLastName" type="text" placeholder="Enter your surname" autocomplete="family-name">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="signUpPassword">Password</label>
+          <input id="signUpPassword" type="password" placeholder="Choose a password" autocomplete="new-password">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="signUpConfirm">Confirm password</label>
+          <input id="signUpConfirm" type="password" placeholder="Confirm your password" autocomplete="new-password">
+        </div>
+        <button id="createAccountBtn" class="btn auth-full-btn" type="button">Create account</button>
       </div>
 
       <div id="recoveryOptionsBox" class="auth-recovery-box hidden">
@@ -157,14 +182,6 @@
         </div>
         <button id="finishPasswordResetBtn" class="btn auth-full-btn" type="button">Save new password</button>
         <p id="passwordResetHelp" class="small auth-inline-help">Choose a new password for your student account.</p>
-      </div>
-
-      <div class="auth-code-row">
-        <div class="auth-field-group auth-code-field">
-          <label class="auth-label" for="otpCode">Verification code</label>
-          <input id="otpCode" type="text" placeholder="Enter the code if you received one">
-        </div>
-        <button id="verifyOtpBtn" class="btn secondary auth-code-btn">Verify code</button>
       </div>
 
       <p id="authMessage" class="small auth-message"></p>

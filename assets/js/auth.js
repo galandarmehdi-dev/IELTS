@@ -22,7 +22,6 @@ const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
 const SHARED_PASSWORD_OVERRIDE_KEY = "IELTS:AUTH:sharedPasswordOverrides";
 const PERSONAL_PASSWORD_MARKERS_KEY = "IELTS:AUTH:personalPasswordEmails";
 const PROFILE_CACHE_BY_EMAIL_KEY = "IELTS:AUTH:profileByEmail";
-const DEFAULT_SHARED_STUDENT_PASSWORD = "Leznik123";
 
 let authReady = false;
 let loggingOut = false;

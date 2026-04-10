@@ -181,6 +181,15 @@ async function handleSharedStudentLogin(request, env) {
   const payload = await request.json().catch(() => null);
   const email = oneLine(payload?.email).toLowerCase();
   const password = String(payload?.password || "");
+  const rate = await consumeRateLimit(
+    env,
+    `rate:shared-login:${buildRateLimitScope(request, email)}`,
+    { limit: 8, windowMs: 10 * 60 * 1000 }
+  );
+  if (!rate.allowed) {
+    await logSecurityEvent(env, request, "shared_login_rate_limited", { email });
+    return json(429, { ok: false, error: "Too many sign-in attempts. Please wait and try again." });
+  }
   const expectedPassword = String(env.SHARED_STUDENT_PASSWORD || DEFAULT_SHARED_STUDENT_PASSWORD);
   const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
   const hasPersonalPassword = !!(current?.passwordHash && current?.passwordSalt);
@@ -231,6 +240,15 @@ async function handleSharedStudentBypass(request, env) {
   const payload = await request.json().catch(() => null);
   const email = oneLine(payload?.email).toLowerCase();
   const bypassPassword = String(payload?.bypassPassword || "");
+  const rate = await consumeRateLimit(
+    env,
+    `rate:shared-bypass:${buildRateLimitScope(request, email)}`,
+    { limit: 5, windowMs: 10 * 60 * 1000 }
+  );
+  if (!rate.allowed) {
+    await logSecurityEvent(env, request, "shared_bypass_rate_limited", { email });
+    return json(429, { ok: false, error: "Too many bypass attempts. Please wait and try again." });
+  }
   const expectedBypass = String(env.SHARED_STUDENT_BYPASS_PASSWORD || "").trim();
 
   if (!isValidEmail(email)) {
@@ -1056,6 +1074,41 @@ function getClientIp(request) {
     request?.headers?.get("x-forwarded-for") ||
     ""
   );
+}
+
+function buildRateLimitScope(request, email, suffix = "") {
+  const ip = getClientIp(request) || "unknown-ip";
+  const normalizedEmail = normalizeEmail(email) || "unknown-email";
+  return `${ip}:${normalizedEmail}${suffix ? `:${suffix}` : ""}`;
+}
+
+async function consumeRateLimit(env, key, options = {}) {
+  if (!env?.STUDENT_REGISTRY || !key) return { allowed: true, remaining: Number(options.limit || 0) };
+  const now = Date.now();
+  const windowMs = Math.max(1000, Number(options.windowMs) || 10 * 60 * 1000);
+  const limit = Math.max(1, Number(options.limit) || 8);
+  const record = (await readJsonKv(env.STUDENT_REGISTRY, key)) || {};
+  const attempts = Array.isArray(record.attempts)
+    ? record.attempts.map((value) => Number(value)).filter((value) => Number.isFinite(value) && now - value < windowMs)
+    : [];
+
+  if (attempts.length >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      retryAfterMs: Math.max(1000, windowMs - (now - attempts[0])),
+    };
+  }
+
+  attempts.push(now);
+  await writeJsonKv(env.STUDENT_REGISTRY, key, {
+    attempts,
+    updatedAt: new Date(now).toISOString(),
+  });
+  return {
+    allowed: true,
+    remaining: Math.max(0, limit - attempts.length),
+  };
 }
 
 async function readJsonKv(binding, key) {

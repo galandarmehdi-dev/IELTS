@@ -860,6 +860,9 @@ function applyActiveListeningContent() {
       const s = sec();
       if (!s) return;
 
+      try { UI().setExamStarted(true); } catch (e) {}
+      try { UI().showOnly("listening"); } catch (e) {}
+
       lockReading(true);
       s.classList.remove("hidden");
 

@@ -94,17 +94,64 @@
     return null;
   }
 
-  function objectiveSectionState(row, section) {
+  function hasWritingContent(row) {
+    return taskHasContent(row?.task1_words, row?.writing_task1) || taskHasContent(row?.task2_words, row?.writing_task2);
+  }
+
+  function objectiveSectionStatus(row, section) {
     const totalKey = `${section}_total`;
     const bandKey = `${section}_band`;
     const payload = row?.final_payload || {};
     const total = nullableNumber(row?.[totalKey]);
     const band = nullableNumber(row?.[bandKey]);
     if (total !== null || band !== null) {
-      return `${total === null ? "null" : total} / 40 (Band ${band === null ? "null" : band.toFixed(1)})`;
+      return {
+        state: "scored",
+        total,
+        band,
+        listText: `Band ${band === null ? "null" : band.toFixed(1)}`,
+        detailText: `${total === null ? "null" : total} / 40 (Band ${band === null ? "null" : band.toFixed(1)})`,
+      };
     }
-    if (hasAnyObjectiveAnswers(payload?.[section])) return "Saved";
-    return "null";
+    if (hasAnyObjectiveAnswers(payload?.[section])) {
+      return {
+        state: "saved",
+        total: null,
+        band: null,
+        listText: "Saved",
+        detailText: "Saved",
+      };
+    }
+    return {
+      state: "null",
+      total: null,
+      band: null,
+      listText: "null",
+      detailText: "null",
+    };
+  }
+
+  function writingStatus(row) {
+    const band = effectiveWritingBand(row);
+    if (band !== null) {
+      return {
+        state: "scored",
+        band,
+        text: `Band ${band.toFixed(1)}`,
+      };
+    }
+    if (hasWritingContent(row)) {
+      return {
+        state: "pending",
+        band: null,
+        text: "Pending",
+      };
+    }
+    return {
+      state: "null",
+      band: null,
+      text: "null",
+    };
   }
 
   function buildObjectiveReviewHtml(items, emptyMessage) {
@@ -592,9 +639,7 @@
   }
 
   function isPending(row) {
-    const hasWriting = taskHasContent(row?.task1_words, row?.writing_task1) || taskHasContent(row?.task2_words, row?.writing_task2);
-    if (!hasWriting) return false;
-    return effectiveWritingBand(row) === null;
+    return writingStatus(row).state === "pending";
   }
 
   async function refreshPendingRows(rows) {
@@ -656,16 +701,18 @@
 
     empty.classList.add("hidden");
     tbody.innerHTML = rows.map((row, idx) => {
-      const writingBand = effectiveWritingBand(row);
+      const listeningStatus = objectiveSectionStatus(row, "listening");
+      const readingStatus = objectiveSectionStatus(row, "reading");
+      const writing = writingStatus(row);
       const rowId = `history-row-${idx}`;
       return `
         <tr id="${rowId}">
           <td>${escapeHtml(fmtDate(row.submitted_at))}</td>
           <td>${escapeHtml(examLabel(row))}</td>
           <td>${escapeHtml(row.student_full_name || "—")}</td>
-          <td>${escapeHtml(objectiveSectionState(row, "listening").startsWith("Saved") ? "Saved" : objectiveSectionState(row, "listening").startsWith("null") ? "null" : `Band ${nullableNumber(row.listening_band).toFixed(1)}`)}</td>
-          <td>${escapeHtml(objectiveSectionState(row, "reading").startsWith("Saved") ? "Saved" : objectiveSectionState(row, "reading").startsWith("null") ? "null" : `Band ${nullableNumber(row.reading_band).toFixed(1)}`)}</td>
-          <td>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}<br><span class="small">T1: ${escapeHtml(writingWordText(row.task1_words, row.writing_task1))} · T2: ${escapeHtml(writingWordText(row.task2_words, row.writing_task2))}</span></td>
+          <td>${escapeHtml(listeningStatus.listText)}</td>
+          <td>${escapeHtml(readingStatus.listText)}</td>
+          <td>${escapeHtml(writing.text)}<br><span class="small">T1: ${escapeHtml(writingWordText(row.task1_words, row.writing_task1))} · T2: ${escapeHtml(writingWordText(row.task2_words, row.writing_task2))}</span></td>
           <td><button class="btn secondary" type="button" data-history-view="${idx}" data-history-row-id="${rowId}">View</button></td>
         </tr>
       `;
@@ -679,7 +726,9 @@
     detailState.sourceRowId = options.sourceRowId || null;
     detailState.sourceScrollY = window.scrollY || 0;
     const payload = row.final_payload || {};
-    const writingBand = effectiveWritingBand(row);
+    const listeningStatus = objectiveSectionStatus(row, "listening");
+    const readingStatus = objectiveSectionStatus(row, "reading");
+    const writing = writingStatus(row);
     $("historyDetailTitle").textContent = examLabel(row);
     const metaEl = $("historyDetailMeta");
     clearElement(metaEl);
@@ -690,22 +739,14 @@
     const scoresEl = $("historyDetailScores");
     clearElement(scoresEl);
     appendLabeledLine(scoresEl, "Exam ID", row.exam_id || row.active_test_id || "—");
-    appendLabeledLine(scoresEl, "Listening", objectiveSectionState(row, "listening"));
-    appendLabeledLine(scoresEl, "Reading", objectiveSectionState(row, "reading"));
-    appendLabeledLine(
-      scoresEl,
-      "Writing",
-      writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null")
-    );
+    appendLabeledLine(scoresEl, "Listening", listeningStatus.detailText);
+    appendLabeledLine(scoresEl, "Reading", readingStatus.detailText);
+    appendLabeledLine(scoresEl, "Writing", writing.text);
     appendLabeledLine(scoresEl, "Writing words", String(totalWords(row) || "null"));
     scoresEl.appendChild(document.createElement("br"));
     appendLabeledLine(scoresEl, "Task 1 band", nullableNumber(row.task1_band) !== null ? nullableNumber(row.task1_band).toFixed(1) : "null");
     appendLabeledLine(scoresEl, "Task 2 band", nullableNumber(row.task2_band) !== null ? nullableNumber(row.task2_band).toFixed(1) : "null");
-    appendLabeledLine(
-      scoresEl,
-      "Overall Writing score",
-      writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null")
-    );
+    appendLabeledLine(scoresEl, "Overall Writing score", writing.text);
     const setText = (id, value) => {
       const el = $(id);
       if (el) el.textContent = value || "";

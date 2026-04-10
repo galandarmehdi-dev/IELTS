@@ -1195,7 +1195,17 @@
       if (!sel) return;
       const current = sel.value || "";
       const exams = Array.from(new Set(rows.map((r) => String(r.examId || "").trim()).filter(Boolean))).sort();
-      sel.innerHTML = '<option value="">All tests</option>' + exams.map((examId) => `<option value="${escapeHtml(examId)}">${escapeHtml(examId)}</option>`).join("");
+      clearElement(sel);
+      const allOption = document.createElement("option");
+      allOption.value = "";
+      allOption.textContent = "All tests";
+      sel.appendChild(allOption);
+      exams.forEach((examId) => {
+        const option = document.createElement("option");
+        option.value = examId;
+        option.textContent = examId;
+        sel.appendChild(option);
+      });
       sel.value = exams.includes(current) ? current : "";
     }
 
@@ -1215,12 +1225,32 @@
         if (!monthMap.has(month)) monthMap.set(month, d.toLocaleString(undefined, { month: "long" }));
         years.add(year);
       });
-      monthSel.innerHTML = '<option value="">All months</option>' + Array.from(monthMap.entries())
+      clearElement(monthSel);
+      clearElement(yearSel);
+      const allMonthsOption = document.createElement("option");
+      allMonthsOption.value = "";
+      allMonthsOption.textContent = "All months";
+      monthSel.appendChild(allMonthsOption);
+      Array.from(monthMap.entries())
         .sort((a, b) => Number(a[0]) - Number(b[0]))
-        .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("");
-      yearSel.innerHTML = '<option value="">All years</option>' + Array.from(years)
+        .forEach(([value, label]) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          monthSel.appendChild(option);
+        });
+      const allYearsOption = document.createElement("option");
+      allYearsOption.value = "";
+      allYearsOption.textContent = "All years";
+      yearSel.appendChild(allYearsOption);
+      Array.from(years)
         .sort((a, b) => Number(b) - Number(a))
-        .map((year) => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`).join("");
+        .forEach((year) => {
+          const option = document.createElement("option");
+          option.value = year;
+          option.textContent = year;
+          yearSel.appendChild(option);
+        });
       monthSel.value = monthMap.has(currentMonth) ? currentMonth : "";
       yearSel.value = years.has(currentYear) ? currentYear : "";
     }
@@ -2552,7 +2582,8 @@
       const trigger = document.createElement("button");
       trigger.type = "button";
       trigger.className = "home-skill-trigger";
-      trigger.innerHTML = `<span>${menu.label}</span><i>▾</i>`;
+      trigger.appendChild(document.createElement("span")).textContent = menu.label;
+      trigger.appendChild(document.createElement("i")).textContent = "▾";
 
       const dropdown = document.createElement("div");
       dropdown.className = "home-skill-dropdown hidden";
@@ -2583,7 +2614,7 @@
 
     function renderHomeMenus() {
       if (!homeExploreMenus) return;
-      homeExploreMenus.innerHTML = "";
+      clearElement(homeExploreMenus);
       const fullExamItems = (R()?.buildHomeCatalog?.()?.fullExams || []).map((item) => ({
         label: `Start ${item.label}`,
         copy: `Quick start ${item.label.toLowerCase()}.`,
@@ -2656,8 +2687,8 @@
       if (!resourceHubContent || !resourceHubTitle || !resourceHubSubtitle || !resourceHubBadge || !resourceHubAnchorbar) return;
 
       const catalog = R()?.buildHomeCatalog?.() || { fullExams: [], sections: {}, practice: { reading: [] } };
-      resourceHubContent.innerHTML = "";
-      resourceHubAnchorbar.innerHTML = "";
+      clearElement(resourceHubContent);
+      clearElement(resourceHubAnchorbar);
 
       const addSection = (sectionId, label, copy, nodeBuilder) => {
         const section = buildHubSection(sectionId, label, copy, nodeBuilder);

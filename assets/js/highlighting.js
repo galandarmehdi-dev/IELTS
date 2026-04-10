@@ -29,11 +29,19 @@
     toolbar = document.createElement("div");
     toolbar.id = "hlToolbar";
     toolbar.className = "hl-toolbar";
-    toolbar.innerHTML = `
-      <button type="button" class="hl-toolbtn primary" id="hlDo">Highlight</button>
-      <button type="button" class="hl-toolbtn" id="hlRm">Remove</button>
-      <button type="button" class="hl-toolbtn danger" id="hlClear">Clear section</button>
-    `;
+
+    const createButton = (id, className, text) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.id = id;
+      button.className = className;
+      button.textContent = text;
+      return button;
+    };
+
+    toolbar.appendChild(createButton("hlDo", "hl-toolbtn primary", "Highlight"));
+    toolbar.appendChild(createButton("hlRm", "hl-toolbtn", "Remove"));
+    toolbar.appendChild(createButton("hlClear", "hl-toolbtn danger", "Clear section"));
     document.body.appendChild(toolbar);
 
     btnHL = toolbar.querySelector("#hlDo");

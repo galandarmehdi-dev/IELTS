@@ -144,8 +144,8 @@ function setPasswordResetMode(active, text) {
   if (resetHelp) resetHelp.textContent = text || "Choose a new password for your student account.";
   const sharedBtn = getEl("sharedPasswordLoginBtn");
   if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
-  const otpBtn = getEl("sendOtpBtn");
-  if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
+  const signUpBtn = getEl("openSignUpBtn");
+  if (signUpBtn) signUpBtn.classList.toggle("hidden", !!active);
 }
 
 function setBypassRecoveryMode(active, text) {
@@ -167,12 +167,8 @@ function setSharedSetupMode(active, text) {
   if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
   const forgotBtn = getEl("forgotPasswordBtn");
   if (forgotBtn) forgotBtn.classList.toggle("hidden", !!active);
-  const otpBtn = getEl("sendOtpBtn");
-  if (otpBtn) otpBtn.classList.toggle("hidden", !!active);
-  const verifyBtn = getEl("verifyOtpBtn");
-  if (verifyBtn) verifyBtn.classList.toggle("hidden", !!active);
-  const codeRow = getEl("otpCode")?.closest(".auth-code-row");
-  if (codeRow) codeRow.classList.toggle("hidden", !!active);
+  const signUpBtn = getEl("openSignUpBtn");
+  if (signUpBtn) signUpBtn.classList.toggle("hidden", !!active);
   const passwordField = getEl("sharedPasswordInput")?.closest(".auth-field-group");
   if (passwordField) passwordField.classList.toggle("hidden", !!active);
   const emailShell = getEl("otpEmail")?.closest(".auth-email-shell");
@@ -187,8 +183,24 @@ function clearAuthFlowModes() {
   setSharedSetupMode(false, "");
   const recoveryOptions = getEl("recoveryOptionsBox");
   if (recoveryOptions) recoveryOptions.classList.add("hidden");
+  const signUpBox = getEl("signUpBox");
+  if (signUpBox) signUpBox.classList.add("hidden");
   const emailShell = getEl("otpEmail")?.closest(".auth-email-shell");
   if (emailShell) emailShell.classList.remove("hidden");
+}
+
+function openSignUpBox() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  if (!email) {
+    setMessage("Please enter the email address first.", { tone: "error" });
+    return;
+  }
+  clearAuthFlowModes();
+  const box = getEl("signUpBox");
+  if (box) box.classList.remove("hidden");
+  const emailShell = getEl("otpEmail")?.closest(".auth-email-shell");
+  if (emailShell) emailShell.classList.add("hidden");
+  setMessage("Complete the sign up details for this student email.", { tone: "success", sticky: true });
 }
 
 function showRecoveryOptions() {
@@ -931,25 +943,56 @@ async function signInWithMicrosoft() {
   }
 }
 
-async function sendOtpOrMagicLink() {
+async function createStudentAccount() {
   const email = getEl("otpEmail")?.value.trim() || "";
+  const firstName = getEl("signUpFirstName")?.value.trim() || "";
+  const lastName = getEl("signUpLastName")?.value.trim() || "";
+  const password = getEl("signUpPassword")?.value || "";
+  const confirm = getEl("signUpConfirm")?.value || "";
+
   if (!email) {
-    setMessage("Please enter your email.", { tone: "error" });
+    setMessage("Please enter the email address first.", { tone: "error" });
+    return;
+  }
+  if (!firstName || !lastName) {
+    setMessage("Please enter the student's name and surname.", { tone: "error" });
+    return;
+  }
+  if (!password || password.length < 6) {
+    setMessage("Choose a password with at least 6 characters.", { tone: "error" });
+    return;
+  }
+  if (password !== confirm) {
+    setMessage("The password confirmation does not match.", { tone: "error" });
     return;
   }
 
-  setMessage("Sending... Please wait.", { sticky: true });
-  const { error } = await supabase.auth.signInWithOtp({
+  setMessage("Creating account...", { sticky: true });
+  const { data, error } = await supabase.auth.signUp({
     email,
+    password,
     options: {
-      emailRedirectTo: SITE_URL
-    }
+      emailRedirectTo: SITE_URL,
+      data: {
+        full_name: `${firstName} ${lastName}`.trim(),
+        first_name: firstName,
+        last_name: lastName,
+      },
+    },
   });
 
   if (error) {
-    console.error("[AUTH] OTP send error:", error);
+    console.error("[AUTH] sign up error:", error);
+    setMessage(error.message || "Could not create the account.", { tone: "error", sticky: true });
+    return;
   }
-  setMessage(error ? error.message : "Check your email for the code or magic link.", { tone: error ? "error" : "success", sticky: !error });
+
+  if (data?.user) {
+    setMessage("Account created. Check the email inbox to confirm the account if confirmation is required.", { tone: "success", sticky: true });
+  } else {
+    setMessage("Account created. You can now sign in with the new password.", { tone: "success", sticky: true });
+  }
+  clearAuthFlowModes();
 }
 
 async function signInWithSharedPassword() {
@@ -1169,31 +1212,6 @@ async function signInWithBypass() {
   await refreshAuthUI();
 }
 
-async function verifyOtpCode() {
-  const email = getEl("otpEmail")?.value.trim() || "";
-  const token = getEl("otpCode")?.value.trim() || "";
-
-  if (!email || !token) {
-    setMessage("Enter both email and code.", { tone: "error" });
-    return;
-  }
-
-  setMessage("Verifying code...", { sticky: true });
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "email"
-  });
-
-  if (error) {
-    console.error("[AUTH] OTP verify error:", error);
-    setMessage(error.message, { tone: "error", sticky: true });
-    return;
-  }
-
-  await refreshAuthUI({ forceHome: true });
-}
-
 async function logout() {
   if (loggingOut) return;
   loggingOut = true;
@@ -1230,8 +1248,8 @@ getEl("showBypassRecoveryBtn")?.addEventListener("click", () => {
   setMessage("Enter the bypass password to reset this student's password.", { tone: "success", sticky: true });
 });
 getEl("useBypassBtn")?.addEventListener("click", signInWithBypass);
-getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
-getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
+getEl("openSignUpBtn")?.addEventListener("click", openSignUpBox);
+getEl("createAccountBtn")?.addEventListener("click", createStudentAccount);
 getEl("finishPasswordResetBtn")?.addEventListener("click", finishPasswordReset);
 getEl("finishSharedSetupBtn")?.addEventListener("click", completeSharedStudentSetup);
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);

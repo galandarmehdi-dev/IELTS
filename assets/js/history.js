@@ -82,7 +82,13 @@
     const hasTask1 = taskHasContent(row?.task1_words, row?.writing_task1);
     const hasTask2 = taskHasContent(row?.task2_words, row?.writing_task2);
     if (!hasTask1 && !hasTask2) return null;
-    if (hasTask1 && hasTask2) return finalBand;
+    if (hasTask1 && hasTask2) {
+      if (finalBand !== null) return finalBand;
+      if (task1Band !== null && task2Band !== null) {
+        return Math.round(((task1Band + task2Band) / 2) * 2) / 2;
+      }
+      return task1Band ?? task2Band ?? null;
+    }
     if (hasTask1) return task1Band;
     if (hasTask2) return task2Band;
     return null;

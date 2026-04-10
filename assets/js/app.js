@@ -2043,6 +2043,41 @@
         });
     }
 
+    function appendRichText(root, html) {
+      const template = document.createElement("template");
+      template.innerHTML = String(html || "");
+      const allowedTags = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "SPAN", "SUP", "SUB"]);
+
+      const sanitizeNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return document.createTextNode(node.textContent || "");
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return document.createDocumentFragment();
+        }
+
+        const tagName = String(node.nodeName || "").toUpperCase();
+        if (!allowedTags.has(tagName)) {
+          const fragment = document.createDocumentFragment();
+          Array.from(node.childNodes || []).forEach((child) => fragment.appendChild(sanitizeNode(child)));
+          return fragment;
+        }
+
+        const next = document.createElement(tagName.toLowerCase());
+        if (tagName === "SPAN") {
+          const className = String(node.getAttribute("class") || "").trim();
+          if (/^[a-zA-Z0-9_\- ]+$/.test(className)) {
+            next.className = className;
+          }
+        }
+
+        Array.from(node.childNodes || []).forEach((child) => next.appendChild(sanitizeNode(child)));
+        return next;
+      };
+
+      Array.from(template.content.childNodes || []).forEach((child) => root.appendChild(sanitizeNode(child)));
+    }
+
     function createWritingSampleResponse(entry, sample, index) {
       const response = document.createElement("div");
       response.className = "writing-sample-response";
@@ -2065,18 +2100,27 @@
 
       const explanationWrap = document.createElement("div");
       explanationWrap.className = "writing-sample-section";
-      explanationWrap.innerHTML = `<h4>Why this score</h4><p>${sample.explanation}</p>`;
+      const explanationTitle = document.createElement("h4");
+      explanationTitle.textContent = "Why this score";
+      explanationWrap.appendChild(explanationTitle);
+      const explanationText = document.createElement("p");
+      explanationText.textContent = sample.explanation || "";
+      explanationWrap.appendChild(explanationText);
       response.appendChild(explanationWrap);
 
       const sampleWrap = document.createElement("div");
       sampleWrap.className = "writing-sample-section";
-      sampleWrap.innerHTML = "<h4>Sample answer</h4>";
+      const sampleTitle = document.createElement("h4");
+      sampleTitle.textContent = "Sample answer";
+      sampleWrap.appendChild(sampleTitle);
       appendEssayParagraphs(sampleWrap, sample.sampleAnswer);
       response.appendChild(sampleWrap);
 
       const correctedWrap = document.createElement("div");
       correctedWrap.className = "writing-sample-section";
-      correctedWrap.innerHTML = "<h4>Corrected form</h4>";
+      const correctedTitle = document.createElement("h4");
+      correctedTitle.textContent = "Corrected form";
+      correctedWrap.appendChild(correctedTitle);
       appendEssayParagraphs(correctedWrap, sample.correctedForm || "No stored corrected rewrite is available for this essay yet.");
       response.appendChild(correctedWrap);
 
@@ -2166,7 +2210,7 @@
 
       const prompt = document.createElement("div");
       prompt.className = "writing-sample-prompt";
-      prompt.innerHTML = entry.promptHtml || "";
+      appendRichText(prompt, entry.promptHtml || "");
       card.appendChild(prompt);
 
       if (entry.imageSrc) {
@@ -2240,7 +2284,10 @@
     function renderWritingSampleLibrary(taskKey) {
       const wrap = document.createElement("div");
       wrap.className = "resource-hub-list writing-sample-list";
-      wrap.innerHTML = '<div class="home-catalog-empty">Loading stored essays and model answers...</div>';
+      const loading = document.createElement("div");
+      loading.className = "home-catalog-empty";
+      loading.textContent = "Loading stored essays and model answers...";
+      wrap.appendChild(loading);
 
       const renderItems = (items) => {
         wrap.innerHTML = "";
@@ -2267,7 +2314,12 @@
 
             const head = document.createElement("div");
             head.className = "writing-sample-group-head";
-            head.innerHTML = `<h3>${groupLabel}</h3><p>${groups[groupLabel].length} prompt${groups[groupLabel].length === 1 ? "" : "s"}</p>`;
+            const heading = document.createElement("h3");
+            heading.textContent = groupLabel;
+            const count = document.createElement("p");
+            count.textContent = `${groups[groupLabel].length} prompt${groups[groupLabel].length === 1 ? "" : "s"}`;
+            head.appendChild(heading);
+            head.appendChild(count);
             section.appendChild(head);
 
             const list = document.createElement("div");
@@ -2304,7 +2356,18 @@
       section.id = id;
       const head = document.createElement("div");
       head.className = "home-section-head";
-      head.innerHTML = `<div class="home-card-topline">${label}</div><h2 class="home-section-title">${label}</h2><p class="home-section-copy">${copy}</p>`;
+      const topline = document.createElement("div");
+      topline.className = "home-card-topline";
+      topline.textContent = label;
+      const title = document.createElement("h2");
+      title.className = "home-section-title";
+      title.textContent = label;
+      const text = document.createElement("p");
+      text.className = "home-section-copy";
+      text.textContent = copy;
+      head.appendChild(topline);
+      head.appendChild(title);
+      head.appendChild(text);
       section.appendChild(head);
       const node = nodeBuilder();
       if (node) section.appendChild(node);

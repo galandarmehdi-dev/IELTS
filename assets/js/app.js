@@ -1569,6 +1569,8 @@
         {
           mode: "password",
           submitText: "Start exam",
+          showCancel: true,
+          cancelText: "Back",
           onConfirm: () => {
             onOk();
           },

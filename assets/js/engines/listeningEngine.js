@@ -5,6 +5,7 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const Router = () => window.IELTS.Router;
   const Modal = () => window.IELTS.Modal;
   const Auth = () => window.IELTS?.Auth;
 
@@ -995,10 +996,16 @@ function applyActiveListeningContent() {
   const cBtn = cancelBtn();
   if (cBtn) {
     cBtn.onclick = () => {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+      try { UI().setExamStarted(false); } catch (e) {}
+      try { R().clearLaunchContext?.(); } catch (e) {}
+      try { UI().showOnly("home"); } catch (e) {}
+      try { UI().updateHomeStatusLine("Status: Ready"); } catch (e) {}
+      try { Router()?.setHashRoute?.(testId, "home"); } catch (e) {}
       const m = modal();
       if (m) {
-        m.classList.remove("hidden");
-        m.style.display = "flex";
+        m.classList.add("hidden");
+        m.style.display = "none";
       }
       setStatus("Status: Not started");
     };

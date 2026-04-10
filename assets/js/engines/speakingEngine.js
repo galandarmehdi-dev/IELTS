@@ -688,10 +688,25 @@
         if (!json.ok) throw new Error(json.error || "Upload failed");
 
         if (uploadInfo) {
-          uploadInfo.innerHTML = `
-            <div>Upload complete.</div>
-            <div><a href="${json.fileUrl}" target="_blank" rel="noopener">Open recording file</a></div>
-          `;
+          uploadInfo.textContent = "";
+          const done = document.createElement("div");
+          done.textContent = "Upload complete.";
+          uploadInfo.appendChild(done);
+
+          if (json.fileUrl) {
+            const linkWrap = document.createElement("div");
+            const link = document.createElement("a");
+            link.target = "_blank";
+            link.rel = "noopener";
+            try {
+              link.href = new URL(String(json.fileUrl), window.location.origin).toString();
+            } catch (e) {
+              link.href = "#";
+            }
+            link.textContent = "Open recording file";
+            linkWrap.appendChild(link);
+            uploadInfo.appendChild(linkWrap);
+          }
         }
       } catch (err) {
         console.error(err);

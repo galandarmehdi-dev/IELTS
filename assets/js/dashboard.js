@@ -148,6 +148,33 @@
     return (wordCount !== null && wordCount > 0) || String(text || "").trim() !== "";
   }
 
+  function hasAnyObjectiveAnswers(payloadSection) {
+    if (!payloadSection) return false;
+    if (Array.isArray(payloadSection)) return payloadSection.length > 0;
+    if (typeof payloadSection === "object") {
+      return Object.values(payloadSection).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (value && typeof value === "object") return Object.keys(value).length > 0;
+        return String(value ?? "").trim() !== "";
+      });
+    }
+    return String(payloadSection).trim() !== "";
+  }
+
+  function objectiveStatusText(row, section) {
+    const band = nullableNumber(row?.[`${section}_band`]);
+    if (band !== null) return `Band ${band.toFixed(1)}`;
+    if (hasAnyObjectiveAnswers(row?.final_payload?.[section])) return "Saved";
+    return "null";
+  }
+
+  function writingStatusText(row) {
+    const band = bandValue(row, "final_writing_band");
+    if (band !== null) return `Band ${band.toFixed(1)}`;
+    if (taskHasContent(row?.task1_words, row?.writing_task1) || taskHasContent(row?.task2_words, row?.writing_task2)) return "Pending";
+    return "null";
+  }
+
   function bandValue(row, key) {
     if (key !== "final_writing_band") return nullableNumber(row?.[key]);
     const finalBand = nullableNumber(row?.final_writing_band);
@@ -670,12 +697,9 @@
     }
     empty.classList.add("hidden");
     list.innerHTML = rows.map((row) => {
-      const writingBand = bandValue(row, "final_writing_band");
-      const listeningBand = bandValue(row, "listening_band");
-      const readingBand = bandValue(row, "reading_band");
-      const writing = writingBand !== null ? `Band ${writingBand.toFixed(1)}` : "null";
-      const listening = listeningBand !== null ? `Band ${listeningBand.toFixed(1)}` : "null";
-      const reading = readingBand !== null ? `Band ${readingBand.toFixed(1)}` : "null";
+      const writing = writingStatusText(row);
+      const listening = objectiveStatusText(row, "listening");
+      const reading = objectiveStatusText(row, "reading");
       return `
         <div class="dashboard-activity-item">
           <strong>${examLabel(row)} · ${formatDate(row.submitted_at)}</strong>

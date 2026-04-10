@@ -1308,30 +1308,89 @@
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
+    function appendAdminObjectiveCell(cell, total, band) {
+      const totalValue = nullableNumber(total);
+      const bandValue = nullableBand(band);
+      if (totalValue === null && bandValue === null) {
+        cell.textContent = "null";
+        return;
+      }
+      cell.append(`${numberText(total)} / 40`);
+      cell.appendChild(document.createElement("br"));
+      const small = document.createElement("span");
+      small.className = "small";
+      small.textContent = `Band ${bandText(band)}`;
+      cell.appendChild(small);
+    }
+
     function renderAdminTable(rows) {
       adminState.filtered = rows.slice();
       const tbody = $("adminResultsTbody");
       const empty = $("adminResultsEmpty");
       if (!tbody) return;
+      clearElement(tbody);
       if (!rows.length) {
-        tbody.innerHTML = "";
         empty?.classList.remove("hidden");
         renderSummary([]);
         return;
       }
       empty?.classList.add("hidden");
-      tbody.innerHTML = rows.map((row, idx) => `
-        <tr id="admin-result-row-${idx}">
-          <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
-          <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
-          <td>${escapeHtml(row.examId || "—")}</td>
-          <td>${objectiveTableCell(row.listeningTotal, row.listeningBand)}</td>
-          <td>${objectiveTableCell(row.readingTotal, row.readingBand)}</td>
-          <td>Band ${escapeHtml(bandText(effectiveWritingBand(row)))}</td>
-          <td>T1: ${escapeHtml(writingWordText(row.task1Words))}<br>T2: ${escapeHtml(writingWordText(row.task2Words))}</td>
-          <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}" data-admin-row-id="admin-result-row-${idx}">View</button></div></td>
-        </tr>
-      `).join("");
+      rows.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        tr.id = `admin-result-row-${idx}`;
+
+        const submittedTd = document.createElement("td");
+        submittedTd.textContent = fmtDate(row.submittedAt);
+        tr.appendChild(submittedTd);
+
+        const nameTd = document.createElement("td");
+        const strong = document.createElement("strong");
+        strong.textContent = row.studentFullName || "(No name)";
+        nameTd.appendChild(strong);
+        nameTd.appendChild(document.createElement("br"));
+        const reason = document.createElement("span");
+        reason.className = "small";
+        reason.textContent = row.reason || "";
+        nameTd.appendChild(reason);
+        tr.appendChild(nameTd);
+
+        const examTd = document.createElement("td");
+        examTd.textContent = row.examId || "—";
+        tr.appendChild(examTd);
+
+        const listeningTd = document.createElement("td");
+        appendAdminObjectiveCell(listeningTd, row.listeningTotal, row.listeningBand);
+        tr.appendChild(listeningTd);
+
+        const readingTd = document.createElement("td");
+        appendAdminObjectiveCell(readingTd, row.readingTotal, row.readingBand);
+        tr.appendChild(readingTd);
+
+        const writingTd = document.createElement("td");
+        writingTd.textContent = `Band ${bandText(effectiveWritingBand(row))}`;
+        tr.appendChild(writingTd);
+
+        const wordsTd = document.createElement("td");
+        wordsTd.append(`T1: ${writingWordText(row.task1Words)}`);
+        wordsTd.appendChild(document.createElement("br"));
+        wordsTd.append(`T2: ${writingWordText(row.task2Words)}`);
+        tr.appendChild(wordsTd);
+
+        const actionTd = document.createElement("td");
+        const actions = document.createElement("div");
+        actions.className = "admin-row-actions";
+        const btn = document.createElement("button");
+        btn.className = "btn secondary";
+        btn.type = "button";
+        btn.setAttribute("data-admin-view", String(idx));
+        btn.setAttribute("data-admin-row-id", tr.id);
+        btn.textContent = "View";
+        actions.appendChild(btn);
+        actionTd.appendChild(actions);
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
+      });
       renderSummary(rows);
     }
 

@@ -692,31 +692,63 @@
     const empty = $("historyEmpty");
     if (!tbody || !empty) return;
 
+    clearElement(tbody);
     if (!rows.length) {
-      tbody.innerHTML = "";
       empty.classList.remove("hidden");
       renderSummary([]);
       return;
     }
 
     empty.classList.add("hidden");
-    tbody.innerHTML = rows.map((row, idx) => {
+    rows.forEach((row, idx) => {
       const listeningStatus = objectiveSectionStatus(row, "listening");
       const readingStatus = objectiveSectionStatus(row, "reading");
       const writing = writingStatus(row);
       const rowId = `history-row-${idx}`;
-      return `
-        <tr id="${rowId}">
-          <td>${escapeHtml(fmtDate(row.submitted_at))}</td>
-          <td>${escapeHtml(examLabel(row))}</td>
-          <td>${escapeHtml(row.student_full_name || "—")}</td>
-          <td>${escapeHtml(listeningStatus.listText)}</td>
-          <td>${escapeHtml(readingStatus.listText)}</td>
-          <td>${escapeHtml(writing.text)}<br><span class="small">T1: ${escapeHtml(writingWordText(row.task1_words, row.writing_task1))} · T2: ${escapeHtml(writingWordText(row.task2_words, row.writing_task2))}</span></td>
-          <td><button class="btn secondary" type="button" data-history-view="${idx}" data-history-row-id="${rowId}">View</button></td>
-        </tr>
-      `;
-    }).join("");
+      const tr = document.createElement("tr");
+      tr.id = rowId;
+
+      const submittedTd = document.createElement("td");
+      submittedTd.textContent = fmtDate(row.submitted_at);
+      tr.appendChild(submittedTd);
+
+      const examTd = document.createElement("td");
+      examTd.textContent = examLabel(row);
+      tr.appendChild(examTd);
+
+      const nameTd = document.createElement("td");
+      nameTd.textContent = row.student_full_name || "—";
+      tr.appendChild(nameTd);
+
+      const listeningTd = document.createElement("td");
+      listeningTd.textContent = listeningStatus.listText;
+      tr.appendChild(listeningTd);
+
+      const readingTd = document.createElement("td");
+      readingTd.textContent = readingStatus.listText;
+      tr.appendChild(readingTd);
+
+      const writingTd = document.createElement("td");
+      writingTd.append(writing.text);
+      writingTd.appendChild(document.createElement("br"));
+      const small = document.createElement("span");
+      small.className = "small";
+      small.textContent = `T1: ${writingWordText(row.task1_words, row.writing_task1)} · T2: ${writingWordText(row.task2_words, row.writing_task2)}`;
+      writingTd.appendChild(small);
+      tr.appendChild(writingTd);
+
+      const actionTd = document.createElement("td");
+      const btn = document.createElement("button");
+      btn.className = "btn secondary";
+      btn.type = "button";
+      btn.setAttribute("data-history-view", String(idx));
+      btn.setAttribute("data-history-row-id", rowId);
+      btn.textContent = "View";
+      actionTd.appendChild(btn);
+      tr.appendChild(actionTd);
+
+      tbody.appendChild(tr);
+    });
     renderSummary(rows);
   }
 

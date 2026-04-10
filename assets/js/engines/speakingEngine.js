@@ -91,6 +91,18 @@
     const uploadInfo = document.getElementById("speakingUploadInfo");
     const studentNameInput = document.getElementById("speakingStudentName");
 
+    function createEl(tag, props = {}, text = "") {
+      const el = document.createElement(tag);
+      Object.entries(props).forEach(([key, value]) => {
+        if (key === "className") el.className = value;
+        else if (key === "htmlFor") el.htmlFor = value;
+        else if (key === "style" && value && typeof value === "object") Object.assign(el.style, value);
+        else el[key] = value;
+      });
+      if (text) el.textContent = text;
+      return el;
+    }
+
     function renderDynamicExamUI() {
       const shell = speakingSection ? speakingSection.querySelector(".speaking-shell") : null;
       if (!shell) return;
@@ -118,12 +130,26 @@
         const nameCard = document.createElement("div");
         nameCard.className = "speaking-card";
         nameCard.id = "speakingNameCard";
-        nameCard.innerHTML = `
-          <h2>Student Details</h2>
-          <label for="speakingStudentName" style="display:block;margin-bottom:8px;">Student full name</label>
-          <input id="speakingStudentName" type="text" placeholder="Enter full name" style="width:100%;max-width:420px;padding:10px 12px;border:1px solid #d7dce5;border-radius:10px;">
-          <div style="margin-top:10px;color:#667085;font-size:14px;">This name will be saved together with the recording link.</div>
-        `;
+        nameCard.appendChild(createEl("h2", {}, "Student Details"));
+        nameCard.appendChild(createEl("label", {
+          htmlFor: "speakingStudentName",
+          style: { display: "block", marginBottom: "8px" },
+        }, "Student full name"));
+        nameCard.appendChild(createEl("input", {
+          id: "speakingStudentName",
+          type: "text",
+          placeholder: "Enter full name",
+          style: {
+            width: "100%",
+            maxWidth: "420px",
+            padding: "10px 12px",
+            border: "1px solid #d7dce5",
+            borderRadius: "10px",
+          },
+        }));
+        nameCard.appendChild(createEl("div", {
+          style: { marginTop: "10px", color: "#667085", fontSize: "14px" },
+        }, "This name will be saved together with the recording link."));
         safeAppendAfterFirstCard(nameCard);
       }
 
@@ -133,12 +159,16 @@
         const flowCard = document.createElement("div");
         flowCard.className = "speaking-card";
         flowCard.id = "speakingExamFlowCard";
-        flowCard.innerHTML = `
-          <h2>Exam Flow</h2>
-          <div id="speakingCurrentPart" style="font-weight:700;margin-bottom:8px;">Current stage: Not started</div>
-          <div id="speakingTimer" style="font-size:28px;font-weight:800;margin-bottom:14px;">00:00</div>
-          <div id="speakingDynamicBody"></div>
-        `;
+        flowCard.appendChild(createEl("h2", {}, "Exam Flow"));
+        flowCard.appendChild(createEl("div", {
+          id: "speakingCurrentPart",
+          style: { fontWeight: "700", marginBottom: "8px" },
+        }, "Current stage: Not started"));
+        flowCard.appendChild(createEl("div", {
+          id: "speakingTimer",
+          style: { fontSize: "28px", fontWeight: "800", marginBottom: "14px" },
+        }, "00:00"));
+        flowCard.appendChild(createEl("div", { id: "speakingDynamicBody" }));
         safeInsertBeforePlayback(flowCard);
       }
 
@@ -151,10 +181,16 @@
         examinerCard.className = "speaking-card";
         examinerCard.id = "speakingExaminerCard";
         examinerCard.style.display = "none";
-        examinerCard.innerHTML = `
-          <div id="speakingRealtimeStatus" style="display:none;">Realtime status: Not connected</div>
-          <audio id="remoteAudio" autoplay playsinline style="display:none"></audio>
-        `;
+        examinerCard.appendChild(createEl("div", {
+          id: "speakingRealtimeStatus",
+          style: { display: "none" },
+        }, "Realtime status: Not connected"));
+        examinerCard.appendChild(createEl("audio", {
+          id: "remoteAudio",
+          autoplay: true,
+          playsInline: true,
+          style: { display: "none" },
+        }));
         safeInsertBeforePlayback(examinerCard);
       }
     }

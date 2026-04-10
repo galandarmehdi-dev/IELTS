@@ -420,10 +420,17 @@ function applyActiveListeningContent() {
       const checkBtn = $("checkListeningAnswersBtn");
       const showBtn = $("showListeningAnswersBtn");
       const manageBtn = $("manageListeningAnswersBtn");
+      const admin = isAdminView();
       if (finishBtn) finishBtn.disabled = submitted;
-      if (checkBtn) checkBtn.disabled = !submitted;
-      if (showBtn) showBtn.disabled = !submitted || !lastReviewRows.length;
-      if (manageBtn) manageBtn.classList.toggle("hidden", !isAdminView());
+      if (checkBtn) {
+        checkBtn.disabled = !submitted;
+        checkBtn.classList.toggle("hidden", !admin);
+      }
+      if (showBtn) {
+        showBtn.disabled = !submitted || !lastReviewRows.length;
+        showBtn.classList.toggle("hidden", !admin);
+      }
+      if (manageBtn) manageBtn.classList.toggle("hidden", !admin);
     }
 
     function ensureListeningReviewButtons() {

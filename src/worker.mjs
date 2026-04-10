@@ -541,22 +541,18 @@ async function handleAdminApi(request, env) {
   if (request.method === "POST" && action === "objectiveAnswerCheck") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const adminAuth = await authenticateAdmin(request, env);
+    if (!adminAuth.ok) {
+      await logSecurityEvent(env, request, "student_answer_check_denied", {
+        email: auth?.user?.email || "",
+      });
+      return json(403, { ok: false, error: "Answer checking is available only in admin review tools. Students can review stored results from History after submission." });
+    }
 
     const payload = await request.json().catch(() => null);
     const testId = oneLine(payload?.testId || "");
     const skill = oneLine(payload?.skill || "").toLowerCase();
     const revealRequested = payload?.reveal === true;
-    if (revealRequested) {
-      const adminAuth = await authenticateAdmin(request, env);
-      if (!adminAuth.ok) {
-        await logSecurityEvent(env, request, "student_answer_reveal_denied", {
-          email: auth?.user?.email || "",
-          testId,
-          skill,
-        });
-        return json(403, { ok: false, error: "Only admin accounts can reveal correct answers." });
-      }
-    }
     const reveal = revealRequested;
     const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
     const overrideMap = payload?.overrideMap && typeof payload.overrideMap === "object" ? payload.overrideMap : {};
@@ -566,16 +562,6 @@ async function handleAdminApi(request, env) {
 
     if (!testId || !["listening", "reading"].includes(skill) || !questionNumbers.length) {
       return json(400, { ok: false, error: "Missing grading inputs." });
-    }
-
-    if (!reveal) {
-      const lock = await enforceObjectiveCheckLock(env, auth, request, {
-        testId,
-        skill,
-        questionNumbers,
-        answers,
-      });
-      if (!lock.ok) return json(lock.status || 409, { ok: false, error: lock.error || "Objective answer check is locked." });
     }
 
     const answerMap = {

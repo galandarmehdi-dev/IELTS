@@ -864,17 +864,18 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const checkBtn = $("checkReadingReviewBtn");
       const showBtn = $("showReadingAnswersBtn");
       const manageBtn = $("manageReadingAnswersBtn");
+      const admin = isAdminView();
       if (finishBtn) finishBtn.disabled = hasSubmittedReading;
       if (checkBtn) {
         checkBtn.disabled = !hasSubmittedReading;
-        checkBtn.classList.toggle("hidden", !REVIEW_MODE);
+        checkBtn.classList.toggle("hidden", !REVIEW_MODE || !admin);
       }
       if (showBtn) {
         showBtn.disabled = !hasSubmittedReading || !lastReviewRows.length;
-        showBtn.classList.toggle("hidden", !REVIEW_MODE);
+        showBtn.classList.toggle("hidden", !REVIEW_MODE || !admin);
       }
       if (manageBtn) {
-        manageBtn.classList.toggle("hidden", !REVIEW_MODE || !isAdminView());
+        manageBtn.classList.toggle("hidden", !REVIEW_MODE || !admin);
       }
     }
 

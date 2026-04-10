@@ -91,6 +91,11 @@
     const uploadInfo = document.getElementById("speakingUploadInfo");
     const studentNameInput = document.getElementById("speakingStudentName");
 
+    function clearNodeChildren(node) {
+      if (!node) return;
+      while (node.firstChild) node.removeChild(node.firstChild);
+    }
+
     function createEl(tag, props = {}, text = "") {
       const el = document.createElement(tag);
       Object.entries(props).forEach(([key, value]) => {
@@ -101,6 +106,74 @@
       });
       if (text) el.textContent = text;
       return el;
+    }
+
+    function renderSimpleBody(lines, note) {
+      if (!bodyBox) return;
+      clearNodeChildren(bodyBox);
+      const wrap = createEl("div", { style: { lineHeight: "1.7" } });
+      lines.forEach((line) => {
+        wrap.appendChild(document.createTextNode(line));
+        wrap.appendChild(document.createElement("br"));
+      });
+      if (note) {
+        const noteEl = createEl("div", {
+          style: { marginTop: "12px", color: "#667085" },
+        }, note);
+        wrap.appendChild(noteEl);
+      }
+      bodyBox.appendChild(wrap);
+    }
+
+    function renderCueCardBody(prefixText) {
+      if (!bodyBox) return;
+      clearNodeChildren(bodyBox);
+      if (prefixText) {
+        bodyBox.appendChild(createEl("div", {
+          style: { marginBottom: "12px" },
+        }, prefixText));
+      }
+      const card = createEl("div", {
+        style: {
+          padding: "14px",
+          border: "1px solid #d7dce5",
+          borderRadius: "12px",
+          background: "#fff",
+          lineHeight: "1.7",
+        },
+      });
+      card.appendChild(createEl("strong", {}, SPEAKING_CONFIG.part2.cueCard.topic));
+      const list = createEl("ul", { style: { margin: "10px 0 0 18px" } });
+      SPEAKING_CONFIG.part2.cueCard.prompts.forEach((prompt) => {
+        list.appendChild(createEl("li", {}, prompt));
+      });
+      card.appendChild(list);
+      bodyBox.appendChild(card);
+    }
+
+    function renderStartSummaryBody() {
+      if (!bodyBox) return;
+      clearNodeChildren(bodyBox);
+      const wrap = createEl("div", { style: { lineHeight: "1.7" } });
+      [
+        ["Part 1:", `${Math.floor(SPEAKING_CONFIG.part1.duration / 60)} min ${SPEAKING_CONFIG.part1.duration % 60} sec`],
+        ["Part 2 Prep:", `${Math.floor(SPEAKING_CONFIG.part2.prepDuration / 60)} min ${SPEAKING_CONFIG.part2.prepDuration % 60} sec`],
+        ["Part 2 Speaking:", `${Math.floor(SPEAKING_CONFIG.part2.speakDuration / 60)} min ${SPEAKING_CONFIG.part2.speakDuration % 60} sec`],
+        ["Part 3:", `${Math.floor(SPEAKING_CONFIG.part3.duration / 60)} min ${SPEAKING_CONFIG.part3.duration % 60} sec`],
+      ].forEach(([label, value]) => {
+        const line = createEl("div");
+        line.appendChild(createEl("strong", {}, label));
+        line.appendChild(document.createTextNode(` ${value}`));
+        wrap.appendChild(line);
+      });
+      const hint = createEl("div", {
+        style: { marginTop: "12px" },
+      });
+      hint.appendChild(document.createTextNode("Click "));
+      hint.appendChild(createEl("strong", {}, "Start Recording"));
+      hint.appendChild(document.createTextNode(" to begin the full speaking exam."));
+      wrap.appendChild(hint);
+      bodyBox.appendChild(wrap);
     }
 
     function renderDynamicExamUI() {
@@ -313,78 +386,44 @@
       if (partBox) partBox.textContent = "Current stage: Part 1 — Introduction and Interview";
       setStatus("Part 1 in progress");
       setTimerText(stageSecondsLeft);
-      if (bodyBox) {
-        bodyBox.innerHTML = `
-          <div style="line-height:1.7;">
-            The examiner is asking Part 1 questions.<br>
-            Listen and answer naturally.<br>
-            <div style="margin-top:12px;color:#667085;">Questions are spoken only and are not shown on the screen.</div>
-          </div>
-        `;
-      }
+      renderSimpleBody(
+        ["The examiner is asking Part 1 questions.", "Listen and answer naturally."],
+        "Questions are spoken only and are not shown on the screen."
+      );
     }
 
     function renderPart2Prep() {
       if (partBox) partBox.textContent = "Current stage: Part 2 — Preparation time";
       setStatus("Part 2 preparation time");
       setTimerText(stageSecondsLeft);
-      if (bodyBox) {
-        bodyBox.innerHTML = `
-          <div style="margin-bottom:12px;">You have 1 minute to prepare.</div>
-          <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
-            <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
-            <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
-            </ul>
-          </div>
-        `;
-      }
+      renderCueCardBody("You have 1 minute to prepare.");
     }
 
     function renderPart2Speak() {
       if (partBox) partBox.textContent = "Current stage: Part 2 — Long turn";
       setStatus("Part 2 speaking time");
       setTimerText(stageSecondsLeft);
-      if (bodyBox) {
-        bodyBox.innerHTML = `
-          <div style="margin-bottom:12px;">Please speak for up to 2 minutes on this topic:</div>
-          <div style="padding:14px;border:1px solid #d7dce5;border-radius:12px;background:#fff;line-height:1.7;">
-            <strong>${SPEAKING_CONFIG.part2.cueCard.topic}</strong>
-            <ul style="margin:10px 0 0 18px;">
-              ${SPEAKING_CONFIG.part2.cueCard.prompts.map((p) => `<li>${p}</li>`).join("")}
-            </ul>
-          </div>
-        `;
-      }
+      renderCueCardBody("Please speak for up to 2 minutes on this topic:");
     }
 
     function renderPart3() {
       if (partBox) partBox.textContent = "Current stage: Part 3 — Discussion";
       setStatus("Part 3 in progress");
       setTimerText(stageSecondsLeft);
-      if (bodyBox) {
-        bodyBox.innerHTML = `
-          <div style="line-height:1.7;">
-            The examiner is asking Part 3 questions.<br>
-            Listen carefully and answer in detail.<br>
-            <div style="margin-top:12px;color:#667085;">Questions are spoken only and are not shown on the screen.</div>
-          </div>
-        `;
-      }
+      renderSimpleBody(
+        ["The examiner is asking Part 3 questions.", "Listen carefully and answer in detail."],
+        "Questions are spoken only and are not shown on the screen."
+      );
     }
 
     function renderFinished() {
       if (partBox) partBox.textContent = "Current stage: Finished";
       setStatus("Exam finished");
       setTimerText(0);
-      if (bodyBox) {
-        bodyBox.innerHTML = `
-          <div style="line-height:1.7;">
-            The speaking exam is complete.<br>
-            Your recording is being saved automatically.
-          </div>
-        `;
-      }
+      renderSimpleBody(
+        ["The speaking exam is complete.", "Your recording is being saved automatically."],
+        ""
+      );
     }
 
     function stopStageTimer() {
@@ -876,17 +915,7 @@ mediaRecorder.ondataavailable = function (event) {
     }
 
     if (partBox) partBox.textContent = "Current stage: Not started";
-    if (bodyBox) {
-      bodyBox.innerHTML = `
-        <div style="line-height:1.7;">
-          <div><strong>Part 1:</strong> ${Math.floor(SPEAKING_CONFIG.part1.duration / 60)} min ${SPEAKING_CONFIG.part1.duration % 60} sec</div>
-          <div><strong>Part 2 Prep:</strong> ${Math.floor(SPEAKING_CONFIG.part2.prepDuration / 60)} min ${SPEAKING_CONFIG.part2.prepDuration % 60} sec</div>
-          <div><strong>Part 2 Speaking:</strong> ${Math.floor(SPEAKING_CONFIG.part2.speakDuration / 60)} min ${SPEAKING_CONFIG.part2.speakDuration % 60} sec</div>
-          <div><strong>Part 3:</strong> ${Math.floor(SPEAKING_CONFIG.part3.duration / 60)} min ${SPEAKING_CONFIG.part3.duration % 60} sec</div>
-          <div style="margin-top:12px;">Click <strong>Start Recording</strong> to begin the full speaking exam.</div>
-        </div>
-      `;
-    }
+    renderStartSummaryBody();
     setTimerText(0);
     setRealtimeStatus("Not connected");
 

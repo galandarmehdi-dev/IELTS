@@ -3187,7 +3187,10 @@
 
 function startFreshExam() {
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
-      R()?.clearLaunchContext?.();
+      R()?.setLaunchContext?.({
+        mode: "full",
+        testId: window.IELTS?.Registry?.getActiveTestId?.() || "ielts1",
+      });
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());

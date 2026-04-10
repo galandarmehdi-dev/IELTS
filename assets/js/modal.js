@@ -6,13 +6,21 @@
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
 
-  let MODAL_MODE = "confirm"; // confirm | final | gate | locked | password
+  let MODAL_MODE = "confirm"; // confirm | final | gate | locked | password | text
   let MODAL_ONCONFIRM = null;
   let MODAL_ONCANCEL = null;
   let MODAL_LOCKED = false;
 
   function $(id) {
     return document.getElementById(id);
+  }
+
+  function setTextAreaError(message) {
+    const error = $("modalTextAreaError");
+    if (!error) return;
+    const text = String(message || "").trim();
+    error.textContent = text;
+    error.classList.toggle("hidden", !text);
   }
 
   function getActiveWritingKeys() {
@@ -42,6 +50,9 @@
     const passWrap = $("modalPassWrap");
     const passInput = $("modalPasscode");
     const passError = $("modalPassError");
+    const textWrap = $("modalTextAreaWrap");
+    const textArea = $("modalTextArea");
+    const textLabel = $("modalTextAreaLabel");
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
 
@@ -57,16 +68,24 @@
     // name required only in "final"
     const isFinal = MODAL_MODE === "final";
     const isPassword = MODAL_MODE === "password";
+    const isText = MODAL_MODE === "text";
     if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
     if (passWrap) passWrap.classList.toggle("hidden", !isPassword);
+    if (textWrap) textWrap.classList.toggle("hidden", !isText);
     if (passError) { passError.textContent = ""; passError.classList.add("hidden"); }
     if (passInput && isPassword) { passInput.value = ""; }
+    setTextAreaError("");
+    if (textLabel && isText) textLabel.textContent = opts.inputLabel || "Input";
+    if (textArea && isText) {
+      textArea.value = String(opts.inputValue || "");
+      textArea.placeholder = opts.inputPlaceholder || "Enter text";
+    }
 
     // buttons
     if (cancel) {
       const showCancel =
         (opts.showCancel === true) &&
-        (MODAL_MODE === "confirm" || MODAL_MODE === "final" || MODAL_MODE === "password");
+        (MODAL_MODE === "confirm" || MODAL_MODE === "final" || MODAL_MODE === "password" || MODAL_MODE === "text");
       cancel.classList.toggle("hidden", !showCancel);
       cancel.textContent = opts.cancelText || "Cancel";
       cancel.disabled = false;
@@ -89,6 +108,10 @@
 
     if (isFinal) {
       setTimeout(() => nameInput?.focus?.(), 0);
+    } else if (isPassword) {
+      setTimeout(() => passInput?.focus?.(), 0);
+    } else if (isText) {
+      setTimeout(() => textArea?.focus?.(), 0);
     }
   }
 
@@ -160,6 +183,17 @@
           return;
         }
 
+        if (MODAL_MODE === "text") {
+          const textArea = $("modalTextArea");
+          const fn = MODAL_ONCONFIRM;
+          const result = typeof fn === "function" ? await fn(String(textArea?.value || "")) : true;
+          if (result === false) return;
+          MODAL_ONCONFIRM = null;
+          MODAL_ONCANCEL = null;
+          hideModal();
+          return;
+        }
+
         // FINAL MODE (name required)
         const nameInput = $("modalFullName");
     const passWrap = $("modalPassWrap");
@@ -209,5 +243,5 @@
   }
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.Modal = { showModal, hideModal, bindModalOnce };
+  window.IELTS.Modal = { showModal, hideModal, bindModalOnce, setTextAreaError };
 })();

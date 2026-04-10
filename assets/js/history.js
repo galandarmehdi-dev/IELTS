@@ -136,6 +136,72 @@
     `;
   }
 
+  function clearElement(el) {
+    if (!el) return;
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function appendLabeledLine(container, label, value, { bold = true } = {}) {
+    if (!container) return;
+    const line = document.createElement("div");
+    line.append(`${label}: `);
+    const valueEl = document.createElement(bold ? "b" : "span");
+    valueEl.textContent = String(value ?? "");
+    line.appendChild(valueEl);
+    container.appendChild(line);
+  }
+
+  function appendTextBlock(container, text, fallback = "—") {
+    if (!container) return;
+    const block = document.createElement("div");
+    block.className = "admin-detail-text";
+    block.textContent = String(text ?? "").trim() || fallback;
+    container.appendChild(block);
+  }
+
+  function renderObjectiveReviewInto(container, items, emptyMessage) {
+    if (!container) return;
+    clearElement(container);
+    const rows = Array.isArray(items) ? items : [];
+    if (!rows.length) {
+      const empty = document.createElement("div");
+      empty.className = "objective-review-empty";
+      empty.textContent = emptyMessage || "No answer review available yet.";
+      container.appendChild(empty);
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "objective-review-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    ["Q#", "Student", "Correct", "Mark"].forEach((label) => {
+      const th = document.createElement("th");
+      th.textContent = label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    rows.forEach((item) => {
+      const tr = document.createElement("tr");
+      [String(item.q ?? "—"), String(item.student || "—"), String(item.correct || "—")].forEach((value) => {
+        const td = document.createElement("td");
+        td.textContent = value;
+        tr.appendChild(td);
+      });
+      const markTd = document.createElement("td");
+      const badge = document.createElement("span");
+      badge.className = `objective-review-mark ${item.mark ? "ok" : "bad"}`;
+      badge.textContent = item.mark ? "Correct" : "Wrong";
+      markTd.appendChild(badge);
+      tr.appendChild(markTd);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+  }
+
   async function fetchObjectiveDetailForRow(row) {
     const cacheKey = buildMatchKey(row);
     if (objectiveDetailCache.has(cacheKey)) return objectiveDetailCache.get(cacheKey);
@@ -178,12 +244,8 @@
   function renderObjectiveReview(prefix, result) {
     const listeningEl = $(`${prefix}ListeningReview`);
     const readingEl = $(`${prefix}ReadingReview`);
-    if (listeningEl) {
-      listeningEl.innerHTML = buildObjectiveReviewHtml(result?.listening, "Listening answer review is not available for this attempt yet.");
-    }
-    if (readingEl) {
-      readingEl.innerHTML = buildObjectiveReviewHtml(result?.reading, "Reading answer review is not available for this attempt yet.");
-    }
+    renderObjectiveReviewInto(listeningEl, result?.listening, "Listening answer review is not available for this attempt yet.");
+    renderObjectiveReviewInto(readingEl, result?.reading, "Reading answer review is not available for this attempt yet.");
   }
 
   async function withTimeout(promise, timeoutMs, label) {
@@ -619,19 +681,45 @@
     const payload = row.final_payload || {};
     const writingBand = effectiveWritingBand(row);
     $("historyDetailTitle").textContent = examLabel(row);
-    $("historyDetailMeta").innerHTML = `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>Email: <b>${escapeHtml(row.user_email || "—")}</b>`;
-    $("historyDetailScores").innerHTML = `Exam ID: <b>${escapeHtml(row.exam_id || row.active_test_id || "—")}</b><br>Listening: <b>${escapeHtml(objectiveSectionState(row, "listening"))}</b><br>Reading: <b>${escapeHtml(objectiveSectionState(row, "reading"))}</b><br>Writing: <b>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}</b><br>Writing words: <b>${escapeHtml(String(totalWords(row) || "null"))}</b><br><br>Task 1 band: <b>${escapeHtml(nullableNumber(row.task1_band) !== null ? nullableNumber(row.task1_band).toFixed(1) : "null")}</b><br>Task 2 band: <b>${escapeHtml(nullableNumber(row.task2_band) !== null ? nullableNumber(row.task2_band).toFixed(1) : "null")}</b><br>Overall Writing score: <b>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}</b>`;
+    const metaEl = $("historyDetailMeta");
+    clearElement(metaEl);
+    appendLabeledLine(metaEl, "Submitted", fmtDate(row.submitted_at));
+    appendLabeledLine(metaEl, "Name used", row.student_full_name || "—");
+    appendLabeledLine(metaEl, "Email", row.user_email || "—");
+
+    const scoresEl = $("historyDetailScores");
+    clearElement(scoresEl);
+    appendLabeledLine(scoresEl, "Exam ID", row.exam_id || row.active_test_id || "—");
+    appendLabeledLine(scoresEl, "Listening", objectiveSectionState(row, "listening"));
+    appendLabeledLine(scoresEl, "Reading", objectiveSectionState(row, "reading"));
+    appendLabeledLine(
+      scoresEl,
+      "Writing",
+      writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null")
+    );
+    appendLabeledLine(scoresEl, "Writing words", String(totalWords(row) || "null"));
+    scoresEl.appendChild(document.createElement("br"));
+    appendLabeledLine(scoresEl, "Task 1 band", nullableNumber(row.task1_band) !== null ? nullableNumber(row.task1_band).toFixed(1) : "null");
+    appendLabeledLine(scoresEl, "Task 2 band", nullableNumber(row.task2_band) !== null ? nullableNumber(row.task2_band).toFixed(1) : "null");
+    appendLabeledLine(
+      scoresEl,
+      "Overall Writing score",
+      writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null")
+    );
     const setText = (id, value) => {
       const el = $(id);
       if (el) el.textContent = value || "";
     };
-    const setHtml = (id, value) => {
+    const setScore = (id, label, value) => {
       const el = $(id);
-      if (el) el.innerHTML = value || "";
+      clearElement(el);
+      appendLabeledLine(el, label, value);
     };
-    setHtml("historyDetailTask1Score", `Task 1 band: <b>${escapeHtml(row.task1_band || "—")}</b>`);
-    setHtml("historyDetailTask2Score", `Task 2 band: <b>${escapeHtml(row.task2_band || "—")}</b>`);
-    setHtml("historyDetailOverallFeedback", `${escapeHtml(row.overall_feedback || "").replace(/\n/g,"<br>") || "No overall feedback yet."}`);
+    setScore("historyDetailTask1Score", "Task 1 band", row.task1_band || "—");
+    setScore("historyDetailTask2Score", "Task 2 band", row.task2_band || "—");
+    const overallFeedbackEl = $("historyDetailOverallFeedback");
+    clearElement(overallFeedbackEl);
+    appendTextBlock(overallFeedbackEl, row.overall_feedback || "", "No overall feedback yet.");
     setText("historyDetailTask1", row.writing_task1 || "");
     setText("historyDetailTask2", row.writing_task2 || "");
     setText("historyDetailTask1Feedback", row.task1_feedback || "");

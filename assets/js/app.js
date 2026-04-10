@@ -24,6 +24,14 @@
     }
   }
 
+  function showNotice(message, title = "Notice") {
+    if (Modal()?.showModal) {
+      Modal().showModal(title, message, { mode: "confirm" });
+      return;
+    }
+    window.alert(message);
+  }
+
   function isAdminView() {
     try {
       return window.IELTS?.Access?.isAdmin?.() === true;
@@ -687,7 +695,7 @@
               } catch (e) {
                 // Visible fallback: keep user on Reading screen even if engine failed.
                 try {
-                  window.alert("Reading failed to start. Please refresh the page and try again.");
+                  showNotice("Reading failed to start. Please refresh the page and try again.", "Reading");
                 } catch (_) {}
               } finally {
                 showingGate = false;
@@ -739,7 +747,7 @@
                 try { window.__IELTS_WRITING_INIT__ = false; } catch (e) {}
                 await startEngineWhenReady("Writing", "startWritingSystem");
               } catch (e) {
-                try { window.alert("Writing failed to start. Please refresh the page and try again."); } catch (_) {}
+                try { showNotice("Writing failed to start. Please refresh the page and try again.", "Writing"); } catch (_) {}
               }
             },
           }
@@ -818,7 +826,7 @@
           startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
         } catch (e) {
           console.error("Listening failed to open from nav:", e);
-          try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
+          try { showNotice("Listening failed to load. Please refresh once and try again.", "Listening"); } catch (_) {}
         }
       };
     }
@@ -866,10 +874,16 @@
     if (resetBtn) {
       resetBtn.onclick = () => {
         if (!isAdminView()) return;
-        const ok = confirm("Start a new attempt? This will clear saved answers on this browser.");
-        if (!ok) return;
-        UI().setExamStarted(false);
-        UI().resetExamAttempt();
+        Modal().showModal("Start a new attempt?", "This will clear saved answers on this browser.", {
+          mode: "confirm",
+          showCancel: true,
+          submitText: "Continue",
+          cancelText: "Cancel",
+          onConfirm: () => {
+            UI().setExamStarted(false);
+            UI().resetExamAttempt();
+          },
+        });
       };
     }
 
@@ -1007,6 +1021,76 @@
       `;
     }
 
+    function clearElement(el) {
+      if (!el) return;
+      while (el.firstChild) el.removeChild(el.firstChild);
+    }
+
+    function appendLabeledLine(container, label, value, { bold = true } = {}) {
+      if (!container) return;
+      const line = document.createElement("div");
+      line.append(`${label}: `);
+      const valueEl = document.createElement(bold ? "b" : "span");
+      valueEl.textContent = String(value ?? "");
+      line.appendChild(valueEl);
+      container.appendChild(line);
+    }
+
+    function appendTextBlock(container, text, fallback = "—") {
+      if (!container) return;
+      const block = document.createElement("div");
+      block.className = "admin-detail-text";
+      block.textContent = plainText(text, fallback);
+      container.appendChild(block);
+    }
+
+    function renderObjectiveReviewInto(container, items, emptyMessage) {
+      if (!container) return;
+      clearElement(container);
+      const rows = Array.isArray(items) ? items : [];
+      if (!rows.length) {
+        const empty = document.createElement("div");
+        empty.className = "objective-review-empty";
+        empty.textContent = emptyMessage || "No answer review available yet.";
+        container.appendChild(empty);
+        return;
+      }
+
+      const table = document.createElement("table");
+      table.className = "objective-review-table";
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      ["Q#", "Student", "Correct", "Mark"].forEach((label) => {
+        const th = document.createElement("th");
+        th.textContent = label;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      const tbody = document.createElement("tbody");
+      rows.forEach((item) => {
+        const tr = document.createElement("tr");
+        [
+          String(item.q ?? "—"),
+          String(item.student || "—"),
+          String(item.correct || "—"),
+        ].forEach((value) => {
+          const td = document.createElement("td");
+          td.textContent = value;
+          tr.appendChild(td);
+        });
+        const markTd = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = `objective-review-mark ${item.mark ? "ok" : "bad"}`;
+        badge.textContent = item.mark ? "Correct" : "Wrong";
+        markTd.appendChild(badge);
+        tr.appendChild(markTd);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+
     function buildAdminResultCacheKey(row) {
       return [
         String(row?.submittedAt || "").trim(),
@@ -1131,12 +1215,8 @@
     function renderObjectiveReview(prefix, result) {
       const listeningEl = $(`${prefix}ListeningReview`);
       const readingEl = $(`${prefix}ReadingReview`);
-      if (listeningEl) {
-        listeningEl.innerHTML = buildObjectiveReviewHtml(result?.listening, "Listening answer review is not available for this submission yet.");
-      }
-      if (readingEl) {
-        readingEl.innerHTML = buildObjectiveReviewHtml(result?.reading, "Reading answer review is not available for this submission yet.");
-      }
+      renderObjectiveReviewInto(listeningEl, result?.listening, "Listening answer review is not available for this submission yet.");
+      renderObjectiveReviewInto(readingEl, result?.reading, "Reading answer review is not available for this submission yet.");
     }
 
     function fillExamFilter(rows) {
@@ -1324,15 +1404,47 @@
       const loadingDetail = options.loadingDetail === true;
       const overallWritingBand = effectiveWritingBand(row);
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
-      $("adminDetailMeta").innerHTML = buildAdminDetailMetaHtml(row, options.submissionRecord || null);
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(objectiveDetailText(row.listeningTotal, row.listeningBand))}</b><br>Reading: <b>${escapeHtml(objectiveDetailText(row.readingTotal, row.readingBand))}</b><br>Overall Writing: <b>Band ${escapeHtml(bandText(overallWritingBand))}</b><br>Writing words: <b>${escapeHtml(writingWordText(row.task1Words))} / ${escapeHtml(writingWordText(row.task2Words))}</b>`;
-      $("adminDetailTask1Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task1Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task1Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      const metaEl = $("adminDetailMeta");
+      clearElement(metaEl);
+      appendLabeledLine(metaEl, "Test", row.examId || "—");
+      appendLabeledLine(metaEl, "Submitted", fmtDate(row.submittedAt));
+      appendLabeledLine(metaEl, "Reason", row.reason || "—");
+      if (options.submissionRecord) {
+        appendLabeledLine(metaEl, "Email", options.submissionRecord.email || "—");
+        appendLabeledLine(metaEl, "Sign-in method", String(options.submissionRecord.provider || "email").replace(/-/g, " "));
+      }
+
+      const scoresEl = $("adminDetailScores");
+      clearElement(scoresEl);
+      appendLabeledLine(scoresEl, "Listening", objectiveDetailText(row.listeningTotal, row.listeningBand));
+      appendLabeledLine(scoresEl, "Reading", objectiveDetailText(row.readingTotal, row.readingBand));
+      appendLabeledLine(scoresEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
+      appendLabeledLine(scoresEl, "Writing words", `${writingWordText(row.task1Words)} / ${writingWordText(row.task2Words)}`);
+
+      const task1ScoreEl = $("adminDetailTask1Score");
+      clearElement(task1ScoreEl);
+      appendLabeledLine(task1ScoreEl, "Band", bandText(row.task1Band));
+      const task1BreakdownLabel = document.createElement("div");
+      task1BreakdownLabel.textContent = "Breakdown:";
+      task1ScoreEl.appendChild(task1BreakdownLabel);
+      appendTextBlock(task1ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(row.task1Breakdown));
+
       $("adminDetailTask1").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask1 || "");
       $("adminDetailTask1Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task1Feedback, "");
-      $("adminDetailTask2Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task2Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task2Breakdown)).replace(/\n/g, "<br>")}</div>`;
+      const task2ScoreEl = $("adminDetailTask2Score");
+      clearElement(task2ScoreEl);
+      appendLabeledLine(task2ScoreEl, "Band", bandText(row.task2Band));
+      const task2BreakdownLabel = document.createElement("div");
+      task2BreakdownLabel.textContent = "Breakdown:";
+      task2ScoreEl.appendChild(task2BreakdownLabel);
+      appendTextBlock(task2ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(row.task2Breakdown));
       $("adminDetailTask2").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask2 || "");
       $("adminDetailTask2Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task2Feedback, "");
-      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(overallWritingBand))}</b><br><br><div class="admin-detail-text">${loadingDetail ? "Loading overall writing feedback..." : escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
+      const overallEl = $("adminDetailOverallWriting");
+      clearElement(overallEl);
+      appendLabeledLine(overallEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
+      overallEl.appendChild(document.createElement("br"));
+      appendTextBlock(overallEl, loadingDetail ? "Loading overall writing feedback..." : plainText(row.overallFeedback));
     }
 
     async function renderAdminDetail(row, options = {}) {
@@ -2902,7 +3014,7 @@ function startFreshExam() {
         startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
       } catch (e) {
         console.error("Listening failed to start:", e);
-        try { window.alert("Listening failed to load. Please refresh once and try again."); } catch (_) {}
+        try { showNotice("Listening failed to load. Please refresh once and try again.", "Listening"); } catch (_) {}
       }
 
       // if audio already bound, ensure fallback ended listener exists

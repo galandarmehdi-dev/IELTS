@@ -16,6 +16,14 @@
     }
   }
 
+  function showNotice(message, title = "Reading") {
+    if (Modal()?.showModal) {
+      Modal().showModal(title, message, { mode: "confirm" });
+      return;
+    }
+    window.alert(message);
+  }
+
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
     window.__IELTS_READING_INIT__ = true;
@@ -823,19 +831,32 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       visible.forEach((q) => {
         seed[q] = existing[q] || "";
       });
-      const raw = window.prompt(
-        "Set reading answers as JSON, for example {\"1\":\"A\",\"2\":\"TRUE\",\"3\":\"ice shelves\"}",
-        JSON.stringify(seed, null, 2)
+      if (!Modal()?.showModal) return;
+      Modal().showModal(
+        "Manage reading answers",
+        "Set reading answers as JSON, for example {\"1\":\"A\",\"2\":\"TRUE\",\"3\":\"ice shelves\"}.",
+        {
+          mode: "text",
+          showCancel: true,
+          submitText: "Save overrides",
+          cancelText: "Cancel",
+          inputLabel: "Reading override JSON",
+          inputValue: JSON.stringify(seed, null, 2),
+          inputPlaceholder: "{\"1\":\"A\"}",
+          onConfirm(value) {
+            try {
+              const parsed = JSON.parse(String(value || ""));
+              if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
+              saveManagedAnswerOverrides(parsed);
+              showNotice("Reading answer overrides saved for this browser.");
+              return true;
+            } catch (e) {
+              Modal().setTextAreaError?.("Please paste a valid JSON object.");
+              return false;
+            }
+          },
+        }
       );
-      if (raw == null) return;
-      try {
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("bad-json");
-        saveManagedAnswerOverrides(parsed);
-        window.alert("Reading answer overrides saved for this browser.");
-      } catch (e) {
-        window.alert("Please paste a valid JSON object.");
-      }
     }
 
     function syncReviewButtons() {
@@ -898,7 +919,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
             await fetchReadingReview(false);
             syncReviewButtons();
           } catch (error) {
-            window.alert(error?.message || "Could not check reading answers.");
+            showNotice(error?.message || "Could not check reading answers.");
           }
         });
       }
@@ -910,7 +931,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
             await fetchReadingReview(true);
             syncReviewButtons();
           } catch (error) {
-            window.alert(error?.message || "Could not reveal reading answers.");
+            showNotice(error?.message || "Could not reveal reading answers.");
           }
         });
       }
@@ -1814,20 +1835,24 @@ qnum.textContent = `${item.q}`;
         // Admin-only: students should NOT see/use the submit button
         if (!isAdminView()) return;
         if (hasSubmittedReading) return;
+        Modal().showModal("Submit Reading now?", "Students will be asked to start Writing.", {
+          mode: "confirm",
+          showCancel: true,
+          submitText: "Submit now",
+          cancelText: "Cancel",
+          onConfirm: async () => {
+            const latest = collectCurrentAnswersFromDOM(answersRef.current);
+            answersRef.current = latest;
+            await submitReading("Student submitted reading early.", latest);
 
-        const ok = confirm("Submit Reading now? (Students will be asked to start Writing)");
-        if (!ok) return;
+            if (timerInterval) {
+              clearInterval(timerInterval);
+              timerInterval = null;
+            }
 
-        const latest = collectCurrentAnswersFromDOM(answersRef.current);
-        answersRef.current = latest;
-        await submitReading("Student submitted reading early.", latest);
-
-        if (timerInterval) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-        }
-
-        transitionToWritingOnce();
+            transitionToWritingOnce();
+          },
+        });
       });
     }
 

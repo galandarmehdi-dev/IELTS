@@ -547,6 +547,16 @@ async function handleAdminApi(request, env) {
       return json(400, { ok: false, error: "Missing grading inputs." });
     }
 
+    if (!reveal) {
+      const lock = await enforceObjectiveCheckLock(env, auth, request, {
+        testId,
+        skill,
+        questionNumbers,
+        answers,
+      });
+      if (!lock.ok) return json(lock.status || 409, { ok: false, error: lock.error || "Objective answer check is locked." });
+    }
+
     const answerMap = {
       ...buildObjectiveAnswerMap(testId, skill),
       ...sanitizeObjectiveOverrideMap(overrideMap),
@@ -1062,6 +1072,85 @@ async function writeJsonKv(binding, key, value) {
   if (!binding || !key) return null;
   await binding.put(key, JSON.stringify(value));
   return value;
+}
+
+function stableStringify(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function sha256Base64Url(value) {
+  const bytes = new TextEncoder().encode(String(value || ""));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const chars = Array.from(new Uint8Array(digest), (byte) => String.fromCharCode(byte)).join("");
+  return btoa(chars).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function normalizeObjectiveQuestionNumbers(questionNumbers) {
+  return Array.isArray(questionNumbers)
+    ? questionNumbers
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value) && value > 0)
+        .sort((a, b) => a - b)
+    : [];
+}
+
+async function enforceObjectiveCheckLock(env, auth, request, payload) {
+  if (!env?.STUDENT_REGISTRY) return { ok: true };
+  const email = normalizeEmail(auth?.user?.email || "");
+  if (!email) return { ok: true };
+
+  const skill = oneLine(payload?.skill || "").toLowerCase();
+  const testId = oneLine(payload?.testId || "").toLowerCase();
+  const questionNumbers = normalizeObjectiveQuestionNumbers(payload?.questionNumbers);
+  const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
+  if (!skill || !testId || !questionNumbers.length) return { ok: true };
+
+  const normalizedAnswers = {};
+  questionNumbers.forEach((q) => {
+    normalizedAnswers[String(q)] = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
+  });
+
+  const key = `objective-check:${email}:${testId}:${skill}:${questionNumbers.join(",")}`;
+  const submittedHash = await sha256Base64Url(stableStringify(normalizedAnswers));
+  const existing = await readJsonKv(env.STUDENT_REGISTRY, key);
+  if (!existing?.answerHash) {
+    await writeJsonKv(env.STUDENT_REGISTRY, key, {
+      email,
+      skill,
+      testId,
+      questionNumbers,
+      answerHash: submittedHash,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    return { ok: true };
+  }
+
+  if (String(existing.answerHash) !== submittedHash) {
+    await logSecurityEvent(env, request, "objective_answer_recheck_blocked", {
+      email,
+      skill,
+      testId,
+      questionCount: String(questionNumbers.length),
+    });
+    return {
+      ok: false,
+      status: 409,
+      error: "This section has already been checked. Refreshing the same review is allowed, but different answers cannot be re-checked.",
+    };
+  }
+
+  await writeJsonKv(env.STUDENT_REGISTRY, key, {
+    ...existing,
+    updatedAt: new Date().toISOString(),
+  });
+  return { ok: true };
 }
 
 async function upsertStudentRegistry(env, payload) {

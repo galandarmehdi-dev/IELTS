@@ -667,9 +667,13 @@
       showingGate = true;
       safe(() => UI().showOnly("listening"));
       safe(() => UI().setExamNavStatus("Status: Listening finished"));
-
-      safe(() =>
-        Modal().showModal(
+      const modalApi = Modal();
+      if (!modalApi || typeof modalApi.showModal !== "function") {
+        showingGate = false;
+        return;
+      }
+      try {
+        modalApi.showModal(
           "Listening submitted",
           "Listening is submitted. Start Reading now?",
           {
@@ -707,8 +711,10 @@
               showingGate = false;
             },
           }
-        )
-      );
+        );
+      } catch (e) {
+        showingGate = false;
+      }
     }
 
     function showReadingGate() {
@@ -3223,6 +3229,15 @@ function startFreshExam() {
       }
     }
 
+    function startFreshExamForTest(testId) {
+      try { setActiveTestId(testId); } catch (e) {}
+      startFreshExam();
+    }
+
+    window.IELTS = window.IELTS || {};
+    window.IELTS.App = window.IELTS.App || {};
+    window.IELTS.App.startFreshExamForTest = startFreshExamForTest;
+
     if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
@@ -3349,52 +3364,31 @@ function startFreshExam() {
         const id = b.id || (b.textContent && b.textContent.trim());
         try {
           if (id === 'startIelts1Btn' || /Start Test 1|Open Test 1/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts1']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts1']);
             return;
           }
           if (id === 'startIelts2Btn' || /Start Test 2|Open Test 2/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts2']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts2']);
             return;
           }
           if (id === 'startIelts3Btn' || /Start Test 3|Open Test 3/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts3']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts3']);
             return;
           }
           if (id === 'startIelts4Btn' || /Start Test 4|Open Test 4/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts4']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts4']);
             return;
           }
           if (id === 'startIelts5Btn' || /Start Test 5|Open Test 5/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts5']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts5']);
             return;
           }
           if (id === 'startIelts6Btn' || /Start Test 6|Open Test 6/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts6']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts6']);
             return;
           }
           if (id === 'startIelts7Btn' || /Start Test 7|Open Test 7/i.test(id)) {
-            safeCall('IELTS.Registry.setActiveTestId', ['ielts7']);
-            safeCall('IELTS.UI.setExamStarted', [true]);
-            safeCall('IELTS.UI.showOnly', ['listening']);
-            safeCall('IELTS.Engines.Listening.initListeningSystem');
+            safeCall('IELTS.App.startFreshExamForTest', ['ielts7']);
             return;
           }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {

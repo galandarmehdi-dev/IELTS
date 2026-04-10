@@ -149,6 +149,8 @@ function setPasswordResetMode(active, text) {
 }
 
 function setBypassRecoveryMode(active, text) {
+  const options = getEl("recoveryOptionsBox");
+  if (options) options.classList.remove("hidden");
   const box = getEl("bypassResetBox");
   if (box) box.classList.toggle("hidden", !active);
   const help = getEl("bypassResetHelp");
@@ -173,12 +175,34 @@ function setSharedSetupMode(active, text) {
   if (codeRow) codeRow.classList.toggle("hidden", !!active);
   const passwordField = getEl("sharedPasswordInput")?.closest(".auth-field-group");
   if (passwordField) passwordField.classList.toggle("hidden", !!active);
+  const emailShell = getEl("otpEmail")?.closest(".auth-email-shell");
+  if (emailShell) emailShell.classList.toggle("hidden", !!active);
+  const recoveryOptions = getEl("recoveryOptionsBox");
+  if (recoveryOptions) recoveryOptions.classList.toggle("hidden", !!active);
 }
 
 function clearAuthFlowModes() {
   setPasswordResetMode(false, "");
   setBypassRecoveryMode(false, "");
   setSharedSetupMode(false, "");
+  const recoveryOptions = getEl("recoveryOptionsBox");
+  if (recoveryOptions) recoveryOptions.classList.add("hidden");
+  const emailShell = getEl("otpEmail")?.closest(".auth-email-shell");
+  if (emailShell) emailShell.classList.remove("hidden");
+}
+
+function showRecoveryOptions() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  if (!email) {
+    setMessage("Please enter the student email first.", { tone: "error" });
+    return;
+  }
+  clearAuthFlowModes();
+  const recoveryOptions = getEl("recoveryOptionsBox");
+  if (recoveryOptions) recoveryOptions.classList.remove("hidden");
+  const help = getEl("recoveryOptionsHelp");
+  if (help) help.textContent = "Choose whether to reset through email or use the admin bypass password.";
+  setMessage("Choose the recovery method for this student account.", { tone: "success", sticky: true });
 }
 
 function parseNameParts(fullName) {
@@ -984,9 +1008,18 @@ async function sendPasswordResetEmail() {
     setMessage("Please enter your email first.", { tone: "error" });
     return;
   }
-  clearAuthFlowModes();
-  setBypassRecoveryMode(true, "Enter the bypass password to recover this student account.");
-  setMessage("Enter the bypass password to reset this student's password.", { tone: "success", sticky: true });
+
+  setMessage("Sending password reset email...", { sticky: true });
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: SITE_URL,
+  });
+  if (error) {
+    console.error("[AUTH] reset password error:", error);
+    setMessage(error.message || "Could not send a reset email.", { tone: "error", sticky: true });
+    return;
+  }
+
+  setMessage("Password reset email sent. Open the link in the student's inbox to choose a new password.", { tone: "success", sticky: true });
 }
 
 async function finishPasswordReset() {
@@ -1190,7 +1223,12 @@ async function logout() {
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sharedPasswordLoginBtn")?.addEventListener("click", signInWithSharedPassword);
-getEl("forgotPasswordBtn")?.addEventListener("click", sendPasswordResetEmail);
+getEl("forgotPasswordBtn")?.addEventListener("click", showRecoveryOptions);
+getEl("emailRecoveryBtn")?.addEventListener("click", sendPasswordResetEmail);
+getEl("showBypassRecoveryBtn")?.addEventListener("click", () => {
+  setBypassRecoveryMode(true, "Enter the bypass password to recover this student account.");
+  setMessage("Enter the bypass password to reset this student's password.", { tone: "success", sticky: true });
+});
 getEl("useBypassBtn")?.addEventListener("click", signInWithBypass);
 getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);

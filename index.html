@@ -89,17 +89,32 @@
 
       <div class="auth-divider"><span>or sign in with email</span></div>
 
-      <div class="auth-field-group">
-        <label class="auth-label" for="otpEmail">Email address</label>
-        <input id="otpEmail" type="email" placeholder="Enter your email">
+      <div class="auth-email-shell">
+        <div class="auth-field-group">
+          <label class="auth-label" for="otpEmail">Email address</label>
+          <input id="otpEmail" type="email" placeholder="Enter your email">
+        </div>
+        <div class="auth-field-group">
+          <label class="auth-label" for="sharedPasswordInput">Password</label>
+          <input id="sharedPasswordInput" type="password" placeholder="Enter the shared or personal student password" autocomplete="current-password">
+        </div>
+        <button id="sharedPasswordLoginBtn" class="btn auth-full-btn">Continue with email and password</button>
+        <div class="auth-inline-actions">
+          <button id="forgotPasswordBtn" class="btn secondary auth-inline-btn" type="button">Recovery options</button>
+          <button id="sendOtpBtn" class="btn secondary auth-inline-btn" type="button">Send code or magic link</button>
+        </div>
       </div>
-      <div class="auth-field-group">
-        <label class="auth-label" for="sharedPasswordInput">Password</label>
-        <input id="sharedPasswordInput" type="password" placeholder="Enter the shared or personal student password" autocomplete="current-password">
+
+      <div id="recoveryOptionsBox" class="auth-recovery-box hidden">
+        <div class="auth-recovery-header">
+          <div class="auth-recovery-title">Password recovery</div>
+          <p id="recoveryOptionsHelp" class="small auth-inline-help">Choose the reset method you want to use for this student account.</p>
+        </div>
+        <div class="auth-recovery-actions">
+          <button id="emailRecoveryBtn" class="btn secondary auth-inline-btn" type="button">Reset through email</button>
+          <button id="showBypassRecoveryBtn" class="btn secondary auth-inline-btn" type="button">Use bypass password</button>
+        </div>
       </div>
-      <button id="sharedPasswordLoginBtn" class="btn auth-full-btn">Continue with email and password</button>
-      <button id="forgotPasswordBtn" class="btn secondary auth-full-btn" type="button">Forgot password</button>
-      <button id="sendOtpBtn" class="btn auth-full-btn">Send code or magic link</button>
 
       <div id="bypassResetBox" class="hidden">
         <div class="auth-field-group">

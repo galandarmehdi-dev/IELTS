@@ -423,10 +423,54 @@ body[data-view-mode="student"] #resetExamBtn{
   flex-direction:column;
   gap:8px;
 }
+.auth-email-shell,
+.auth-recovery-box,
+#bypassResetBox,
+#sharedSetupBox,
+#passwordResetBox{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:16px 18px;
+  border-radius:20px;
+  border:1px solid rgba(18,59,109,.12);
+  background:linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(247,243,236,.92) 100%);
+  box-shadow:0 12px 28px rgba(16,24,40,.08);
+}
+.auth-email-shell{
+  gap:14px;
+}
+.auth-recovery-box.hidden,
+#bypassResetBox.hidden,
+#sharedSetupBox.hidden,
+#passwordResetBox.hidden{
+  display:none;
+}
 .auth-label{
   color:var(--ink);
   font-size:13px;
   font-weight:800;
+}
+.auth-inline-actions,
+.auth-recovery-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.auth-inline-btn{
+  width:100%;
+  justify-content:center;
+}
+.auth-recovery-header{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.auth-recovery-title{
+  font-size:14px;
+  font-weight:800;
+  color:var(--ink);
+  letter-spacing:.01em;
 }
 .auth-buttons{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .auth-divider{
@@ -453,7 +497,7 @@ body[data-view-mode="student"] #resetExamBtn{
 }
 .auth-full-btn{
   width:100%;
-  margin-top:12px;
+  margin-top:4px;
 }
 .auth-code-row{
   display:grid;
@@ -512,10 +556,13 @@ th, td{ text-align:left; }
   .auth-showcase-title{ font-size:34px; }
   .auth-showcase-copy{ font-size:16px; }
   .auth-buttons,
+  .auth-inline-actions,
+  .auth-recovery-actions,
   .auth-code-row{ grid-template-columns:1fr; }
   .auth-code-btn{ min-width:0; }
   .auth-buttons .btn,
   .auth-buttons .home-btn,
+  .auth-inline-btn,
   .auth-full-btn,
   .auth-code-btn{ width:100%; justify-content:center; }
 }

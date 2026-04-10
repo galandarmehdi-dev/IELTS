@@ -45,6 +45,62 @@
     return Number(row.task1_words || 0) + Number(row.task2_words || 0);
   }
 
+  function nullableNumber(value) {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    if (!text) return null;
+    const n = Number(text);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function hasAnyObjectiveAnswers(payloadSection) {
+    if (!payloadSection) return false;
+    if (Array.isArray(payloadSection)) return payloadSection.length > 0;
+    if (typeof payloadSection === "object") {
+      return Object.values(payloadSection).some((value) => {
+        if (Array.isArray(value)) return value.length > 0;
+        if (value && typeof value === "object") return Object.keys(value).length > 0;
+        return String(value ?? "").trim() !== "";
+      });
+    }
+    return String(payloadSection).trim() !== "";
+  }
+
+  function taskHasContent(words, text) {
+    const wordCount = nullableNumber(words);
+    return (wordCount !== null && wordCount > 0) || String(text || "").trim() !== "";
+  }
+
+  function writingWordText(words, text) {
+    return taskHasContent(words, text) ? String(nullableNumber(words) || 0) : "null";
+  }
+
+  function effectiveWritingBand(row) {
+    const finalBand = nullableNumber(row?.final_writing_band);
+    const task1Band = nullableNumber(row?.task1_band);
+    const task2Band = nullableNumber(row?.task2_band);
+    const hasTask1 = taskHasContent(row?.task1_words, row?.writing_task1);
+    const hasTask2 = taskHasContent(row?.task2_words, row?.writing_task2);
+    if (!hasTask1 && !hasTask2) return null;
+    if (hasTask1 && hasTask2) return finalBand;
+    if (hasTask1) return task1Band;
+    if (hasTask2) return task2Band;
+    return null;
+  }
+
+  function objectiveSectionState(row, section) {
+    const totalKey = `${section}_total`;
+    const bandKey = `${section}_band`;
+    const payload = row?.final_payload || {};
+    const total = nullableNumber(row?.[totalKey]);
+    const band = nullableNumber(row?.[bandKey]);
+    if (total !== null || band !== null) {
+      return `${total === null ? "null" : total} / 40 (Band ${band === null ? "null" : band.toFixed(1)})`;
+    }
+    if (hasAnyObjectiveAnswers(payload?.[section])) return "Saved";
+    return "null";
+  }
+
   function buildObjectiveReviewHtml(items, emptyMessage) {
     const rows = Array.isArray(items) ? items : [];
     if (!rows.length) {
@@ -468,11 +524,9 @@
   }
 
   function isPending(row) {
-    const hasWriting =
-      String(row?.writing_task1 || "").trim() !== "" ||
-      String(row?.writing_task2 || "").trim() !== "";
+    const hasWriting = taskHasContent(row?.task1_words, row?.writing_task1) || taskHasContent(row?.task2_words, row?.writing_task2);
     if (!hasWriting) return false;
-    return String(row?.final_writing_band || "").trim() === "";
+    return effectiveWritingBand(row) === null;
   }
 
   async function refreshPendingRows(rows) {
@@ -506,9 +560,9 @@
 
     const avg = (items, key) => {
       const nums = items
-        .map((r) => Number(r?.[key]))
-        .filter((n) => Number.isFinite(n) && n > 0);
-      if (!nums.length) return "0.0";
+        .map((r) => key === "final_writing_band" ? effectiveWritingBand(r) : nullableNumber(r?.[key]))
+        .filter((n) => n !== null);
+      if (!nums.length) return "null";
       return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
     };
 
@@ -534,18 +588,16 @@
 
     empty.classList.add("hidden");
     tbody.innerHTML = rows.map((row, idx) => {
-      const payload = row.final_payload || {};
-      const listeningSaved = payload.listening ? "Saved" : "—";
-      const readingSaved = payload.reading ? "Saved" : "—";
+      const writingBand = effectiveWritingBand(row);
       const rowId = `history-row-${idx}`;
       return `
         <tr id="${rowId}">
           <td>${escapeHtml(fmtDate(row.submitted_at))}</td>
           <td>${escapeHtml(examLabel(row))}</td>
           <td>${escapeHtml(row.student_full_name || "—")}</td>
-          <td>${escapeHtml(row.listening_band ? `Band ${row.listening_band}` : listeningSaved)}</td>
-          <td>${escapeHtml(row.reading_band ? `Band ${row.reading_band}` : readingSaved)}</td>
-          <td>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}<br><span class="small">T1: ${escapeHtml(String(row.task1_words || 0))} · T2: ${escapeHtml(String(row.task2_words || 0))}</span></td>
+          <td>${escapeHtml(objectiveSectionState(row, "listening").startsWith("Saved") ? "Saved" : objectiveSectionState(row, "listening").startsWith("null") ? "null" : `Band ${nullableNumber(row.listening_band).toFixed(1)}`)}</td>
+          <td>${escapeHtml(objectiveSectionState(row, "reading").startsWith("Saved") ? "Saved" : objectiveSectionState(row, "reading").startsWith("null") ? "null" : `Band ${nullableNumber(row.reading_band).toFixed(1)}`)}</td>
+          <td>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}<br><span class="small">T1: ${escapeHtml(writingWordText(row.task1_words, row.writing_task1))} · T2: ${escapeHtml(writingWordText(row.task2_words, row.writing_task2))}</span></td>
           <td><button class="btn secondary" type="button" data-history-view="${idx}" data-history-row-id="${rowId}">View</button></td>
         </tr>
       `;
@@ -559,9 +611,10 @@
     detailState.sourceRowId = options.sourceRowId || null;
     detailState.sourceScrollY = window.scrollY || 0;
     const payload = row.final_payload || {};
+    const writingBand = effectiveWritingBand(row);
     $("historyDetailTitle").textContent = examLabel(row);
     $("historyDetailMeta").innerHTML = `Submitted: <b>${escapeHtml(fmtDate(row.submitted_at))}</b><br>Name used: <b>${escapeHtml(row.student_full_name || "—")}</b><br>Email: <b>${escapeHtml(row.user_email || "—")}</b>`;
-    $("historyDetailScores").innerHTML = `Exam ID: <b>${escapeHtml(row.exam_id || row.active_test_id || "—")}</b><br>Listening: <b>${escapeHtml(row.listening_total != null && row.listening_total !== "" ? `${row.listening_total} / 40 (Band ${row.listening_band || "—"})` : "Pending")}</b><br>Reading: <b>${escapeHtml(row.reading_total != null && row.reading_total !== "" ? `${row.reading_total} / 40 (Band ${row.reading_band || "—"})` : "Pending")}</b><br>Writing: <b>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}</b><br>Writing words: <b>${escapeHtml(String(totalWords(row)))}</b><br><br>Task 1 band: <b>${escapeHtml(row.task1_band || "—")}</b><br>Task 2 band: <b>${escapeHtml(row.task2_band || "—")}</b><br>Overall Writing score: <b>${escapeHtml(row.final_writing_band ? `Band ${row.final_writing_band}` : "Pending")}</b>`;
+    $("historyDetailScores").innerHTML = `Exam ID: <b>${escapeHtml(row.exam_id || row.active_test_id || "—")}</b><br>Listening: <b>${escapeHtml(objectiveSectionState(row, "listening"))}</b><br>Reading: <b>${escapeHtml(objectiveSectionState(row, "reading"))}</b><br>Writing: <b>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}</b><br>Writing words: <b>${escapeHtml(String(totalWords(row) || "null"))}</b><br><br>Task 1 band: <b>${escapeHtml(nullableNumber(row.task1_band) !== null ? nullableNumber(row.task1_band).toFixed(1) : "null")}</b><br>Task 2 band: <b>${escapeHtml(nullableNumber(row.task2_band) !== null ? nullableNumber(row.task2_band).toFixed(1) : "null")}</b><br>Overall Writing score: <b>${escapeHtml(writingBand !== null ? `Band ${writingBand.toFixed(1)}` : (taskHasContent(row.task1_words, row.writing_task1) || taskHasContent(row.task2_words, row.writing_task2) ? "Pending" : "null"))}</b>`;
     const setText = (id, value) => {
       const el = $(id);
       if (el) el.textContent = value || "";

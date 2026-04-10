@@ -880,10 +880,68 @@
       return Number.isFinite(n) ? n : 0;
     }
 
+    function nullableNumber(value) {
+      if (value === null || value === undefined) return null;
+      const text = String(value).trim();
+      if (!text) return null;
+      const n = Number(text);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function nullableBand(value) {
+      return nullableNumber(value);
+    }
+
+    function effectiveWritingBand(row) {
+      const task1Words = nullableNumber(row?.task1Words);
+      const task2Words = nullableNumber(row?.task2Words);
+      const task1Band = nullableBand(row?.task1Band);
+      const task2Band = nullableBand(row?.task2Band);
+      const finalBand = nullableBand(row?.finalWritingBand);
+      const hasTask1 = task1Words !== null && task1Words > 0;
+      const hasTask2 = task2Words !== null && task2Words > 0;
+      if (!hasTask1 && !hasTask2) return null;
+      if (hasTask1 && hasTask2) return finalBand;
+      if (hasTask1) return task1Band;
+      if (hasTask2) return task2Band;
+      return null;
+    }
+
+    function scoreAverage(rows, getter) {
+      const nums = (rows || [])
+        .map((row) => getter(row))
+        .filter((value) => value !== null);
+      if (!nums.length) return null;
+      return nums.reduce((sum, value) => sum + value, 0) / nums.length;
+    }
+
+    function numberText(value) {
+      const n = nullableNumber(value);
+      return n === null ? "null" : String(n);
+    }
+
+    function writingWordText(value) {
+      const n = nullableNumber(value);
+      return n !== null && n > 0 ? String(n) : "null";
+    }
+
+    function objectiveTableCell(total, band) {
+      const totalText = nullableNumber(total);
+      const bandValue = nullableBand(band);
+      if (totalText === null && bandValue === null) return "null";
+      return `${escapeHtml(numberText(total))} / 40<br><span class="small">Band ${escapeHtml(bandText(band))}</span>`;
+    }
+
+    function objectiveDetailText(total, band) {
+      const totalValue = nullableNumber(total);
+      const bandValue = nullableBand(band);
+      if (totalValue === null && bandValue === null) return "null";
+      return `${numberText(total)} / 40 (Band ${bandText(band)})`;
+    }
+
     function bandText(value) {
-      if (value === null || value === undefined || String(value).trim() === "") return "—";
-      const n = Number(value);
-      return Number.isFinite(n) ? n.toFixed(1) : "—";
+      const n = nullableBand(value);
+      return n === null ? "null" : n.toFixed(1);
     }
 
     function plainText(value, fallback = "—") {
@@ -1147,12 +1205,12 @@
 
     function renderSummary(rows) {
       const count = rows.length;
-      const avgListening = count ? (rows.reduce((a, r) => a + num(r.listeningBand), 0) / count) : 0;
-      const avgReading = count ? (rows.reduce((a, r) => a + num(r.readingBand), 0) / count) : 0;
+      const avgListening = scoreAverage(rows, (row) => nullableBand(row?.listeningBand));
+      const avgReading = scoreAverage(rows, (row) => nullableBand(row?.readingBand));
       const latest = rows.slice().sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0];
       if ($("adminStatSubmissions")) $("adminStatSubmissions").textContent = String(count);
-      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening.toFixed(1);
-      if ($("adminStatReading")) $("adminStatReading").textContent = avgReading.toFixed(1);
+      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening === null ? "null" : avgListening.toFixed(1);
+      if ($("adminStatReading")) $("adminStatReading").textContent = avgReading === null ? "null" : avgReading.toFixed(1);
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
@@ -1173,10 +1231,10 @@
           <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
           <td><strong>${escapeHtml(row.studentFullName || "(No name)")}</strong><br><span class="small">${escapeHtml(row.reason || "")}</span></td>
           <td>${escapeHtml(row.examId || "—")}</td>
-          <td>${escapeHtml(String(num(row.listeningTotal)))} / 40<br><span class="small">Band ${escapeHtml(bandText(row.listeningBand))}</span></td>
-          <td>${escapeHtml(String(num(row.readingTotal)))} / 40<br><span class="small">Band ${escapeHtml(bandText(row.readingBand))}</span></td>
-          <td>Band ${escapeHtml(bandText(row.finalWritingBand))}</td>
-          <td>T1: ${escapeHtml(String(num(row.task1Words)))}<br>T2: ${escapeHtml(String(num(row.task2Words)))}</td>
+          <td>${objectiveTableCell(row.listeningTotal, row.listeningBand)}</td>
+          <td>${objectiveTableCell(row.readingTotal, row.readingBand)}</td>
+          <td>Band ${escapeHtml(bandText(effectiveWritingBand(row)))}</td>
+          <td>T1: ${escapeHtml(writingWordText(row.task1Words))}<br>T2: ${escapeHtml(writingWordText(row.task2Words))}</td>
           <td><div class="admin-row-actions"><button class="btn secondary" type="button" data-admin-view="${idx}" data-admin-row-id="admin-result-row-${idx}">View</button></div></td>
         </tr>
       `).join("");
@@ -1217,9 +1275,16 @@
         if (field === "submittedAt") {
           av = new Date(av || 0).getTime();
           bv = new Date(bv || 0).getTime();
-        } else if (["finalWritingBand", "listeningTotal", "readingTotal"].includes(field)) {
-          av = num(av);
-          bv = num(bv);
+        } else if (["listeningTotal", "readingTotal"].includes(field)) {
+          av = nullableNumber(av);
+          bv = nullableNumber(bv);
+          av = av === null ? -1 : av;
+          bv = bv === null ? -1 : bv;
+        } else if (field === "finalWritingBand") {
+          av = effectiveWritingBand(a);
+          bv = effectiveWritingBand(b);
+          av = av === null ? -1 : av;
+          bv = bv === null ? -1 : bv;
         } else {
           av = String(av || "").toLowerCase();
           bv = String(bv || "").toLowerCase();
@@ -1243,16 +1308,17 @@
 
     function renderAdminDetailFields(row, options = {}) {
       const loadingDetail = options.loadingDetail === true;
+      const overallWritingBand = effectiveWritingBand(row);
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
       $("adminDetailMeta").innerHTML = buildAdminDetailMetaHtml(row, options.submissionRecord || null);
-      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(String(num(row.listeningTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.listeningBand))})<br>Reading: <b>${escapeHtml(String(num(row.readingTotal)))} / 40</b> (Band ${escapeHtml(bandText(row.readingBand))})<br>Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br>Writing words: <b>${escapeHtml(String(num(row.task1Words)))} / ${escapeHtml(String(num(row.task2Words)))}</b>`;
+      $("adminDetailScores").innerHTML = `Listening: <b>${escapeHtml(objectiveDetailText(row.listeningTotal, row.listeningBand))}</b><br>Reading: <b>${escapeHtml(objectiveDetailText(row.readingTotal, row.readingBand))}</b><br>Overall Writing: <b>Band ${escapeHtml(bandText(overallWritingBand))}</b><br>Writing words: <b>${escapeHtml(writingWordText(row.task1Words))} / ${escapeHtml(writingWordText(row.task2Words))}</b>`;
       $("adminDetailTask1Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task1Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task1Breakdown)).replace(/\n/g, "<br>")}</div>`;
       $("adminDetailTask1").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask1 || "");
       $("adminDetailTask1Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task1Feedback, "");
       $("adminDetailTask2Score").innerHTML = `Band: <b>${escapeHtml(bandText(row.task2Band))}</b><br>Breakdown:<br><div class="admin-detail-text">${loadingDetail ? "Loading detailed writing analysis..." : escapeHtml(plainText(row.task2Breakdown)).replace(/\n/g, "<br>")}</div>`;
       $("adminDetailTask2").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask2 || "");
       $("adminDetailTask2Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task2Feedback, "");
-      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(row.finalWritingBand))}</b><br><br><div class="admin-detail-text">${loadingDetail ? "Loading overall writing feedback..." : escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
+      $("adminDetailOverallWriting").innerHTML = `Overall Writing: <b>Band ${escapeHtml(bandText(overallWritingBand))}</b><br><br><div class="admin-detail-text">${loadingDetail ? "Loading overall writing feedback..." : escapeHtml(plainText(row.overallFeedback)).replace(/\n/g, "<br>")}</div>`;
     }
 
     async function renderAdminDetail(row, options = {}) {

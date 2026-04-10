@@ -662,11 +662,13 @@
 
       safe(() =>
         Modal().showModal(
-          "Listening finished",
-          "Your Listening has been submitted. Click Start Reading to continue.",
+          "Listening submitted",
+          "Listening is submitted. Start Reading now?",
           {
-            mode: "gate",
-                        submitText: "Start Reading",
+            mode: "confirm",
+            showCancel: true,
+            submitText: "Start Reading",
+            cancelText: "Stay here",
             onConfirm: async () => {
               // Mark that the user has moved on immediately to prevent any “gate loop” pulling them back.
               try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (e) {}
@@ -677,6 +679,7 @@
               try { UI().setExamStarted(true); } catch (e) {}
               try { UI().showOnly("reading"); } catch (e) {}
               try { UI().setExamNavStatus("Status: Reading in progress"); } catch (e) {}
+              try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (e) {}
 
               try {
                 try { window.__IELTS_READING_INIT__ = false; } catch (e) {}
@@ -689,6 +692,11 @@
               } finally {
                 showingGate = false;
               }
+            },
+            onCancel: () => {
+              try { UI().showOnly("listening"); } catch (e) {}
+              try { UI().setExamNavStatus("Status: Listening submitted (review)"); } catch (e) {}
+              showingGate = false;
             },
           }
         )

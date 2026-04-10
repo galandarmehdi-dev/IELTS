@@ -528,7 +528,7 @@
       }];
     }
     return Object.values(TESTS.byId)
-      .filter((cfg) => cfg?.content?.[section])
+      .filter((cfg) => !!cfg?.id)
       .map((cfg) => ({
         id: cfg.id,
         testId: cfg.id,

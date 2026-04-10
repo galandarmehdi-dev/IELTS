@@ -653,6 +653,7 @@
     let showingGate = false;
 
     function showListeningGate() {
+      if (window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ === true) return;
       if (!isFullExamFlow()) return;
       if (window.__IELTS_SUPPRESS_AUTO_GATES__ === true) return;
       if (isAdminView() || showingGate) return;

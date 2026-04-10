@@ -714,6 +714,40 @@ function applyActiveListeningContent() {
 
       lockReading(false);
 
+      const isStudentFullExam = !isAdminView() && !REVIEW_MODE && (!LAUNCH_CONTEXT || LAUNCH_CONTEXT.mode === "full");
+      if (isStudentFullExam) {
+        try { window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ = true; } catch (_) {}
+        try {
+          Modal().showModal("Listening submitted", "Listening is submitted. Start Reading now?", {
+            mode: "confirm",
+            showCancel: true,
+            submitText: "Start Reading",
+            cancelText: "Stay here",
+            onConfirm: () => {
+              try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (_) {}
+              try { window.__IELTS_READING_INIT__ = false; } catch (_) {}
+              try { window.IELTS?.Router?.setHashRoute?.((R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1"), "reading"); } catch (_) {}
+              try { UI().setExamStarted(true); } catch (_) {}
+              try { UI().showOnly("reading"); } catch (_) {}
+              try { UI().setExamNavStatus("Status: Reading in progress"); } catch (_) {}
+              try { window.IELTS?.Engines?.Reading?.startReadingSystem?.(); } catch (_) {}
+              try { window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ = false; } catch (_) {}
+            },
+            onCancel: () => {
+              try { UI().showOnly("listening"); } catch (_) {}
+              try { UI().setExamNavStatus("Status: Listening submitted (review)"); } catch (_) {}
+              try { window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ = false; } catch (_) {}
+            },
+          });
+        } catch (_) {
+          try { window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ = false; } catch (_) {}
+          document.dispatchEvent(new CustomEvent("listening:submitted"));
+          try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 0); } catch (_) {}
+          try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 350); } catch (_) {}
+        }
+        return;
+      }
+
       document.dispatchEvent(new CustomEvent("listening:submitted"));
       try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 0); } catch (_) {}
       try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 350); } catch (_) {}

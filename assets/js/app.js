@@ -1448,6 +1448,7 @@
     const menuDashboardSettingsBtn = $("menuDashboardSettingsBtn");
     const menuHistoryBtn = $("menuHistoryBtn");
     const menuSpeakingBtn = $("menuSpeakingBtn");
+    const menuToggleAdminViewBtn = $("menuToggleAdminViewBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
@@ -1544,6 +1545,23 @@
         return;
       } catch (e) {}
       $("openSpeakingExamBtn")?.click?.();
+    }
+
+    function syncAdminToggleMenu() {
+      if (!menuToggleAdminViewBtn) return;
+      const canToggle = window.IELTS?.Access?.canUseAdminToggle?.() === true;
+      const activeMode = window.IELTS?.Access?.getActiveMode?.() || "student";
+      menuToggleAdminViewBtn.classList.toggle("hidden", !canToggle);
+      menuToggleAdminViewBtn.textContent = activeMode === "admin" ? "Switch to student view" : "Switch to admin view";
+    }
+
+    function toggleAdminViewFromMenu() {
+      closeAccountMenu();
+      if (!window.IELTS?.Auth?.isSignedIn?.()) {
+        window.IELTS?.Auth?.openLoginGate?.("Please log in first.");
+        return;
+      }
+      window.IELTS?.Access?.toggleAdminMode?.();
     }
 
     // stop any playing audio used by exam flows (listening / speaking)
@@ -2835,6 +2853,7 @@ function startFreshExam() {
     if (menuDashboardSettingsBtn) menuDashboardSettingsBtn.onclick = () => { closeAccountMenu(); requireSignedIn(() => window.IELTS?.Dashboard?.openTab?.("settings"), "Please log in to open your settings."); };
     if (menuHistoryBtn) menuHistoryBtn.onclick = () => openHistoryFromMenu();
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
+    if (menuToggleAdminViewBtn) menuToggleAdminViewBtn.onclick = () => toggleAdminViewFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView(true);
@@ -2862,15 +2881,18 @@ function startFreshExam() {
     $("adminResultsYearFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
     window.addEventListener("ielts:viewmodechange", (event) => {
+      syncAdminToggleMenu();
       if (event?.detail?.isAdmin) {
         prefetchAdminResults().catch(() => {});
       }
       setTimeout(reconcileStartupRoute, 0);
     });
     window.addEventListener("ielts:authchanged", () => {
+      syncAdminToggleMenu();
       if (isAdminView()) prefetchAdminResults().catch(() => {});
       setTimeout(reconcileStartupRoute, 0);
     });
+    syncAdminToggleMenu();
     if (isAdminView()) prefetchAdminResults().catch(() => {});
     setTimeout(reconcileStartupRoute, 0);
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);

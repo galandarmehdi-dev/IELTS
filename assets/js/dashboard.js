@@ -383,8 +383,9 @@
     if ($("dashboardEmail")) $("dashboardEmail").textContent = user?.email || "Signed-in account";
     if ($("dashboardProvider")) $("dashboardProvider").textContent = providerLabel;
     setText("dashboardHeadline", headline || "Focused on steady IELTS progress.");
+    const isAdminView = window.IELTS?.Access?.isAdmin?.() === true;
     setText("homeAccountName", signedIn ? displayName : "Log In");
-    setText("homeAccountLabel", signedIn ? (username ? `@${username}` : "Student access") : "Student access");
+    setText("homeAccountLabel", signedIn ? (username ? `@${username}` : (isAdminView ? "Admin access" : "Student access")) : "Student access");
     $("homeAccountLabel")?.classList?.toggle("is-username", signedIn && !!username);
     $("openDashboardBtn")?.classList?.toggle("is-login", !signedIn);
     if ($("dashboardWelcomeTitle")) $("dashboardWelcomeTitle").textContent = `Welcome back, ${displayName}.`;
@@ -906,6 +907,9 @@
       if (!$("dashboardSection")?.classList.contains("hidden")) {
         openDashboard();
       }
+    });
+    window.addEventListener("ielts:viewmodechange", () => {
+      renderProfile();
     });
     window.addEventListener("ielts:fontscalechange", (event) => {
       const next = event?.detail?.value || "medium";

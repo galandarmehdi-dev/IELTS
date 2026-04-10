@@ -8,6 +8,8 @@
 
   const KEY = "IELTS:ADMIN:session";
   const DEFAULT_TTL_MIN = 180; // 3 hours
+  const MODE_ADMIN = "admin";
+  const MODE_STUDENT = "student";
 
   let listenersBound = false;
   let initRan = false;
@@ -37,11 +39,17 @@
     applyViewMode();
   }
 
-  function hasValidSession() {
+  function hasVerifiedSession() {
     const sess = getSession();
-    if (!sess || sess.enabled !== true) return false;
+    if (!sess || sess.enabled !== true || sess.authorized !== true) return false;
     if (!sess.expiresAtMs) return false;
     return nowMs() < Number(sess.expiresAtMs);
+  }
+
+  function getActiveMode() {
+    const sess = getSession();
+    if (!hasVerifiedSession()) return MODE_STUDENT;
+    return sess?.activeMode === MODE_ADMIN ? MODE_ADMIN : MODE_STUDENT;
   }
 
   function isAdminRequestedByUrl() {
@@ -59,7 +67,11 @@
   }
 
   function isAdmin() {
-    return hasValidSession();
+    return hasVerifiedSession() && getActiveMode() === MODE_ADMIN;
+  }
+
+  function canUseAdminToggle() {
+    return hasVerifiedSession();
   }
 
   async function getAccessToken() {
@@ -73,6 +85,7 @@
 
   async function refreshAdminSession(options = {}) {
     const interactive = options && options.interactive === true;
+    const requestedMode = options?.targetMode === MODE_ADMIN ? MODE_ADMIN : MODE_STUDENT;
     const ttlMin = Number(R()?.ADMIN_SESSION_TTL_MIN || DEFAULT_TTL_MIN);
     const token = await getAccessToken();
     const url = R()?.buildAdminApiUrl?.({ action: "session" });
@@ -107,7 +120,9 @@
 
       setSession({
         enabled: true,
+        authorized: true,
         email: data.email || "",
+        activeMode: requestedMode,
         expiresAtMs: nowMs() + ttlMin * 60 * 1000,
       });
       applyViewMode();
@@ -120,8 +135,45 @@
   }
 
   function enterAdmin() {
-    refreshAdminSession({ interactive: true });
+    refreshAdminSession({ interactive: true, targetMode: MODE_ADMIN });
     return false;
+  }
+
+  function enterStudent() {
+    const sess = getSession();
+    if (!sess || !hasVerifiedSession()) {
+      clearSession();
+      return false;
+    }
+    setSession({
+      ...sess,
+      enabled: true,
+      authorized: true,
+      activeMode: MODE_STUDENT,
+    });
+    applyViewMode();
+    return false;
+  }
+
+  function toggleAdminMode() {
+    if (isAdmin()) return enterStudent();
+    return enterAdmin();
+  }
+
+  async function syncAdminEligibility(options = {}) {
+    const interactive = options && options.interactive === true;
+    const requestedMode =
+      options?.targetMode === MODE_ADMIN
+        ? MODE_ADMIN
+        : isAdminRequestedByUrl()
+          ? MODE_ADMIN
+          : getActiveMode();
+    return refreshAdminSession({ interactive, targetMode: requestedMode });
+  }
+
+  function getAdminEmail() {
+    const sess = getSession();
+    return hasVerifiedSession() ? String(sess?.email || "") : "";
   }
 
   function applyNoTranslateFlags() {
@@ -136,13 +188,13 @@
   function applyViewMode() {
     try {
       if (!document.body) return;
-      document.body.dataset.viewMode = isAdmin() ? "admin" : "student";
+      document.body.dataset.viewMode = getActiveMode();
     } catch (e) {}
 
     try {
       window.dispatchEvent(
         new CustomEvent("ielts:viewmodechange", {
-          detail: { isAdmin: isAdmin() },
+          detail: { isAdmin: isAdmin(), canToggleAdmin: canUseAdminToggle(), activeMode: getActiveMode(), adminEmail: getAdminEmail() },
         })
       );
     } catch (e) {}
@@ -184,10 +236,10 @@
   }
 
   function maybeEnterAdminFromUrl() {
-    if (isAdminRequestedByUrl() && !hasValidSession()) {
-      refreshAdminSession();
+    if (isAdminRequestedByUrl()) {
+      syncAdminEligibility({ targetMode: MODE_ADMIN });
     } else {
-      applyViewMode();
+      syncAdminEligibility({ targetMode: getActiveMode() }).catch(() => applyViewMode());
     }
   }
 
@@ -225,19 +277,24 @@
   window.addEventListener("hashchange", maybeEnterAdminFromUrl);
   window.addEventListener("popstate", maybeEnterAdminFromUrl);
   window.addEventListener("ielts:authchanged", () => {
-    if (hasValidSession() || isAdminRequestedByUrl()) {
-      refreshAdminSession();
+    if (hasVerifiedSession() || isAdminRequestedByUrl()) {
+      syncAdminEligibility();
       return;
     }
-    clearSession();
+    syncAdminEligibility().catch(() => clearSession());
   });
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Access = {
     init,
     isAdmin,
+    canUseAdminToggle,
+    getActiveMode,
     clearSession,
     enterAdmin,
+    enterStudent,
+    toggleAdminMode,
     refreshAdminSession,
+    syncAdminEligibility,
   };
 })();

@@ -17,6 +17,26 @@
     }
   }
 
+  function clearNodeChildren(node) {
+    if (!node) return;
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  function appendReviewValueRow(parent, className, label, value) {
+    const row = document.createElement("div");
+    row.className = className;
+
+    const labelEl = document.createElement("span");
+    labelEl.textContent = label;
+    row.appendChild(labelEl);
+
+    const valueEl = document.createElement("b");
+    valueEl.textContent = value;
+    row.appendChild(valueEl);
+
+    parent.appendChild(row);
+  }
+
   function showNotice(message, title = "Listening") {
     if (Modal()?.showModal) {
       Modal().showModal(title, message, { mode: "confirm" });
@@ -305,33 +325,65 @@ function applyActiveListeningContent() {
       const safeRows = Array.isArray(rows) ? rows : [];
       if (!safeRows.length) {
         panel.classList.add("hidden");
-        panel.innerHTML = "";
+        clearNodeChildren(panel);
         return;
       }
       const correctCount = Number.isFinite(totalCorrect) ? totalCorrect : safeRows.filter((item) => item.mark).length;
       const questionCount = Number.isFinite(totalQuestions) && totalQuestions > 0 ? totalQuestions : safeRows.length;
       panel.classList.remove("hidden");
-      panel.innerHTML = `
-        <div class="answer-review-head">
-          <div>
-            <div class="home-card-topline">Listening review</div>
-            <h3>${correctCount}/${questionCount} correct</h3>
-          </div>
-          <div class="answer-review-hint">${revealed ? "Correct answers are visible below." : "Correct answers stay hidden until you click See answers."}</div>
-        </div>
-        <div class="answer-review-list">
-          ${safeRows.map((row) => `
-            <article class="answer-review-row ${row.mark ? "is-correct" : "is-wrong"}">
-              <div class="answer-review-row-top">
-                <strong>Question ${String(row.q || "—")}</strong>
-                <span class="answer-review-badge">${row.mark ? "Correct" : "Wrong"}</span>
-              </div>
-              <div class="answer-review-student"><span>Your answer</span><b>${escapeReviewValue(row.student || "—")}</b></div>
-              ${revealed ? `<div class="answer-review-correct"><span>Correct answer</span><b>${escapeReviewValue(row.correct || "—")}</b></div>` : ""}
-            </article>
-          `).join("")}
-        </div>
-      `;
+      clearNodeChildren(panel);
+
+      const head = document.createElement("div");
+      head.className = "answer-review-head";
+
+      const headLeft = document.createElement("div");
+      const topline = document.createElement("div");
+      topline.className = "home-card-topline";
+      topline.textContent = "Listening review";
+      headLeft.appendChild(topline);
+
+      const summary = document.createElement("h3");
+      summary.textContent = `${correctCount}/${questionCount} correct`;
+      headLeft.appendChild(summary);
+      head.appendChild(headLeft);
+
+      const hint = document.createElement("div");
+      hint.className = "answer-review-hint";
+      hint.textContent = revealed
+        ? "Correct answers are visible below."
+        : "Correct answers stay hidden until you click See answers.";
+      head.appendChild(hint);
+      panel.appendChild(head);
+
+      const list = document.createElement("div");
+      list.className = "answer-review-list";
+
+      safeRows.forEach((row) => {
+        const article = document.createElement("article");
+        article.className = `answer-review-row ${row.mark ? "is-correct" : "is-wrong"}`;
+
+        const top = document.createElement("div");
+        top.className = "answer-review-row-top";
+
+        const question = document.createElement("strong");
+        question.textContent = `Question ${String(row.q || "—")}`;
+        top.appendChild(question);
+
+        const badge = document.createElement("span");
+        badge.className = "answer-review-badge";
+        badge.textContent = row.mark ? "Correct" : "Wrong";
+        top.appendChild(badge);
+        article.appendChild(top);
+
+        appendReviewValueRow(article, "answer-review-student", "Your answer", String(row.student || "—"));
+        if (revealed) {
+          appendReviewValueRow(article, "answer-review-correct", "Correct answer", String(row.correct || "—"));
+        }
+
+        list.appendChild(article);
+      });
+
+      panel.appendChild(list);
     }
 
     function escapeReviewValue(value) {

@@ -64,7 +64,9 @@
 
     // buttons
     if (cancel) {
-      const showCancel = (opts.showCancel === true) && (MODAL_MODE === "confirm" || MODAL_MODE === "final");
+      const showCancel =
+        (opts.showCancel === true) &&
+        (MODAL_MODE === "confirm" || MODAL_MODE === "final" || MODAL_MODE === "password");
       cancel.classList.toggle("hidden", !showCancel);
       cancel.textContent = opts.cancelText || "Cancel";
       cancel.disabled = false;

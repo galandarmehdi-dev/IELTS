@@ -759,6 +759,11 @@
     document.addEventListener("listening:submitted", showListeningGate);
     document.addEventListener("reading:submitted", showReadingGate);
 
+    window.IELTS = window.IELTS || {};
+    window.IELTS.App = window.IELTS.App || {};
+    window.IELTS.App.showListeningGate = showListeningGate;
+    window.IELTS.App.showReadingGate = showReadingGate;
+
     // Storage-based fallback polling (in case an event is missed)
     let lastListen = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false");
     let lastRead = S().get(readingSubmittedKey(), "false");

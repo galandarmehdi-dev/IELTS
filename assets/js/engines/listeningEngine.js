@@ -715,6 +715,8 @@ function applyActiveListeningContent() {
       lockReading(false);
 
       document.dispatchEvent(new CustomEvent("listening:submitted"));
+      try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 0); } catch (_) {}
+      try { window.setTimeout(() => window.IELTS?.App?.showListeningGate?.(), 350); } catch (_) {}
     }
 
     function renderNavUI(total, active) {

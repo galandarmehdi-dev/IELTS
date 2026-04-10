@@ -1450,6 +1450,7 @@
     const menuSpeakingBtn = $("menuSpeakingBtn");
     const menuToggleAdminViewBtn = $("menuToggleAdminViewBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
+    const adminResultsHomeBtn = $("adminResultsHomeBtn");
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
     const adminExportBtn = $("adminExportBtn");
@@ -2855,6 +2856,12 @@ function startFreshExam() {
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (menuToggleAdminViewBtn) menuToggleAdminViewBtn.onclick = () => toggleAdminViewFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
+    if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
+      UI().showOnly("home");
+      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      UI().updateHomeStatusLine();
+      UI().setExamNavStatus("Status: Home");
+    };
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView(true);
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();

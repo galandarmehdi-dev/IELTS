@@ -82,6 +82,11 @@
     const showNav = isListening || isReading || isWriting || isAdminResults;
     showExamNav(showNav);
 
+    const navHomeBtn = $("navToHomeBtn");
+    if (navHomeBtn && window.IELTS?.Access?.isAdmin?.() === true) {
+      navHomeBtn.classList.toggle("hidden", isAdminResults);
+    }
+
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
     } catch (e) {}

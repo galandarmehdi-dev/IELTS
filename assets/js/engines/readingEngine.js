@@ -718,10 +718,6 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       return panel;
     }
 
-    function escapeReviewHtml(value) {
-      return escapeHtml(value);
-    }
-
     function buildQuestionNumbersFromBlock(block, out) {
       if (!block || typeof block !== "object") return;
       const push = (value) => {
@@ -1849,10 +1845,6 @@ qnum.textContent = `${item.q}`;
           transitionToWritingOnce();
         }
       }, 1000);
-    }
-
-    function toggleFocus() {
-      return;
     }
 
     // INIT

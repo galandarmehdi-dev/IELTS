@@ -518,6 +518,8 @@ function getDesiredView() {
 function hasResumableStoredAttempt(activeTestId) {
   try {
     const registry = window.IELTS?.Registry || {};
+    const launchContext = registry.getLaunchContext?.() || null;
+    const isFullExamFlow = !launchContext || launchContext.mode === "full";
     const scoped = registry.getScopedKeys?.(activeTestId) || registry.keysFor?.(activeTestId) || {};
     const listeningKeys = scoped.listening || {};
     const writingKeys = scoped.writing || {};
@@ -553,7 +555,9 @@ function hasResumableStoredAttempt(activeTestId) {
     return (
       (listeningStarted && !listeningSubmitted) ||
       (!listeningSubmitted && hasNonEmptyObject(listeningAnswers)) ||
+      (isFullExamFlow && listeningSubmitted && !readingSubmitted) ||
       (!readingSubmitted && hasNonEmptyObject(readingAnswers)) ||
+      (isFullExamFlow && readingSubmitted && !writingSubmitted) ||
       (writingStarted && !writingSubmitted) ||
       (!writingSubmitted && hasNonEmptyObject(writingAnswers))
     );
@@ -566,11 +570,14 @@ function sanitizeDesiredView(view, activeTestId) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
   const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
+  const launchContext = window.IELTS?.Registry?.getLaunchContext?.() || null;
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
   if (["listening", "reading", "writing"].includes(normalized)) {
     if (window.IELTS?.Access?.isAdmin?.() === true) return normalized;
+    if (launchContext?.mode === "section" && launchContext?.section === normalized) return normalized;
+    if (launchContext?.mode === "practice" && launchContext?.skill === normalized) return normalized;
     if (!hasResumableStoredAttempt(activeTestId)) return "home";
   }
   return normalized;

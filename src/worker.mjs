@@ -451,7 +451,7 @@ async function handleAdminApi(request, env) {
     const limitValue = Number(url.searchParams.get("limit") || 0);
 
     const summaries = await getAdminResultsSummary(env, { forceRefresh });
-    let rows = summaries.slice();
+    let rows = summaries.filter((row) => !isPracticeExamId(row?.examId));
 
     if (search) {
       rows = rows.filter((row) => {
@@ -488,7 +488,7 @@ async function handleAdminApi(request, env) {
     const response = json(200, {
       ok: true,
       results: rows,
-      total: summaries.length,
+      total: summaries.filter((row) => !isPracticeExamId(row?.examId)).length,
       filteredTotal: rows.length,
       generatedAt: new Date().toISOString(),
     }, {
@@ -496,6 +496,21 @@ async function handleAdminApi(request, env) {
     });
     await cache.put(cacheRequest, response.clone());
     return response;
+  }
+
+  if (request.method === "GET" && action === "practiceResultsSummary") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const rows = await getPracticeResultsSummary(env, {
+      forceRefresh: url.searchParams.get("refresh") === "1",
+    });
+    return json(200, {
+      ok: true,
+      results: rows,
+      total: rows.length,
+      filteredTotal: rows.length,
+      generatedAt: new Date().toISOString(),
+    });
   }
 
   if (request.method === "GET" && action === "resultDetail") {
@@ -602,6 +617,17 @@ async function handleAdminApi(request, env) {
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
     return proxy(request, backendUrl.toString());
+  }
+
+  if (request.method === "POST" && action === "submitPracticeObjective") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const payload = await request.json().catch(() => null);
+    const saved = await savePracticeObjectiveResult(payload, auth, request, env);
+    if (!saved.ok) {
+      return json(saved.status || 400, { ok: false, error: saved.error || "Could not save practice result." });
+    }
+    return json(200, { ok: true, row: saved.row, result: saved.result });
   }
 
   if (request.method === "GET" && action === "submissionMeta") {
@@ -726,6 +752,31 @@ async function handleAdminApi(request, env) {
     return json(200, { ok: true, result: data.result });
   }
 
+  if (request.method === "GET" && action === "practiceResultDetail") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const id = oneLine(url.searchParams.get("id") || "");
+    if (!id) return json(400, { ok: false, error: "Missing practice result id." });
+    const record = await readJsonKv(env.STUDENT_REGISTRY, `practice-result:${id}`);
+    if (!record) return json(404, { ok: false, error: "Practice result not found." });
+
+    const adminAuth = await authenticateAdmin(request, env);
+    const email = normalizeEmail(auth?.user?.email || "");
+    if (!adminAuth.ok && normalizeEmail(record?.email || "") !== email) {
+      await logSecurityEvent(env, request, "practice_result_owner_mismatch", {
+        email,
+        practiceId: id,
+      });
+      return json(403, { ok: false, error: "This practice result is not available for the current account." });
+    }
+
+    return json(200, {
+      ok: true,
+      row: summarizePracticeResultRecord(record),
+      result: buildPracticeObjectiveDetail(record),
+    });
+  }
+
   if (request.method === "POST" && action === "studentResults") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -763,6 +814,13 @@ async function handleAdminApi(request, env) {
       })
       .filter(Boolean);
     return json(200, { ok: true, results: matches });
+  }
+
+  if (request.method === "GET" && action === "studentPracticeResults") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const rows = await getStudentPracticeRows(env, normalizeEmail(auth?.user?.email || ""));
+    return json(200, { ok: true, results: rows });
   }
 
   if (request.method === "POST") {
@@ -1398,6 +1456,47 @@ function buildObjectiveAnswerMap(testId, skill) {
   return map;
 }
 
+function isPracticeExamId(examId) {
+  return /^ielts-practice-/i.test(String(examId || "").trim());
+}
+
+function inferPracticeSection(examId) {
+  const value = String(examId || "").trim().toLowerCase();
+  if (value.includes("-listening-")) return "listening";
+  if (value.includes("-reading-")) return "reading";
+  if (value.includes("-writing-")) return "writing";
+  return "";
+}
+
+function inferPracticeLabel(examId) {
+  const value = String(examId || "").trim().toLowerCase();
+  if (!isPracticeExamId(value)) return String(examId || "").trim();
+  const match = value.match(/ielts-practice-(listening|reading|writing)-(\d+)(?:-(section|part|task)-(\d+))?/i);
+  if (!match) return String(examId || "").trim();
+  const [, section, number, scopeKind, scopeValue] = match;
+  const testLabel = `IELTS Test ${Number(number)}`;
+  const sectionLabel = section.charAt(0).toUpperCase() + section.slice(1);
+  if (!scopeKind || !scopeValue) return `${testLabel} · ${sectionLabel} practice`;
+  const scopeMap = { section: "Section", part: "Section", task: "Task" };
+  return `${testLabel} · ${sectionLabel} ${scopeMap[scopeKind] || scopeKind} ${Number(scopeValue)} practice`;
+}
+
+function objectiveBandFromRaw(skill, rawScore, totalQuestions) {
+  const raw = Number(rawScore);
+  if (!Number.isFinite(raw) || raw < 0 || Number(totalQuestions) !== 40) return null;
+  const bands = skill === "reading"
+    ? [
+        [39, 9], [37, 8.5], [35, 8], [33, 7.5], [30, 7], [27, 6.5], [23, 6],
+        [19, 5.5], [15, 5], [13, 4.5], [10, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1], [0, 0],
+      ]
+    : [
+        [39, 9], [37, 8.5], [35, 8], [32, 7.5], [30, 7], [26, 6.5], [23, 6],
+        [18, 5.5], [16, 5], [13, 4.5], [11, 4], [8, 3.5], [6, 3], [4, 2.5], [2, 2], [1, 1], [0, 0],
+      ];
+  const found = bands.find(([min]) => raw >= min);
+  return found ? found[1] : null;
+}
+
 function matchesObjectiveAnswer(studentValue, correctValue) {
   const student = normalizeObjectiveValue(studentValue);
   if (!student) return false;
@@ -1436,6 +1535,255 @@ function sanitizeObjectiveOverrideMap(value) {
     out[q] = next;
   });
   return out;
+}
+
+function buildPracticeFinalPayload(record) {
+  const section = String(record?.practiceSection || "");
+  return {
+    attemptKind: "practice",
+    practiceId: record?.id || "",
+    practiceSection: section,
+    practiceLabel: record?.practiceLabel || inferPracticeLabel(record?.examId || ""),
+    examId: record?.examId || "",
+    submittedAt: record?.submittedAt || "",
+    studentFullName: record?.studentFullName || "",
+    reason: record?.reason || "",
+    listening: section === "listening"
+      ? {
+          saved: true,
+          testId: record?.activeTestId || "",
+          answerCount: Number(record?.totalQuestions || 0),
+        }
+      : null,
+    reading: section === "reading"
+      ? {
+          saved: true,
+          testId: record?.activeTestId || "",
+          answerCount: Number(record?.totalQuestions || 0),
+        }
+      : null,
+    writing: section === "writing"
+      ? {
+          saved: true,
+          testId: record?.activeTestId || "",
+          task1Words: Number(record?.task1Words || 0),
+          task2Words: Number(record?.task2Words || 0),
+        }
+      : null,
+  };
+}
+
+function summarizePracticeResultRecord(record) {
+  const section = String(record?.practiceSection || inferPracticeSection(record?.examId || "") || "");
+  const totalQuestions = Number(record?.totalQuestions || 0);
+  const scoreValue = totalQuestions > 0 ? Number(record?.totalCorrect || 0) : null;
+  const bandValue = objectiveBandFromRaw(section, scoreValue, totalQuestions);
+  return {
+    id: record?.id || "",
+    source: record?.source || "practice-objective",
+    practiceSection: section,
+    practiceLabel: record?.practiceLabel || inferPracticeLabel(record?.examId || ""),
+    studentEmail: normalizeEmail(record?.email || ""),
+    signInMethod: oneLine(record?.signInMethod || "email") || "email",
+    submittedAt: record?.submittedAt || "",
+    studentFullName: record?.studentFullName || "",
+    examId: record?.examId || "",
+    reason: record?.reason || "",
+    listeningTotal: section === "listening" ? scoreValue : null,
+    listeningBand: section === "listening" ? bandValue : null,
+    listeningTotalQuestions: section === "listening" ? totalQuestions : null,
+    readingTotal: section === "reading" ? scoreValue : null,
+    readingBand: section === "reading" ? bandValue : null,
+    readingTotalQuestions: section === "reading" ? totalQuestions : null,
+    finalWritingBand: null,
+    task1Words: null,
+    task2Words: null,
+    task1Band: null,
+    task2Band: null,
+    finalPayload: buildPracticeFinalPayload(record),
+  };
+}
+
+function buildPracticeObjectiveDetail(record) {
+  const section = String(record?.practiceSection || "");
+  return {
+    listening: section === "listening" ? (Array.isArray(record?.review) ? record.review : []) : [],
+    reading: section === "reading" ? (Array.isArray(record?.review) ? record.review : []) : [],
+  };
+}
+
+function buildPracticeHistoryRow(record) {
+  const summary = summarizePracticeResultRecord(record);
+  return {
+    id: summary.id,
+    practice_id: summary.id,
+    user_id: "",
+    user_email: normalizeEmail(record?.email || ""),
+    student_full_name: summary.studentFullName || "",
+    exam_id: summary.examId || "",
+    active_test_id: record?.activeTestId || summary.examId || "",
+    submitted_at: summary.submittedAt || "",
+    reason: summary.reason || "",
+    writing_task1: "",
+    writing_task2: "",
+    task1_words: 0,
+    task2_words: 0,
+    final_payload: summary.finalPayload,
+    listening_total: summary.listeningTotal,
+    listening_band: summary.listeningBand,
+    reading_total: summary.readingTotal,
+    reading_band: summary.readingBand,
+    final_writing_band: null,
+    task1_band: null,
+    task2_band: null,
+    task1_breakdown: null,
+    task2_breakdown: null,
+    task1_feedback: null,
+    task2_feedback: null,
+    overall_feedback: null,
+    listening_total_questions: summary.listeningTotalQuestions,
+    reading_total_questions: summary.readingTotalQuestions,
+  };
+}
+
+async function savePracticeObjectiveResult(payload, auth, request, env) {
+  if (!env?.STUDENT_REGISTRY) {
+    return { ok: false, status: 503, error: "Student registry is not configured." };
+  }
+
+  const section = oneLine(payload?.section || payload?.skill || "").toLowerCase();
+  const activeTestId = oneLine(payload?.activeTestId || payload?.testId || "").toLowerCase();
+  const examId = oneLine(payload?.examId || "");
+  const reason = oneLine(payload?.reason || `${section} section finished.`);
+  const submittedAt = oneLine(payload?.submittedAt || new Date().toISOString());
+  const studentFullName = oneLine(
+    payload?.studentFullName ||
+    auth?.user?.user_metadata?.name ||
+    auth?.user?.user_metadata?.preferred_name ||
+    deriveNameFromEmail(auth?.user?.email || "")
+  );
+  const email = normalizeEmail(auth?.user?.email || payload?.email || "");
+  const signInMethod = oneLine(
+    payload?.signInMethod ||
+    auth?.user?.app_metadata?.provider ||
+    auth?.user?.provider ||
+    "email"
+  ) || "email";
+  const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
+
+  if (!email || !["listening", "reading"].includes(section) || !activeTestId || !examId || !studentFullName) {
+    return { ok: false, status: 400, error: "Missing practice submission inputs." };
+  }
+
+  const answerMap = buildObjectiveAnswerMap(activeTestId, section);
+  const questionNumbers = Object.keys(answers)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+  const review = questionNumbers.map((q) => {
+    const correctRaw = String(answerMap[q] || "").trim();
+    const studentRaw = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
+    const isCorrect = matchesObjectiveAnswer(studentRaw, correctRaw);
+    return {
+      q,
+      student: studentRaw,
+      correct: correctRaw || "—",
+      mark: isCorrect,
+    };
+  });
+
+  const totalQuestions = review.length;
+  const totalCorrect = review.filter((item) => item.mark).length;
+  const answerHash = await sha256Base64Url(
+    stableStringify({
+      examId,
+      activeTestId,
+      section,
+      submittedAt,
+      email,
+      answers,
+    })
+  );
+  const id = `practice_${answerHash.slice(0, 24)}`;
+
+  const record = {
+    id,
+    source: "practice-objective",
+    practiceSection: section,
+    practiceLabel: oneLine(payload?.practiceLabel || inferPracticeLabel(examId)),
+    submittedAt,
+    studentFullName,
+    email,
+    signInMethod,
+    examId,
+    activeTestId,
+    reason,
+    totalQuestions,
+    totalCorrect,
+    review,
+    updatedAt: new Date().toISOString(),
+  };
+
+  await writeJsonKv(env.STUDENT_REGISTRY, `practice-result:${id}`, record);
+  await writeJsonKv(env.STUDENT_REGISTRY, `practice-user:${email}:${id}`, record);
+
+  return {
+    ok: true,
+    row: summarizePracticeResultRecord(record),
+    result: buildPracticeObjectiveDetail(record),
+  };
+}
+
+async function listJsonByPrefix(namespace, prefix, limit = 1000) {
+  if (!namespace) return [];
+  const listed = await namespace.list({ prefix, limit });
+  const rows = [];
+  for (const key of listed.keys || []) {
+    const value = await readJsonKv(namespace, key.name);
+    if (value) rows.push(value);
+  }
+  return rows;
+}
+
+async function getStudentPracticeRows(env, email) {
+  if (!env?.STUDENT_REGISTRY || !email) return [];
+  const records = await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${email}:`, 500);
+  return records
+    .map(buildPracticeHistoryRow)
+    .sort((a, b) => Date.parse(String(b?.submitted_at || "")) - Date.parse(String(a?.submitted_at || "")));
+}
+
+async function getPracticeResultsSummary(env, options = {}) {
+  const objectiveRows = (await listJsonByPrefix(env?.STUDENT_REGISTRY, "practice-result:", 1000))
+    .map(summarizePracticeResultRecord);
+
+  let backendRows = [];
+  try {
+    const summaries = await getAdminResultsSummary(env, options);
+    backendRows = summaries
+      .filter((row) => isPracticeExamId(row?.examId))
+      .map((row) => ({
+        ...row,
+        source: "backend-practice",
+        practiceSection: inferPracticeSection(row?.examId || ""),
+        practiceLabel: inferPracticeLabel(row?.examId || ""),
+        listeningTotalQuestions: row?.listeningTotal !== null && row?.listeningTotal !== undefined ? 40 : null,
+        readingTotalQuestions: row?.readingTotal !== null && row?.readingTotal !== undefined ? 40 : null,
+        finalPayload: {
+          attemptKind: "practice",
+          practiceSection: inferPracticeSection(row?.examId || ""),
+          practiceLabel: inferPracticeLabel(row?.examId || ""),
+          examId: row?.examId || "",
+          submittedAt: row?.submittedAt || "",
+          studentFullName: row?.studentFullName || "",
+          reason: row?.reason || "",
+        },
+      }));
+  } catch (err) {
+    backendRows = [];
+  }
+
+  return [...backendRows, ...objectiveRows].sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
 }
 
 function buildObjectiveDetailCacheKey(searchParams) {

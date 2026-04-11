@@ -44,6 +44,17 @@
     console.warn(`[${title}] ${message}`);
   }
 
+  async function submitReadingPracticeAttempt({ activeTestId, launchContext, payload }) {
+    const scopeValue = String(launchContext?.partId || "").trim().toLowerCase();
+    return window.IELTS?.Practice?.submitObjectiveSection?.("reading", {
+      activeTestId,
+      scopeValue,
+      answers: payload?.answers || {},
+      submittedAt: payload?.submittedAt || new Date().toISOString(),
+      reason: payload?.reason || "Reading section finished.",
+    });
+  }
+
   function startReadingSystem() {
     if (window.__IELTS_READING_INIT__) return;
     window.__IELTS_READING_INIT__ = true;
@@ -1059,7 +1070,8 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       S().remove(deadlineStorageKey);
       S().set(storageKey("remainingSeconds"), String(remainingSeconds));
       S().setJSON(storageKey("answers"), latest);
-      S().setJSON(storageKey("lastSubmission"), collectPayload(latest, reason));
+      const payload = collectPayload(latest, reason);
+      S().setJSON(storageKey("lastSubmission"), payload);
 
       if ($("autosaveStatus")) {
         $("autosaveStatus").textContent = "Reading submitted.";
@@ -1070,6 +1082,19 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       }
 
       lockReadingUI();
+
+      if (LAUNCH_CONTEXT?.mode === "section") {
+        try {
+          await submitReadingPracticeAttempt({
+            activeTestId: ACTIVE_TEST_ID,
+            launchContext: LAUNCH_CONTEXT,
+            payload,
+          });
+        } catch (err) {
+          console.error("Reading practice submission failed:", err);
+          showNotice(String(err?.message || "Could not submit Reading practice right now."), "Practice submission");
+        }
+      }
     }
 
     function transitionToWritingOnce() {

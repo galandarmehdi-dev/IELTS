@@ -323,6 +323,9 @@
       const writing = finalPayload?.writing || null;
 
       return {
+        attemptKind: finalPayload?.attemptKind || null,
+        practiceSection: finalPayload?.practiceSection || null,
+        practiceLabel: finalPayload?.practiceLabel || null,
         examId: finalPayload?.examId || null,
         submittedAt: finalPayload?.submittedAt || null,
         studentFullName: finalPayload?.studentFullName || null,
@@ -549,12 +552,20 @@
           : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
 
         const testNumber = String(activeTestId).replace("ielts", "");
-        const examId = `ielts-full-${testNumber.padStart(3, "0")}`;
+        const launchContext = R().getLaunchContext?.() || null;
+        const isPracticeWriting = launchContext?.mode === "section";
+        const practiceScope = String(launchContext?.focusTask || "").trim().toLowerCase();
+        const examId = isPracticeWriting
+          ? (window.IELTS?.Practice?.buildPracticeExamId?.("writing", activeTestId, practiceScope) || `ielts-practice-writing-${testNumber.padStart(3, "0")}`)
+          : `ielts-full-${testNumber.padStart(3, "0")}`;
         const authUser = getCurrentAuthUser();
         const studentEmail = String(authUser?.email || "").trim().toLowerCase();
         const signInMethod = String(authUser?.provider || "email").trim().toLowerCase() || "email";
 
         const finalPayload = {
+          attemptKind: isPracticeWriting ? "practice" : "full",
+          practiceSection: isPracticeWriting ? "writing" : null,
+          practiceLabel: isPracticeWriting ? (window.IELTS?.Practice?.buildPracticeLabel?.("writing", activeTestId, practiceScope) || "") : null,
           examId,
           submittedAt,
           studentFullName: fullName,

@@ -11,7 +11,7 @@
     const writingSampleCache = { rows: null, promise: null };
     const adminObjectiveDetailCache = new Map();
     const adminObjectivePrefetchPending = new Set();
-    const adminResultsPrefetchState = { promise: null, startedAt: 0 };
+    const adminResultsPrefetchState = { promiseByMode: {}, startedAtByMode: {} };
 
   async function getAuthHeaders() {
     try {
@@ -62,6 +62,115 @@
   function isFullExamFlow() {
     const ctx = getLaunchContext();
     return !ctx || ctx.mode === "full";
+  }
+
+  function getCurrentAuthUser() {
+    return window.IELTS?.Auth?.getSavedUser?.() || window.IELTS?.Auth?.getSharedSession?.()?.user || null;
+  }
+
+  function derivePracticeExamId(section, activeTestId, scopeValue) {
+    const testDigits = String(activeTestId || "ielts1").match(/(\d+)/);
+    const testNumber = String(testDigits?.[1] || "1").padStart(3, "0");
+    const base = `ielts-practice-${String(section || "").trim().toLowerCase()}-${testNumber}`;
+    const scope = String(scopeValue || "").trim().toLowerCase();
+    if (!scope) return base;
+    const sectionMatch = scope.match(/^section(\d+)$/i);
+    if (sectionMatch) return `${base}-section-${Number(sectionMatch[1])}`;
+    const partMatch = scope.match(/^part(\d+)$/i);
+    if (partMatch) return `${base}-part-${Number(partMatch[1])}`;
+    const taskMatch = scope.match(/^task(\d+)$/i);
+    if (taskMatch) return `${base}-task-${Number(taskMatch[1])}`;
+    return `${base}-${scope.replace(/[^a-z0-9]+/g, "-")}`;
+  }
+
+  function derivePracticeLabel(section, activeTestId, scopeValue) {
+    const testLabel = R()?.getTestLabel?.(activeTestId) || String(activeTestId || "IELTS Test");
+    const sectionLabel = String(section || "").trim();
+    const niceSection = sectionLabel ? `${sectionLabel.charAt(0).toUpperCase()}${sectionLabel.slice(1)}` : "Practice";
+    const scope = String(scopeValue || "").trim().toLowerCase();
+    if (!scope) return `${testLabel} · ${niceSection} practice`;
+    const sectionMatch = scope.match(/^section(\d+)$/i);
+    if (sectionMatch) return `${testLabel} · ${niceSection} Section ${Number(sectionMatch[1])} practice`;
+    const partMatch = scope.match(/^part(\d+)$/i);
+    if (partMatch) return `${testLabel} · ${niceSection} Section ${Number(partMatch[1])} practice`;
+    const taskMatch = scope.match(/^task(\d+)$/i);
+    if (taskMatch) return `${testLabel} · ${niceSection} Task ${Number(taskMatch[1])} practice`;
+    return `${testLabel} · ${niceSection} ${scope}`;
+  }
+
+  async function submitObjectiveSectionPractice(section, options = {}) {
+    const endpoint = R()?.buildAdminApiUrl?.({ action: "submitPracticeObjective" });
+    const user = getCurrentAuthUser();
+    const token = await window.IELTS?.Auth?.getAccessToken?.();
+    if (!endpoint || !token || !user?.email) {
+      throw new Error("Practice submission is not available right now.");
+    }
+
+    const activeTestId = String(options.activeTestId || getActiveTestId() || "ielts1");
+    const scopeValue = String(options.scopeValue || "");
+    const examId = derivePracticeExamId(section, activeTestId, scopeValue);
+    const practiceLabel = derivePracticeLabel(section, activeTestId, scopeValue);
+    const submittedAt = String(options.submittedAt || new Date().toISOString());
+    const studentFullName = String(
+      options.studentFullName ||
+      user?.name ||
+      user?.user_metadata?.name ||
+      user?.user_metadata?.preferred_name ||
+      "Student"
+    ).trim() || "Student";
+
+    const finalPayload = {
+      attemptKind: "practice",
+      practiceSection: section,
+      practiceLabel,
+      examId,
+      submittedAt,
+      studentFullName,
+      studentEmail: String(user?.email || "").trim().toLowerCase(),
+      signInMethod: String(user?.provider || user?.app_metadata?.provider || "email").trim().toLowerCase() || "email",
+      reason: String(options.reason || `${section} section finished.`).trim(),
+      [section]: {
+        saved: true,
+        testId: activeTestId,
+        answers: { ...(options.answers || {}) },
+        answerCount: Object.keys(options.answers || {}).length,
+      },
+    };
+
+    try {
+      window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
+    } catch (e) {}
+
+    const res = await fetch(endpoint.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        section,
+        activeTestId,
+        examId,
+        practiceLabel,
+        submittedAt,
+        studentFullName,
+        email: String(user?.email || "").trim().toLowerCase(),
+        reason: finalPayload.reason,
+        answers: options.answers || {},
+      }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok !== true) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+
+    try { await window.IELTS?.History?.openHistory?.(); } catch (e) {}
+    Modal()?.showModal?.(
+      "Practice submitted",
+      "Your practice result was submitted successfully. Opening your history now so you can review the saved attempt.",
+      { mode: "confirm" }
+    );
+    return data;
   }
 
   function isExamRouteView(view) {
@@ -896,7 +1005,7 @@
     // -----------------------------
     // Admin results dashboard
     // -----------------------------
-    const adminState = { rows: [], filtered: [] };
+    const adminState = { mode: "full", rowsByMode: { full: [], practice: [] }, filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
     const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT";
     const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
@@ -954,11 +1063,11 @@
       return n !== null && n > 0 ? String(n) : "null";
     }
 
-    function objectiveDetailText(total, band) {
+    function objectiveDetailText(total, band, totalQuestions = 40) {
       const totalValue = nullableNumber(total);
       const bandValue = nullableBand(band);
       if (totalValue === null && bandValue === null) return "null";
-      return `${numberText(total)} / 40 (Band ${bandText(band)})`;
+      return `${numberText(total)} / ${Number(totalQuestions) || 40} (Band ${bandText(band)})`;
     }
 
     function bandText(value) {
@@ -1065,12 +1174,53 @@
       ].join("::");
     }
 
+    function getAdminRows(mode = adminState.mode) {
+      return adminState.rowsByMode[String(mode || "full")] || [];
+    }
+
+    function setAdminRows(mode, rows) {
+      adminState.rowsByMode[String(mode || "full")] = Array.isArray(rows) ? rows : [];
+    }
+
+    function adminCacheKey(mode) {
+      return `${ADMIN_RESULTS_CACHE_KEY}:${String(mode || "full")}`;
+    }
+
+    function adminPersistentCacheKey(mode) {
+      return `${ADMIN_RESULTS_PERSISTENT_CACHE_KEY}:${String(mode || "full")}`;
+    }
+
+    function updateAdminResultsModeChrome() {
+      const fullBtn = $("adminResultsModeFullBtn");
+      const practiceBtn = $("adminResultsModePracticeBtn");
+      const isPractice = adminState.mode === "practice";
+      if (fullBtn) {
+        fullBtn.className = isPractice ? "btn secondary" : "btn";
+        fullBtn.setAttribute("aria-pressed", isPractice ? "false" : "true");
+      }
+      if (practiceBtn) {
+        practiceBtn.className = isPractice ? "btn" : "btn secondary";
+        practiceBtn.setAttribute("aria-pressed", isPractice ? "true" : "false");
+      }
+      const title = document.querySelector(".admin-results-title");
+      const subtitle = document.querySelector(".admin-results-subtitle");
+      const empty = $("adminResultsEmpty");
+      if (title) title.textContent = isPractice ? "Practice review dashboard" : "Results command dashboard";
+      if (subtitle) {
+        subtitle.textContent = isPractice
+          ? "Review section-only and practice attempts separately from full mocks."
+          : "Search, filter, inspect, and export student submissions from a cleaner cohort-management workspace.";
+      }
+      if (empty) empty.textContent = isPractice ? "No practice results found." : "No results found.";
+    }
+
     async function fetchAdminResults(options = {}) {
+      const mode = String(options.mode || adminState.mode || "full");
       const endpoint = String(R()?.ADMIN_API_PATH || "/api/admin").trim();
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("action", "resultsSummary");
+      url.searchParams.set("action", mode === "practice" ? "practiceResultsSummary" : "resultsSummary");
       if (options.forceRefresh === true) {
         url.searchParams.set("refresh", "1");
         url.searchParams.set("t", String(Date.now()));
@@ -1121,23 +1271,24 @@
     }
 
     function prefetchAdminResults(options = {}) {
-      if (!isAdminView()) return Promise.resolve(adminState.rows.slice());
+      if (!isAdminView()) return Promise.resolve(getAdminRows(adminState.mode).slice());
       const now = Date.now();
-      if (adminResultsPrefetchState.promise) return adminResultsPrefetchState.promise;
-      if (!options.forceRefresh && adminState.rows.length && now - adminResultsPrefetchState.startedAt < 30000) {
-        return Promise.resolve(adminState.rows.slice());
+      const mode = String(options.mode || adminState.mode || "full");
+      if (adminResultsPrefetchState.promiseByMode[mode]) return adminResultsPrefetchState.promiseByMode[mode];
+      if (!options.forceRefresh && getAdminRows(mode).length && now - Number(adminResultsPrefetchState.startedAtByMode[mode] || 0) < 30000) {
+        return Promise.resolve(getAdminRows(mode).slice());
       }
-      adminResultsPrefetchState.startedAt = now;
-      adminResultsPrefetchState.promise = fetchAdminResults(options)
+      adminResultsPrefetchState.startedAtByMode[mode] = now;
+      adminResultsPrefetchState.promiseByMode[mode] = fetchAdminResults(options)
         .then((rows) => {
-          adminState.rows = rows;
-          saveAdminResultsCache(rows);
+          setAdminRows(mode, rows);
+          saveAdminResultsCache(rows, mode);
           return rows;
         })
         .finally(() => {
-          adminResultsPrefetchState.promise = null;
+          adminResultsPrefetchState.promiseByMode[mode] = null;
         });
-      return adminResultsPrefetchState.promise;
+      return adminResultsPrefetchState.promiseByMode[mode];
     }
 
     async function fetchObjectiveDetailForRow(row) {
@@ -1168,6 +1319,7 @@
       (rows || [])
         .slice(0, Math.max(0, Number(limit) || 0))
         .forEach((row) => {
+          if (row?.source === "practice-objective") return;
           const cacheKey = buildAdminResultCacheKey(row);
           if (!cacheKey || adminObjectiveDetailCache.has(cacheKey) || adminObjectivePrefetchPending.has(cacheKey)) return;
           adminObjectivePrefetchPending.add(cacheKey);
@@ -1249,18 +1401,18 @@
       yearSel.value = years.has(currentYear) ? currentYear : "";
     }
 
-    function saveAdminResultsCache(rows) {
+    function saveAdminResultsCache(rows, mode = adminState.mode) {
       try {
         const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
-        sessionStorage.setItem(ADMIN_RESULTS_CACHE_KEY, payload);
-        localStorage.setItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY, payload);
+        sessionStorage.setItem(adminCacheKey(mode), payload);
+        localStorage.setItem(adminPersistentCacheKey(mode), payload);
       } catch (e) {}
     }
 
-    function loadAdminResultsCache() {
+    function loadAdminResultsCache(mode = adminState.mode) {
       try {
-        const sessionRaw = sessionStorage.getItem(ADMIN_RESULTS_CACHE_KEY);
-        const localRaw = localStorage.getItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY);
+        const sessionRaw = sessionStorage.getItem(adminCacheKey(mode));
+        const localRaw = localStorage.getItem(adminPersistentCacheKey(mode));
         const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : null;
         const localParsed = localRaw ? JSON.parse(localRaw) : null;
         const sessionSavedAt = Number(sessionParsed?.savedAt || 0);
@@ -1274,22 +1426,23 @@
       }
     }
 
-    function clearAdminResultsCache() {
-      try { sessionStorage.removeItem(ADMIN_RESULTS_CACHE_KEY); } catch (e) {}
-      try { localStorage.removeItem(ADMIN_RESULTS_PERSISTENT_CACHE_KEY); } catch (e) {}
-      adminState.rows = [];
+    function clearAdminResultsCache(mode = adminState.mode) {
+      try { sessionStorage.removeItem(adminCacheKey(mode)); } catch (e) {}
+      try { localStorage.removeItem(adminPersistentCacheKey(mode)); } catch (e) {}
+      setAdminRows(mode, []);
       adminState.filtered = [];
-      adminResultsPrefetchState.startedAt = 0;
-      adminResultsPrefetchState.promise = null;
+      adminResultsPrefetchState.startedAtByMode[mode] = 0;
+      adminResultsPrefetchState.promiseByMode[mode] = null;
     }
 
-    function mergeAdminRowIntoState(updatedRow) {
+    function mergeAdminRowIntoState(updatedRow, mode = adminState.mode) {
       if (!updatedRow) return;
       const targetKey = buildAdminResultCacheKey(updatedRow);
-      adminState.rows = adminState.rows.map((row) =>
+      const nextRows = getAdminRows(mode).map((row) =>
         buildAdminResultCacheKey(row) === targetKey ? { ...row, ...updatedRow } : row
       );
-      saveAdminResultsCache(adminState.rows);
+      setAdminRows(mode, nextRows);
+      saveAdminResultsCache(nextRows, mode);
     }
 
     function renderSummary(rows) {
@@ -1303,14 +1456,14 @@
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
-    function appendAdminObjectiveCell(cell, total, band) {
+    function appendAdminObjectiveCell(cell, total, band, totalQuestions = 40) {
       const totalValue = nullableNumber(total);
       const bandValue = nullableBand(band);
       if (totalValue === null && bandValue === null) {
         cell.textContent = "null";
         return;
       }
-      cell.append(`${numberText(total)} / 40`);
+      cell.append(`${numberText(total)} / ${Number(totalQuestions) || 40}`);
       cell.appendChild(document.createElement("br"));
       const small = document.createElement("span");
       small.className = "small";
@@ -1350,15 +1503,15 @@
         tr.appendChild(nameTd);
 
         const examTd = document.createElement("td");
-        examTd.textContent = row.examId || "—";
+        examTd.textContent = row.practiceLabel || row.examId || "—";
         tr.appendChild(examTd);
 
         const listeningTd = document.createElement("td");
-        appendAdminObjectiveCell(listeningTd, row.listeningTotal, row.listeningBand);
+        appendAdminObjectiveCell(listeningTd, row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40);
         tr.appendChild(listeningTd);
 
         const readingTd = document.createElement("td");
-        appendAdminObjectiveCell(readingTd, row.readingTotal, row.readingBand);
+        appendAdminObjectiveCell(readingTd, row.readingTotal, row.readingBand, row.readingTotalQuestions || 40);
         tr.appendChild(readingTd);
 
         const writingTd = document.createElement("td");
@@ -1395,11 +1548,11 @@
       const monthFilter = String($("adminResultsMonthFilter")?.value || "").trim();
       const yearFilter = String($("adminResultsYearFilter")?.value || "").trim();
       const sortValue = String($("adminResultsSort")?.value || "submittedAt_desc");
-      let rows = adminState.rows.slice();
+      let rows = getAdminRows(adminState.mode).slice();
 
       if (q) {
         rows = rows.filter((row) => {
-          const hay = [row.studentFullName, row.reason, row.examId].map((x) => String(x || "").toLowerCase()).join(" ");
+          const hay = [row.studentFullName, row.reason, row.examId, row.practiceLabel].map((x) => String(x || "").toLowerCase()).join(" ");
           return hay.includes(q);
         });
       }
@@ -1451,18 +1604,21 @@
       $("adminDetailTitle").textContent = row.studentFullName || "Result details";
       const metaEl = $("adminDetailMeta");
       clearElement(metaEl);
-      appendLabeledLine(metaEl, "Test", row.examId || "—");
+      appendLabeledLine(metaEl, "Test", row.practiceLabel || row.examId || "—");
       appendLabeledLine(metaEl, "Submitted", fmtDate(row.submittedAt));
       appendLabeledLine(metaEl, "Reason", row.reason || "—");
       if (options.submissionRecord) {
         appendLabeledLine(metaEl, "Email", options.submissionRecord.email || "—");
         appendLabeledLine(metaEl, "Sign-in method", String(options.submissionRecord.provider || "email").replace(/-/g, " "));
+      } else if (row?.studentEmail) {
+        appendLabeledLine(metaEl, "Email", row.studentEmail || "—");
+        appendLabeledLine(metaEl, "Sign-in method", String(row.signInMethod || "email").replace(/-/g, " "));
       }
 
       const scoresEl = $("adminDetailScores");
       clearElement(scoresEl);
-      appendLabeledLine(scoresEl, "Listening", objectiveDetailText(row.listeningTotal, row.listeningBand));
-      appendLabeledLine(scoresEl, "Reading", objectiveDetailText(row.readingTotal, row.readingBand));
+      appendLabeledLine(scoresEl, "Listening", objectiveDetailText(row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40));
+      appendLabeledLine(scoresEl, "Reading", objectiveDetailText(row.readingTotal, row.readingBand, row.readingTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
       appendLabeledLine(scoresEl, "Writing words", `${writingWordText(row.task1Words)} / ${writingWordText(row.task2Words)}`);
 
@@ -1505,6 +1661,24 @@
       } catch (e) {}
       try {
         const token = await window.IELTS?.Auth?.getAccessToken?.();
+        if (adminState.mode === "practice" && row.source === "practice-objective") {
+          const detailUrl = R()?.buildAdminApiUrl?.({
+            action: "practiceResultDetail",
+            id: row.id || "",
+            t: Date.now(),
+          });
+          const res = detailUrl
+            ? await fetch(detailUrl.toString(), {
+                method: "GET",
+                cache: "no-store",
+                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+              }).then((response) => response.json().catch(() => null).then((data) => ({ ok: response.ok, data })))
+            : null;
+          const practiceRow = res?.ok && res?.data?.ok === true ? (res.data.row || row) : row;
+          renderAdminDetailFields(practiceRow, { loadingDetail: false });
+          renderObjectiveReview("adminDetail", res?.data?.result || null);
+          return;
+        }
         const submissionMetaUrl = R()?.buildAdminApiUrl?.({
           action: "submissionMeta",
           submittedAt: row.submittedAt || "",
@@ -1524,8 +1698,9 @@
         const objectivePromise = fetchObjectiveDetailForRow(row).catch(() => null);
         const [metaResult, fullResult, objectiveResult] = await Promise.all([metaPromise, fullResultPromise, objectivePromise]);
         const metaRecord = metaResult?.ok && metaResult.data?.ok === true ? metaResult.data.record : null;
-        if (fullResult) mergeAdminRowIntoState(fullResult);
-        renderAdminDetailFields(fullResult || row, { submissionRecord: metaRecord, loadingDetail: !fullResult });
+        const detailRow = fullResult ? { ...row, ...fullResult } : row;
+        if (fullResult) mergeAdminRowIntoState(detailRow, adminState.mode);
+        renderAdminDetailFields(detailRow, { submissionRecord: metaRecord, loadingDetail: !fullResult });
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {
         renderObjectiveReview("adminDetail", null);
@@ -1547,34 +1722,36 @@
       }
     }
 
-    async function openAdminResultsView(forceRefresh = false) {
+    async function openAdminResultsView(forceRefresh = false, mode = adminState.mode) {
       if (!isAdminView()) return;
+      adminState.mode = mode === "practice" ? "practice" : "full";
+      updateAdminResultsModeChrome();
       UI().showOnly("adminResults");
-      UI().setExamNavStatus("Status: Admin results");
+      UI().setExamNavStatus(adminState.mode === "practice" ? "Status: Practice results" : "Status: Admin results");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
       const tbody = $("adminResultsTbody");
       try {
-        if (forceRefresh) clearAdminResultsCache();
-        const cachedRows = loadAdminResultsCache();
+        if (forceRefresh) clearAdminResultsCache(adminState.mode);
+        const cachedRows = loadAdminResultsCache(adminState.mode);
         let usedCachedRows = false;
         if (cachedRows.length) {
-          adminState.rows = cachedRows;
+          setAdminRows(adminState.mode, cachedRows);
           fillExamFilter(cachedRows);
           fillMonthYearFilters(cachedRows);
           applyAdminFilters();
           usedCachedRows = true;
-        } else if (adminState.rows.length) {
-          fillExamFilter(adminState.rows);
-          fillMonthYearFilters(adminState.rows);
+        } else if (getAdminRows(adminState.mode).length) {
+          fillExamFilter(getAdminRows(adminState.mode));
+          fillMonthYearFilters(getAdminRows(adminState.mode));
           applyAdminFilters();
           usedCachedRows = true;
         } else if (tbody) {
           tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
         }
-        const refresh = prefetchAdminResults({ forceRefresh })
+        const refresh = prefetchAdminResults({ forceRefresh, mode: adminState.mode })
           .then((rows) => {
-            adminState.rows = rows;
-            saveAdminResultsCache(rows);
+            setAdminRows(adminState.mode, rows);
+            saveAdminResultsCache(rows, adminState.mode);
             fillExamFilter(rows);
             fillMonthYearFilters(rows);
             applyAdminFilters();
@@ -1605,7 +1782,7 @@
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "ielts-results.csv";
+      a.download = adminState.mode === "practice" ? "ielts-practice-results.csv" : "ielts-results.csv";
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
@@ -1688,9 +1865,11 @@
     const menuToggleAdminViewBtn = $("menuToggleAdminViewBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const adminResultsHomeBtn = $("adminResultsHomeBtn");
+    const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
+    const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
     const navResultsBtn = $("navToResultsBtn");
     const adminRefreshBtn = $("adminResultsRefreshBtn");
-    const adminExportBtn = $("adminExportBtn");
+    const adminExportBtn = $("adminResultsExportBtn");
     const homeExploreMenus = $("homeExploreMenus");
     const resourceHubBadge = $("resourceHubBadge");
     const resourceHubTitle = $("resourceHubTitle");
@@ -3198,6 +3377,10 @@ function startFreshExam() {
     window.IELTS = window.IELTS || {};
     window.IELTS.App = window.IELTS.App || {};
     window.IELTS.App.startFreshExamForTest = startFreshExamForTest;
+    window.IELTS.Practice = window.IELTS.Practice || {};
+    window.IELTS.Practice.submitObjectiveSection = submitObjectiveSectionPractice;
+    window.IELTS.Practice.buildPracticeExamId = derivePracticeExamId;
+    window.IELTS.Practice.buildPracticeLabel = derivePracticeLabel;
 
     if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
     if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
@@ -3220,14 +3403,16 @@ function startFreshExam() {
     if (menuHistoryBtn) menuHistoryBtn.onclick = () => openHistoryFromMenu();
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (menuToggleAdminViewBtn) menuToggleAdminViewBtn.onclick = () => toggleAdminViewFromMenu();
-    if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView();
+    if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView(false, "full");
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");
       try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
       UI().updateHomeStatusLine();
       UI().setExamNavStatus("Status: Home");
     };
-    if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView();
+    if (adminResultsModeFullBtn) adminResultsModeFullBtn.onclick = () => openAdminResultsView(false, "full");
+    if (adminResultsModePracticeBtn) adminResultsModePracticeBtn.onclick = () => openAdminResultsView(false, "practice");
+    if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView(false, "full");
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView(true);
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
     renderHomeMenus();

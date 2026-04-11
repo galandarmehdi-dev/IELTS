@@ -45,6 +45,17 @@
     console.warn(`[${title}] ${message}`);
   }
 
+  async function submitListeningPracticeAttempt({ activeTestId, launchContext, payload }) {
+    const scopeValue = Number.isInteger(launchContext?.pageIndex) ? `section${Number(launchContext.pageIndex) + 1}` : "";
+    return window.IELTS?.Practice?.submitObjectiveSection?.("listening", {
+      activeTestId,
+      scopeValue,
+      answers: payload?.answers || {},
+      submittedAt: payload?.submittedAt || new Date().toISOString(),
+      reason: payload?.reason || "Listening section finished.",
+    });
+  }
+
   function initListeningSystem() {
     if (window.__IELTS_LISTENING_INIT__) return;
     window.__IELTS_LISTENING_INIT__ = true;
@@ -715,6 +726,18 @@ function applyActiveListeningContent() {
       lockReading(false);
 
       const isStudentFullExam = !isAdminView() && !REVIEW_MODE && (!LAUNCH_CONTEXT || LAUNCH_CONTEXT.mode === "full");
+      if (REVIEW_MODE && LAUNCH_CONTEXT?.mode === "section") {
+        submitListeningPracticeAttempt({
+          activeTestId: testId,
+          launchContext: LAUNCH_CONTEXT,
+          payload,
+        }).catch((err) => {
+          console.error("Listening practice submission failed:", err);
+          showNotice(String(err?.message || "Could not submit Listening practice right now."), "Practice submission");
+        });
+        return;
+      }
+
       if (isStudentFullExam) {
         try { window.__IELTS_LISTENING_GATE_DIRECT_ACTIVE__ = true; } catch (_) {}
         try {

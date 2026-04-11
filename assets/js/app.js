@@ -185,6 +185,29 @@
     return ["listening", "reading", "writing"].includes(String(view || ""));
   }
 
+  function resetCurrentReadingStage() {
+    const activeTestId = getActiveTestId();
+    const readingTestId =
+      R()?.getScopedReadingTestId?.(activeTestId) ||
+      R()?.getTestConfig?.(activeTestId)?.readingTestId ||
+      "ielts-reading-3parts-001";
+    const keys = [
+      `${readingTestId}:submitted`,
+      `${readingTestId}:remainingSeconds`,
+      `${readingTestId}:deadlineAt`,
+      `${readingTestId}:answers`,
+      `${readingTestId}:lastSubmission`,
+      `${readingTestId}:review:rows`,
+      `${readingTestId}:review:revealed`,
+    ];
+    keys.forEach((key) => {
+      try { S().remove(key); } catch (e) {}
+    });
+    try { window.IELTS = window.IELTS || {}; window.IELTS.__ACTIVE_READING_PART = "part1"; } catch (e) {}
+    try { $("readingControls")?.classList?.remove?.("view-only"); } catch (e) {}
+    try { $("container")?.classList?.remove?.("view-only"); } catch (e) {}
+  }
+
   function resetToPublicHomeFromStaleRoute() {
     try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
     try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
@@ -801,6 +824,7 @@
             onConfirm: async () => {
               // Mark that the user has moved on immediately to prevent any “gate loop” pulling them back.
               try { S().set(R().KEYS.HOME_LAST_VIEW, "reading"); } catch (e) {}
+              resetCurrentReadingStage();
 
               // Keep the gate locked until we have attempted to start Reading.
               // (If listening:submitted fires again for any reason, showListeningGate will ignore it.)
@@ -3351,12 +3375,12 @@
 
 function startFreshExam() {
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
+      resetEngineInitFlags();
+      clearAllStudentAttemptKeys();
       R()?.setLaunchContext?.({
         mode: "full",
         testId: window.IELTS?.Registry?.getActiveTestId?.() || "ielts1",
       });
-      resetEngineInitFlags();
-      clearAllStudentAttemptKeys();
       safe(() => Modal().hideModal());
 
       try { UI().setExamStarted(true); } catch (e) {}

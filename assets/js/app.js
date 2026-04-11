@@ -59,6 +59,14 @@
       return null;
     }
   }
+  function matchesActiveNonFullLaunch(view) {
+    const ctx = getLaunchContext();
+    const normalized = String(view || "").trim();
+    if (!ctx || !normalized) return false;
+    if (ctx.mode === "section" && ctx.section === normalized) return true;
+    if (ctx.mode === "practice" && ctx.skill === normalized) return true;
+    return false;
+  }
   function isFullExamFlow() {
     const ctx = getLaunchContext();
     return !ctx || ctx.mode === "full";
@@ -440,6 +448,8 @@
 
     function hasResumableStudentAttempt() {
       if (isAdminView()) return false;
+      const currentRouteView = safe(() => Router().parseHashRoute()?.view) || "";
+      if (matchesActiveNonFullLaunch(currentRouteView)) return true;
       try {
         if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true") return false;
       } catch (e) {}
@@ -566,6 +576,9 @@
       if (isExamRouteView(nextRoute.view)) {
         if (isAdminView()) {
           if (document.body?.dataset?.activeView !== nextRoute.view) openAdminRoute(nextRoute);
+          return;
+        }
+        if (matchesActiveNonFullLaunch(nextRoute.view)) {
           return;
         }
         if (!hasResumableStudentAttempt()) {

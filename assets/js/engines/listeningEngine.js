@@ -731,6 +731,19 @@ function applyActiveListeningContent() {
           activeTestId: testId,
           launchContext: LAUNCH_CONTEXT,
           payload,
+        }).then((response) => {
+          const reviewRows = Array.isArray(response?.result?.listening) ? response.result.listening.slice() : [];
+          lastReviewRows = reviewRows;
+          lastReviewRevealed = true;
+          S().setJSON(`${L_KEYS.answers}:reviewRows`, lastReviewRows);
+          S().set(`${L_KEYS.answers}:reviewRevealed`, "true");
+          renderListeningReview(
+            lastReviewRows,
+            true,
+            Number(response?.row?.listeningTotal || lastReviewRows.filter((item) => item.mark).length),
+            Number(response?.row?.listeningTotalQuestions || lastReviewRows.length || 0)
+          );
+          try { setStatus("Status: Listening practice submitted"); } catch (e) {}
         }).catch((err) => {
           console.error("Listening practice submission failed:", err);
           showNotice(String(err?.message || "Could not submit Listening practice right now."), "Practice submission");

@@ -1085,11 +1085,26 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
       if (LAUNCH_CONTEXT?.mode === "section") {
         try {
-          await submitReadingPracticeAttempt({
+          const response = await submitReadingPracticeAttempt({
             activeTestId: ACTIVE_TEST_ID,
             launchContext: LAUNCH_CONTEXT,
             payload,
           });
+          const reviewRows = Array.isArray(response?.result?.reading) ? response.result.reading.slice() : [];
+          lastReviewRows = reviewRows;
+          lastReviewRevealed = true;
+          S().setJSON(reviewStorageKey("rows"), lastReviewRows);
+          S().set(reviewStorageKey("revealed"), "true");
+          renderReviewPanel(
+            lastReviewRows,
+            true,
+            Number(response?.row?.readingTotal || lastReviewRows.filter((item) => item.mark).length),
+            Number(response?.row?.readingTotalQuestions || lastReviewRows.length || 0)
+          );
+          if ($("autosaveStatus")) {
+            $("autosaveStatus").textContent = "Reading practice submitted. Review shown below.";
+          }
+          syncReviewButtons();
         } catch (err) {
           console.error("Reading practice submission failed:", err);
           showNotice(String(err?.message || "Could not submit Reading practice right now."), "Practice submission");

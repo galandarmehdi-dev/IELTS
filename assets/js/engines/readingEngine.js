@@ -54,11 +54,11 @@
     const ACTIVE_TEST_ID = R().getActiveTestId?.() || R().TESTS?.defaultTestId || "ielts1";
     const LAUNCH_CONTEXT = R().getLaunchContext?.() || null;
     const TEST_ID = (R().getScopedReadingTestId?.(ACTIVE_TEST_ID)) || (R().getTestConfig?.(ACTIVE_TEST_ID)?.readingTestId) || R().TESTS.readingTestId;
-    const DURATION_MINUTES = 60;
+    const DURATION_MINUTES = 1;
     const REVIEW_MODE = !!(LAUNCH_CONTEXT && (LAUNCH_CONTEXT.mode === "section" || LAUNCH_CONTEXT.mode === "practice"));
 
     // TIMER/STATE
-    let remainingSeconds = DURATION_MINUTES * 60;
+    let remainingSeconds = DURATION_MINUTES * 1;
     let timerInterval = null;
     let deadlineAt = 0;
 

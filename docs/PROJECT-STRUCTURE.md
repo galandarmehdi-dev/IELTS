@@ -6,7 +6,7 @@ This project is still a single-page HTML application with multiple feature areas
 
 ### Main files
 - `index.html` — all major app sections live here
-- `app.js` — app boot, routing, home actions, exam transitions
+- `assets/js/app.js` — app boot, routing, home actions, and exam transitions
 - `assets/js/ui.js` — shared screen visibility and UI helpers
 - `assets/js/history.js` — history screen logic
 - `assets/js/auth.js` — sign-in/auth flow
@@ -19,9 +19,8 @@ This project is still a single-page HTML application with multiple feature areas
 
 ### Test content
 - `assets/js/tests/registry.js`
-- `assets/js/tests/test1Content.js`
-- `assets/js/tests/test2Content.js`
-- `assets/js/tests/test3Content.js`
+- `src/protectedTestContent.mjs`
+- `src/objectiveAnswerKeys.mjs`
 
 ### Styling
 - `assets/css/base.css` — shared global styling and auth styles
@@ -33,7 +32,7 @@ This project is still a single-page HTML application with multiple feature areas
 
 ## Recommended next structural cleanup
 
-1. Move large HTML sections into template files or generated partials
+1. Keep large HTML sections on cleaner rendering paths instead of reviving unused partial/template layers
 2. Reduce direct manual class toggling outside `UI.showOnly()`
 3. Keep all section view names centralized in `ui.js`
 4. Split public homepage concerns from exam-app concerns more clearly

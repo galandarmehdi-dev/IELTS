@@ -146,7 +146,7 @@
     };
 
     try {
-      window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
+      window.IELTS?.History?.rememberLocalAttempt?.(finalPayload);
     } catch (e) {}
 
     const res = await fetch(endpoint.toString(), {
@@ -172,12 +172,6 @@
       throw new Error(data?.error || `HTTP ${res.status}`);
     }
 
-    try { await window.IELTS?.History?.openHistory?.(); } catch (e) {}
-    Modal()?.showModal?.(
-      "Practice submitted",
-      "Your practice result was submitted successfully. Opening your history now so you can review the saved attempt.",
-      { mode: "confirm" }
-    );
     return data;
   }
 
@@ -2833,7 +2827,6 @@
           items: [
             { label: "Open listening page", copy: "Listening exams, sections, and tips.", onClick: () => openResourceHub("listening") },
             { label: "Take full listening exam", copy: "Go to listening-only exam cards.", onClick: () => openResourceHub("listening", "listening-full-exams") },
-            { label: "Take by section", copy: "Open listening section launchers.", onClick: () => openResourceHub("listening", "listening-sections") },
             { label: "Listening tips", copy: "See listening technique guidance.", onClick: () => openResourceHub("listening", "listening-tips") },
           ],
         },
@@ -3031,7 +3024,7 @@
       if (kind === "listening") {
         resourceHubBadge.textContent = "Listening page";
         resourceHubTitle.textContent = "Listening exams, sections, and listening technique";
-        resourceHubSubtitle.textContent = "Use this page for full listening runs, section-by-section access, and listening reminders.";
+        resourceHubSubtitle.textContent = "Use this page for full listening runs and listening reminders.";
         addSection("listening-full-exams", "Take full listening exam", "Open the listening-only version of each uploaded test.", () => {
           const grid = document.createElement("div");
           grid.className = "resource-hub-grid";
@@ -3043,27 +3036,6 @@
               meta: item.meta,
               primaryLabel: "Open full listening",
               onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
-            }));
-          });
-          return grid;
-        });
-        addSection("listening-sections", "Take by section", "Jump directly to individual listening sections for focused practice.", () => {
-          const grid = document.createElement("div");
-          grid.className = "resource-hub-grid";
-          (catalog.sections.listening || []).forEach((item) => {
-            grid.appendChild(createMultiActionCard({
-              kicker: "Listening sections",
-              title: R()?.getTestLabel?.(item.testId) || item.label,
-              copy: "Open one listening section at a time. This is useful for focused repetition inside the current listening workspace.",
-              meta: ["Section 1", "Section 2", "Section 3", "Section 4"],
-              primaryLabel: "Full listening",
-              onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
-              extraActions: [
-                { label: "Section 1", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 0)) },
-                { label: "Section 2", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 1)) },
-                { label: "Section 3", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 2)) },
-                { label: "Section 4", onClick: () => requireTestPassword(() => launchListeningOnly(item.testId, 3)) },
-              ],
             }));
           });
           return grid;

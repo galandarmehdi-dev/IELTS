@@ -877,7 +877,7 @@
             status.textContent = result?.message || "Saved. Use your new password for this email.";
           }
         } catch (e) {
-          console.error("Could not save student password override:", e);
+          console.error("Could not save student password:", e);
           if (status) status.textContent = e?.message || "Could not save your new student password.";
         }
       });

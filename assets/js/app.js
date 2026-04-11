@@ -2,8 +2,6 @@
 (function () {
   "use strict";
 
-  console.log("JS is running (split build)");
-
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
@@ -3458,7 +3456,6 @@ function startFreshExam() {
         }
       }, { capture: true });
 
-      console.log('IELTS fallback handlers installed');
     }
 
     if (document.readyState === 'loading') {

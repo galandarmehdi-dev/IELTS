@@ -1174,8 +1174,6 @@ document.addEventListener("partials:loaded", () => {
 }, { once: true });
 
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log("[AUTH] onAuthStateChange:", event);
-
   if (event === "PASSWORD_RECOVERY") {
     clearSharedSession();
     if (session?.user) saveUser(session.user);

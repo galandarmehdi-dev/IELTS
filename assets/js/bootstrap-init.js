@@ -1,7 +1,6 @@
 /* assets/js/bootstrap-init.js
    Step 1 foundation fix:
-   If the page uses inline sections instead of partialsLoader,
-   dispatch the event that app.js is waiting for.
+   Dispatch the boot event that app.js and related screens wait for.
 */
 (function () {
   "use strict";

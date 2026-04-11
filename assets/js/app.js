@@ -64,12 +64,6 @@
     return !ctx || ctx.mode === "full";
   }
 
-  function hasActiveExamLaunch() {
-    const started = S()?.get?.(R()?.KEYS?.EXAM_STARTED, "false") === "true";
-    const ctx = getLaunchContext();
-    return started || !!(ctx && typeof ctx === "object");
-  }
-
   function isExamRouteView(view) {
     return ["listening", "reading", "writing"].includes(String(view || ""));
   }
@@ -909,11 +903,6 @@
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 
-    function num(value) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : 0;
-    }
-
     function nullableNumber(value) {
       if (value === null || value === undefined) return null;
       const text = String(value).trim();
@@ -963,13 +952,6 @@
     function writingWordText(value) {
       const n = nullableNumber(value);
       return n !== null && n > 0 ? String(n) : "null";
-    }
-
-    function objectiveTableCell(total, band) {
-      const totalText = nullableNumber(total);
-      const bandValue = nullableBand(band);
-      if (totalText === null && bandValue === null) return "null";
-      return `${escapeHtml(numberText(total))} / 40<br><span class="small">Band ${escapeHtml(bandText(band))}</span>`;
     }
 
     function objectiveDetailText(total, band) {
@@ -1461,15 +1443,6 @@
       });
 
       renderAdminTable(rows);
-    }
-
-    function buildAdminDetailMetaHtml(row, submissionRecord) {
-      let html = `Test: <b>${escapeHtml(row.examId || "—")}</b><br>Submitted: <b>${escapeHtml(fmtDate(row.submittedAt))}</b><br>Reason: <b>${escapeHtml(row.reason || "—")}</b>`;
-      if (submissionRecord) {
-        const providerText = String(submissionRecord.provider || "email").replace(/-/g, " ");
-        html += `<br>Email: <b>${escapeHtml(submissionRecord.email || "—")}</b><br>Sign-in method: <b>${escapeHtml(providerText)}</b>`;
-      }
-      return html;
     }
 
     function renderAdminDetailFields(row, options = {}) {
@@ -1996,19 +1969,6 @@
         });
       }
       return card;
-    }
-
-    function renderCatalogInto(root, items, buildCard, emptyText) {
-      if (!root) return;
-      root.innerHTML = "";
-      if (!Array.isArray(items) || !items.length) {
-        const empty = document.createElement("div");
-        empty.className = "home-catalog-empty";
-        empty.textContent = emptyText || "Nothing is available here yet.";
-        root.appendChild(empty);
-        return;
-      }
-      items.forEach((item) => root.appendChild(buildCard(item)));
     }
 
     const HUB_VIEWS = {

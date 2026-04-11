@@ -1,5 +1,4 @@
 /* assets/js/bootstrap-init.js
-   Step 1 foundation fix:
    Dispatch the boot event that app.js and related screens wait for.
 */
 (function () {

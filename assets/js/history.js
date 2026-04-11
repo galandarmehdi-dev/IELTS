@@ -37,6 +37,9 @@
 
   function examLabel(row) {
     const examId = String(row.exam_id || row.examId || row.active_test_id || "");
+    if (/^ielts-practice-/i.test(examId)) {
+      return String(row?.final_payload?.practiceLabel || examId).replace(/^ielts-/, "").trim() || "Practice";
+    }
     const m = examId.match(/(\d+)/);
     return m ? `IELTS Test ${Number(m[1])}` : (examId || "IELTS Test");
   }
@@ -101,16 +104,21 @@
   function objectiveSectionStatus(row, section) {
     const totalKey = `${section}_total`;
     const bandKey = `${section}_band`;
+    const totalQuestionsKey = `${section}_total_questions`;
     const payload = row?.final_payload || {};
     const total = nullableNumber(row?.[totalKey]);
     const band = nullableNumber(row?.[bandKey]);
+    const totalQuestions = nullableNumber(row?.[totalQuestionsKey]) || 40;
     if (total !== null || band !== null) {
+      const compact = total !== null
+        ? `${total} / ${totalQuestions}${band !== null ? ` · ${band.toFixed(1)}` : ""}`
+        : `Band ${band === null ? "null" : band.toFixed(1)}`;
       return {
         state: "scored",
         total,
         band,
-        listText: `Band ${band === null ? "null" : band.toFixed(1)}`,
-        detailText: `${total === null ? "null" : total} / 40 (Band ${band === null ? "null" : band.toFixed(1)})`,
+        listText: compact,
+        detailText: `${total === null ? "null" : total} / ${totalQuestions} (Band ${band === null ? "null" : band.toFixed(1)})`,
       };
     }
     if (hasAnyObjectiveAnswers(payload?.[section])) {
@@ -221,6 +229,25 @@
   }
 
   async function fetchObjectiveDetailForRow(row) {
+    const payload = row?.final_payload || {};
+    if (payload?.attemptKind === "practice" && ["listening", "reading"].includes(String(payload?.practiceSection || ""))) {
+      const url = Registry()?.buildAdminApiUrl?.({
+        action: "practiceResultDetail",
+        id: payload?.practiceId || row?.practice_id || row?.id || "",
+        t: Date.now(),
+      });
+      if (!url) return null;
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true || !data.result) return null;
+      return data.result;
+    }
+
     const cacheKey = buildMatchKey(row);
     if (objectiveDetailCache.has(cacheKey)) return objectiveDetailCache.get(cacheKey);
 
@@ -435,6 +462,10 @@
       task1_words: Number(writing?.wordCount?.task1 || 0),
       task2_words: Number(writing?.wordCount?.task2 || 0),
       final_payload: {
+        attemptKind: finalPayload?.attemptKind || null,
+        practiceSection: finalPayload?.practiceSection || null,
+        practiceLabel: finalPayload?.practiceLabel || null,
+        practiceId: finalPayload?.practiceId || null,
         examId: finalPayload?.examId || "",
         submittedAt: finalPayload?.submittedAt || "",
         studentFullName: finalPayload?.studentFullName || "",
@@ -525,7 +556,11 @@
 
   async function fetchStudentResultsForRows(rows) {
     const endpoint = Registry()?.buildAdminApiUrl?.({ action: "studentResults" });
-    if (!endpoint || !rows?.length) return [];
+    const eligibleRows = (rows || []).filter((row) => {
+      const payload = row?.final_payload || {};
+      return !(payload?.attemptKind === "practice" && ["listening", "reading"].includes(String(payload?.practiceSection || "")));
+    });
+    if (!endpoint || !eligibleRows.length) return [];
     const token = await window.IELTS?.Auth?.getAccessToken?.();
     const res = await fetch(endpoint.toString(), {
       method: "POST",
@@ -535,7 +570,7 @@
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        rows: rows.map((row) => ({
+        rows: eligibleRows.map((row) => ({
           submittedAt: row.submitted_at || "",
           studentFullName: row.student_full_name || "",
           examId: row.exam_id || row.active_test_id || "",
@@ -550,6 +585,19 @@
 
   async function fetchMergedHistoryRows(email) {
     let rows = await loadRows();
+    const practiceEndpoint = Registry()?.buildAdminApiUrl?.({ action: "studentPracticeResults" });
+    if (practiceEndpoint) {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const practiceRes = await fetch(practiceEndpoint.toString(), {
+        method: "GET",
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }).catch(() => null);
+      const practiceData = await practiceRes?.json?.().catch(() => null);
+      if (practiceRes?.ok && practiceData?.ok === true && Array.isArray(practiceData.results)) {
+        rows = mergeRowsByMatchKey(rows, practiceData.results);
+      }
+    }
     const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
     if (backendResults.length) {
       const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));

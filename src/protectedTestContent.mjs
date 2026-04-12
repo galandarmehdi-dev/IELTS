@@ -2883,6 +2883,502 @@ F The greatest author of antiquity was actually, Parry argued, just "one of a lo
     },
   };
 
+const test8 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/CL4e.mp3",
+    html: `
+      <div class="listen-page" id="listenSec1">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 1 - Questions 1-10</div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 1-3</div>
+            <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">1</span> The food will be placed</div>
+              <label class="mcq-opt"><input type="radio" name="t8q1" value="A" data-lq-radio="1"> A) in the meeting room.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q1" value="B" data-lq-radio="1"> B) in the training room.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q1" value="C" data-lq-radio="1"> C) outside the training room.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">2</span> The company is only providing food at lunchtime because</div>
+              <label class="mcq-opt"><input type="radio" name="t8q2" value="A" data-lq-radio="2"> A) attendees will already have had breakfast.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q2" value="B" data-lq-radio="2"> B) breakfast is more expensive than lunch.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q2" value="C" data-lq-radio="2"> C) there is only enough money to provide lunch.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">3</span> Which of the following people will be at the lunch?</div>
+              <label class="mcq-opt"><input type="radio" name="t8q3" value="A" data-lq-radio="3"> A) the manager</label>
+              <label class="mcq-opt"><input type="radio" name="t8q3" value="B" data-lq-radio="3"> B) the secretary</label>
+              <label class="mcq-opt"><input type="radio" name="t8q3" value="C" data-lq-radio="3"> C) the trainer</label>
+            </div>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 4-10</div>
+            <div class="listen-inst">Complete the form below. Write <b>NO MORE THAN TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Corporate Catering Order Form</div>
+            <div class="listen-notes">
+              <div class="note-row">Date of event: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+              <div class="note-row">Delivery time: <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+              <div class="note-row">Number of people: <span class="qnum">6</span> <input data-lq="6" class="l-input tiny"></div>
+              <div class="note-row">Standard Buffet cost: &pound;<span class="qnum">7</span> <input data-lq="7" class="l-input tiny"></div>
+              <div class="note-row">Dietary requirements: 1 person requires <span class="qnum">8</span> <input data-lq="8" class="l-input"> food.</div>
+              <div class="note-row">Contact person: Carol <span class="qnum">9</span> <input data-lq="9" class="l-input"></div>
+              <div class="note-row">Telephone number: 455 2298, Extension <span class="qnum">10</span> <input data-lq="10" class="l-input tiny"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec2">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 2 - Questions 11-20</div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 11-20</div>
+            <div class="listen-inst">Complete the leaflet below. Write <b>NO MORE THAN THREE WORDS AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Stay Safe During a Heatwave</div>
+            <div class="listen-notes">
+              <div class="note-row">In the daytime try to limit the amount of <span class="qnum">11</span> <input data-lq="11" class="l-input"> in rooms.</div>
+              <div class="note-row">Are you using air conditioning? Pay attention to your <span class="qnum">12</span> <input data-lq="12" class="l-input"></div>
+              <div class="note-row">Spray cold water on your face or take a <span class="qnum">13</span> <input data-lq="13" class="l-input"></div>
+              <div class="note-row">Your wrists and the back of your neck are your body's <span class="qnum">14</span> <input data-lq="14" class="l-input"></div>
+              <div class="note-row">Eat a healthy diet to replace the nutrients you lose through <span class="qnum">15</span> <input data-lq="15" class="l-input"></div>
+              <div class="note-row">Try to stay at home between <span class="qnum">16</span> <input data-lq="16" class="l-input"></div>
+              <div class="note-row">If you go out in the sun, wear a hat or use an <span class="qnum">17</span> <input data-lq="17" class="l-input"></div>
+              <div class="note-row">Wear loose-fitting clothes made from <span class="qnum">18</span> <input data-lq="18" class="l-input"></div>
+              <div class="note-row">Take it easy when doing any <span class="qnum">19</span> <input data-lq="19" class="l-input"></div>
+              <div class="note-row">Remember your neighbours, especially if they are elderly or have <span class="qnum">20</span> <input data-lq="20" class="l-input"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec3">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 3 - Questions 21-30</div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 21-25</div>
+            <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">21</span> The student did not speak with Professor Collins because</div>
+              <label class="mcq-opt"><input type="radio" name="t8q21" value="A" data-lq-radio="21"> A) she did not have the time.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q21" value="B" data-lq-radio="21"> B) she could not get an appointment with him.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q21" value="C" data-lq-radio="21"> C) he is not around at the moment.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">22</span> When doing assignments, many students</div>
+              <label class="mcq-opt"><input type="radio" name="t8q22" value="A" data-lq-radio="22"> A) are surprised to find how difficult they are to write.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q22" value="B" data-lq-radio="22"> B) often fail to get the required grades.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q22" value="C" data-lq-radio="22"> C) do not provide a full answer.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">23</span> The tutor says that words like <i>analyse</i>, <i>discuss</i> and <i>evaluate</i></div>
+              <label class="mcq-opt"><input type="radio" name="t8q23" value="A" data-lq-radio="23"> A) each require a completely different response.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q23" value="B" data-lq-radio="23"> B) will often have the same meaning.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q23" value="C" data-lq-radio="23"> C) can be difficult to understand.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">24</span> The danger of using certain sources on the internet is that</div>
+              <label class="mcq-opt"><input type="radio" name="t8q24" value="A" data-lq-radio="24"> A) the assignment may receive a lower grade.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q24" value="B" data-lq-radio="24"> B) they are full of promotions and adverts.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q24" value="C" data-lq-radio="24"> C) they are sometimes written by politicians.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">25</span> The books on a reading list</div>
+              <label class="mcq-opt"><input type="radio" name="t8q25" value="A" data-lq-radio="25"> A) express fewer opinions than the internet.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q25" value="B" data-lq-radio="25"> B) are more critical of other authors.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q25" value="C" data-lq-radio="25"> C) have been assessed by other experts.</label>
+            </div>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 26-30</div>
+            <div class="listen-inst">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+            <div class="listen-card-title">Proofreading checklist</div>
+            <div class="listen-notes">
+              <div class="note-row"><span class="qnum">26</span> Your paragraphs must be <input data-lq="26" class="l-input"> and in an order that makes sense to the reader.</div>
+              <div class="note-row"><span class="qnum">27</span> The points you have made should be <input data-lq="27" class="l-input">, not just anything to get to the required word count.</div>
+              <div class="note-row"><span class="qnum">28</span> Pay attention to any <input data-lq="28" class="l-input"></div>
+              <div class="note-row"><span class="qnum">29</span> Check your <input data-lq="29" class="l-input"> and spelling.</div>
+              <div class="note-row"><span class="qnum">30</span> Check your <input data-lq="30" class="l-input"> are grammatically correct.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec4">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 4 - Questions 31-40</div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 31-32</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
+            <div class="mcq-q">Which <b>TWO</b> things can result from a lack of strength training?</div>
+            <label class="mcq-opt"><input id="t8q31a" name="t8q31group" type="checkbox" data-lq-check="31" value="A" autocomplete="off"> A) A person will not get the benefit of natural activities.</label>
+            <label class="mcq-opt"><input id="t8q31b" name="t8q31group" type="checkbox" data-lq-check="31" value="B" autocomplete="off"> B) A person will not do as well in their sport as they could.</label>
+            <label class="mcq-opt"><input id="t8q31c" name="t8q31group" type="checkbox" data-lq-check="31" value="C" autocomplete="off"> C) An athlete can no longer practise their sport.</label>
+            <label class="mcq-opt"><input id="t8q31d" name="t8q31group" type="checkbox" data-lq-check="31" value="D" autocomplete="off"> D) A person will not be able to visit the gym.</label>
+            <label class="mcq-opt"><input id="t8q31e" name="t8q31group" type="checkbox" data-lq-check="31" value="E" autocomplete="off"> E) A person's injuries will get worse.</label>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 33-37</div>
+            <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">33</span> An injury caused by a fall</div>
+              <label class="mcq-opt"><input type="radio" name="t8q33" value="A" data-lq-radio="33"> A) tends to be unexpected.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q33" value="B" data-lq-radio="33"> B) needs to be dealt with urgently.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q33" value="C" data-lq-radio="33"> C) is often caused by weak muscles.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">34</span> Athletes who do more than one sport</div>
+              <label class="mcq-opt"><input type="radio" name="t8q34" value="A" data-lq-radio="34"> A) place too much pressure on their bodies.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q34" value="B" data-lq-radio="34"> B) are in particular need of strength training.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q34" value="C" data-lq-radio="34"> C) avoid overworking one part of the body.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">35</span> Injuries can be avoided</div>
+              <label class="mcq-opt"><input type="radio" name="t8q35" value="A" data-lq-radio="35"> A) if an athlete makes fewer repetitive movements.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q35" value="B" data-lq-radio="35"> B) if muscles that are not used as much are exercised.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q35" value="C" data-lq-radio="35"> C) if an athlete can learn to keep their balance.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">36</span> A strength training programme</div>
+              <label class="mcq-opt"><input type="radio" name="t8q36" value="A" data-lq-radio="36"> A) should also help you move more freely.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q36" value="B" data-lq-radio="36"> B) will reduce daily aches and pains.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q36" value="C" data-lq-radio="36"> C) is only suitable for particular sports.</label>
+            </div>
+
+            <div class="mcq">
+              <div class="mcq-q"><span class="qnum">37</span> What problem do older athletes face?</div>
+              <label class="mcq-opt"><input type="radio" name="t8q37" value="A" data-lq-radio="37"> A) They eat a poorer diet than younger athletes.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q37" value="B" data-lq-radio="37"> B) They are unable to continue doing their chosen sport.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q37" value="C" data-lq-radio="37"> C) They lose muscle mass.</label>
+            </div>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 38-40</div>
+            <div class="listen-inst">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+            <div class="listen-notes">
+              <div class="note-row"><span class="qnum">38</span> Athletes are often less able to practise their sport during the <input data-lq="38" class="l-input"></div>
+              <div class="note-row"><span class="qnum">39</span> Seeing improvements brought about by strength training can help athletes develop a <input data-lq="39" class="l-input"></div>
+              <div class="note-row"><span class="qnum">40</span> If athletes are prevented from doing their sport for a long time, strength training can help them remain <input data-lq="40" class="l-input"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+
+  writing: {
+    task1Type: "Line graph",
+    task2Type: "Agree or disagree",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The line graph shows the number of players in four different sports (badminton, tennis, basketball, rugby) in a particular European country between 1985 and 2005.<br>
+      Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/f465a3939aaca96c.jpeg",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      In some countries, many children are becoming overweight and unhealthy. Some people say it is the responsibility of governments to solve this problem.<br>
+      <b>To what extent do you agree or disagree?</b><br>
+      Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
+      <b>Write at least 250 words.</b>
+    `,
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Coastal defences
+
+The world's coastlines are constantly being reshaped and reworked by the sea. Coastal erosion is one of the natural phenomena that contribute to the creation and destruction of our shores and one of the main processes that form beaches, dunes, mud flats, reefs and marshes along the coast. These different shoreline features have a wide range of functions: they provide habitats for wildlife, prevent flooding and protect fresh water resources inland, and, of course, they provide opportunities for leisure activities like sunbathing. As human activity along the coast continues to increase with the development of towns and industries, managing erosion is becoming a problem of growing importance. The risk of flooding due to rising sea levels, attributed to the effects of global warming, makes finding a solution to erosion a priority. As well as protecting natural habitats, coastal management involves saving homes and businesses from damage or destruction, and failing to do this can have severe consequences for society and the economy.
+
+Coastlines are changed by the sea in two ways: erosion and longshore drift. Erosion happens through different processes, but essentially the action of the sea wears down features of the coastal landscape such as cliffs, beaches and sand dunes before washing them away. Longshore drift happens when waves approach a beach at an angle and move sediment along the coast until eventually the beach changes its shape. The beach may even disappear from its original location and re-form, as sediment is deposited, further down the coast.
+
+There are three basic approaches to coastline management. The first one is to maintain the existing coastal defences but not to build new ones. The second is to build new defences further out at sea in order to reduce pressure on existing defences and even extend the coastline. The third is to retreat, in other words, to move people, homes and businesses away from disappearing coastlines. When the preferred option is to attempt to stop coastline erosion, either hard or soft engineering options can be used.
+
+Hard engineering options are expensive and, in all probability, short term. They tend to have a significant effect on the landscape and environment because of their size and visual impact. Furthermore, they are expensive to build and maintain. Common coastal hard engineering methods are to build a sea wall or groynes; each type of barrier is designed to combat an aspect of coastal change, and in some places more than one type of sea defence can be seen. Sea walls are built at the edge of a coastline and are usually made from reinforced concrete to make them stronger. The walls prevent the sea from washing away the bottom of cliffs, causing the cliffs to fall into the sea. The walls can be vertical, curved or mound walls. Vertical walls were mainly used in the past and are the simplest type of wall. Unfortunately, they are also the most easily damaged by waves as their foundations can be undermined by the sea. Curved seawalls serve to push the waves back out to sea, and the curve prevents water from crashing over the top of the wall. However, deflecting the energy of the waves simply means that erosion takes place further down the coast. Mound sea walls use a mixture of loose material, such as rock and concrete, which has the advantage of absorbing the energy of the waves rather than deflecting it, and cost much less to build. However, they are less effective in storms and have shorter lives than solid sea walls.
+
+Groynes are low walls built at a right angle to the coastline and are used to minimise the effect of longshore drift. They can be built from wood, stones and/or concrete, and are used in groups to break the beach into sections. As a wave hits the side of a groyne, its power is reduced and the material being carried by it is deposited at the side of the groyne. Groynes are less expensive than sea walls to put in place but like mound sea walls, they have a short lifespan.
+
+The alternatives to hard engineering schemes are soft engineering techniques. They are low-cost solutions that have little immediate effectiveness against coastal erosion but are much more sustainable. There are two main kinds of soft engineering options. The first is beach nourishment, which replaces the sand and pebbles washed away by the sea. This avoids the need for expensive sea walls but sand needs to be moved constantly to maintain the beach. Unfortunately, because this option does not stop natural erosion by the sea, a larger quantity of material is deposited further down the coast. The second option, managed retreat, avoids coastal management and construction projects and allows areas of the coast to erode and flood naturally. Managed retreat usually takes place in areas of low economic value. The advantage of this method is that it encourages the development of beaches and salt marshes, two kinds of environments that are natural defences against the sea. The second advantage is, of course, that it is cheap.
+
+Coastal management is difficult as local people, farmers and the agricultural industry, environmentalists, tourist authorities and other economic interests will have different opinions about what should be done. The importance of the issue is obvious from just one statistic: 45% of the world's population live within 100 kilometres of the coast. As sea levels rise and storm energy increases, the problems of coastal management are going to become ever more intense and pressing.`,
+        blocks: [
+          {
+            type: "summarySelect",
+            title: "Questions 1-5",
+            instructions: [
+              "Complete the summary using the list of words, A-I, below.",
+              "Write the correct letter, A-I, for each answer.",
+            ],
+            summaryTitle: "Coastal erosion and management",
+            summaryLines: [
+              { blankQ: 1, text: "Coastal erosion can create several different types of", tail: ", which have many different shoreline functions." },
+              { blankQ: 2, before: "These landscape features have many different", after: "in the changing coastal environment." },
+              { blankQ: 3, text: "The increasing", tail: "of homes and businesses on or near the coast means that managing our coastline is a major issue." },
+              { blankQ: 4, before: "Managing our coastline is a", after: "for many countries around the world." },
+              { blankQ: 5, text: "If this cannot be done effectively, there could be severe effects on", tail: "." },
+            ],
+            optionsTitle: "Options",
+            options: [
+              { letter: "A", word: "crisis" },
+              { letter: "B", word: "priority" },
+              { letter: "C", word: "landscape" },
+              { letter: "D", word: "management" },
+              { letter: "E", word: "economy" },
+              { letter: "F", word: "roles" },
+              { letter: "G", word: "society" },
+              { letter: "H", word: "resources" },
+              { letter: "I", word: "development" },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 6-8",
+            instructions: [
+              "Complete the sentences below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+            ],
+            items: [
+              { q: 6, text: "Erosion occurs when features of the coast are worn down by the sea's", tail: "." },
+              { q: 7, text: "Shorelines are reshaped when materials are washed down the coast because waves hit beaches at an", tail: "." },
+              { q: 8, text: "Beaches can move and", tail: "some distance away from their original position." },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 9-12",
+            instructions: [
+              "Complete the flow-chart below.",
+              "Choose ONE WORD from the passage for each answer.",
+            ],
+            items: [
+              { q: 9, text: "Vertical sea walls: the foundations are often", tail: "by the sea." },
+              { q: 10, text: "Curved sea walls: stop waves", tail: "over the wall." },
+              { q: 11, text: "Mound sea walls: capable of", tail: "wave energy." },
+              { q: 12, text: "Groynes: do not have a long", tail: "." },
+            ],
+          },
+          {
+            type: "mcq",
+            title: "Questions 13-14",
+            instructions: ["Choose the correct letter, A, B, C or D."],
+            items: [
+              {
+                q: 13,
+                text: "Which statement is NOT TRUE about beach nourishment?",
+                choices: {
+                  A: "Sea walls are not needed.",
+                  B: "Coastal materials have to be replaced often.",
+                  C: "More coastal material is carried further down the coast.",
+                  D: "It involves building roads to bring materials to the coast.",
+                },
+              },
+              {
+                q: 14,
+                text: "Which statement is TRUE about managed retreat?",
+                choices: {
+                  A: "Salt marshes and cliffs are usually created as a result.",
+                  B: "It is used in areas of little commercial interest.",
+                  C: "Not a lot of land is lost to the sea.",
+                  D: "The costs of managed retreat are high.",
+                },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part2",
+        passageText: `Team working
+
+The ability to work in a team is one that is prized by employers and educationalists alike. It is often requested in job advertisements and displayed on CVs. When employers list their most important skills for promotion, 86% list team working skills. The willingness and ability to work with a group of people towards a single target has become increasingly important in an era when soft skills like communication, creativity, critical thinking and collaboration are essential in work and study. Today's teams are different from those of the past because a team is likely to change membership more often, will be more socially diverse and its members could be located over a wider area, even globally.
+
+In 1965 psychologist Bruce Tuckman recognised that team building goes through different stages, from a collection of individuals to a fully functioning unit. Tuckman did not study groups himself; he reviewed articles about group development. He found that the articles described two features that all the groups had in common: individual interactions and the task activity. Tuckman recognised that groups evolve and he suggested that they do so via four stages that he called forming, storming, norming and performing. Briefly, in the first stage, forming, people are getting to know each other and finding their roles in the new hierarchy. In the second stage, storming, there are conflicts between members as differences emerge about issues such as what the team is being asked to do and how to do it. In the third phase, norming, team members start to work together. They establish processes about who will do what, when and how, and there is a growing sense of cooperation in the team. In the fourth stage, performing, the team now has a shared set of norms and has learned how to work well together. The individual members focus less on their position in the team and how to work together and more on their tasks. Tuckman later added a further, final stage, adjourning, to his model. In this final stage, the team stops working together, celebrates its success and reflects on its performance and achievements.
+
+The value of Tuckman's model is that it enables us to see team working as a process dependent on interpersonal relationships and the team's interaction with the task. It gives managers and educators a simple, staged model to help them form teams and support the team members as they try to understand where they are in the process. According to the model, all teams are likely to go through these stages in this order, and although it is also possible to go backwards, for example from storming to forming, when a team does this, it must go through the other stages in the same order again. However, the model has been criticised and alternatives have been proposed. Firstly, Tuckman's model was not based on first-hand observations and evidence, and it seems that where the model has been tested, the reality was different from that predicted by the model. A study by the Monterey Naval Postgraduate School showed that only 2% of the teams observed went through all four stages. Furthermore, storming, or conflict, continues throughout the duration of the team's life and conflict happens frequently. Secondly, Tuckman's model excluded external factors such as the nature of the task the group has been given and how this affects progress. Thirdly, the model predicts stability and specialisation: the longer the team stays together, the better it becomes at its task or tasks.
+
+The problem is that when teams become too specialised, this leads to silo working, where teams focus on one task and become territorial about sharing ideas, knowledge and expertise with others in the organisation. In fact, some researchers, like Klaus Schauser at the University of California, have suggested that there is a sixth stage to Tuckman's model: stagnation. Newer companies, especially in the technology sector, require agile or flexible teams, and have built their company culture around a process called reteaming, or breaking up teams to build new ones. This enables team members to move between groups so that teams learn from each other. Some online gaming and music streaming companies are noted for their reteaming techniques, believing that this gives them the flexibility to move with their markets and to change and adapt swiftly. One way to re-organise teams is to create situations where a team has to make an effort to recruit new members and there is an ongoing effort to bring in new people. Another way is to let a team grow until it is big enough to divide into two teams; the advantage is that both teams are used to working with each other and so are now two effective working groups. When there is a single temporary problem to solve, volunteers can come together to form a temporary task team. After the work on the problem is completed, the team breaks up and the members re-join their old group. Finally, team members can swap places between teams in order to share learning across the organisation.`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 15-19",
+            instructions: [
+              "Complete the table below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+            ],
+            items: [
+              { q: 15, text: "Forming: people become acquainted with each other and learn where they fit into the group's", tail: "." },
+              { q: 16, text: "Storming: differences", tail: "in the team about the task members are being asked to do and the way to do it." },
+              { q: 17, text: "Norming: team", tail: "improves as people learn how to work with each other." },
+              { q: 18, text: "Performing: the team understands how to work together according to agreed", tail: "." },
+              { q: 19, text: "Adjourning: the team breaks up and can think about its", tail: "and successes." },
+            ],
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 20-21",
+            instructions: [
+              "The list below describes some of the features of Tuckman's model.",
+              "Which TWO points are mentioned by the writer of the text?",
+              "Choose TWO letters, A-E. Type one letter in each box.",
+            ],
+            choices: [
+              { letter: "A", text: "It regards team working as a process dependent on good managers." },
+              { letter: "B", text: "It helps managers support their staff as they try to form working teams." },
+              { letter: "C", text: "It helps managers monitor the performance of their teams." },
+              { letter: "D", text: "It is based on research carried out by Tuckman in the workplace." },
+              { letter: "E", text: "It proposes that teams can return to a previous stage before moving to the next one." },
+            ],
+            items: [
+              { q: 20, text: "First answer" },
+              { q: 21, text: "Second answer" },
+            ],
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 22-23",
+            instructions: [
+              "The list below describes some of the shortcomings of Tuckman's model.",
+              "Which TWO points are mentioned by the writer of the text?",
+              "Choose TWO letters, A-E. Type one letter in each box.",
+            ],
+            choices: [
+              { letter: "A", text: "It only applies to schools of postgraduate studies." },
+              { letter: "B", text: "It incorrectly forecasts that teams become unstable and unable to perform well." },
+              { letter: "C", text: "It does not predict how long a team can stay together." },
+              { letter: "D", text: "It does not consider outside influences that affect people's work." },
+              { letter: "E", text: "It does not predict what actually happens at work." },
+            ],
+            items: [
+              { q: 22, text: "First answer" },
+              { q: 23, text: "Second answer" },
+            ],
+          },
+          {
+            type: "tfng",
+            title: "Questions 24-29",
+            instructions: [
+              "Do the following statements agree with the information given in Reading Passage 2?",
+              "Choose TRUE, FALSE or NOT GIVEN.",
+            ],
+            items: [
+              { q: 24, text: "Modern tech companies do not like people working in a team for more than six months." },
+              { q: 25, text: "Technology companies routinely dissolve teams to form new ones." },
+              { q: 26, text: "Reteaming means that technology companies cannot respond quickly to changes in the market." },
+              { q: 27, text: "Technology companies routinely recruit new team members from outside the company." },
+              { q: 28, text: "Some teams are left to grow until they are big enough to make two smaller teams." },
+              { q: 29, text: "Sometimes, people from one team will join another to make a new temporary team focused on a single task." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part3",
+        passageText: `Artificial curation
+
+We all know that too much information can be a bad thing - this is as true in daily life as it is in business. Filtering useful from useless information has become a growing problem, bringing confusion with it, but this is where data curation can help. Curating data involves finding and displaying patterns in large volumes of disconnected and messy data to create meaningful information and suggestions for the end user. The process of data collection to inform business and consumer choice has developed from collecting information via questionnaires and interviews to digitalising information and using technology to gather and interpret data. The latter requires huge databases for computer algorithms, sets of computer instructions, to search and find patterns in order to predict what choices we might make. The use of algorithms is called AI curation, and from shopping to social media, it is part of our lives.
+
+AI curation involves designing computer algorithms that work with large amounts of data. The data is gathered from people's past internet use, for example, searches, purchases, likes and bookmarks. The algorithm looks for patterns in this historical data and uses these patterns to predict the user's choices. The patterns and predictions help the algorithm search and sort through the huge volume of information on the internet and present items that the user has previously looked for or liked or bought. For example, if a person has searched for a particular product online, the algorithm may make suggestions for other products or websites the person might be interested in. If the consumer goes on to click through to the website or to buy something that has been recommended, then the algorithm has found a winning pattern for that individual.
+
+Algorithms make it possible to collect data about a target audience and consequently, they determine which adverts we see as we browse the internet as well as which news stories are shown to us. The purpose of this is to increase our engagement with a particular company or website and thus generate revenue. AI curation has other benefits too. In the recent past, when we wanted information about the news, we went to a news site and if we were interested in sports news, for example, we searched for sports news within that news site. With AI curation, based on our searches and our likes, we have the sports news brought directly to us. Users see what they are mostly interested in and, conversely, see less of what they don't want to. They can therefore build a relationship with websites they frequently visit as content and products are personalised for them, building loyalty and trust. Finally, they are able to focus on certain information and build up specialist knowledge about the things they are interested in. They can even connect with other users who are interested in the same subject and form communities based on that particular topic.
+
+Although algorithms are good to some extent at curating virtual information for us and putting forward suggestions, some companies are moving away from AI and back to human recommendations. Humans have always played a role in some areas of internet curation, particularly news or stories where people have to moderate or make a choice about what is suitable or not for an audience. There have been several cases where algorithms have spread stories that were partially or wholly untrue or presented content that was not suitable for younger people. Some social media companies are bringing back human editors because algorithms cannot distinguish between stories that have on-the-record sources and stories that are simply made up. The other thing a recommendation algorithm can't do is to tell you why it is desirable to use a product - what makes it great or different or better than a rival product. Neither can it give its recommendation the human touch, and people usually prefer recommendations from other people. The problem with human curation, however, is that there just isn't enough of it to deal with all the information, particularly when algorithms are cheaper and much more efficient.
+
+It seems that the best way forward is a solution that uses both AI and human curation. One news company that works in this way starts by asking its users to pick articles for others to read. These stories form the basis for algorithms to work with. The algorithms then gather similar stories for the next stage. When the algorithm has compiled stories from various internet sources, a human editor fine-tunes the selection for the audience. For example, if the AI curator is asked for stories about famous people, it may deliver sensational or even misleading stories because these are the ones that have received the most clicks. At this point, the human curator intervenes and deletes inappropriate content in favour of better stories. It seems that putting a human curator alongside AI can give a better quality of curation and create trust in the recommendations as well as a personal connection that isn't offered by an algorithm alone.`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 30-32",
+            instructions: [
+              "Complete the sentences below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+            ],
+            items: [
+              { q: 30, text: "The amount of data that is available to companies is too great to be useful and results in", tail: "." },
+              { q: 31, text: "AI curation means that a computer program looks for and shows", tail: "in large amounts of data." },
+              { q: 32, text: "Technology is applied to digital information to collect and", tail: "the data." },
+            ],
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 33-34",
+            instructions: [
+              "Which TWO things does an algorithm do?",
+              "Choose TWO letters, A-E. Type one letter in each box.",
+            ],
+            choices: [
+              { letter: "A", text: "It reviews past interactions by the user on the internet to gather data." },
+              { letter: "B", text: "It helps to build relationships between the user and their preferred websites." },
+              { letter: "C", text: "It uses people's responses to create advertisements." },
+              { letter: "D", text: "It collects information from other algorithms." },
+              { letter: "E", text: "It presents information that we do not want to see." },
+            ],
+            items: [
+              { q: 33, text: "First answer" },
+              { q: 34, text: "Second answer" },
+            ],
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 35-36",
+            instructions: [
+              "Which TWO things can't an AI algorithm do?",
+              "Choose TWO letters, A-E. Type one letter in each box.",
+            ],
+            choices: [
+              { letter: "A", text: "provide certain kinds of information more directly" },
+              { letter: "B", text: "distinguish between stories that have valid sources and those that don't" },
+              { letter: "C", text: "recommend items that are appropriate for the user" },
+              { letter: "D", text: "find sources quickly and efficiently" },
+              { letter: "E", text: "find stories about famous people" },
+            ],
+            items: [
+              { q: 35, text: "First answer" },
+              { q: 36, text: "Second answer" },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 37-40",
+            instructions: [
+              "Complete the flow-chart below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+            ],
+            items: [
+              { q: 37, text: "The news items become the", tail: "for algorithms to work with." },
+              { q: 38, text: "A human editor", tail: "the stories collected by the algorithm." },
+              { q: 39, text: "The human editor", tail: "content that is not suitable and replaces it." },
+              { q: 40, text: "Selection by AI and humans can give a better standard of", tail: "." },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -2891,6 +3387,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts5: test5,
   ielts6: test6,
   ielts7: test7,
+  ielts8: test8,
 };
 
 export function getProtectedTestContent(testId) {

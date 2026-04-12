@@ -3379,6 +3379,393 @@ It seems that the best way forward is a solution that uses both AI and human cur
   },
 };
 
+
+const test9 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/183.mp3",
+    html: `
+      <div class="listen-page" id="listenSec1">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 1 - Questions 1-10</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 1-4</div>
+            <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+            <div class="listen-card-title">Wayside Camera Club Membership Form</div>
+            <div class="listen-notes">
+              <div class="note-row">Name: Dan Green</div>
+              <div class="note-row">Email address: dan1068@market.com</div>
+              <div class="note-row">Home address: 52 <span class="qnum">1</span> <input data-lq="1" class="l-input"> Street, Peacetown</div>
+              <div class="note-row">Heard about us: from a <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+              <div class="note-row">Reasons for joining: to enter competitions and to <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+              <div class="note-row">Type of membership: <span class="qnum">4</span> <input data-lq="4" class="l-input"> membership (£30)</div>
+            </div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 5-10</div>
+            <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
+            <div class="listen-card-title">Photography competitions</div>
+            <div class="listen-notes">
+              <div class="note-row"><b><span class="qnum">5</span> <input data-lq="5" class="l-input"></b> — A scene in the home — The picture’s composition was not good</div>
+              <div class="note-row">‘Beautiful Sunsets’ — Scene must show some <span class="qnum">6</span> <input data-lq="6" class="l-input"> — The <span class="qnum">7</span> <input data-lq="7" class="l-input"> was wrong</div>
+              <div class="note-row"><b><span class="qnum">8</span> <input data-lq="8" class="l-input"></b> — Scene must show <span class="qnum">9</span> <input data-lq="9" class="l-input"> — The photograph was too <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec2">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 2 - Questions 11-20</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 11 and 12</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>. Which TWO warnings does Dan give about picking mushrooms?</div>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="A"> A) Don’t pick more than one variety of mushroom at a time.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="B"> B) Don’t pick mushrooms near busy roads.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="C"> C) Don’t eat mushrooms given to you.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="D"> D) Don’t eat mushrooms while picking them.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="E"> E) Don’t pick old mushrooms.</label>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 13 and 14</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>. Which TWO ideas about wild mushrooms does Dan say are correct?</div>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="A"> A) Mushrooms should always be peeled before eating.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="B"> B) Mushrooms eaten by animals may be unsafe.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="C"> C) Cooking destroys toxins in mushrooms.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="D"> D) Brightly coloured mushrooms can be edible.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="E"> E) All poisonous mushrooms have a bad smell.</label>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 15-20</div>
+            <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">15</span> What advice does Dan give about picking mushrooms in parks?</div><label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) Choose wooded areas.</label><label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) Don’t disturb wildlife.</label><label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) Get there early.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">16</span> Dan says it is a good idea for beginners to</div><label class="mcq-opt"><input type="radio" name="q16" value="A" data-lq-radio="16"> A) use a mushroom app.</label><label class="mcq-opt"><input type="radio" name="q16" value="B" data-lq-radio="16"> B) join a group.</label><label class="mcq-opt"><input type="radio" name="q16" value="C" data-lq-radio="16"> C) take a reference book.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">17</span> What does Dan say is important for conservation?</div><label class="mcq-opt"><input type="radio" name="q17" value="A" data-lq-radio="17"> A) selecting only fully grown mushrooms</label><label class="mcq-opt"><input type="radio" name="q17" value="B" data-lq-radio="17"> B) picking a limited amount of mushrooms</label><label class="mcq-opt"><input type="radio" name="q17" value="C" data-lq-radio="17"> C) avoiding areas where rare mushroom species grow</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">18</span> According to Dan, some varieties of wild mushrooms are in decline because there is</div><label class="mcq-opt"><input type="radio" name="q18" value="A" data-lq-radio="18"> A) a huge demand for them from restaurants.</label><label class="mcq-opt"><input type="radio" name="q18" value="B" data-lq-radio="18"> B) a lack of rain in this part of the country.</label><label class="mcq-opt"><input type="radio" name="q18" value="C" data-lq-radio="18"> C) a rise in building developments locally.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">19</span> Dan says that when storing mushrooms, people should</div><label class="mcq-opt"><input type="radio" name="q19" value="A" data-lq-radio="19"> A) keep them in the fridge for no more than two days.</label><label class="mcq-opt"><input type="radio" name="q19" value="B" data-lq-radio="19"> B) keep them in a brown bag in a dark room.</label><label class="mcq-opt"><input type="radio" name="q19" value="C" data-lq-radio="19"> C) leave them for a period after washing them.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">20</span> What does Dan say about trying new varieties of mushrooms?</div><label class="mcq-opt"><input type="radio" name="q20" value="A" data-lq-radio="20"> A) Experiment with different recipes.</label><label class="mcq-opt"><input type="radio" name="q20" value="B" data-lq-radio="20"> B) Expect some to have a strong taste.</label><label class="mcq-opt"><input type="radio" name="q20" value="C" data-lq-radio="20"> C) Cook them for a long time.</label></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec3">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 3 - Questions 21-30</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 21 and 22</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>. Which TWO opinions about the Luddites do the students express?</div>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="A"> A) Their actions were ineffective.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="B"> B) They are still influential today.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="C"> C) They have received unfair criticism.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="D"> D) They were proved right.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="E"> E) Their attitude is understandable.</label>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 23 and 24</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>. Which TWO predictions about the future of work are the students doubtful about?</div>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="A"> A) Work will be more rewarding.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="B"> B) Unemployment will fall.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="C"> C) People will want to delay retiring.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="D"> D) Working hours will be shorter.</label>
+            <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="E"> E) People will change jobs more frequently.</label>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 25-30</div>
+            <div class="listen-inst">Choose SIX answers from the box and write the correct letter, <b>A-G</b>.</div>
+            <div class="listen-notes">
+              <div class="note-row">Comments: A These jobs are likely to be at risk. B Their role has become more interesting in recent years. C The number of people working in this sector has fallen dramatically. D This job will require more qualifications. E Higher disposable income has led to a huge increase in jobs. F There is likely to be a significant rise in demand for this service. G Both employment and productivity have risen.</div>
+              <div class="note-row"><span class="qnum">25</span> Accountants <input data-lq="25" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">26</span> Hairdressers <input data-lq="26" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">27</span> Administrative staff <input data-lq="27" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">28</span> Agricultural workers <input data-lq="28" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">29</span> Care workers <input data-lq="29" class="l-input tiny"></div>
+              <div class="note-row"><span class="qnum">30</span> Bank clerks <input data-lq="30" class="l-input tiny"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec4">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 4 - Questions 31-40</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 31-40</div>
+            <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+            <div class="listen-card-title">Space Traffic Management</div>
+            <div class="listen-notes">
+              <div class="note-row">A Space Traffic Management system would aim to set up legal and <span class="qnum">31</span> <input data-lq="31" class="l-input"> ways of improving safety.</div>
+              <div class="note-row">Satellites are now quite <span class="qnum">32</span> <input data-lq="32" class="l-input"> and therefore more widespread.</div>
+              <div class="note-row">There are constellations made up of <span class="qnum">33</span> <input data-lq="33" class="l-input"> of satellites.</div>
+              <div class="note-row">At present, satellites are not required to transmit information to help with their <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
+              <div class="note-row">There are few systems for <span class="qnum">35</span> <input data-lq="35" class="l-input"> satellites.</div>
+              <div class="note-row">Operators may be unwilling to share details of satellites used for <span class="qnum">36</span> <input data-lq="36" class="l-input"> or commercial reasons.</div>
+              <div class="note-row">It may be hard to collect details of the object’s <span class="qnum">37</span> <input data-lq="37" class="l-input"> at a given time.</div>
+              <div class="note-row">Scientists can only make a <span class="qnum">38</span> <input data-lq="38" class="l-input"> about where the satellite will go.</div>
+              <div class="note-row">The information should be combined in one <span class="qnum">39</span> <input data-lq="39" class="l-input"></div>
+              <div class="note-row">A coordinated system must be designed to create <span class="qnum">40</span> <input data-lq="40" class="l-input"> in its users.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  writing: {
+    task1Type: "Line graph",
+    task2Type: "Agree or disagree",
+    task1Html: `<p>The chart below gives information about European people of different age groups who went to the gym once a month or more between 1990 and 2010.</p>`,
+    task1ImageSrc: "https://audio.ieltsmock.org/654416156_1285183377045727_339760894409887745_n.jpg",
+    task2Html: `<p>Some people believe that not all students have a natural ability for learning other languages, so schools should not force them to learn new languages. To what extent do you agree or disagree?</p>`,
+    samples: { task1: [], task2: [] },
+  },
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Materials to take us beyond concrete
+
+A
+Concrete is the second most used substance in the global economy, after water – and one of the world’s biggest single sources of greenhouse gas emissions. The chemical process by which cement, the key ingredient of concrete, is created results in large quantities of carbon dioxide. The UN estimates that there will be 9.8 billion people living on the planet by mid-century. They will need somewhere to live. If concrete is the only answer to the construction of new cities, then carbon emissions will soar, aggravating global warming. And so scientists have started innovating with other materials, in a scramble for alternatives to a universal commodity that has underpinned our modern life for many years.
+
+B
+The problem with replacing concrete is that it is so very good at what it does. Chris Cheeseman, an engineering professor at Imperial College London, says the key thing to consider is the extent to which concrete is used around the world, and is likely to continue to be used. “Concrete is not a high-carbon product. Cement is high carbon, but concrete is not. But it is the scale on which it is used that makes it high carbon. The sheer scale of manufacture is so huge, that is the issue.”
+
+C
+Not only are the ingredients of concrete relatively cheap and found in abundance in most places around the globe, the stuff itself has marvellous properties: Portland cement, the vital component of concrete, is mouldable and pourable, but quickly sets hard. Cheeseman also notes another advantage: concrete and steel have similar thermal expansion properties, so steel can be used to reinforce concrete, making it far stronger and more flexible as a building material than it could be on its own. According to Cheeseman, all these factors together make concrete hard to beat. “Concrete is amazing stuff. Making anything with similar properties is going to be very difficult.”
+
+D
+A possible alternative to concrete is wood. Making buildings from wood may seem like a rather medieval idea, but climate change is driving architects to turn to treated timber as a possible resource. Recent years have seen the emergence of tall buildings constructed almost entirely from timber. Vancouver, Vienna and Brumunddal in Norway are all home to tall, wooden buildings.
+
+E
+Using wood to construct buildings, however, is not straightforward. Wood expands as it absorbs moisture from the air and is susceptible to pests, not to mention fire. But treating wood and combining it with other materials can improve its properties. Cross-laminated timber is engineered wood. An adhesive is used to stick layers of solid-sawn timber together, crosswise, to form building blocks. This material is light but has the strength of concrete and steel. Construction experts say that wooden buildings can be constructed at a greater speed than ones of concrete and steel and the process, it seems, is quieter.
+
+F
+Stora Enso is Europe’s biggest supplier of cross-laminated timber, and its vice-president Markus Mannstrom reports that the company is seeing increasing demand globally for building in wood, with climate change concerns the key driver. Finland, with its large forests, where Stora Enso is based, has been leading the way, but the company is seeing a rise in demand for its timber products across the world, including in Asia. Of course, using timber in a building also locks away the carbon that it absorbed as it grew. But even treated wood has its limitations and only when a wider range of construction projects has been proven in practice will it be possible to see wood as a real alternative to concrete in constructing tall buildings.
+
+G
+Fly ash and slag from iron ore are possible alternatives to cement in a concrete mix. Fly ash, a byproduct of coal-burning power plants, can be incorporated into concrete mixes to make up as much as 15 to 30% of the cement, without harming the strength or durability of the resulting mix. Iron-ore slag, a byproduct of the iron-ore smelting process, can be used in a similar way. Their incorporation into concrete mixes has the potential to reduce greenhouse gas emissions. But Anna Surgenor, of the UK’s Green Building Council, notes that although these waste products can save carbon in the concrete mix, their use is not always straightforward. “It’s possible to replace the cement content in concrete with waste products to lower the overall carbon impact. But there are several calculations that need to be considered across the entire life cycle of the building – these include factoring in where these materials are being shipped from. If they are transported over long distances, using fossil fuels, the use of alternative materials might not make sense from an overall carbon reduction perspective.”
+
+H
+While these technologies are all promising ideas, they are either unproven or based on materials that are not abundant. In their overview of innovation in the concrete industry, Felix Preston and Johanna Lehne of the UK’s Royal Institute of International Affairs reached the conclusion that, “Some novel cements have been discussed for more than a decade within the research community, without breaking through. At present, these alternatives are rarely as cost-effective as conventional cement, and they face raw-material shortages and resistance from customers.”`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 1-4",
+            instructions: [
+              "Reading Passage 1 has eight sections, A-H.",
+              "Which section contains the following information?",
+              "Write the correct letter, A-H, in the gaps.",
+            ],
+            endings: {
+              A: "Section A", B: "Section B", C: "Section C", D: "Section D",
+              E: "Section E", F: "Section F", G: "Section G", H: "Section H",
+            },
+            items: [
+              { q: 1, text: "an explanation of the industrial processes that create potential raw materials for concrete" },
+              { q: 2, text: "a reference to the various locations where high-rise wooden buildings can be found" },
+              { q: 3, text: "an indication of how widely available the raw materials of concrete are" },
+              { q: 4, text: "the belief that more high-rise wooden buildings are needed before wood can be regarded as a viable construction material" },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 5-8",
+            instructions: [
+              "Complete the summary below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+            ],
+            items: [
+              { q: 5, text: "Current environmental concerns are encouraging", tail: " to use wood in modern construction projects." },
+              { q: 6, text: "As", tail: " in the atmosphere enters wood, it increases in size." },
+              { q: 7, text: "In one process,", tail: " of solid wood are glued together to create building blocks." },
+              { q: 8, text: "Wooden buildings are an improvement in terms of the", tail: " with which they can be constructed." },
+            ],
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 9-13",
+            instructions: [
+              "Match each statement with the correct person, A, B, C or D.",
+              "You may use any letter more than once.",
+            ],
+            endings: {
+              A: "Chris Cheeseman",
+              B: "Markus Mannstrom",
+              C: "Anna Surgenor",
+              D: "Felix Preston and Johanna Lehne",
+            },
+            items: [
+              { q: 9, text: "The environmental advantage of cement alternatives may not be as great as initially assumed." },
+              { q: 10, text: "It would be hard to create a construction alternative to concrete that offers so many comparable benefits." },
+              { q: 11, text: "Worries about the environment have led to increased interest in wood as a construction material." },
+              { q: 12, text: "Expense has been a factor in the negative response to the development of new cements." },
+              { q: 13, text: "The environmental damage caused by concrete is due to it being produced in large quantities." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part2",
+        passageText: `The steam car
+
+A
+When primitive automobiles first began to appear in the 1800s, their engines were based on steam power. Steam had already enjoyed a long and successful career in the railways, so it was only natural that the technology evolved into a miniaturized version which was separate from the trains. But these early cars inherited steam’s weaknesses along with its strengths. The boilers had to be lit by hand, and they required about twenty minutes to build up pressure before they could be driven. Furthermore, their water reservoirs only lasted for about thirty miles before needing replenishment. Despite such shortcomings, these newly designed self-propelled carriages offered quick transportation, and by the early 1900s it was not uncommon to see such machines shuttling wealthy citizens around town.
+
+B
+But the glory days of steam cars were few. A new technology called the Internal Combustion Engine soon appeared, which offered the ability to drive down the road just moments after starting up. At first, these noisy gasoline cars were unpopular because they were more complicated to operate and they had difficult hand-crank starters, which were known to break arms when the engines backfired. But in 1912 General Motors introduced the electric starter, and over the following few years steam power was gradually phased out.
+
+C
+Even as the market was declining, four brothers made one last effort to rekindle the technology. Between 1906 and 1909, while still attending high school, Abner Doble and his three brothers built their first steam car in their parents’ basement. It comprised parts taken from a wrecked early steam car but reconfigured to drive an engine of their own design. Though it did not run well, the Doble brothers went on to build a second and third prototype in the following years. Though the Doble boys’ third prototype, nicknamed the Model B, still lacked the convenience of an internal combustion engine, it drew the attention of automobile trade magazines due to its numerous improvements over previous steam cars. The Model B proved to be superior to gasoline automobiles in many ways. Its high-pressure steam drove the engine pistons in virtual silence, in contrast to clattering gas engines which emitted the aroma of burned hydrocarbons. Perhaps most impressively, the Model B was amazingly swift. It could accelerate from zero to sixty miles per hour in just fifteen seconds, a feat described as “remarkable acceleration” by Automobile magazine in 1914.
+
+D
+The following year Abner Doble drove the Model B from Massachusetts to Detroit in order to seek investment in his automobile design, which he used to open the General Engineering Company. He and his brothers immediately began working on the Model C, which was intended to expand upon the innovations of the Model B. The brothers added features such as a key-based ignition in the cabin, eliminating the need for the operator to manually ignite the boiler. With these enhancements, the Dobles’ new car company promised a steam vehicle which would provide all of the convenience of a gasoline car, but with much greater speed, much simpler driving controls, and a virtually silent powerplant. By the following April, the General Engineering Company had received 5,390 deposits for Doble Detroits, which were scheduled for delivery in early 1918.
+
+E
+Later that year Abner Doble delivered unhappy news to those eagerly awaiting the delivery of their modern new cars. Those buyers who received the handful of completed cars complained that the vehicles were sluggish and erratic, sometimes going in reverse when they should go forward. The new engine design, though innovative, was still plagued with serious glitches.
+
+F
+The brothers made one final attempt to produce a viable steam automobile. In early 1924, the Doble brothers shipped a Model E to New York City to be road-tested by the Automobile Club of America. After sitting overnight in freezing temperatures, the car was pushed out into the road and left to sit for over an hour in the frosty morning air. At the turn of the key, the boiler lit and reached its operating pressure inside of forty seconds. As they drove the test vehicle further, they found that its evenly distributed weight lent it surprisingly good handling, even though it was so heavy. As the new Doble steamer was further developed and tested, its maximum speed was pushed to over a hundred miles per hour, and it achieved about fifteen miles per gallon of kerosene with negligible emissions.
+
+G
+Sadly, the Dobles’ brilliant steam car never was a financial success. Priced at around $18,000 in 1924, it was popular only among the very wealthy. Plus, it is said that no two Model Es were quite the same, because Abner Doble tinkered endlessly with the design. By the time the company folded in 1931, fewer than fifty of the amazing Model E steam cars had been produced. For his whole career, until his death in 1961, Abner Doble remained adamant that steam-powered automobiles were at least equal to gasoline cars, if not superior. Given the evidence, he may have been right. Many of the Model E Dobles which have survived are still in good working condition, some having been driven over half a million miles with only normal maintenance. Astonishingly, an unmodified Doble Model E runs clean enough to pass the emissions laws in California today, and they are pretty strict. It is true that the technology poses some difficult problems, but you cannot help but wonder how efficient a steam car might be with the benefit of modern materials and computers. Under the current pressure to improve automotive performance and reduce emissions, it is not unthinkable that the steam car may rise again.`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 14-20",
+            instructions: [
+              "Reading Passage 2 has seven paragraphs, A-G.",
+              "Choose the correct heading for each paragraph from the list of headings below.",
+            ],
+            headings: [
+              { value: "i", label: "A period in cold conditions before the technology is assessed" },
+              { value: "ii", label: "Marketing issues lead to failure" },
+              { value: "iii", label: "Good and bad aspects of steam technology are passed on" },
+              { value: "iv", label: "A possible solution to the issues of today" },
+              { value: "v", label: "Further improvements lead to commercial orders" },
+              { value: "vi", label: "Positive publicity at last for this quiet, clean, fast vehicle" },
+              { value: "vii", label: "A disappointing outcome for customers" },
+              { value: "viii", label: "A better option than the steam car arises" },
+            ],
+            questions: [
+              { q: 14, paragraph: "Paragraph A" },
+              { q: 15, paragraph: "Paragraph B" },
+              { q: 16, paragraph: "Paragraph C" },
+              { q: 17, paragraph: "Paragraph D" },
+              { q: 18, paragraph: "Paragraph E" },
+              { q: 19, paragraph: "Paragraph F" },
+              { q: 20, paragraph: "Paragraph G" },
+            ],
+          },
+          {
+            type: "mcq",
+            title: "Questions 21-23",
+            instructions: ["Choose the correct letter, A, B, C or D."],
+            items: [
+              { q: 21, text: "What point does the writer make about the steam car in Paragraph B?", choices: { A: "Its success was short-lived.", B: "Not enough cars were made.", C: "Car companies found them hard to sell.", D: "People found them hard to drive." } },
+              { q: 22, text: "When building their first steam car, the Doble brothers", choices: { A: "constructed all the parts themselves.", B: "made written notes at each stage of the construction.", C: "needed several attempts to achieve a competitive model.", D: "sought the advice of experienced people in the car industry." } },
+              { q: 23, text: "In order to produce the Model C, the Doble brothers", choices: { A: "moved production to a different city.", B: "raised financial capital.", C: "employed an additional worker.", D: "abandoned their earlier designs." } },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 24-26",
+            instructions: [
+              "Complete the summary below.",
+              "Choose ONE WORD AND/OR A NUMBER from the passage for each answer.",
+            ],
+            items: [
+              { q: 24, text: "A later version of the Model E raised its", tail: " while keeping its emissions extremely low." },
+              { q: 25, text: "Under", tail: " cars were produced before the company went out of business." },
+              { q: 26, text: "They satisfy California’s", tail: " emissions laws." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part3",
+        passageText: `The case for mixed-ability classes
+
+Picture this scene. It’s an English literature lesson in a UK school, and the teacher has just read an extract from Shakespeare’s Romeo and Juliet with a class of 15-year-olds. He’s given some of the students copies of No Fear Shakespeare, a kid-friendly translation of the original. For three students, even these literacy demands are beyond them. Another girl simply can’t focus and he gives her pens and paper to draw with. The teacher can ask the No Fear group to identify the key characters and maybe provide a tentative plot summary. He can ask most of the class about character development, and five of them might be able to support their statements with textual evidence. Now two curious students are wondering whether Shakespeare advocates living a life of moderation or one of passionate engagement.
+
+As a teacher myself, I’d think my lesson would be going rather well if the discussion went as described above. But wouldn’t this kind of class work better if there weren’t such a huge gap between the top and the bottom? If we put all the kids who needed literacy support into one class, and all the students who want to discuss the virtue of moderation into another?
+
+The practice of “streaming”, or “tracking”, involves separating students into classes depending on their diagnosed levels of attainment. At a macro level, it requires the establishment of academically selective schools for the brightest students, and comprehensive schools for the rest. Within schools, it means selecting students into a “stream” of general ability, or “sets” of subject-specific ability. The practice is intuitively appealing to almost every stakeholder.
+
+I have heard the mixed-ability model attacked by way of analogy: a group hike. The fittest in the group take the lead and set a brisk pace, only to have to stop and wait every 20 minutes. This is frustrating, and their enthusiasm wanes. Meanwhile, the slowest ones are not only embarrassed but physically struggling to keep up. What’s worse, they never get a long enough break. They honestly just want to quit. Hiking, they feel, is not for them.
+
+Mixed-ability classes bore students, frustrate parents and burn out teachers. The brightest ones will never summit Mount Qomolangma, and the stragglers won’t enjoy the lovely stroll in the park they are perhaps more suited to. Individuals suffer at the demands of the collective, mediocrity prevails. So: is learning like hiking?
+
+The current pedagogical paradigm is arguably that of constructivism, which emerged out of the work of psychologist Lev Vygotsky. In the 1930s, Vygotsky emphasised the importance of targeting a student’s specific “zone of proximal development” (ZPD). This is the gap between what they can achieve only with support – teachers, textbooks, worked examples, parents and so on – and what they can achieve independently. The purpose of teaching is to provide and then gradually remove this “scaffolding” until they are autonomous. If we accept this model, it follows that streaming students with similar ZPDs would be an efficient and effective solution. And that forcing everyone on the same hike – regardless of aptitude – would be madness.
+
+Despite all this, there is limited empirical evidence to suggest that streaming results in better outcomes for students. Professor John Hattie, director of the Melbourne Education Research Institute, notes that “tracking has minimal effects on learning outcomes”. What is more, streaming appears to significantly – and negatively – affect those students assigned to the lowest sets. These students tend to have much higher representation of low socioeconomic class. Less significant is the small benefit for those lucky clever students in the higher sets. The overall result is that the smart stay smart and the dumb get dumber, further entrenching the social divide.
+
+In the latest update of Hattie’s influential meta-analysis of factors influencing student achievement, one of the most significant factors is the teachers’ estimate of achievement. Streaming students by diagnosed achievement automatically limits what the teacher feels the student is capable of. Meanwhile, in a mixed environment, teachers’ estimates need to be more diverse and flexible.
+
+While streaming might seem to help teachers effectively target a student’s ZPD, it can underestimate the importance of peer-to-peer learning. A crucial aspect of constructivist theory is the role of the MKO – “more-knowledgeable other” – in knowledge construction. While teachers are traditionally the MKOs in classrooms, the value of knowledgeable student peers must not go unrecognised either.
+
+I find it amazing to watch students get over an idea to their peers in ways that I would never think of. They operate with different language tools and different social tools from teachers and, having just learnt it themselves, they possess similar cognitive structures to their struggling classmates. There is also something exciting about passing on skills and knowledge that you yourself have just mastered – a certain pride and zeal, a certain freshness to the interaction between “teacher” and “learner” that is often lost by the expert for whom the steps are obvious and the joy of discovery forgotten.
+
+Having a variety of different abilities in a collaborative learning environment provides valuable resources for helping students meet their learning needs, not to mention improving their communication and social skills. And today, more than ever, we need the many to flourish – not suffer at the expense of a few bright stars. Once a year, I go on a hike with my class, a mixed bunch of students. It is challenging. The fittest students realise they need to encourage the reluctant. There are lookouts who report back, and extra items to carry for others. We make it – together.`,
+        blocks: [
+          {
+            type: "mcq",
+            title: "Questions 27-30",
+            instructions: ["Choose the correct letter, A, B, C or D."],
+            items: [
+              { q: 27, text: "The writer describes the Romeo and Juliet lesson in order to demonstrate", choices: { A: "how few students are interested in literature.", B: "how a teacher handles a range of learning needs.", C: "how unsuitable Shakespeare is for most teenagers.", D: "how weaker students can disrupt their classmates’ learning." } },
+              { q: 28, text: "What does the writer say about streaming in the third paragraph?", choices: { A: "It has a very broad appeal.", B: "It favours cleverer students.", C: "It is relatively simple to implement.", D: "It works better in some schools than others." } },
+              { q: 29, text: "What idea is suggested by the reference to Mount Qomolangma in the fifth paragraph?", choices: { A: "students following unsuitable paths", B: "students attempting interesting tasks", C: "students not achieving their full potential", D: "students not being aware of their limitations" } },
+              { q: 30, text: "What does the word ‘scaffolding’ in the sixth paragraph refer to?", choices: { A: "the factors which prevent a student from learning effectively", B: "the environment where most of a student’s learning takes place", C: "the assistance given to a student in their initial stages of learning", D: "the setting of appropriate learning targets for a student’s aptitude" } },
+            ],
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 31-35",
+            instructions: [
+              "Complete the summary using the list of phrases, A-I, below.",
+              "Write the correct letter, A-I, for each answer.",
+            ],
+            summaryTitle: "Is streaming effective?",
+            summaryLines: [
+              { text: "According to Professor John Hattie, there is very little indication that streaming leads to", blankQ: 31, tail: "." },
+              { text: "The most significant impact is on those students placed in the", blankQ: 32, tail: "," },
+              { text: "especially where a large proportion of them have", blankQ: 33, tail: "." },
+              { text: "Meanwhile, for the", blankQ: 34, tail: ", there appears to be only minimal advantage." },
+              { text: "A further issue is that teachers tend to have", blankQ: 35, tail: " of students in streamed groups." },
+            ],
+            optionsTitle: "List of phrases",
+            options: [
+              { letter: "A", word: "wrong classes" },
+              { letter: "B", word: "lower expectations" },
+              { letter: "C", word: "average learners" },
+              { letter: "D", word: "bottom sets" },
+              { letter: "E", word: "brightest pupils" },
+              { letter: "F", word: "disadvantaged backgrounds" },
+              { letter: "G", word: "weaker students" },
+              { letter: "H", word: "higher achievements" },
+              { letter: "I", word: "positive impressions" },
+            ],
+          },
+          {
+            type: "tfng",
+            title: "Questions 36-40",
+            instructions: [
+              "Do the following statements agree with the views of the writer in Reading Passage 3?",
+              "Write YES if the statement agrees with the views of the writer, NO if it contradicts the views, or NOT GIVEN if it is impossible to say.",
+            ],
+            yesNoMode: true,
+            items: [
+              { q: 36, text: "The Vygotsky model of education supports the concept of a mixed-ability class." },
+              { q: 37, text: "Some teachers are uncertain about allowing students to take on MKO roles in the classroom." },
+              { q: 38, text: "It can be rewarding to teach knowledge which you have only recently acquired." },
+              { q: 39, text: "The priority should be to ensure that the highest-achieving students attain their goals." },
+              { q: 40, text: "Taking part in collaborative outdoor activities with teachers and classmates can improve student outcomes in the classroom." },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -3388,6 +3775,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts6: test6,
   ielts7: test7,
   ielts8: test8,
+  ielts9: test9,
 };
 
 export function getProtectedTestContent(testId) {

@@ -676,6 +676,17 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
         .answer-review-row.is-wrong .answer-review-badge{background:rgba(196,69,54,.12);color:#c44536;}
         .answer-review-student,.answer-review-correct{display:grid;gap:4px;}
         .answer-review-student span,.answer-review-correct span{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+        .inline-review-note{margin-top:10px;border:1px solid rgba(18,26,36,.08);border-radius:16px;padding:12px 14px;background:#fff;display:grid;gap:8px;}
+        .inline-review-note.is-correct{border-color:rgba(31,132,90,.28);box-shadow:inset 0 0 0 1px rgba(31,132,90,.08);background:rgba(31,132,90,.04);}
+        .inline-review-note.is-wrong{border-color:rgba(196,69,54,.28);box-shadow:inset 0 0 0 1px rgba(196,69,54,.08);background:rgba(196,69,54,.04);}
+        .inline-review-note-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+        .inline-review-note-title{font-weight:900;color:var(--ink);}
+        .inline-review-note-badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;}
+        .inline-review-note.is-correct .inline-review-note-badge{background:rgba(31,132,90,.12);color:#1f845a;}
+        .inline-review-note.is-wrong .inline-review-note-badge{background:rgba(196,69,54,.12);color:#c44536;}
+        .inline-review-note-value{display:grid;gap:2px;}
+        .inline-review-note-value span{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+        .answer-review-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;}
       `;
       document.head.appendChild(style);
     }
@@ -818,6 +829,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (!panel) return;
 
       const safeRows = Array.isArray(rows) ? rows : [];
+      clearInlineReviewNotes();
       if (!safeRows.length) {
         panel.classList.add("hidden");
         clearNodeChildren(panel);
@@ -847,40 +859,84 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const hint = document.createElement("div");
       hint.className = "answer-review-hint";
       hint.textContent = revealed
-        ? "Correct answers are visible below."
+        ? "Correct answers are shown right under each question."
         : "Correct answers stay hidden until you click See answers.";
       head.appendChild(hint);
       panel.appendChild(head);
 
-      const list = document.createElement("div");
-      list.className = "answer-review-list";
+      renderInlineReviewNotes(safeRows, revealed);
 
-      safeRows.forEach((row) => {
-        const article = document.createElement("article");
-        article.className = `answer-review-row ${row.mark ? "is-correct" : "is-wrong"}`;
-
-        const top = document.createElement("div");
-        top.className = "answer-review-row-top";
-
-        const question = document.createElement("strong");
-        question.textContent = `Question ${String(row.q || "—")}`;
-        top.appendChild(question);
-
-        const badge = document.createElement("span");
-        badge.className = "answer-review-badge";
-        badge.textContent = row.mark ? "Correct" : "Wrong";
-        top.appendChild(badge);
-        article.appendChild(top);
-
-        appendReviewValueRow(article, "answer-review-student", "Your answer", String(row.student || "—"));
-        if (revealed) {
-          appendReviewValueRow(article, "answer-review-correct", "Correct answer", String(row.correct || "—"));
-        }
-
-        list.appendChild(article);
+      const actions = document.createElement("div");
+      actions.className = "answer-review-actions";
+      const homeBtn = document.createElement("button");
+      homeBtn.type = "button";
+      homeBtn.className = "btn secondary";
+      homeBtn.textContent = "Back to home";
+      homeBtn.addEventListener("click", () => {
+        try { window.IELTS?.App?.leavePracticeReviewToHome?.(); } catch (e) {}
       });
+      actions.appendChild(homeBtn);
+      panel.appendChild(actions);
+    }
 
-      panel.appendChild(list);
+    function clearInlineReviewNotes() {
+      document.querySelectorAll("#qCard .inline-review-note").forEach((node) => node.remove());
+    }
+
+    function appendInlineReviewValue(note, label, value) {
+      const row = document.createElement("div");
+      row.className = "inline-review-note-value";
+      const labelEl = document.createElement("span");
+      labelEl.textContent = label;
+      row.appendChild(labelEl);
+      const valueEl = document.createElement("strong");
+      valueEl.textContent = value;
+      row.appendChild(valueEl);
+      note.appendChild(row);
+    }
+
+    function findReadingReviewHost(questionNumber) {
+      const q = String(questionNumber || "").trim();
+      if (!q) return null;
+      let host = document.querySelector(`#qCard [data-reading-question-host="${q}"]`);
+      if (host) return host;
+
+      const controls = Array.from(document.querySelectorAll(`#qCard [data-reading-q="${q}"], #qCard input[name="q_${q}"]`));
+      for (const control of controls) {
+        host =
+          control.closest("[data-reading-question-host]") ||
+          control.closest(".qrow, .sentenceRow, .mcqItem, .choiceRow") ||
+          control.parentElement;
+        if (host) return host;
+      }
+      return null;
+    }
+
+    function renderInlineReviewNotes(rows, revealed) {
+      rows.forEach((row) => {
+        const host = findReadingReviewHost(row.q);
+        if (!host) return;
+
+        const note = document.createElement("div");
+        note.className = `inline-review-note ${row.mark ? "is-correct" : "is-wrong"}`;
+
+        const head = document.createElement("div");
+        head.className = "inline-review-note-head";
+        const title = document.createElement("div");
+        title.className = "inline-review-note-title";
+        title.textContent = `Question ${String(row.q || "—")}`;
+        head.appendChild(title);
+        const badge = document.createElement("span");
+        badge.className = "inline-review-note-badge";
+        badge.textContent = row.mark ? "Correct" : "Wrong";
+        head.appendChild(badge);
+        note.appendChild(head);
+
+        appendInlineReviewValue(note, "Your answer", String(row.student || "—"));
+        if (revealed) appendInlineReviewValue(note, "Correct answer", String(row.correct || "—"));
+
+        host.insertAdjacentElement("afterend", note);
+      });
     }
 
     function openManageAnswersPrompt() {
@@ -1216,6 +1272,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       cfg.questions.forEach((q) => {
         const row = document.createElement("div");
         row.className = "qrow";
+        row.dataset.readingQuestionHost = String(q.q);
 
         const qbox = document.createElement("div");
         qbox.className = "qbox";
@@ -1266,6 +1323,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       cfg.questions.forEach((item) => {
         const row = document.createElement("div");
         row.className = "sentenceRow";
+        row.dataset.readingQuestionHost = String(item.q);
 
         const qbox = document.createElement("div");
         qbox.className = "qbox";
@@ -1334,7 +1392,9 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       const blank = (q) => {
         const span = document.createElement("span");
         span.className = "gapInline";
+        span.dataset.readingQuestionHost = String(q);
         const input = document.createElement("input");
+        input.setAttribute("data-reading-q", String(q));
         input.type = "text";
         input.placeholder = "__________";
         input.value = answers[q] ?? "";
@@ -1363,6 +1423,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
   (cfg.items || []).forEach((item) => {
     const row = document.createElement("div");
     row.className = "sentenceRow";
+    row.dataset.readingQuestionHost = String(item.q);
 
     const qbox = document.createElement("div");
     qbox.className = "qbox";
@@ -1457,6 +1518,7 @@ qnum.textContent = `${item.q}`;
       cfg.items.forEach((item) => {
         const block = document.createElement("div");
         block.className = "mcqItem";
+        block.dataset.readingQuestionHost = String(item.q);
 
         const prompt = document.createElement("div");
         prompt.className = "mcqPrompt";
@@ -1517,6 +1579,7 @@ qnum.textContent = `${item.q}`;
       cfg.items.forEach((item) => {
         const block = document.createElement("div");
         block.className = "mcqItem";
+        block.dataset.readingQuestionHost = String(item.q);
 
         const prompt = document.createElement("div");
         prompt.className = "mcqPrompt";
@@ -1595,6 +1658,7 @@ qnum.textContent = `${item.q}`;
       cfg.items.forEach((item) => {
         const row = document.createElement("div");
         row.className = "qrow";
+        row.dataset.readingQuestionHost = String(item.q);
 
         const qbox = document.createElement("div");
         qbox.className = "qbox";
@@ -1656,6 +1720,7 @@ qnum.textContent = `${item.q}`;
         const p = document.createElement("div");
         p.style.lineHeight = "1.65";
         p.style.margin = "10px 0";
+        p.dataset.readingQuestionHost = String(line.blankQ);
 
         const select = document.createElement("select");
         select.className = "qselect";

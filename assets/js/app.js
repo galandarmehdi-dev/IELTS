@@ -2102,6 +2102,21 @@
       startEngineWhenReady("Reading", "startReadingSystem").catch((e) => console.error("[IELTS] Reading practice launch failed:", e));
     }
 
+    function leavePracticeReviewToHome() {
+      try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+      try { stopAllAudio(); } catch (e) {}
+      const ctx = safe(() => R()?.getLaunchContext?.()) || null;
+      const scope = String(ctx?.storageScope || "").trim();
+      if (scope) clearScopedLaunchData(scope);
+      try { R()?.clearLaunchContext?.(); } catch (e) {}
+      resetEngineInitFlags();
+      try { UI().setExamStarted(false); } catch (e) {}
+      try { UI().showOnly("home"); } catch (e) {}
+      try { UI().updateHomeStatusLine("Status: Ready"); } catch (e) {}
+      try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
+      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+    }
+
     function createMetaPill(text) {
       const pill = document.createElement("span");
       pill.className = "meta-pill";
@@ -3386,6 +3401,7 @@ function startFreshExam() {
     window.IELTS = window.IELTS || {};
     window.IELTS.App = window.IELTS.App || {};
     window.IELTS.App.startFreshExamForTest = startFreshExamForTest;
+    window.IELTS.App.leavePracticeReviewToHome = leavePracticeReviewToHome;
     window.IELTS.Practice = window.IELTS.Practice || {};
     window.IELTS.Practice.submitObjectiveSection = submitObjectiveSectionPractice;
     window.IELTS.Practice.buildPracticeExamId = derivePracticeExamId;

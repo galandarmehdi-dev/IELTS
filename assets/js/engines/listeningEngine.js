@@ -900,7 +900,14 @@ function applyActiveListeningContent() {
       const isAdmin = isAdminView();
 
       // TEMP: allow students to scrub audio for testing (Registry.TEMP_STUDENT_AUDIO_SCRUB)
-      const allowStudentScrub = !!(R() && R().TEMP_STUDENT_AUDIO_SCRUB === true);
+      const isPracticeListening = !!(LAUNCH_CONTEXT && LAUNCH_CONTEXT.mode === "section" && LAUNCH_CONTEXT.section === "listening");
+      const allowStudentScrub = !!(
+        R() && (
+          isPracticeListening
+            ? R().TEMP_STUDENT_AUDIO_SCRUB_PRACTICE === true
+            : R().TEMP_STUDENT_AUDIO_SCRUB_FULL === true
+        )
+      );
       const allowControls = isAdmin || allowStudentScrub;
 
       // Students: strict, no pause/seek. Admin (and temp testing mode): allow full controls (seek forward/back).

@@ -2759,8 +2759,21 @@
       try { localStorage.setItem("IELTS:HOME:resourceHubKind", kind); } catch (e) {}
     }
 
-    function openResourceHub(kind, focusId) {
+    async function ensureReadingPracticeCatalogReady() {
+      const testIds = Object.keys(R()?.TESTS?.byId || {});
+      if (!testIds.length) return;
+      await Promise.allSettled(testIds.map((testId) => R()?.ensureTestContent?.(testId)));
+    }
+
+    async function openResourceHub(kind, focusId) {
       if (!confirmLeaveStudentExam(() => openResourceHub(kind, focusId))) return;
+      if (kind === "reading") {
+        try {
+          await ensureReadingPracticeCatalogReady();
+        } catch (e) {
+          console.warn("[IELTS] Reading resource preload failed:", e);
+        }
+      }
       const view = HUB_VIEWS[kind] || "fullExamHub";
       rememberHub(kind);
       renderResourceHub(kind, focusId);

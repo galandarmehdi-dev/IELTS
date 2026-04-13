@@ -101,6 +101,23 @@
     return taskHasContent(row?.task1_words, row?.writing_task1) || taskHasContent(row?.task2_words, row?.writing_task2);
   }
 
+  function speakingBand(row) {
+    return nullableNumber(row?.speaking_band);
+  }
+
+  function overallBand(row) {
+    const stored = nullableNumber(row?.overall_band);
+    if (stored !== null) return stored;
+    const nums = [
+      nullableNumber(row?.listening_band),
+      nullableNumber(row?.reading_band),
+      effectiveWritingBand(row),
+      speakingBand(row),
+    ].filter((value) => value !== null);
+    if (!nums.length) return null;
+    return Math.round((nums.reduce((sum, value) => sum + value, 0) / nums.length) * 2) / 2;
+  }
+
   function objectiveSectionStatus(row, section) {
     const totalKey = `${section}_total`;
     const bandKey = `${section}_band`;
@@ -499,6 +516,8 @@
       task1_feedback: null,
       task2_feedback: null,
       overall_feedback: null,
+      speaking_band: null,
+      overall_band: null,
     };
   }
 
@@ -547,6 +566,8 @@
       task1_feedback: result.task1Feedback ?? row.task1_feedback ?? null,
       task2_feedback: result.task2Feedback ?? row.task2_feedback ?? null,
       overall_feedback: result.overallFeedback ?? row.overall_feedback ?? null,
+      speaking_band: result.speakingBand ?? row.speaking_band ?? null,
+      overall_band: result.overallBand ?? row.overall_band ?? null,
       writing_task1: result.writingTask1 ?? row.writing_task1 ?? "",
       writing_task2: result.writingTask2 ?? row.writing_task2 ?? "",
       task1_words: result.task1Words ?? row.task1_words ?? 0,
@@ -651,6 +672,8 @@
       task1_feedback: result.task1Feedback ?? null,
       task2_feedback: result.task2Feedback ?? null,
       overall_feedback: result.overallFeedback ?? null,
+      speaking_band: result.speakingBand ?? null,
+      overall_band: result.overallBand ?? null,
     };
 
     const { error } = await supabase.from(table).update(patch).eq("id", row.id).ilike("user_email", email);
@@ -692,7 +715,7 @@
 
     const avg = (items, key) => {
       const nums = items
-        .map((r) => key === "final_writing_band" ? effectiveWritingBand(r) : nullableNumber(r?.[key]))
+        .map((r) => key === "final_writing_band" ? effectiveWritingBand(r) : key === "overall_band" ? overallBand(r) : nullableNumber(r?.[key]))
         .filter((n) => n !== null);
       if (!nums.length) return "null";
       return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
@@ -702,6 +725,8 @@
     setText("historyStatListening", avg(rows, "listening_band"));
     setText("historyStatReading", avg(rows, "reading_band"));
     setText("historyStatWriting", avg(rows, "final_writing_band"));
+    setText("historyStatSpeaking", avg(rows, "speaking_band"));
+    setText("historyStatOverall", avg(rows, "overall_band"));
     setText("historyStatLatest", rows[0] ? fmtDate(rows[0].submitted_at) : "—");
     setText("historyStatWords", rows[0] ? totalWords(rows[0]) : 0);
   }
@@ -723,6 +748,8 @@
       const listeningStatus = objectiveSectionStatus(row, "listening");
       const readingStatus = objectiveSectionStatus(row, "reading");
       const writing = writingStatus(row);
+      const speaking = speakingBand(row);
+      const overall = overallBand(row);
       const rowId = `history-row-${idx}`;
       const tr = document.createElement("tr");
       tr.id = rowId;
@@ -756,6 +783,14 @@
       writingTd.appendChild(small);
       tr.appendChild(writingTd);
 
+      const speakingTd = document.createElement("td");
+      speakingTd.textContent = speaking === null ? "null" : `Band ${speaking.toFixed(1)}`;
+      tr.appendChild(speakingTd);
+
+      const overallTd = document.createElement("td");
+      overallTd.textContent = overall === null ? "null" : `Band ${overall.toFixed(1)}`;
+      tr.appendChild(overallTd);
+
       const actionTd = document.createElement("td");
       const btn = document.createElement("button");
       btn.className = "btn secondary";
@@ -780,6 +815,8 @@
     const listeningStatus = objectiveSectionStatus(row, "listening");
     const readingStatus = objectiveSectionStatus(row, "reading");
     const writing = writingStatus(row);
+    const speaking = speakingBand(row);
+    const overall = overallBand(row);
     $("historyDetailTitle").textContent = examLabel(row);
     const metaEl = $("historyDetailMeta");
     clearElement(metaEl);
@@ -793,6 +830,8 @@
     appendLabeledLine(scoresEl, "Listening", listeningStatus.detailText);
     appendLabeledLine(scoresEl, "Reading", readingStatus.detailText);
     appendLabeledLine(scoresEl, "Writing", writing.text);
+    appendLabeledLine(scoresEl, "Speaking", speaking === null ? "null" : `Band ${speaking.toFixed(1)}`);
+    appendLabeledLine(scoresEl, "Overall", overall === null ? "null" : `Band ${overall.toFixed(1)}`);
     appendLabeledLine(scoresEl, "Writing words", String(totalWords(row) || "null"));
     scoresEl.appendChild(document.createElement("br"));
     appendLabeledLine(scoresEl, "Task 1 band", nullableNumber(row.task1_band) !== null ? nullableNumber(row.task1_band).toFixed(1) : "null");
@@ -847,7 +886,7 @@
       } else if (state.rows.length && state.email === email) {
         renderTable(state.rows);
       } else if ($("historyTbody")) {
-        $("historyTbody").innerHTML = '<tr><td colspan="7">Loading history...</td></tr>';
+        $("historyTbody").innerHTML = '<tr><td colspan="9">Loading history...</td></tr>';
       }
       let rows = await prefetchHistoryRows();
       state.rows = rows;
@@ -869,7 +908,7 @@
         if (lastLocal?.submittedAt) {
           const tbody = $("historyTbody");
           if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
           }
         }
       }
@@ -884,7 +923,7 @@
       }).catch(() => {});
     } catch (err) {
       const tbody = $("historyTbody");
-      if (tbody) tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="9">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
     }
   }
 

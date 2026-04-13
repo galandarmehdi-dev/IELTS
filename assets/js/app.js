@@ -1508,6 +1508,120 @@
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
+    async function saveAdminSpeakingBand(row, speakingBandValue) {
+      const response = await fetch((R()?.buildAdminApiUrl?.({ action: "adminResultSpeakingScore" }) || "").toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(await getAuthHeaders()),
+        },
+        body: JSON.stringify({
+          submittedAt: row?.submittedAt || "",
+          studentFullName: row?.studentFullName || "",
+          examId: row?.examId || "",
+          reason: row?.reason || "",
+          speakingBand: speakingBandValue,
+        }),
+      }).then((res) => res.json().catch(() => null).then((data) => ({ ok: res.ok, data }))).catch(() => ({ ok: false, data: null }));
+
+      if (!response.ok || response.data?.ok !== true) {
+        throw new Error(response.data?.error || "Could not save speaking band.");
+      }
+
+      return response.data?.speakingBand ?? null;
+    }
+
+    function createSpeakingBandOptions(select, selectedValue) {
+      const emptyOption = document.createElement("option");
+      emptyOption.value = "";
+      emptyOption.textContent = "Band null";
+      select.appendChild(emptyOption);
+
+      for (let value = 0; value <= 9; value += 0.5) {
+        const option = document.createElement("option");
+        option.value = String(value);
+        option.textContent = `Band ${value.toFixed(1)}`;
+        if (selectedValue !== null && Number(selectedValue) === value) option.selected = true;
+        select.appendChild(option);
+      }
+    }
+
+    function buildInlineSpeakingEditor(row, speakingTd) {
+      clearElement(speakingTd);
+      speakingTd.classList.add("admin-inline-score-cell");
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "admin-inline-score";
+
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "admin-inline-score-trigger";
+      trigger.textContent = `Band ${bandText(speakingBand(row))}`;
+      trigger.setAttribute("aria-label", `Edit speaking band for ${row.studentFullName || "student"}`);
+      wrapper.appendChild(trigger);
+
+      const openEditor = () => {
+        clearElement(wrapper);
+        wrapper.classList.add("is-editing");
+
+        const select = document.createElement("select");
+        select.className = "admin-inline-score-select";
+        createSpeakingBandOptions(select, speakingBand(row));
+        wrapper.appendChild(select);
+
+        const saveBtn = document.createElement("button");
+        saveBtn.type = "button";
+        saveBtn.className = "admin-inline-score-save";
+        saveBtn.textContent = "Save";
+        wrapper.appendChild(saveBtn);
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.type = "button";
+        cancelBtn.className = "admin-inline-score-cancel";
+        cancelBtn.textContent = "Cancel";
+        wrapper.appendChild(cancelBtn);
+
+        const message = document.createElement("div");
+        message.className = "admin-inline-score-message";
+        wrapper.appendChild(message);
+
+        const closeEditor = () => {
+          buildInlineSpeakingEditor(row, speakingTd);
+        };
+
+        cancelBtn.addEventListener("click", closeEditor);
+        saveBtn.addEventListener("click", async () => {
+          saveBtn.disabled = true;
+          cancelBtn.disabled = true;
+          select.disabled = true;
+          message.textContent = "Saving...";
+          try {
+            const nextValue = select.value.trim() === "" ? null : Number(select.value);
+            const savedSpeakingBand = await saveAdminSpeakingBand(row, nextValue);
+            const updatedRow = { ...row, speakingBand: savedSpeakingBand };
+            mergeAdminRowIntoState(updatedRow, adminState.mode);
+            if ($("adminResultDetail") && !$("adminResultDetail")?.classList?.contains("hidden")) {
+              const currentTitle = $("adminDetailTitle")?.textContent || "";
+              if (currentTitle === (row.studentFullName || "Result details")) {
+                renderAdminDetailFields(updatedRow, { loadingDetail: false });
+              }
+            }
+            applyAdminFilters();
+          } catch (error) {
+            message.textContent = error?.message || "Could not save speaking band.";
+            saveBtn.disabled = false;
+            cancelBtn.disabled = false;
+            select.disabled = false;
+          }
+        });
+
+        try { select.focus(); } catch (e) {}
+      };
+
+      trigger.addEventListener("click", openEditor);
+      speakingTd.appendChild(wrapper);
+    }
+
     function appendAdminObjectiveCell(cell, total, band, totalQuestions = 40) {
       const totalValue = nullableNumber(total);
       const bandValue = nullableBand(band);
@@ -1571,7 +1685,7 @@
         tr.appendChild(writingTd);
 
         const speakingTd = document.createElement("td");
-        speakingTd.textContent = `Band ${bandText(speakingBand(row))}`;
+        buildInlineSpeakingEditor(row, speakingTd);
         tr.appendChild(speakingTd);
 
         const overallTd = document.createElement("td");
@@ -1751,32 +1865,19 @@
         field.appendChild(hint);
         saveBtn.addEventListener("click", async () => {
           const nextValue = input.value.trim();
-          const res = await fetch((R()?.buildAdminApiUrl?.({ action: "adminResultSpeakingScore" }) || "").toString(), {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(await getAuthHeaders()),
-            },
-            body: JSON.stringify({
-              submittedAt: row.submittedAt || "",
-              studentFullName: row.studentFullName || "",
-              examId: row.examId || "",
-              reason: row.reason || "",
-              speakingBand: nextValue === "" ? null : Number(nextValue),
-            }),
-          }).then((response) => response.json().catch(() => null).then((data) => ({ ok: response.ok, data }))).catch(() => ({ ok: false, data: null }));
-          if (!res.ok || res.data?.ok !== true) {
-            hint.textContent = res.data?.error || "Could not save speaking band.";
-            return;
+          try {
+            const savedSpeakingBand = await saveAdminSpeakingBand(row, nextValue === "" ? null : Number(nextValue));
+            const updatedRow = {
+              ...row,
+              speakingBand: savedSpeakingBand,
+            };
+            mergeAdminRowIntoState(updatedRow, adminState.mode);
+            renderAdminDetailFields(updatedRow, { loadingDetail: false, submissionRecord: options.submissionRecord });
+            applyAdminFilters();
+            hint.textContent = "Speaking band saved.";
+          } catch (error) {
+            hint.textContent = error?.message || "Could not save speaking band.";
           }
-          const updatedRow = {
-            ...row,
-            speakingBand: res.data.speakingBand,
-          };
-          mergeAdminRowIntoState(updatedRow, adminState.mode);
-          renderAdminDetailFields(updatedRow, { loadingDetail: false, submissionRecord: options.submissionRecord });
-          applyAdminFilters();
-          hint.textContent = "Speaking band saved.";
         });
         speakingEditor.appendChild(field);
       }

@@ -604,6 +604,71 @@
       );
     }
 
+    function getResumableStudentView() {
+      if (isAdminView()) return "";
+      try {
+        if (S().get(R().EXAM.keys.finalSubmitted, "false") === "true") return "";
+      } catch (e) {}
+
+      const scoped = activeScopedKeys();
+      const listeningKeys = scoped?.listening || {};
+      const writingKeys = scoped?.writing || {};
+      const listeningSubmitted = S().get(listeningKeys.submitted, "false") === "true";
+      const listeningStarted = S().get(listeningKeys.started, "false") === "true";
+      const readingSubmitted = S().get(readingSubmittedKey(), "false") === "true";
+      const writingSubmitted = S().get(writingKeys.submitted, "false") === "true";
+      const writingStarted = S().get(writingKeys.started, "false") === "true";
+      const readingAnswers = S().getJSON(`${R()?.getScopedReadingTestId?.(getActiveTestId()) || R()?.getTestConfig?.(getActiveTestId())?.readingTestId || "ielts-reading-3parts-001"}:answers`, null);
+      const listeningAnswers = S().getJSON(listeningKeys.answers, null);
+      const writingAnswers = S().getJSON(writingKeys.answers, null);
+
+      if (isFullExamFlow() && readingSubmitted && !writingSubmitted) return "writing";
+      if (!readingSubmitted && hasNonEmptyObject(readingAnswers)) return "reading";
+      if (isFullExamFlow() && listeningSubmitted && !readingSubmitted) return "reading";
+      if ((listeningStarted && !listeningSubmitted) || (!listeningSubmitted && hasNonEmptyObject(listeningAnswers))) return "listening";
+      if (writingStarted && !writingSubmitted) return "writing";
+      if (!writingSubmitted && hasNonEmptyObject(writingAnswers)) return "writing";
+      return "";
+    }
+
+    function renderHomeResumeAction() {
+      const mount = $("homeResumeAction");
+      if (!mount) return;
+      clearElement(mount);
+
+      const resumeView = getResumableStudentView();
+      if (!resumeView || !window.IELTS?.Auth?.isSignedIn?.()) {
+        mount.classList.add("hidden");
+        return;
+      }
+
+      mount.classList.remove("hidden");
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "home-btn";
+      button.textContent = resumeView === "reading"
+        ? "Resume Reading"
+        : resumeView === "writing"
+          ? "Resume Writing"
+          : "Resume Listening";
+      button.addEventListener("click", () => {
+        try { Router().setHashRoute(getActiveTestId(), resumeView); } catch (e) {}
+        try { S().set(R().KEYS.HOME_LAST_VIEW, resumeView); } catch (e) {}
+        resumeStudentExamRoute({ view: resumeView });
+      });
+      mount.appendChild(button);
+
+      const copy = document.createElement("div");
+      copy.className = "home-resume-copy";
+      copy.textContent = resumeView === "reading"
+        ? "Listening is already submitted. Continue straight into Reading."
+        : resumeView === "writing"
+          ? "Your next section is ready. Continue your exam from here."
+          : "You have an unfinished section. Continue from where you left off.";
+      mount.appendChild(copy);
+    }
+
     function resumeStudentExamRoute(route) {
       if (!route?.view) return;
       if (route.view === "listening") {
@@ -2103,6 +2168,7 @@
     // -----------------------------
     UI().showOnly("home");
     UI().updateHomeStatusLine();
+    renderHomeResumeAction();
 
     // -----------------------------
     // Home buttons: START ALWAYS = NEW ATTEMPT
@@ -3788,6 +3854,7 @@ function startFreshExam() {
       UI().showOnly("home");
       try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
       UI().updateHomeStatusLine();
+      renderHomeResumeAction();
       UI().setExamNavStatus("Status: Home");
     };
     if (adminResultsModeFullBtn) adminResultsModeFullBtn.onclick = () => openAdminResultsView(false, "full");
@@ -3810,6 +3877,7 @@ function startFreshExam() {
     if (resourceHubBackBtn) resourceHubBackBtn.onclick = () => {
       UI().showOnly("home");
       try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      renderHomeResumeAction();
       UI().setExamNavStatus("Status: Home");
     };
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
@@ -3831,6 +3899,13 @@ function startFreshExam() {
     });
     syncAdminToggleMenu();
     if (isAdminView()) prefetchAdminResults().catch(() => {});
+
+    window.addEventListener("focus", () => {
+      renderHomeResumeAction();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") renderHomeResumeAction();
+    });
     setTimeout(reconcileStartupRoute, 0);
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {

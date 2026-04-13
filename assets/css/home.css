@@ -244,6 +244,18 @@
   color:var(--navy);
   font-weight:800;
 }
+.home-resume-action{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:10px;
+}
+.home-resume-copy{
+  color:var(--muted);
+  font-size:14px;
+  font-weight:700;
+}
 
 .home-hero-right{
   display:grid;

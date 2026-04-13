@@ -603,13 +603,13 @@ export const OBJECTIVE_ANSWER_KEYS = {
   },
   "ielts8": {
     "listening": {
-      "1": "A",
+      "1": "C",
       "2": "C",
       "3": "C",
       "4": "13th November / 13 November / November 13 / 13th of November",
       "5": "8 / 8.00 / 8:00 / 8 am / 8.00 am / 8:00 am",
       "6": "15 / fifteen",
-      "7": "5.50 / 5.5",
+      "7": "3.25",
       "8": "dairy-free / dairy free",
       "9": "Beecham / beecham",
       "10": "523",

@@ -3423,10 +3423,33 @@ const test9 = {
             <div class="listen-card-title">Questions 5-10</div>
             <div class="listen-inst">Complete the table below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
             <div class="listen-card-title">Photography competitions</div>
-            <div class="listen-notes">
-              <div class="note-row"><b><span class="qnum">5</span> <input data-lq="5" class="l-input"></b> — A scene in the home — The picture’s composition was not good</div>
-              <div class="note-row">‘Beautiful Sunsets’ — Scene must show some <span class="qnum">6</span> <input data-lq="6" class="l-input"> — The <span class="qnum">7</span> <input data-lq="7" class="l-input"> was wrong</div>
-              <div class="note-row"><b><span class="qnum">8</span> <input data-lq="8" class="l-input"></b> — Scene must show <span class="qnum">9</span> <input data-lq="9" class="l-input"> — The photograph was too <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+            <div class="listen-table-wrap">
+              <table class="listen-table">
+                <thead>
+                  <tr>
+                    <th>Title of competition</th>
+                    <th>Instructions</th>
+                    <th>Feedback to Dan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><div data-listening-question-host><span class="qnum">5</span> <input data-lq="5" class="l-input"></div></td>
+                    <td>A scene in the home</td>
+                    <td>The picture’s composition was not good</td>
+                  </tr>
+                  <tr>
+                    <td>‘Beautiful Sunsets’</td>
+                    <td><div data-listening-question-host>Scene must show some <span class="qnum">6</span> <input data-lq="6" class="l-input"></div></td>
+                    <td><div data-listening-question-host>The <span class="qnum">7</span> <input data-lq="7" class="l-input"> was wrong</div></td>
+                  </tr>
+                  <tr>
+                    <td><div data-listening-question-host><span class="qnum">8</span> <input data-lq="8" class="l-input"></div></td>
+                    <td><div data-listening-question-host>Scene must show <span class="qnum">9</span> <input data-lq="9" class="l-input"></div></td>
+                    <td><div data-listening-question-host>The photograph was too <span class="qnum">10</span> <input data-lq="10" class="l-input"></div></td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -3489,15 +3512,47 @@ const test9 = {
           </div>
           <div class="listen-card">
             <div class="listen-card-title">Questions 25-30</div>
-            <div class="listen-inst">Choose SIX answers from the box and write the correct letter, <b>A-G</b>.</div>
+            <div class="listen-inst">What comment do the students make about each of the following jobs? Choose <b>SIX</b> answers from the box and write the correct letter, <b>A-G</b>, next to Questions 25-30.</div>
             <div class="listen-notes">
-              <div class="note-row">Comments: A These jobs are likely to be at risk. B Their role has become more interesting in recent years. C The number of people working in this sector has fallen dramatically. D This job will require more qualifications. E Higher disposable income has led to a huge increase in jobs. F There is likely to be a significant rise in demand for this service. G Both employment and productivity have risen.</div>
-              <div class="note-row"><span class="qnum">25</span> Accountants <input data-lq="25" class="l-input tiny"></div>
-              <div class="note-row"><span class="qnum">26</span> Hairdressers <input data-lq="26" class="l-input tiny"></div>
-              <div class="note-row"><span class="qnum">27</span> Administrative staff <input data-lq="27" class="l-input tiny"></div>
-              <div class="note-row"><span class="qnum">28</span> Agricultural workers <input data-lq="28" class="l-input tiny"></div>
-              <div class="note-row"><span class="qnum">29</span> Care workers <input data-lq="29" class="l-input tiny"></div>
-              <div class="note-row"><span class="qnum">30</span> Bank clerks <input data-lq="30" class="l-input tiny"></div>
+              <div class="note-row"><b>Comments</b></div>
+              <div class="note-row">A &nbsp; These jobs are likely to be at risk.</div>
+              <div class="note-row">B &nbsp; Their role has become more interesting in recent years.</div>
+              <div class="note-row">C &nbsp; The number of people working in this sector has fallen dramatically.</div>
+              <div class="note-row">D &nbsp; This job will require more qualifications.</div>
+              <div class="note-row">E &nbsp; Higher disposable income has led to a huge increase in jobs.</div>
+              <div class="note-row">F &nbsp; There is likely to be a significant rise in demand for this service.</div>
+              <div class="note-row">G &nbsp; Both employment and productivity have risen.</div>
+              <div class="note-row"><b>Jobs</b></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">25</span> Accountants
+                <select data-lq="25" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">26</span> Hairdressers
+                <select data-lq="26" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">27</span> Administrative staff
+                <select data-lq="27" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">28</span> Agricultural workers
+                <select data-lq="28" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">29</span> Care workers
+                <select data-lq="29" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">30</span> Bank clerks
+                <select data-lq="30" class="l-select">
+                  <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

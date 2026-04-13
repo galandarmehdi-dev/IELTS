@@ -2897,7 +2897,7 @@ const test8 = {
 
             <div class="mcq">
               <div class="mcq-q"><span class="qnum">1</span> The food will be placed</div>
-              <label class="mcq-opt"><input type="radio" name="t8q1" value="A" data-lq-radio="1"> A) in the meeting room.</label>
+              <label class="mcq-opt"><input type="radio" name="t8q1" value="A" data-lq-radio="1"> A) in the office.</label>
               <label class="mcq-opt"><input type="radio" name="t8q1" value="B" data-lq-radio="1"> B) in the training room.</label>
               <label class="mcq-opt"><input type="radio" name="t8q1" value="C" data-lq-radio="1"> C) outside the training room.</label>
             </div>
@@ -2925,7 +2925,19 @@ const test8 = {
               <div class="note-row">Date of event: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
               <div class="note-row">Delivery time: <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
               <div class="note-row">Number of people: <span class="qnum">6</span> <input data-lq="6" class="l-input tiny"></div>
-              <div class="note-row">Standard Buffet cost: &pound;<span class="qnum">7</span> <input data-lq="7" class="l-input tiny"></div>
+              <div class="note-row"><b>Standard Buffet</b></div>
+              <div class="note-row bullet">Sandwiches</div>
+              <div class="note-row bullet">Crisps</div>
+              <div class="note-row bullet">Hot and cold drinks</div>
+              <div class="note-row">Cost: &pound;<span class="qnum">7</span> <input data-lq="7" class="l-input tiny"></div>
+              <div class="note-row"><b>Premium Buffet</b></div>
+              <div class="note-row bullet">Sandwiches</div>
+              <div class="note-row bullet">Crisps</div>
+              <div class="note-row bullet">Salad bowl</div>
+              <div class="note-row bullet">Fruit</div>
+              <div class="note-row bullet">Cakes</div>
+              <div class="note-row bullet">Hot and cold drinks</div>
+              <div class="note-row">Cost: &pound;5.50</div>
               <div class="note-row">Dietary requirements: 1 person requires <span class="qnum">8</span> <input data-lq="8" class="l-input"> food.</div>
               <div class="note-row">Contact person: Carol <span class="qnum">9</span> <input data-lq="9" class="l-input"></div>
               <div class="note-row">Telephone number: 455 2298, Extension <span class="qnum">10</span> <input data-lq="10" class="l-input tiny"></div>
@@ -2944,11 +2956,14 @@ const test8 = {
             <div class="listen-card-title">Stay Safe During a Heatwave</div>
             <div class="listen-notes">
               <div class="note-row">In the daytime try to limit the amount of <span class="qnum">11</span> <input data-lq="11" class="l-input"> in rooms.</div>
+              <div class="note-row">At night, when the temperature is cooler, keep windows open.</div>
               <div class="note-row">Are you using air conditioning? Pay attention to your <span class="qnum">12</span> <input data-lq="12" class="l-input"></div>
               <div class="note-row">Spray cold water on your face or take a <span class="qnum">13</span> <input data-lq="13" class="l-input"></div>
               <div class="note-row">Your wrists and the back of your neck are your body's <span class="qnum">14</span> <input data-lq="14" class="l-input"></div>
+              <div class="note-row">Place a cold cloth on these areas.</div>
               <div class="note-row">Eat a healthy diet to replace the nutrients you lose through <span class="qnum">15</span> <input data-lq="15" class="l-input"></div>
-              <div class="note-row">Try to stay at home between <span class="qnum">16</span> <input data-lq="16" class="l-input"></div>
+              <div class="note-row">Try to stay at home between <span class="qnum">16</span> <input data-lq="16" class="l-input"> as this is the hottest part of the day.</div>
+              <div class="note-row">Drink plenty of water!</div>
               <div class="note-row">If you go out in the sun, wear a hat or use an <span class="qnum">17</span> <input data-lq="17" class="l-input"></div>
               <div class="note-row">Wear loose-fitting clothes made from <span class="qnum">18</span> <input data-lq="18" class="l-input"></div>
               <div class="note-row">Take it easy when doing any <span class="qnum">19</span> <input data-lq="19" class="l-input"></div>
@@ -3007,11 +3022,15 @@ const test8 = {
             <div class="listen-inst">Complete the sentences below. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
             <div class="listen-card-title">Proofreading checklist</div>
             <div class="listen-notes">
+              <div class="note-row">Make sure you express yourself clearly.</div>
               <div class="note-row"><span class="qnum">26</span> Your paragraphs must be <input data-lq="26" class="l-input"> and in an order that makes sense to the reader.</div>
+              <div class="note-row">Check you have given a full answer to the question.</div>
               <div class="note-row"><span class="qnum">27</span> The points you have made should be <input data-lq="27" class="l-input">, not just anything to get to the required word count.</div>
+              <div class="note-row">Avoid the use of informal language.</div>
               <div class="note-row"><span class="qnum">28</span> Pay attention to any <input data-lq="28" class="l-input"></div>
               <div class="note-row"><span class="qnum">29</span> Check your <input data-lq="29" class="l-input"> and spelling.</div>
               <div class="note-row"><span class="qnum">30</span> Check your <input data-lq="30" class="l-input"> are grammatically correct.</div>
+              <div class="note-row">Check to make sure you have expressed yourself effectively.</div>
             </div>
           </div>
         </div>
@@ -3134,11 +3153,11 @@ Coastal management is difficult as local people, farmers and the agricultural in
             ],
             summaryTitle: "Coastal erosion and management",
             summaryLines: [
-              { blankQ: 1, text: "Coastal erosion can create several different types of", tail: ", which have many different shoreline functions." },
-              { blankQ: 2, before: "These landscape features have many different", after: "in the changing coastal environment." },
-              { blankQ: 3, text: "The increasing", tail: "of homes and businesses on or near the coast means that managing our coastline is a major issue." },
-              { blankQ: 4, before: "Managing our coastline is a", after: "for many countries around the world." },
-              { blankQ: 5, text: "If this cannot be done effectively, there could be severe effects on", tail: "." },
+              { blankQ: 1, text: "Coastal erosion can create several different types of", tail: ", which have many different" },
+              { blankQ: 2, before: "", after: "in the changing coastal environment. These include providing environments for wildlife to live, stopping floods and protecting water supplies. The increasing" },
+              { blankQ: 3, before: "", after: "of homes and businesses on or near the coast means that managing our coastline is a(n)" },
+              { blankQ: 4, before: "", after: "for many countries around the world. If this cannot be done effectively, there could be severe effects on" },
+              { blankQ: 5, text: "", tail: "" },
             ],
             optionsTitle: "Options",
             options: [

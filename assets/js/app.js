@@ -2280,9 +2280,26 @@
       return entry.topic || entry.shortTitle || entry.title || "Writing prompt";
     }
 
+    function promotePromptImageLinks(promptEl) {
+      if (!promptEl) return [];
+      const created = [];
+      promptEl.querySelectorAll("a[href]").forEach((link) => {
+        const href = String(link.getAttribute("href") || "").trim();
+        if (!/\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(href)) return;
+        const img = document.createElement("img");
+        img.className = "writing-sample-image";
+        img.src = href;
+        img.alt = "Task visual";
+        created.push(img);
+        link.remove();
+      });
+      return created;
+    }
+
     function createWritingSampleResponse(entry, sample, index) {
       const response = document.createElement("article");
       response.className = "writing-sample-response";
+      response.dataset.bandScore = String(sample.bandScore || "Coming soon");
 
       const head = document.createElement("div");
       head.className = "writing-sample-response-head";
@@ -2311,16 +2328,6 @@
       head.appendChild(band);
       response.appendChild(head);
 
-      const analysisWrap = document.createElement("section");
-      analysisWrap.className = "writing-sample-analysis";
-      const analysisTitle = document.createElement("h5");
-      analysisTitle.textContent = "Why this score";
-      analysisWrap.appendChild(analysisTitle);
-      const explanationText = document.createElement("p");
-      explanationText.textContent = sample.explanation || "Score analysis is coming soon.";
-      analysisWrap.appendChild(explanationText);
-      response.appendChild(analysisWrap);
-
       const sampleWrap = document.createElement("section");
       sampleWrap.className = "writing-sample-answer";
       const sampleTitle = document.createElement("h5");
@@ -2329,7 +2336,62 @@
       appendEssayParagraphs(sampleWrap, sample.sampleAnswer || "Sample answer coming soon.");
       response.appendChild(sampleWrap);
 
+      const analysisToggle = document.createElement("details");
+      analysisToggle.className = "writing-sample-analysis-toggle";
+
+      const analysisSummary = document.createElement("summary");
+      analysisSummary.textContent = "Why this score";
+      analysisToggle.appendChild(analysisSummary);
+
+      const analysisWrap = document.createElement("section");
+      analysisWrap.className = "writing-sample-analysis";
+      const explanationText = document.createElement("p");
+      explanationText.textContent = sample.explanation || "Score analysis is coming soon.";
+      analysisWrap.appendChild(explanationText);
+      analysisToggle.appendChild(analysisWrap);
+      response.appendChild(analysisToggle);
+
       return response;
+    }
+
+    function createWritingSampleBandChooser(entry, responses) {
+      const chooser = document.createElement("div");
+      chooser.className = "writing-sample-band-chooser";
+
+      const label = document.createElement("div");
+      label.className = "writing-sample-band-chooser-label";
+      label.textContent = "Choose a band score";
+      chooser.appendChild(label);
+
+      const options = document.createElement("div");
+      options.className = "writing-sample-band-options";
+      chooser.appendChild(options);
+
+      const responseItems = Array.from(responses.querySelectorAll(".writing-sample-response"));
+      const seen = new Set();
+      const buttons = [];
+      responseItems.forEach((node) => {
+        const bandScore = String(node.dataset.bandScore || "Coming soon");
+        if (seen.has(bandScore)) return;
+        seen.add(bandScore);
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "writing-sample-band-button";
+        button.textContent = `Band ${bandScore}`;
+        button.addEventListener("click", () => {
+          buttons.forEach((btn) => btn.classList.remove("active"));
+          button.classList.add("active");
+          responseItems.forEach((item) => {
+            item.hidden = String(item.dataset.bandScore || "Coming soon") !== bandScore;
+          });
+        });
+        buttons.push(button);
+        options.appendChild(button);
+      });
+
+      if (buttons[0]) buttons[0].click();
+      return chooser;
     }
 
     async function fetchStoredWritingSamples() {
@@ -2423,18 +2485,24 @@
       prompt.className = "writing-sample-prompt";
       appendRichText(prompt, entry.promptHtml || "");
       heroCopy.appendChild(prompt);
+      const promptLinkedImages = promotePromptImageLinks(prompt);
 
       hero.appendChild(heroCopy);
 
-      if (entry.imageSrc) {
+      if (entry.imageSrc || promptLinkedImages.length) {
         const media = document.createElement("div");
         media.className = "writing-sample-hero-media";
-        const img = document.createElement("img");
-        img.className = "writing-sample-image";
-        img.src = entry.imageSrc;
-        img.alt = `${getWritingSampleDisplayTitle(entry)} prompt visual`;
-        media.appendChild(img);
+        if (entry.imageSrc) {
+          const img = document.createElement("img");
+          img.className = "writing-sample-image";
+          img.src = entry.imageSrc;
+          img.alt = `${getWritingSampleDisplayTitle(entry)} prompt visual`;
+          media.appendChild(img);
+        } else {
+          promptLinkedImages.forEach((img) => media.appendChild(img));
+        }
         hero.appendChild(media);
+        prompt.querySelectorAll("a").forEach((link) => link.remove());
       }
 
       card.appendChild(hero);
@@ -2444,6 +2512,9 @@
       (entry.samples || []).forEach((sample, index) => {
         responses.appendChild(createWritingSampleResponse(entry, sample, index));
       });
+      if ((entry.samples || []).length > 1) {
+        card.appendChild(createWritingSampleBandChooser(entry, responses));
+      }
       card.appendChild(responses);
 
       return card;
@@ -3307,14 +3378,14 @@
       if (kind === "writingSamplesTask1") {
         resourceHubBadge.textContent = "Writing sample library";
         resourceHubTitle.textContent = "Writing Task 1 sample answers";
-        resourceHubSubtitle.textContent = "Browse all available Task 1 prompts with the visual, a sample answer, and a clear explanation of why it received that score.";
+        resourceHubSubtitle.textContent = "Browse all available Task 1 prompts, choose a band score, read the sample answer, and open the score explanation only when you need it.";
         addSection("writing-task1-sample-library", "Task 1 sample library", "Every current and future Task 1 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task1"));
       }
 
       if (kind === "writingSamplesTask2") {
         resourceHubBadge.textContent = "Writing sample library";
         resourceHubTitle.textContent = "Writing Task 2 sample answers";
-        resourceHubSubtitle.textContent = "Browse all available Task 2 prompts with a sample answer and a clear explanation of why it received that score.";
+        resourceHubSubtitle.textContent = "Browse all available Task 2 prompts, choose a band score, read the sample answer, and open the score explanation only when you need it.";
         addSection("writing-task2-sample-library", "Task 2 sample library", "Every current and future Task 2 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task2"));
       }
 

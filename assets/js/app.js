@@ -11,6 +11,7 @@
     const writingSampleCache = { rows: null, promise: null };
     const adminObjectiveDetailCache = new Map();
     const adminObjectivePrefetchPending = new Set();
+    const adminFullResultPrefetchPending = new Set();
     const adminResultsPrefetchState = { promiseByMode: {}, startedAtByMode: {} };
 
   async function getAuthHeaders() {
@@ -1375,6 +1376,28 @@
         });
     }
 
+    function prefetchAdminFullResults(rows, limit, mode = adminState.mode) {
+      (rows || [])
+        .slice(0, Math.max(0, Number(limit) || 0))
+        .forEach((row) => {
+          if (row?.source === "practice-objective") return;
+          const cacheKey = buildAdminResultCacheKey(row);
+          if (!cacheKey || adminFullResultCache.has(cacheKey) || adminFullResultPrefetchPending.has(cacheKey)) return;
+          adminFullResultPrefetchPending.add(cacheKey);
+          fetchAdminFullResultForRow(row)
+            .then((fullResult) => {
+              if (!fullResult) return;
+              const mergedRow = { ...row, ...fullResult };
+              mergeAdminRowIntoState(mergedRow, mode);
+              if (document.body?.dataset?.activeView === "adminResults") {
+                applyAdminFilters();
+              }
+            })
+            .catch(() => null)
+            .finally(() => adminFullResultPrefetchPending.delete(cacheKey));
+        });
+    }
+
     function renderObjectiveReview(prefix, result) {
       const listeningEl = $(`${prefix}ListeningReview`);
       const readingEl = $(`${prefix}ReadingReview`);
@@ -1990,6 +2013,7 @@
             fillExamFilter(rows);
             fillMonthYearFilters(rows);
             applyAdminFilters();
+            prefetchAdminFullResults(rows, 12, adminState.mode);
             prefetchAdminObjectiveDetails(rows, 4);
             return rows;
           });

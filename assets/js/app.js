@@ -2276,51 +2276,58 @@
       Array.from(template.content.childNodes || []).forEach((child) => root.appendChild(sanitizeNode(child)));
     }
 
+    function getWritingSampleDisplayTitle(entry) {
+      return entry.topic || entry.shortTitle || entry.title || "Writing prompt";
+    }
+
     function createWritingSampleResponse(entry, sample, index) {
-      const response = document.createElement("div");
+      const response = document.createElement("article");
       response.className = "writing-sample-response";
 
       const head = document.createElement("div");
       head.className = "writing-sample-response-head";
 
+      const titleWrap = document.createElement("div");
+      titleWrap.className = "writing-sample-response-copy";
+
       const label = document.createElement("h4");
       label.textContent = entry.samples.length > 1
         ? (sample.label || `Sample ${index + 1}`)
         : "Sample answer";
+      titleWrap.appendChild(label);
+
+      const meta = document.createElement("p");
+      meta.className = "writing-sample-response-meta";
+      meta.textContent = sample.explanation
+        ? "Band explanation and model response"
+        : "Model response";
+      titleWrap.appendChild(meta);
 
       const band = document.createElement("div");
       band.className = "sample-band-pill writing-band-pill";
       band.textContent = sample.bandScore || "Coming soon";
 
-      head.appendChild(label);
+      head.appendChild(titleWrap);
       head.appendChild(band);
       response.appendChild(head);
 
-      const explanationWrap = document.createElement("div");
-      explanationWrap.className = "writing-sample-section";
-      const explanationTitle = document.createElement("h4");
-      explanationTitle.textContent = "Why this score";
-      explanationWrap.appendChild(explanationTitle);
+      const analysisWrap = document.createElement("section");
+      analysisWrap.className = "writing-sample-analysis";
+      const analysisTitle = document.createElement("h5");
+      analysisTitle.textContent = "Why this score";
+      analysisWrap.appendChild(analysisTitle);
       const explanationText = document.createElement("p");
-      explanationText.textContent = sample.explanation || "";
-      explanationWrap.appendChild(explanationText);
-      response.appendChild(explanationWrap);
+      explanationText.textContent = sample.explanation || "Score analysis is coming soon.";
+      analysisWrap.appendChild(explanationText);
+      response.appendChild(analysisWrap);
 
-      const sampleWrap = document.createElement("div");
-      sampleWrap.className = "writing-sample-section";
-      const sampleTitle = document.createElement("h4");
+      const sampleWrap = document.createElement("section");
+      sampleWrap.className = "writing-sample-answer";
+      const sampleTitle = document.createElement("h5");
       sampleTitle.textContent = "Sample answer";
       sampleWrap.appendChild(sampleTitle);
-      appendEssayParagraphs(sampleWrap, sample.sampleAnswer);
+      appendEssayParagraphs(sampleWrap, sample.sampleAnswer || "Sample answer coming soon.");
       response.appendChild(sampleWrap);
-
-      const correctedWrap = document.createElement("div");
-      correctedWrap.className = "writing-sample-section";
-      const correctedTitle = document.createElement("h4");
-      correctedTitle.textContent = "Corrected form";
-      correctedWrap.appendChild(correctedTitle);
-      appendEssayParagraphs(correctedWrap, sample.correctedForm || "No stored corrected rewrite is available for this essay yet.");
-      response.appendChild(correctedWrap);
 
       return response;
     }
@@ -2382,46 +2389,62 @@
       const card = document.createElement("article");
       card.className = "writing-sample-card";
 
+      const hero = document.createElement("div");
+      hero.className = "writing-sample-hero";
+
+      const heroCopy = document.createElement("div");
+      heroCopy.className = "writing-sample-hero-copy";
+
       const top = document.createElement("div");
       top.className = "writing-sample-top";
 
-      const kicker = document.createElement("div");
-      kicker.className = "sample-band-pill";
-      kicker.textContent = entry.taskLabel;
+      const typePill = document.createElement("div");
+      typePill.className = "sample-band-pill";
+      typePill.textContent = entry.groupType || entry.taskLabel;
 
-      const band = document.createElement("div");
-      band.className = "sample-band-pill writing-band-pill";
-      band.textContent = entry.bandScore;
+      const sourcePill = document.createElement("div");
+      sourcePill.className = "sample-band-pill writing-band-pill";
+      sourcePill.textContent = entry.sourceTitle || entry.taskLabel;
 
-      top.appendChild(kicker);
-      top.appendChild(band);
-      card.appendChild(top);
+      top.appendChild(typePill);
+      top.appendChild(sourcePill);
+      heroCopy.appendChild(top);
 
       const title = document.createElement("h3");
-      title.textContent = entry.shortTitle || entry.title;
-      card.appendChild(title);
+      title.textContent = getWritingSampleDisplayTitle(entry);
+      heroCopy.appendChild(title);
 
       const source = document.createElement("div");
       source.className = "writing-sample-source";
-      source.textContent = entry.sourceTitle || entry.title;
-      card.appendChild(source);
+      source.textContent = `${entry.sampleCount || 0} sample${entry.sampleCount === 1 ? "" : "s"} available`;
+      heroCopy.appendChild(source);
 
       const prompt = document.createElement("div");
       prompt.className = "writing-sample-prompt";
       appendRichText(prompt, entry.promptHtml || "");
-      card.appendChild(prompt);
+      heroCopy.appendChild(prompt);
+
+      hero.appendChild(heroCopy);
 
       if (entry.imageSrc) {
+        const media = document.createElement("div");
+        media.className = "writing-sample-hero-media";
         const img = document.createElement("img");
         img.className = "writing-sample-image";
         img.src = entry.imageSrc;
-        img.alt = `${entry.title} prompt visual`;
-        card.appendChild(img);
+        img.alt = `${getWritingSampleDisplayTitle(entry)} prompt visual`;
+        media.appendChild(img);
+        hero.appendChild(media);
       }
 
+      card.appendChild(hero);
+
+      const responses = document.createElement("div");
+      responses.className = "writing-sample-responses";
       (entry.samples || []).forEach((sample, index) => {
-        card.appendChild(createWritingSampleResponse(entry, sample, index));
+        responses.appendChild(createWritingSampleResponse(entry, sample, index));
       });
+      card.appendChild(responses);
 
       return card;
     }
@@ -2438,11 +2461,11 @@
 
       const title = document.createElement("div");
       title.className = "writing-sample-summary-title";
-      title.textContent = entry.shortTitle || entry.title;
+      title.textContent = getWritingSampleDisplayTitle(entry);
 
       const meta = document.createElement("div");
       meta.className = "writing-sample-summary-meta";
-      meta.textContent = entry.sourceTitle || entry.title;
+      meta.textContent = `${entry.taskLabel} · ${entry.sampleCount || 0} sample${entry.sampleCount === 1 ? "" : "s"}`;
 
       textWrap.appendChild(title);
       textWrap.appendChild(meta);
@@ -2505,7 +2528,27 @@
         });
 
         Object.keys(groups)
-          .sort((a, b) => a.localeCompare(b))
+          .sort((a, b) => {
+            const order = {
+              "Bar chart": 1,
+              "Line graph": 2,
+              "Pie chart": 3,
+              "Table": 4,
+              "Map": 5,
+              "Process diagram": 6,
+              "Mixed chart": 7,
+              "Chart": 8,
+              "Task 1 report": 9,
+              "Opinion essay": 1,
+              "Discussion essay": 2,
+              "Problem and solution": 3,
+              "Advantages and disadvantages": 4,
+              "Positive or negative development": 5,
+              "Two-part question": 6,
+              "Essay": 7,
+            };
+            return (order[a] || 99) - (order[b] || 99) || a.localeCompare(b);
+          })
           .forEach((groupLabel) => {
             const section = document.createElement("section");
             section.className = "writing-sample-group";
@@ -2535,7 +2578,7 @@
       Promise.resolve()
         .then(fetchStoredWritingSamples)
         .then((rows) => {
-          const items = (R()?.buildWritingSampleCatalog?.(groupStoredWritingSamples(rows)) || [])
+        const items = (R()?.buildWritingSampleCatalog?.(groupStoredWritingSamples(rows)) || [])
             .filter((item) => item.taskKey === taskKey);
           renderItems(items);
         })
@@ -3182,7 +3225,7 @@
           grid.appendChild(createCatalogCard({
             kicker: "Sample library",
             title: "Writing Task 1 Samples",
-            copy: "All available Task 1 prompts with sample answers, band explanations, and corrected forms.",
+            copy: "All available Task 1 prompts with sample answers and score explanations.",
             meta: ["Past prompts", "Future prompts", "Band guidance"],
             primaryLabel: "Open Task 1 library",
             onPrimary: () => openResourceHub("writingSamplesTask1"),
@@ -3190,7 +3233,7 @@
           grid.appendChild(createCatalogCard({
             kicker: "Sample library",
             title: "Writing Task 2 Samples",
-            copy: "All available Task 2 prompts with sample answers, band explanations, and corrected forms.",
+            copy: "All available Task 2 prompts with sample answers and score explanations.",
             meta: ["Past prompts", "Future prompts", "Band guidance"],
             primaryLabel: "Open Task 2 library",
             onPrimary: () => openResourceHub("writingSamplesTask2"),
@@ -3264,14 +3307,14 @@
       if (kind === "writingSamplesTask1") {
         resourceHubBadge.textContent = "Writing sample library";
         resourceHubTitle.textContent = "Writing Task 1 sample answers";
-        resourceHubSubtitle.textContent = "Browse all available Task 1 prompts with a band score, explanation, sample answer, and corrected form.";
+        resourceHubSubtitle.textContent = "Browse all available Task 1 prompts with the visual, a sample answer, and a clear explanation of why it received that score.";
         addSection("writing-task1-sample-library", "Task 1 sample library", "Every current and future Task 1 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task1"));
       }
 
       if (kind === "writingSamplesTask2") {
         resourceHubBadge.textContent = "Writing sample library";
         resourceHubTitle.textContent = "Writing Task 2 sample answers";
-        resourceHubSubtitle.textContent = "Browse all available Task 2 prompts with a band score, explanation, sample answer, and corrected form.";
+        resourceHubSubtitle.textContent = "Browse all available Task 2 prompts with a sample answer and a clear explanation of why it received that score.";
         addSection("writing-task2-sample-library", "Task 2 sample library", "Every current and future Task 2 prompt can live here when sample-answer metadata is added.", () => renderWritingSampleLibrary("task2"));
       }
 

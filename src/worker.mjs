@@ -1060,9 +1060,12 @@ function buildWritingSamplesFromSheet(csvText) {
 
     if (col2 !== "Task 1" && col2 !== "Task 2") return;
 
+    const promptText = plainText(col1);
+    if (promptText.replace(/\s+/g, " ").trim().length < 20) return;
+
     samples.push({
       promptKey: normalizePromptKey(col1),
-      promptText: plainText(col1),
+      promptText,
       taskKey: col2 === "Task 1" ? "task1" : "task2",
       label: formatSampleLabel(col3),
       bandScore: formatBand(col3),

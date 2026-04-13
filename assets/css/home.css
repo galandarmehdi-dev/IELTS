@@ -895,11 +895,11 @@
 }
 .writing-sample-list{
   display:grid;
-  gap:18px;
+  gap:24px;
 }
 .writing-sample-group{
   display:grid;
-  gap:12px;
+  gap:16px;
 }
 .writing-sample-group-head{
   display:flex;
@@ -907,11 +907,14 @@
   justify-content:space-between;
   gap:12px;
   flex-wrap:wrap;
+  padding-bottom:6px;
+  border-bottom:1px solid rgba(18,26,36,.08);
 }
 .writing-sample-group-head h3{
   margin:0;
   color:var(--ink);
-  font-size:24px;
+  font-size:28px;
+  letter-spacing:-.02em;
 }
 .writing-sample-group-head p{
   margin:0;
@@ -920,22 +923,22 @@
 }
 .writing-sample-group-list{
   display:grid;
-  gap:12px;
+  gap:16px;
 }
 .writing-sample-accordion{
-  border-radius:24px;
-  background:rgba(255,253,249,.98);
-  border:1px solid rgba(255,255,255,.82);
-  box-shadow:0 20px 48px rgba(18,26,36,.08);
+  border-radius:28px;
+  background:linear-gradient(180deg, rgba(255,253,249,.99) 0%, rgba(249,244,236,.96) 100%);
+  border:1px solid rgba(18,26,36,.08);
+  box-shadow:0 18px 38px rgba(18,26,36,.08);
   overflow:hidden;
 }
 .writing-sample-summary{
   list-style:none;
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
-  gap:16px;
-  padding:18px 20px;
+  gap:18px;
+  padding:22px 24px;
   cursor:pointer;
 }
 .writing-sample-summary::-webkit-details-marker{
@@ -943,111 +946,190 @@
 }
 .writing-sample-summary-copy{
   min-width:0;
+  flex:1 1 auto;
 }
 .writing-sample-summary-title{
   color:var(--ink);
-  font-size:18px;
+  font-size:22px;
   font-weight:900;
-  line-height:1.35;
+  line-height:1.2;
+  letter-spacing:-.02em;
 }
 .writing-sample-summary-meta{
   margin-top:6px;
   color:var(--muted);
-  font-size:13px;
+  font-size:14px;
   font-weight:800;
 }
 .writing-sample-summary-pills{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:flex-end;
   gap:8px;
   flex-wrap:wrap;
+  flex:0 0 auto;
 }
 .writing-sample-accordion-body{
-  padding:0 18px 18px;
+  padding:0 24px 24px;
 }
 .writing-sample-card{
   border-radius:26px;
-  padding:22px;
-  background:rgba(255,253,249,.98);
-  border:1px solid rgba(255,255,255,.82);
-  box-shadow:0 20px 48px rgba(18,26,36,.08);
+  padding:24px;
+  background:#fff;
+  border:1px solid rgba(18,26,36,.08);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
 }
 .writing-sample-top{
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:flex-start;
   gap:10px;
   flex-wrap:wrap;
-  margin-bottom:12px;
+  margin-bottom:14px;
 }
 .writing-band-pill{
   background:rgba(23,50,77,.08);
   color:var(--navy);
 }
 .writing-sample-card h3{
-  margin:0 0 12px;
+  margin:0 0 10px;
   color:var(--ink);
-  font-size:24px;
+  font-size:34px;
+  line-height:1.05;
+  letter-spacing:-.04em;
 }
 .writing-sample-source{
-  margin-bottom:12px;
+  margin-bottom:14px;
   color:var(--muted);
   font-size:13px;
   font-weight:800;
   text-transform:uppercase;
   letter-spacing:.08em;
 }
+.writing-sample-hero{
+  display:grid;
+  grid-template-columns:minmax(0, 1.25fr) minmax(280px, .95fr);
+  gap:24px;
+  align-items:start;
+}
+.writing-sample-hero-copy{
+  min-width:0;
+}
+.writing-sample-hero-media{
+  display:flex;
+  justify-content:flex-end;
+}
 .writing-sample-prompt{
-  border-radius:18px;
-  padding:16px 18px;
-  background:rgba(243,239,232,.68);
+  border-radius:20px;
+  padding:18px 20px;
+  background:linear-gradient(180deg, rgba(247,242,234,.92) 0%, rgba(242,236,227,.82) 100%);
   border:1px solid rgba(18,26,36,.06);
   color:var(--text);
-  line-height:1.7;
+  line-height:1.8;
+  font-size:15px;
 }
 .writing-sample-prompt b{
   color:var(--ink);
 }
 .writing-sample-image{
   display:block;
-  width:min(100%, 520px);
-  margin:14px 0 0;
-  border-radius:18px;
+  width:100%;
+  margin:0;
+  border-radius:20px;
   border:1px solid rgba(18,26,36,.08);
   box-shadow:0 12px 30px rgba(18,26,36,.08);
 }
-.writing-sample-section{
-  margin-top:16px;
-  padding-top:16px;
-  border-top:1px solid rgba(18,26,36,.08);
-}
-.writing-sample-section h4{
-  margin:0 0 10px;
-  color:var(--ink);
-  font-size:18px;
+.writing-sample-responses{
+  display:grid;
+  gap:18px;
+  margin-top:22px;
 }
 .writing-sample-response{
-  margin-top:18px;
-  padding-top:18px;
-  border-top:1px solid rgba(18,26,36,.08);
+  border-radius:22px;
+  padding:22px;
+  background:linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(250,247,241,.98) 100%);
+  border:1px solid rgba(18,26,36,.08);
+  box-shadow:0 12px 28px rgba(18,26,36,.06);
 }
 .writing-sample-response-head{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   justify-content:space-between;
   gap:12px;
   flex-wrap:wrap;
+  margin-bottom:16px;
 }
 .writing-sample-response-head h4{
   margin:0;
   color:var(--ink);
   font-size:20px;
 }
-.writing-sample-section p{
-  margin:0 0 10px;
+.writing-sample-response-copy{
+  min-width:0;
+}
+.writing-sample-response-meta{
+  margin:6px 0 0;
   color:var(--muted);
-  line-height:1.75;
+  font-size:13px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.writing-sample-analysis,
+.writing-sample-answer{
+  border-radius:18px;
+  padding:18px 20px;
+  border:1px solid rgba(18,26,36,.08);
+}
+.writing-sample-analysis{
+  background:rgba(243,239,232,.72);
+}
+.writing-sample-answer{
+  margin-top:14px;
+  background:#fff;
+}
+.writing-sample-analysis h5,
+.writing-sample-answer h5{
+  margin:0 0 10px;
+  color:var(--ink);
+  font-size:16px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+.writing-sample-analysis p,
+.writing-sample-answer p{
+  margin:0 0 12px;
+  color:var(--text);
+  line-height:1.85;
+}
+.writing-sample-analysis p:last-child,
+.writing-sample-answer p:last-child{
+  margin-bottom:0;
+}
+@media (max-width: 980px){
+  .writing-sample-hero{
+    grid-template-columns:1fr;
+  }
+  .writing-sample-hero-media{
+    justify-content:flex-start;
+  }
+}
+@media (max-width: 720px){
+  .writing-sample-summary{
+    padding:18px;
+  }
+  .writing-sample-accordion-body{
+    padding:0 18px 18px;
+  }
+  .writing-sample-card{
+    padding:18px;
+  }
+  .writing-sample-card h3{
+    font-size:28px;
+  }
+  .writing-sample-response{
+    padding:18px;
+  }
 }
 .home-premium-band,
 .home-testimonials,

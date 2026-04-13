@@ -386,11 +386,13 @@
   function normalizePromptKey(value) {
     return String(value || "")
       .toLowerCase()
+      .replace(/\\[nr]/g, " ")
       .replace(/task\s*[12]\s*/g, " ")
       .replace(/you should spend about \d+ minutes on this task\.?/g, " ")
       .replace(/write at least \d+ words\.?/g, " ")
       .replace(/graph url:\s*\S+/g, " ")
       .replace(/<[^>]+>/g, " ")
+      .replace(/\bsummarise\b/g, "summarize")
       .replace(/[^\w\s]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
@@ -413,6 +415,11 @@
   }
 
   function inferTask1ChartType(promptText, imageSrc, configuredType) {
+    const promptKey = normalizePromptKey(promptText);
+    if (/\bcomputer ownership as a percentage of the population\b/.test(promptKey)) return "Bar chart";
+    if (/\bperformance of a bus company in terms of punctuality\b/.test(promptKey)) return "Bar chart";
+    if (/\bproportion of four different materials\b/.test(promptKey)) return "Line graph";
+    if (/\bcoffee and tea buying and drinking habits in five australian cities\b/.test(promptKey)) return "Bar chart";
     if (String(configuredType || "").trim()) return String(configuredType).trim();
     const raw = String(promptText || "").toLowerCase();
     const image = String(imageSrc || "").toLowerCase();
@@ -493,12 +500,52 @@
         id: `${taskLabel.toLowerCase().replace(/\s+/g, "-")}-sample-${index + 1}`,
         label: String(sample.label || `${band} sample ${index + 1}`),
         bandScore: band,
-        explanation: String(sample.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded."),
+        explanation: String(sample.explanation || "A model answer and score explanation can be added for this prompt when the test is uploaded."),
         sampleAnswer: String(sample.sampleAnswer || "Sample answer coming soon."),
-        correctedForm: String(sample.correctedForm || "Corrected form coming soon."),
-        hasSample: Boolean(sample.sampleAnswer && sample.correctedForm && sample.bandScore),
+        correctedForm: String(sample.correctedForm || ""),
+        hasSample: Boolean(sample.sampleAnswer && sample.bandScore),
       };
     });
+  }
+
+  function mergeWritingSampleCatalogItems(items) {
+    const merged = new Map();
+    (items || []).forEach((rawItem) => {
+      const item = { ...rawItem, samples: Array.isArray(rawItem?.samples) ? rawItem.samples.slice() : [] };
+      const mergeKey = `${item.taskKey || ""}::${normalizePromptKey(item.promptText || item.topic || item.title || item.id)}`;
+      if (!mergeKey || mergeKey.endsWith("::")) return;
+
+      if (!merged.has(mergeKey)) {
+        item.sampleCount = item.samples.length;
+        item.bandScore = item.samples[0]?.bandScore || item.bandScore;
+        item.explanation = item.samples[0]?.explanation || item.explanation;
+        item.sampleAnswer = item.samples[0]?.sampleAnswer || item.sampleAnswer;
+        item.hasSample = item.samples.some((sample) => sample?.hasSample);
+        merged.set(mergeKey, item);
+        return;
+      }
+
+      const existing = merged.get(mergeKey);
+      const primary = existing.testId && !/^Writing sheet/i.test(existing.sourceTitle || "") ? existing
+        : (item.testId && !/^Writing sheet/i.test(item.sourceTitle || "") ? item : existing);
+      const secondary = primary === existing ? item : existing;
+
+      const nextSamples = primary.samples.concat(secondary.samples || []);
+      primary.samples = nextSamples;
+      primary.sampleCount = nextSamples.length;
+      primary.bandScore = nextSamples[0]?.bandScore || primary.bandScore;
+      primary.explanation = nextSamples[0]?.explanation || primary.explanation;
+      primary.sampleAnswer = nextSamples[0]?.sampleAnswer || primary.sampleAnswer;
+      primary.hasSample = nextSamples.some((sample) => sample?.hasSample);
+      if ((!primary.imageSrc || !String(primary.imageSrc).trim()) && secondary.imageSrc) primary.imageSrc = secondary.imageSrc;
+      if ((!primary.promptHtml || !String(primary.promptHtml).trim()) && secondary.promptHtml) primary.promptHtml = secondary.promptHtml;
+      if ((!primary.promptText || !String(primary.promptText).trim()) && secondary.promptText) primary.promptText = secondary.promptText;
+      if ((!primary.groupType || primary.groupType === "Chart" || primary.groupType === "Task 1 report") && secondary.groupType) primary.groupType = secondary.groupType;
+      if ((!primary.topic || primary.topic === "Writing Task 1 prompt" || primary.topic === "Writing Task 2 topic") && secondary.topic) primary.topic = secondary.topic;
+      if ((!primary.sourceTitle || /^Writing sheet/i.test(primary.sourceTitle)) && secondary.sourceTitle) primary.sourceTitle = secondary.sourceTitle;
+      merged.set(mergeKey, primary);
+    });
+    return Array.from(merged.values());
   }
 
   function getStructuredReadingParts(testId) {
@@ -660,9 +707,9 @@
             sampleCount: sampleItems.length,
             samples: sampleItems,
             bandScore: sampleItems[0]?.bandScore || "Coming soon",
-            explanation: sampleItems[0]?.explanation || "A model answer, band score explanation, and corrected form can be added for this prompt when the test is uploaded.",
+            explanation: sampleItems[0]?.explanation || "A model answer and score explanation can be added for this prompt when the test is uploaded.",
             sampleAnswer: sampleItems[0]?.sampleAnswer || "Sample answer coming soon.",
-            correctedForm: sampleItems[0]?.correctedForm || "Corrected form coming soon.",
+            correctedForm: "",
             hasSample: sampleItems.some((item) => item.hasSample),
           });
 
@@ -705,12 +752,12 @@
         bandScore: sampleItems[0]?.bandScore || "Student sample",
         explanation: sampleItems[0]?.explanation || "Stored student essays are available for this prompt from the writing sheet.",
         sampleAnswer: sampleItems[0]?.sampleAnswer || "Sample answer coming soon.",
-        correctedForm: sampleItems[0]?.correctedForm || "No stored corrected rewrite is available for this essay yet.",
+        correctedForm: "",
         hasSample: sampleItems.some((item) => item.hasSample),
       });
     });
 
-    return items;
+    return mergeWritingSampleCatalogItems(items);
   }
 
   function buildHomeCatalog() {

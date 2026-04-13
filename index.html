@@ -772,6 +772,14 @@
         <div class="history-stat-label">Avg Writing</div>
         <div class="history-stat-value" id="historyStatWriting">0.0</div>
       </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">Avg Speaking</div>
+        <div class="history-stat-value" id="historyStatSpeaking">0.0</div>
+      </div>
+      <div class="history-stat-card">
+        <div class="history-stat-label">Avg Overall</div>
+        <div class="history-stat-value" id="historyStatOverall">0.0</div>
+      </div>
     </div>
 
     <div class="history-table-wrap">
@@ -784,6 +792,8 @@
             <th>Listening</th>
             <th>Reading</th>
             <th>Overall Writing</th>
+            <th>Speaking</th>
+            <th>Overall</th>
             <th>Writing words</th>
             <th>Action</th>
           </tr>
@@ -908,6 +918,10 @@
           <option value="studentFullName_desc">Name Z–A</option>
           <option value="finalWritingBand_desc">Writing high→low</option>
           <option value="finalWritingBand_asc">Writing low→high</option>
+          <option value="speakingBand_desc">Speaking high→low</option>
+          <option value="speakingBand_asc">Speaking low→high</option>
+          <option value="overallBand_desc">Overall high→low</option>
+          <option value="overallBand_asc">Overall low→high</option>
           <option value="listeningTotal_desc">Listening high→low</option>
           <option value="readingTotal_desc">Reading high→low</option>
         </select>
@@ -928,6 +942,18 @@
         <div class="admin-stat-value" id="adminStatReading">0.0</div>
       </div>
       <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Writing</div>
+        <div class="admin-stat-value" id="adminStatWriting">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Speaking</div>
+        <div class="admin-stat-value" id="adminStatSpeaking">0.0</div>
+      </div>
+      <div class="admin-stat-card">
+        <div class="admin-stat-label">Avg Overall</div>
+        <div class="admin-stat-value" id="adminStatOverall">0.0</div>
+      </div>
+      <div class="admin-stat-card">
         <div class="admin-stat-label">Latest submit</div>
         <div class="admin-stat-value admin-stat-small" id="adminStatLatest">—</div>
       </div>
@@ -944,6 +970,8 @@
             <th>Listening</th>
             <th>Reading</th>
             <th>Overall Writing</th>
+            <th>Speaking</th>
+            <th>Overall</th>
             <th>Writing words</th>
             <th>Action</th>
           </tr>
@@ -965,6 +993,7 @@
         <div class="admin-detail-card">
           <div class="admin-detail-label">Scores</div>
           <div id="adminDetailScores"></div>
+          <div id="adminDetailSpeakingEditor" class="admin-detail-meta-block" style="margin-top:16px;"></div>
         </div>
       </div>
       <div class="admin-detail-grid writing">

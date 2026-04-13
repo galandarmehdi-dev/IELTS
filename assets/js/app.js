@@ -1076,6 +1076,21 @@
       return null;
     }
 
+    function speakingBand(row) {
+      return nullableBand(row?.speakingBand);
+    }
+
+    function effectiveOverallBand(row) {
+      const nums = [
+        nullableBand(row?.listeningBand),
+        nullableBand(row?.readingBand),
+        effectiveWritingBand(row),
+        speakingBand(row),
+      ].filter((value) => value !== null);
+      if (!nums.length) return null;
+      return Math.round((nums.reduce((sum, value) => sum + value, 0) / nums.length) * 2) / 2;
+    }
+
     function scoreAverage(rows, getter) {
       const nums = (rows || [])
         .map((row) => getter(row))
@@ -1480,10 +1495,16 @@
       const count = rows.length;
       const avgListening = scoreAverage(rows, (row) => nullableBand(row?.listeningBand));
       const avgReading = scoreAverage(rows, (row) => nullableBand(row?.readingBand));
+      const avgWriting = scoreAverage(rows, (row) => effectiveWritingBand(row));
+      const avgSpeaking = scoreAverage(rows, (row) => speakingBand(row));
+      const avgOverall = scoreAverage(rows, (row) => effectiveOverallBand(row));
       const latest = rows.slice().sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0];
       if ($("adminStatSubmissions")) $("adminStatSubmissions").textContent = String(count);
       if ($("adminStatListening")) $("adminStatListening").textContent = avgListening === null ? "null" : avgListening.toFixed(1);
       if ($("adminStatReading")) $("adminStatReading").textContent = avgReading === null ? "null" : avgReading.toFixed(1);
+      if ($("adminStatWriting")) $("adminStatWriting").textContent = avgWriting === null ? "null" : avgWriting.toFixed(1);
+      if ($("adminStatSpeaking")) $("adminStatSpeaking").textContent = avgSpeaking === null ? "null" : avgSpeaking.toFixed(1);
+      if ($("adminStatOverall")) $("adminStatOverall").textContent = avgOverall === null ? "null" : avgOverall.toFixed(1);
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
@@ -1548,6 +1569,14 @@
         const writingTd = document.createElement("td");
         writingTd.textContent = `Band ${bandText(effectiveWritingBand(row))}`;
         tr.appendChild(writingTd);
+
+        const speakingTd = document.createElement("td");
+        speakingTd.textContent = `Band ${bandText(speakingBand(row))}`;
+        tr.appendChild(speakingTd);
+
+        const overallTd = document.createElement("td");
+        overallTd.textContent = `Band ${bandText(effectiveOverallBand(row))}`;
+        tr.appendChild(overallTd);
 
         const wordsTd = document.createElement("td");
         wordsTd.append(`T1: ${writingWordText(row.task1Words)}`);
@@ -1617,6 +1646,16 @@
           bv = effectiveWritingBand(b);
           av = av === null ? -1 : av;
           bv = bv === null ? -1 : bv;
+        } else if (field === "speakingBand") {
+          av = speakingBand(a);
+          bv = speakingBand(b);
+          av = av === null ? -1 : av;
+          bv = bv === null ? -1 : bv;
+        } else if (field === "overallBand") {
+          av = effectiveOverallBand(a);
+          bv = effectiveOverallBand(b);
+          av = av === null ? -1 : av;
+          bv = bv === null ? -1 : bv;
         } else {
           av = String(av || "").toLowerCase();
           bv = String(bv || "").toLowerCase();
@@ -1651,6 +1690,8 @@
       appendLabeledLine(scoresEl, "Listening", objectiveDetailText(row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Reading", objectiveDetailText(row.readingTotal, row.readingBand, row.readingTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
+      appendLabeledLine(scoresEl, "Speaking", `Band ${bandText(speakingBand(row))}`);
+      appendLabeledLine(scoresEl, "Overall score", `Band ${bandText(effectiveOverallBand(row))}`);
       appendLabeledLine(scoresEl, "Writing words", `${writingWordText(row.task1Words)} / ${writingWordText(row.task2Words)}`);
 
       const task1ScoreEl = $("adminDetailTask1Score");
@@ -1677,6 +1718,68 @@
       appendLabeledLine(overallEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
       overallEl.appendChild(document.createElement("br"));
       appendTextBlock(overallEl, loadingDetail ? "Loading overall writing feedback..." : plainText(row.overallFeedback));
+
+      const speakingEditor = $("adminDetailSpeakingEditor");
+      if (speakingEditor) {
+        clearElement(speakingEditor);
+        const field = document.createElement("div");
+        field.className = "admin-speaking-editor";
+        const label = document.createElement("label");
+        label.className = "admin-field";
+        const title = document.createElement("span");
+        title.textContent = "Speaking band";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.max = "9";
+        input.step = "0.5";
+        input.value = speakingBand(row) === null ? "" : String(speakingBand(row));
+        input.id = "adminDetailSpeakingInput";
+        label.appendChild(title);
+        label.appendChild(input);
+        field.appendChild(label);
+        const saveBtn = document.createElement("button");
+        saveBtn.className = "btn secondary";
+        saveBtn.type = "button";
+        saveBtn.id = "adminDetailSpeakingSaveBtn";
+        saveBtn.textContent = "Save speaking";
+        field.appendChild(saveBtn);
+        const hint = document.createElement("div");
+        hint.className = "small";
+        hint.id = "adminDetailSpeakingMessage";
+        hint.textContent = "Admin-only score. This will update the student's history too.";
+        field.appendChild(hint);
+        saveBtn.addEventListener("click", async () => {
+          const nextValue = input.value.trim();
+          const res = await fetch((R()?.buildAdminApiUrl?.({ action: "adminResultSpeakingScore" }) || "").toString(), {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(await getAuthHeaders()),
+            },
+            body: JSON.stringify({
+              submittedAt: row.submittedAt || "",
+              studentFullName: row.studentFullName || "",
+              examId: row.examId || "",
+              reason: row.reason || "",
+              speakingBand: nextValue === "" ? null : Number(nextValue),
+            }),
+          }).then((response) => response.json().catch(() => null).then((data) => ({ ok: response.ok, data }))).catch(() => ({ ok: false, data: null }));
+          if (!res.ok || res.data?.ok !== true) {
+            hint.textContent = res.data?.error || "Could not save speaking band.";
+            return;
+          }
+          const updatedRow = {
+            ...row,
+            speakingBand: res.data.speakingBand,
+          };
+          mergeAdminRowIntoState(updatedRow, adminState.mode);
+          renderAdminDetailFields(updatedRow, { loadingDetail: false, submissionRecord: options.submissionRecord });
+          applyAdminFilters();
+          hint.textContent = "Speaking band saved.";
+        });
+        speakingEditor.appendChild(field);
+      }
     }
 
     async function renderAdminDetail(row, options = {}) {
@@ -1802,7 +1905,7 @@
 
     function exportAdminRowsCsv() {
       if (!isAdminView() || !adminState.filtered.length) return;
-      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
+      const headers = ["submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","speakingBand","overallBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
       const lines = [headers.join(",")].concat(
         adminState.filtered.map((row) =>
           headers

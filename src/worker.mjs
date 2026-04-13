@@ -616,7 +616,17 @@ async function handleAdminApi(request, env) {
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
-    return proxy(request, backendUrl.toString());
+    const response = await fetch(backendUrl.toString(), {
+      method: "GET",
+      headers: filteredProxyHeaders(request),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data || data.ok !== true) {
+      return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load student result." });
+    }
+    const scoreMeta = await readSubmissionScoreMeta(env, url.searchParams);
+    const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
+    return json(200, { ...data, result: mergedResult });
   }
 
   if (request.method === "POST" && action === "submitPracticeObjective") {
@@ -644,6 +654,23 @@ async function handleAdminApi(request, env) {
 
     const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
     return json(200, { ok: true, record: record || null });
+  }
+
+  if (request.method === "POST" && action === "adminResultSpeakingScore") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const payload = await request.json().catch(() => null);
+    const speakingBand = toNullableBand(payload?.speakingBand);
+    const submittedAt = oneLine(payload?.submittedAt || "");
+    const studentFullName = oneLine(payload?.studentFullName || "");
+    const examId = oneLine(payload?.examId || "");
+    const reason = oneLine(payload?.reason || "");
+    if (!submittedAt || !studentFullName || !examId) {
+      return json(400, { ok: false, error: "Missing result lookup fields." });
+    }
+    const meta = await writeSubmissionScoreMeta(env, { submittedAt, studentFullName, examId, reason }, { speakingBand });
+    try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
+    return json(200, { ok: true, speakingBand, meta });
   }
 
   if (request.method === "GET" && action === "objectiveDetailAdmin") {
@@ -770,9 +797,10 @@ async function handleAdminApi(request, env) {
       return json(403, { ok: false, error: "This practice result is not available for the current account." });
     }
 
+    const scoreMeta = await readSubmissionScoreMeta(env, record);
     return json(200, {
       ok: true,
-      row: summarizePracticeResultRecord(record),
+      row: mergeSummaryWithScoreMeta(summarizePracticeResultRecord(record), scoreMeta),
       result: buildPracticeObjectiveDetail(record),
     });
   }
@@ -803,17 +831,18 @@ async function handleAdminApi(request, env) {
       return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
     }
 
-    const matches = ownedRows
+    const matches = await Promise.all(ownedRows
       .map((row) => {
         const match = matchStudentResultRow(row, data.results);
         if (!match) return null;
-        return {
+        return readSubmissionScoreMeta(env, row).then((scoreMeta) => ({
           requestedKey: buildResultMatchKey(row),
-          result: match,
-        };
+          result: mergeSummaryWithScoreMeta(match, scoreMeta),
+        }));
       })
-      .filter(Boolean);
-    return json(200, { ok: true, results: matches });
+    );
+    const filteredMatches = matches.filter(Boolean);
+    return json(200, { ok: true, results: filteredMatches });
   }
 
   if (request.method === "GET" && action === "studentPracticeResults") {
@@ -1088,6 +1117,55 @@ function buildSubmissionMetaKey(row) {
     normalizeMatchString(row?.examId || row?.exam_id || row?.active_test_id || ""),
     normalizeMatchString(row?.reason || ""),
   ].join("::");
+}
+
+function buildSubmissionScoreKey(row) {
+  const key = buildSubmissionMetaKey(row);
+  return key ? `score:${key}` : "";
+}
+
+function toRoundedOverallBand(parts) {
+  const nums = (Array.isArray(parts) ? parts : [])
+    .map((value) => toNullableBand(value))
+    .filter((value) => value !== null);
+  if (!nums.length) return null;
+  const avg = nums.reduce((sum, value) => sum + value, 0) / nums.length;
+  return Math.round(avg * 2) / 2;
+}
+
+async function readSubmissionScoreMeta(env, row) {
+  const key = buildSubmissionScoreKey(row);
+  if (!env?.STUDENT_REGISTRY || !key) return {};
+  const record = await readJsonKv(env.STUDENT_REGISTRY, key);
+  return record && typeof record === "object" ? record : {};
+}
+
+async function writeSubmissionScoreMeta(env, row, patch = {}) {
+  const key = buildSubmissionScoreKey(row);
+  if (!env?.STUDENT_REGISTRY || !key) return null;
+  const current = (await readJsonKv(env.STUDENT_REGISTRY, key)) || {};
+  const next = {
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeJsonKv(env.STUDENT_REGISTRY, key, next);
+  return next;
+}
+
+function mergeSummaryWithScoreMeta(summary, scoreMeta) {
+  const speakingBand = toNullableBand(scoreMeta?.speakingBand ?? summary?.speakingBand);
+  const overallBand = toRoundedOverallBand([
+    summary?.listeningBand,
+    summary?.readingBand,
+    summary?.finalWritingBand,
+    speakingBand,
+  ]);
+  return {
+    ...summary,
+    speakingBand,
+    overallBand,
+  };
 }
 
 async function logSecurityEvent(env, request, type, details = {}) {
@@ -1599,6 +1677,11 @@ function summarizePracticeResultRecord(record) {
     readingBand: section === "reading" ? bandValue : null,
     readingTotalQuestions: section === "reading" ? totalQuestions : null,
     finalWritingBand: null,
+    speakingBand: null,
+    overallBand: toRoundedOverallBand([
+      section === "listening" ? bandValue : null,
+      section === "reading" ? bandValue : null,
+    ]),
     task1Words: null,
     task2Words: null,
     task1Band: null,
@@ -1637,6 +1720,8 @@ function buildPracticeHistoryRow(record) {
     reading_total: summary.readingTotal,
     reading_band: summary.readingBand,
     final_writing_band: null,
+    speaking_band: summary.speakingBand,
+    overall_band: summary.overallBand,
     task1_band: null,
     task2_band: null,
     task1_breakdown: null,
@@ -1751,8 +1836,19 @@ async function listJsonByPrefix(namespace, prefix, limit = 1000) {
 async function getStudentPracticeRows(env, email) {
   if (!env?.STUDENT_REGISTRY || !email) return [];
   const records = await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${email}:`, 500);
-  return records
-    .map(buildPracticeHistoryRow)
+  const rows = await Promise.all(records.map(async (record) => {
+    const scoreMeta = await readSubmissionScoreMeta(env, record);
+    const row = buildPracticeHistoryRow(record);
+    row.speaking_band = toNullableBand(scoreMeta?.speakingBand);
+    row.overall_band = toRoundedOverallBand([
+      row.listening_band,
+      row.reading_band,
+      row.final_writing_band,
+      row.speaking_band,
+    ]);
+    return row;
+  }));
+  return rows
     .sort((a, b) => Date.parse(String(b?.submitted_at || "")) - Date.parse(String(a?.submitted_at || "")));
 }
 
@@ -1786,7 +1882,11 @@ async function getPracticeResultsSummary(env, options = {}) {
     backendRows = [];
   }
 
-  return [...backendRows, ...objectiveRows].sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
+  const merged = await Promise.all([...backendRows, ...objectiveRows].map(async (row) => {
+    const scoreMeta = await readSubmissionScoreMeta(env, row);
+    return mergeSummaryWithScoreMeta(row, scoreMeta);
+  }));
+  return merged.sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
 }
 
 function buildObjectiveDetailCacheKey(searchParams) {
@@ -1859,7 +1959,11 @@ async function getAdminResultsSummary(env, options = {}) {
     throw new Error(data?.error || "Could not load admin results summary.");
   }
 
-  const summaries = data.results.map(summarizeAdminResultRow);
+  const summaries = await Promise.all(data.results.map(async (row) => {
+    const summary = summarizeAdminResultRow(row);
+    const scoreMeta = await readSubmissionScoreMeta(env, summary);
+    return mergeSummaryWithScoreMeta(summary, scoreMeta);
+  }));
   setCachedAdminResultsSummary(cacheKey, summaries);
   return summaries;
 }
@@ -1886,6 +1990,13 @@ function summarizeAdminResultRow(row) {
     readingTotal: toNullableNumber(row?.readingTotal ?? row?.reading_total),
     readingBand: toNullableBand(row?.readingBand || row?.reading_band || ""),
     finalWritingBand,
+    speakingBand: toNullableBand(row?.speakingBand || row?.speaking_band || ""),
+    overallBand: toNullableBand(row?.overallBand || row?.overall_band || "") ?? toRoundedOverallBand([
+      row?.listeningBand ?? row?.listening_band,
+      row?.readingBand ?? row?.reading_band,
+      finalWritingBand,
+      row?.speakingBand ?? row?.speaking_band,
+    ]),
     task1Words,
     task2Words,
     task1Band,
@@ -1901,7 +2012,7 @@ function compareAdminSummaryRows(a, b, field, direction) {
   if (field === "submittedAt") {
     av = toTimestamp(av);
     bv = toTimestamp(bv);
-  } else if (["listeningTotal", "readingTotal", "task1Words", "task2Words", "finalWritingBand", "task1Band", "task2Band"].includes(field)) {
+  } else if (["listeningTotal", "readingTotal", "task1Words", "task2Words", "finalWritingBand", "task1Band", "task2Band", "speakingBand", "overallBand"].includes(field)) {
     av = toSortableNumber(av);
     bv = toSortableNumber(bv);
   } else {

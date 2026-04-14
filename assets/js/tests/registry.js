@@ -11,7 +11,7 @@
     "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";
 
   const ADMIN_SESSION_TTL_MIN = 240;
-  const TEST_PASSWORD = "ILEZT123";
+  const TEST_PASSWORD = "2026ielts12LEZNIK!31";
   const TEMP_STUDENT_AUDIO_SCRUB_FULL = true;
   const TEMP_STUDENT_AUDIO_SCRUB_PRACTICE = true;
   const TEMP_STUDENT_AUDIO_SCRUB = TEMP_STUDENT_AUDIO_SCRUB_FULL;

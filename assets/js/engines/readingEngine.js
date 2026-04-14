@@ -1420,6 +1420,80 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function renderSentenceGapsBlock(cfg, answers) {
   const panel = renderPanel(cfg.title, cfg.instructions);
 
+  const bindGapInput = (input, q) => {
+    input.className = "gapInput";
+    input.type = "text";
+    input.placeholder = "Type your answer";
+    input.setAttribute("data-reading-q", String(q));
+    input.value = answers[q] ?? "";
+    input.disabled = hasSubmittedReading;
+    input.addEventListener("input", () => {
+      if (hasSubmittedReading) return;
+      answers[q] = input.value;
+      saveAnswers(answers);
+    });
+  };
+
+  const appendInlineSegments = (host, segments, bullet = false) => {
+    const line = document.createElement("div");
+    line.style.lineHeight = "1.7";
+    line.style.margin = "8px 0";
+    if (bullet) {
+      line.style.paddingLeft = "18px";
+      line.style.textIndent = "-12px";
+      line.appendChild(document.createTextNode("• "));
+    }
+    (segments || []).forEach((segment) => {
+      if (typeof segment === "string") {
+        line.appendChild(document.createTextNode(segment));
+        return;
+      }
+      if (segment?.label) {
+        const label = document.createElement("b");
+        label.textContent = segment.label;
+        line.appendChild(label);
+        if (segment.text) line.appendChild(document.createTextNode(segment.text));
+        return;
+      }
+      if (segment?.q != null) {
+        const qnum = document.createElement("span");
+        qnum.className = "qbox";
+        qnum.style.display = "inline-flex";
+        qnum.style.margin = "0 6px";
+        qnum.style.verticalAlign = "middle";
+        qnum.textContent = String(segment.q);
+        line.appendChild(qnum);
+
+        const inlineGap = document.createElement("span");
+        inlineGap.className = "gapInline";
+        const input = document.createElement("input");
+        bindGapInput(input, segment.q);
+        inlineGap.appendChild(input);
+        line.appendChild(inlineGap);
+      }
+    });
+    host.appendChild(line);
+  };
+
+  if ((cfg.inlineSections || []).length) {
+    const box = document.createElement("div");
+    box.className = "optionsBox";
+    (cfg.inlineSections || []).forEach((section) => {
+      if (section.heading) {
+        const heading = document.createElement("div");
+        heading.style.fontWeight = "900";
+        heading.style.margin = "10px 0";
+        heading.textContent = section.heading;
+        box.appendChild(heading);
+      }
+      (section.lines || []).forEach((lineCfg) => {
+        appendInlineSegments(box, lineCfg.segments || [], Boolean(lineCfg.bullet));
+      });
+    });
+    panel.appendChild(box);
+    return panel;
+  }
+
   if (cfg.contextTitle || (cfg.contextLines || []).length) {
     const box = document.createElement("div");
     box.className = "optionsBox";
@@ -1468,18 +1542,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     line.className = "sentenceLine";
 
     const input = document.createElement("input");
-    input.className = "gapInput";
-    input.type = "text";
-    input.placeholder = "Type your answer";
-    input.setAttribute("data-reading-q", String(item.q));
-    input.value = answers[item.q] ?? "";
-    input.disabled = hasSubmittedReading;
-
-    input.addEventListener("input", () => {
-      if (hasSubmittedReading) return;
-      answers[item.q] = input.value;
-      saveAnswers(answers);
-    });
+    bindGapInput(input, item.q);
 
     // CASE 1: this gap must be attached to the previous sentence line
     if (item.inlineWithPrevious) {

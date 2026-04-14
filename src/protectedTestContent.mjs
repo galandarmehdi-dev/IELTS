@@ -3965,16 +3965,58 @@ const test10 = {
             <div class="listen-notes">
               <div class="note-row"><b>LENGTH:</b> 15 minutes</div>
               <div class="note-row"><b>STUDENTS:</b> Rachel, Owen, Suzie</div>
-              <div class="note-row"><b>What to discuss</b> &nbsp;&nbsp; <b>Presenter</b> &nbsp;&nbsp; <b>Aids/props</b></div>
-              <div class="note-row"><b>INTRODUCTION</b></div>
-              <div class="note-row">1 Facts / dates &nbsp;&nbsp; Owen &nbsp;&nbsp; Powerpoint</div>
-              <div class="note-row">2 <span class="qnum">27</span> <input data-lq="27" class="l-input"> &nbsp;&nbsp; Suzie &nbsp;&nbsp; Powerpoint</div>
-              <div class="note-row"><b>BODY</b></div>
-              <div class="note-row">1 Characters / roles &nbsp;&nbsp; Rachel &nbsp;&nbsp; <span class="qnum">28</span> <input data-lq="28" class="l-input"></div>
-              <div class="note-row">2 Character relationships &nbsp;&nbsp; Owen &nbsp;&nbsp; <span class="qnum">29</span> <input data-lq="29" class="l-input"></div>
-              <div class="note-row">3 Opinions &nbsp;&nbsp; Suzie &nbsp;&nbsp; None</div>
-              <div class="note-row"><b>CONCLUSION</b></div>
-              <div class="note-row"><span class="qnum">30</span> <input data-lq="30" class="l-input"> &nbsp;&nbsp; Rachel &nbsp;&nbsp; Modern day images</div>
+            </div>
+            <div class="listen-table-wrap">
+              <table class="listen-table">
+                <thead>
+                  <tr>
+                    <th>What to discuss</th>
+                    <th>Presenter</th>
+                    <th>Aids/props</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3"><b>INTRODUCTION</b></td>
+                  </tr>
+                  <tr>
+                    <td>1 Facts / dates</td>
+                    <td>Owen</td>
+                    <td>Powerpoint</td>
+                  </tr>
+                  <tr>
+                    <td>2 <span class="qnum">27</span> <input data-lq="27" class="l-input"></td>
+                    <td>Suzie</td>
+                    <td>Powerpoint</td>
+                  </tr>
+                  <tr>
+                    <td colspan="3"><b>BODY</b></td>
+                  </tr>
+                  <tr>
+                    <td>1 Characters / roles</td>
+                    <td>Rachel</td>
+                    <td><span class="qnum">28</span> <input data-lq="28" class="l-input"></td>
+                  </tr>
+                  <tr>
+                    <td>2 Character relationships</td>
+                    <td>Owen</td>
+                    <td><span class="qnum">29</span> <input data-lq="29" class="l-input"></td>
+                  </tr>
+                  <tr>
+                    <td>3 Opinions</td>
+                    <td>Suzie</td>
+                    <td>None</td>
+                  </tr>
+                  <tr>
+                    <td colspan="3"><b>CONCLUSION</b></td>
+                  </tr>
+                  <tr>
+                    <td><span class="qnum">30</span> <input data-lq="30" class="l-input"></td>
+                    <td>Rachel</td>
+                    <td>Modern day images</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -4081,6 +4123,13 @@ However, other voices in the field claim there is no bee crisis. Although they a
             instructions: [
               "Complete the notes.",
               "Write NO MORE THAN ONE WORD AND / OR A NUMBER from the text for each answer.",
+            ],
+            contextTitle: "Colony Collapse Disorder",
+            contextLines: [
+              { text: "• bee numbers have fallen to their lowest in decades." },
+              { text: "• in addition to bees, these species needed for crops due to a continual increase in human populations." },
+              { label: "Reasons for Vanishing Bees", text: "" },
+              { text: "• genetically modified crops and the relocation of hives could be to blame." },
             ],
             items: [
               { q: 6, text: "Colony Collapse Disorder: name arrived at due to reported issues in", tail: "." },
@@ -4221,10 +4270,11 @@ It has also been discovered that there were two dials on the back of the mechani
               "Complete the summary.",
               "Write NO MORE THAN THREE WORDS from the text for each answer.",
             ],
+            contextTitle: "The Discovery of the Antikythera Mechanism",
             items: [
               { q: 27, text: "The Antikythera mechanism was discovered by a diver who was looking for", tail: "." },
               { q: 28, text: "Having been commissioned to recover the relics, the same divers spent", tail: " retrieving items such as sculptures made of" },
-              { q: 29, text: "", leadingBlank: true, text2: " for the National Museum." },
+              { q: 29, inlineWithPrevious: true, text2: " for the National Museum." },
               { q: 30, text: "Another item they found was a", tail: " which contained a piece of metal." },
               { q: 31, text: "This was ignored until over a year later when a renowned archaeologist noticed that the inside was composed of several pieces, one of which had", tail: " on it," },
               { q: 32, text: "and others appeared to be apparatus of some sort, leading the investigators to think at first that the artefact might have been a", tail: ", although the historical origin of it suggested this was impossible." },

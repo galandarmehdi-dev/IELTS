@@ -1420,6 +1420,38 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function renderSentenceGapsBlock(cfg, answers) {
   const panel = renderPanel(cfg.title, cfg.instructions);
 
+  if (cfg.contextTitle || (cfg.contextLines || []).length) {
+    const box = document.createElement("div");
+    box.className = "optionsBox";
+
+    if (cfg.contextTitle) {
+      const title = document.createElement("div");
+      title.style.fontWeight = "900";
+      title.style.marginBottom = "10px";
+      title.textContent = cfg.contextTitle;
+      box.appendChild(title);
+    }
+
+    (cfg.contextLines || []).forEach((lineCfg) => {
+      const line = document.createElement("div");
+      line.style.lineHeight = "1.7";
+      line.style.margin = "8px 0";
+
+      if (lineCfg?.label) {
+        const label = document.createElement("b");
+        label.textContent = lineCfg.label;
+        line.appendChild(label);
+        if (lineCfg.text) line.appendChild(document.createTextNode(` ${lineCfg.text}`));
+      } else {
+        line.textContent = String(lineCfg?.text || "");
+      }
+
+      box.appendChild(line);
+    });
+
+    panel.appendChild(box);
+  }
+
   (cfg.items || []).forEach((item) => {
     const row = document.createElement("div");
     row.className = "sentenceRow";

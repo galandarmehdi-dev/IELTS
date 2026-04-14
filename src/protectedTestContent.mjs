@@ -3840,6 +3840,451 @@ Having a variety of different abilities in a collaborative learning environment 
   },
 };
 
+const test10 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Test10.mp3",
+    html: `
+      <div class="listen-page" id="listenSec1">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 1 - Questions 1-10</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 1-6</div>
+            <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Colvin Lettings — notepad</div>
+            <div class="listen-notes">
+              <div class="note-row">Customer is looking for a 2-bed flat</div>
+              <div class="note-row">Preferred locations:</div>
+              <div class="note-row">- the East Side</div>
+              <div class="note-row">- the Old <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+              <div class="note-row">Needs it by <span class="qnum">2</span> <input data-lq="2" class="l-input"> at the latest</div>
+              <div class="note-row">Budget: from £900 to <span class="qnum">3</span> £ <input data-lq="3" class="l-input tiny"></div>
+              <div class="note-row">Customer’s name: Miss <span class="qnum">4</span> <input data-lq="4" class="l-input"> Russell</div>
+              <div class="note-row">Tel: <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+              <div class="note-row">Email: <span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
+              <div class="note-row">Call her back later.</div>
+            </div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 7-10</div>
+            <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Three flats to rent</div>
+            <div class="listen-notes">
+              <div class="note-row"><b>1</b></div>
+              <div class="note-row">- a flat in the Old Port area</div>
+              <div class="note-row">- 2 beds</div>
+              <div class="note-row">- available from the 12th</div>
+              <div class="note-row">- has a big <span class="qnum">7</span> <input data-lq="7" class="l-input"></div>
+              <div class="note-row">- costs £1250 a month</div>
+              <div class="note-row"><b>2</b></div>
+              <div class="note-row">- a flat also in the Old Port area</div>
+              <div class="note-row">- costs <span class="qnum">8</span> £ <input data-lq="8" class="l-input tiny"> a month</div>
+              <div class="note-row">- has one bed, but is quite spacious</div>
+              <div class="note-row"><b>3</b></div>
+              <div class="note-row">- in the <span class="qnum">9</span> <input data-lq="9" class="l-input"> (down a side street)</div>
+              <div class="note-row">- 2 beds</div>
+              <div class="note-row">- £950 / month</div>
+              <div class="note-row">- available from the 11th</div>
+              <div class="note-row">- has a space for <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec2">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 2 - Questions 11-20</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 11-15</div>
+            <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">11</span> How does Kevin feel about the amount of waste that is recycled in Bookwall?</div><label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) hopeful that it will start improving</label><label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) surprised that it is so high</label><label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) pleased with the progress that has been made</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">12</span> What point is Kevin making when he talks about drinks cans?</div><label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) People should ideally avoid buying canned drinks.</label><label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) Recycling an item uses less energy than making a new one would.</label><label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) Before buying a product, it is worth checking whether packaging can be recycled.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">13</span> Kevin mentions ships in order to</div><label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) explain how much waste is produced.</label><label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) warn how dangerous rubbish in the sea can be.</label><label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) point out that a lot of the UK’s rubbish is sent overseas.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">14</span> What children’s activity is being organised this year?</div><label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) making something out of recycled objects</label><label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) writing a story about recycling</label><label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) photographing people recycling</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">15</span> What does Kevin say about the recycling centres in Bookwall?</div><label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) They are easy to get to.</label><label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) Several new ones have recently opened.</label><label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) They are good places to learn about recycling.</label></div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 16-20</div>
+            <div class="listen-inst">What should people do if they want to take each of the following items to a recycling centre? Write the correct letter, <b>A</b>, <b>B</b>, or <b>C</b> next to Questions 16-20.</div>
+            <div class="listen-notes">
+              <div class="note-row">A &nbsp; make an appointment to visit</div>
+              <div class="note-row">B &nbsp; bring it in any time</div>
+              <div class="note-row">C &nbsp; check for further details before coming</div>
+              <div class="note-row" data-listening-question-host><span class="qnum">16</span> batteries
+                <select data-lq="16" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">17</span> clothes
+                <select data-lq="17" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">18</span> building materials
+                <select data-lq="18" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">19</span> furniture
+                <select data-lq="19" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select>
+              </div>
+              <div class="note-row" data-listening-question-host><span class="qnum">20</span> electronics
+                <select data-lq="20" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec3">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 3 - Questions 21-30</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 21-22</div>
+            <div class="listen-inst">For each question, choose <b>TWO</b> correct options. Write them in any order in answer boxes 21-22.</div>
+            <div class="mcq-opt-list">
+              <div class="mcq-q">For which TWO reasons did <i>Sunrise Lake</i> become so popular?</div>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="A"> A) Critics loved it.</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="B"> B) It is brilliantly written.</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="C"> C) It was marketed effectively.</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="D"> D) Its writer was already a celebrity.</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="21" value="E"> E) It was made into a successful film.</label>
+            </div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 23-24</div>
+            <div class="listen-inst">For each question, choose <b>TWO</b> correct options. Write them in any order in answer boxes 23-24.</div>
+            <div class="mcq-opt-list">
+              <div class="mcq-q">What TWO questions about the novel do the students plan to address in the seminar?</div>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="A"> A) what happens in the story</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="B"> B) what makes the book unique</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="C"> C) which other books it is similar to</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="D"> D) why other students should read it</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="23" value="E"> E) how they feel about the characters</label>
+            </div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 25-26</div>
+            <div class="listen-inst">For each question, choose <b>TWO</b> correct options. Write them in any order in answer boxes 25-26.</div>
+            <div class="mcq-opt-list">
+              <div class="mcq-q">What TWO things do the students say can affect their mark for the seminar?</div>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="25" value="A"> A) sticking to the time limit</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="25" value="B"> B) preparing attractive slides</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="25" value="C"> C) explaining the book’s relevance nowadays</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="25" value="D"> D) using quotations from the book effectively</label>
+              <label class="mcq-opt"><input type="checkbox" data-lq-check="25" value="E"> E) responding well to their classmates’ questions</label>
+            </div>
+          </div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 27-30</div>
+            <div class="listen-inst">What comments do the students make about each of the following characters in <i>Sunrise Lake</i>? Choose four answers and write the correct letter, <b>A-E</b>, next to Questions 27-30.</div>
+            <div class="listen-notes">
+              <div class="note-row"><b>Comments</b></div>
+              <div class="note-row">A &nbsp; She is intelligent.</div>
+              <div class="note-row">B &nbsp; They feel sorry for her.</div>
+              <div class="note-row">C &nbsp; They admire her determination.</div>
+              <div class="note-row">D &nbsp; She creates difficulties for others.</div>
+              <div class="note-row">E &nbsp; Her personality develops throughout the story.</div>
+              <div class="note-row"><b>Characters</b></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">27</span> Betty <select data-lq="27" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">28</span> Sally Baxter <select data-lq="28" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">29</span> Mrs Dawson <select data-lq="29" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">30</span> The cook <select data-lq="30" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="listen-page hidden" id="listenSec4">
+        <div class="listen-block">
+          <div class="listen-h">SECTION 4 - Questions 31-40</div>
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 31-40</div>
+            <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+            <div class="listen-card-title">SWOT analysis</div>
+            <div class="listen-notes">
+              <div class="note-row">S-W-O-T analysis may have been the idea of Albert Humphrey, who wanted to explain why <span class="qnum">31</span> <input data-lq="31" class="l-input"> planning was not working</div>
+              <div class="note-row"><b>Definition of SWOT</b></div>
+              <div class="note-row">S = strengths</div>
+              <div class="note-row">W = weaknesses</div>
+              <div class="note-row">O = opportunities a business could <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+              <div class="note-row">T = threats</div>
+              <div class="note-row"><b>Internal factors:</b></div>
+              <div class="note-row">- what a firm sells</div>
+              <div class="note-row">- the price of its products</div>
+              <div class="note-row">- all the firm’s <span class="qnum">33</span> <input data-lq="33" class="l-input"></div>
+              <div class="note-row">- financial situation</div>
+              <div class="note-row"><b>External factors:</b></div>
+              <div class="note-row">Understanding these helps limit an organisation’s exposure to <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
+              <div class="note-row">- activities of other businesses</div>
+              <div class="note-row">- changes in society</div>
+              <div class="note-row">- new <span class="qnum">35</span> <input data-lq="35" class="l-input"> that are made</div>
+              <div class="note-row">- marketplace changes</div>
+              <div class="note-row"><b>Uses:</b></div>
+              <div class="note-row">- reviewing strategy every <span class="qnum">36</span> <input data-lq="36" class="l-input"></div>
+              <div class="note-row"><span class="qnum">37</span> <input data-lq="37" class="l-input"> departments do SWOT analysis</div>
+              <div class="note-row"><b>Also used for:</b></div>
+              <div class="note-row">- <span class="qnum">38</span> <input data-lq="38" class="l-input"></div>
+              <div class="note-row">- community projects</div>
+              <div class="note-row"><b>Advantages:</b></div>
+              <div class="note-row"><span class="qnum">39</span> <input data-lq="39" class="l-input">, as anyone can do it</div>
+              <div class="note-row"><b>Limitations:</b></div>
+              <div class="note-row"><span class="qnum">40</span> <input data-lq="40" class="l-input"> in certain circumstances</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  writing: {
+    task1Type: "Map",
+    task2Type: "Discussion",
+    task1Html: `<p>The two maps below show the changes that have taken place in the town of Westley since 1815.</p>`,
+    task1ImageSrc: "https://audio.ieltsmock.org/Map10.png",
+    task2Html: `<p>Many people try to achieve success through their career or education.</p><p>What can success mean to different people?</p><p>What is your view of success?</p>`,
+    samples: { task1: [], task2: [] },
+  },
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Bees and Colony Collapse Disorder
+
+A
+The European honey bee is one of the most common bee species worldwide. Not only does it produce honey, it is also one of nature's most prolific pollinators. It is the single most important for agriculture due to its role in the growth of as much as a third of crops, although other bee species - around 250 in the UK and over 4000 in the US - also play their part in this process. Over recent years, however, reports of declining bee populations have increased, leaving concern surrounding the future of this incredibly important insect and its continuing role in providing the food we eat.
+
+B
+The European honey bee is thought to have originated in Africa or Asia, from where it spread throughout the Middle East and Europe and, with human assistance, is today present in every continent excluding Antarctica. Able to adapt to geographical surroundings and seasonal changes, the honey bee, unlike other species, benefits from perennial colonies that reproduce through the process of 'swarming'. During this process, up to half a colony's members will separate with the existing queen, leaving a successor behind to continue her work. Scout bees then search out a suitable location and the separated cluster relocates, forming a new colony.
+
+C
+Domestication of the species dates back as far as Ancient Egypt, evidenced in its depiction in tomb paintings. Today it remains one of the only insect species to be farmed, and is primarily chosen due to its honey-making virtues, its usefulness in pollination, and resistance to cold weather and disease. However, beekeepers sounded the alarm for the first time in 2006 reporting declining populations and abandoned hives, resulting in the terming of the syndrome known as Colony Collapse Disorder (CCD). The New York based National Resource Defense Council (NRDC) estimate that nearly one third of North America's bees have simply vanished since then, sending numbers plummeting to a fifty-year low. Additionally, the Intergovernmental Science-Policy Platform on Biodiversity and Ecosystem Services (IPBES), established under the UN in 2012, states that bees and butterflies are 'declining in abundance' across mainly Northwest Europe and North America, though other regions of the world are not escaping unscathed, and warns of the importance of protecting these species to ensure stable fruit and vegetable production, especially faced with a future in which we will have to feed ever-growing populations.
+
+D
+The consequences of a severely depleted honey bee population would be far-reaching. Considering our main staple crops such as rice, wheat and maize are wind-pollinated, and therefore not reliant on insects, we need not go hungry. However, we would lose essential nutrients from fruits, vegetables, nuts and oils were they to become no longer available or scarcer, potentially resulting in poor health for many. The IPBES cite 'more than three-quarters of the leading types of food crops' require animal pollination to some degree for both yield and quality. Economically speaking, global agricultural production reliant on bees and other insects is estimated at hundreds of billions of dollars a year. Lower yields through a dramatic reduction in pollinators would lead to higher prices for consumers and a serious dent in the profitability of the agriculture sector globally. To avoid this eventuality, research has been completed and more is underway to discover the cause of the phenomenon and possible solutions.
+
+E
+Yet that might be easier said than done, as the scientific consensus is that there is no one specific cause for CCD and the disappearance of bees. Many researchers believe a combination of factors is to blame. Global warming is causing changes in seasonal blooming, meaning bees may be missing important events in the agricultural calendar as, by the time they come out of hibernation, they arrive too late to pollinate crops. Pesticides are another probable cause. In 2016, an 18-year-long UK study concluded that some specific pesticides could be linked to 'large-scale population extinctions' of wild bees. Their use has been restricted or banned by the EU and parts of the US in response to this. Other suggested factors include a loss of habitat brought about by development of rural land, immunodeficiency in bees causing mass die-offs, GM crops, the use of antibiotics by beekeepers, and migratory beekeeping (the practice of moving hives around a country to aid pollination of crops), to mention just a few.
+
+F
+However, other voices in the field claim there is no bee crisis. Although they admit that CCD did challenge species in 2006, it is claimed that this is a centuries-old, periodic phenomenon from which bees recover. Some species, including the European honey bee, appear to be doing so and numbers are on the rise. These experts tell us we are worrying about the wrong bees. Those which are in danger of dying out are lesser known, wild species which, despite pollinating naturally, are not the domesticated honeybees we depend so greatly upon for our sustenance. While the extent of the bee decline is still under debate, for many it has served as a means of highlighting the delicate balance that exists in our ecosystem and the need for a greater understanding of agricultural sustainability.`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 1-5",
+            instructions: [
+              "The text has six paragraphs. Choose the correct heading for each paragraph.",
+              "Write the appropriate number (i – ix).",
+              "Example: Paragraph A — ix",
+            ],
+            headings: [
+              { value: "i", label: "Falling figures" },
+              { value: "ii", label: "Farming regulations" },
+              { value: "iii", label: "Expanding populations" },
+              { value: "iv", label: "Potential solutions" },
+              { value: "v", label: "Questioning the claims" },
+              { value: "vi", label: "The cost of collapse" },
+              { value: "vii", label: "The end of the crisis" },
+              { value: "viii", label: "The roots of the problem" },
+              { value: "ix", label: "Worrying news" },
+            ],
+            questions: [
+              { q: 1, paragraph: "Paragraph B" },
+              { q: 2, paragraph: "Paragraph C" },
+              { q: 3, paragraph: "Paragraph D" },
+              { q: 4, paragraph: "Paragraph E" },
+              { q: 5, paragraph: "Paragraph F" },
+            ],
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 6-9",
+            instructions: [
+              "Complete the notes.",
+              "Write NO MORE THAN ONE WORD AND / OR A NUMBER from the text for each answer.",
+            ],
+            items: [
+              { q: 6, text: "Colony Collapse Disorder: name arrived at due to reported issues in", tail: "." },
+              { q: 7, text: "In addition to bees,", tail: " have also dramatically reduced in number in the US and parts of Europe." },
+              { q: 8, text: "Climatic changes bring forward flowering of plants to when bees are still in", tail: "." },
+              { q: 9, text: "Research shows mass", tail: " of non-domesticated bees could be due to pesticides." },
+            ],
+          },
+          {
+            type: "tfng",
+            title: "Questions 10-13",
+            instructions: [
+              "Choose TRUE, FALSE or NOT GIVEN.",
+            ],
+            items: [
+              { q: 10, text: "A significant fall in the number of animals able to transfer pollen to crops would be costly for both industry and individuals." },
+              { q: 11, text: "Research into alternative methods of pollination has already turned up some potential causes of bees disappearing." },
+              { q: 12, text: "Moving bees to different locations may be one of the causes of CCD." },
+              { q: 13, text: "The future of the honey bee is more certain than other types of bee." },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part2",
+        passageText: `Sleep Paralysis
+
+Most nights, people experience dreams, partly due to a phase of the sleep cycle known as REM (Rapid Eye Movement) sleep, during which the brain is highly active and dreams are particularly vivid and complex. Throughout this state, our bodies are still except for the muscles needed to move the eyes and to breathe, perhaps in order to stop dreamers from acting out and being put in harm’s way. This almost complete paralysis is called atonia and is caused by motor neurons, small nerve endings located in the spinal cord. Although this is entirely normal during sleep, atonia can occur while a person is awake. This phenomenon is called sleep paralysis.
+
+An infrequent but perfectly safe condition, during sleep paralysis the mind is awake but, due to atonia, the body is paralysed for up to several minutes. This can result in an inability to move or speak, a feeling of pressure on the chest, difficulty breathing and an inexplicable fear or feeling of dread. In some, the inability to move their eyes can occur, whereas others find that these are the only part of the body they can move. Many also experience hallucinations during sleep paralysis, varying from believing a malevolent presence to be in the room, to more complex hallucinations including hearing, smelling or feeling things that are not there. In more extreme cases, people have reported forced or wilful out-of-body experiences. Understandably, these effects can be very frightening for the individual, even though there is no danger.
+
+Documented interest in sleep paralysis goes back as far as Ancient Greece, but has not always been thought of as a medical issue. Paulus Aegenita, a Byzantine Greek physician, wrote about a disorder called ‘ephialtes’ in his medical encyclopaedia Medical Compendium in Seven Books. According to Paulus, the sufferer of ephialtes experiences the sensation of being suffocated and unable to move as a demon presses down on them. The being may speak while attempting to suffocate them, then flees when they strive to grab it. Aegenita believed such an affliction was a forerunner of another disease and that the demon behind it would return every night after its initial visit to torment the sleeper. This perception of sleep paralysis is mirrored across many cultures. British folklore talks of the Old Hag, an entity who sits on people’s chests while they sleep and causes them to have nightmares. When the sleeper awakes, the Old Hag disappears, leaving the person unable to speak or move temporarily. The Old Hag also appears in other European cultures, commonly known as ‘mara’ and causing similar effects on its victims.
+
+Beyond these broad similarities, further details differ from culture to culture. In Japan, evil spirits - known as ‘kanashibari’ - tie up victims with iron ropes, whereas the Inuits attribute the phenomena to a shaman placing a curse upon the victim. Despite these differences, it is clear that most pre-Enlightenment cultures believed that rather than a natural occurrence in the human body, sleep paralysis was attributed to an exterior threat, someone or something that wished to harm them. 18th-Century artist Henry Fuseli is well known for oil painting ‘The Nightmare’, depicting a woman with a demonic creature sitting on her chest and a possessed horse skulking near the bed. This painting is commonly perceived as depicting sleep paralysis, as the incubus puts pressure on the chest, causing the shortness of breath typical of the condition. Furthermore, the woman is painted as lying on her back, a position which even in modern medicine is considered to lead to or exacerbate sleep paralysis. It is believed that Fuseli was inspired by Germanic tales of hags and mara in his creation of this artwork.
+
+Given that people in the past attributed sleep paralysis to supernatural causes, it is unsurprising that they also believed it was a precursor to illness or could even lead to death. Even when a rational, medical explanation for the condition exists, some people still believe it is more than just an anomaly in sleeping patterns. Some theories attribute sleep paralysis to ‘shadow people’ - entities with a human form found in the shadows watching over victims while they sleep. Those who have ‘met’ these gloomy figures, often hallucinate about long shadows and strange shapes. The widely documented nature of these hallucinations mean many consider them proof of the shadow people’s existence. Alternatively, many conspiracy theorists believe sleep paralysis is due to alien activity, as the majority of those claiming to be victims of alien abduction describe the encounter as being similar to sleep paralysis: inexplicable anxiety, hearing buzzing or humming sounds and sensing a potentially harmful presence.
+
+It appears some aspect of the human psyche has always been attracted to bizarre and supernatural explanations for an affliction that, although potentially alarming, is entirely benign. Although the mechanics are now understood by modern medicine, the root causes of sleep paralysis still remain vague and unconfirmed. It has been linked to narcolepsy, its likelihood increasing through irregular sleeping patterns or insomnia. Nonetheless, a definitive cause has yet to be determined and this strange phenomenon is likely to continue to attract supernatural speculation until we discover what exactly provokes it.`,
+        blocks: [
+          {
+            type: "multiTextChoices",
+            title: "Questions 14-16",
+            instructions: [
+              "Choose THREE letters (from A–G).",
+              "According to the passage, what is true of normal REM sleep?",
+            ],
+            choices: [
+              { letter: "A", text: "Our eyes can be sometimes open." },
+              { letter: "B", text: "We only dream if we are completely free from harm." },
+              { letter: "C", text: "All but the most essential muscles do not function." },
+              { letter: "D", text: "Our bodies attempt to act out our dreams." },
+              { letter: "E", text: "Our dreams are more animated." },
+              { letter: "F", text: "Motor neurons in the spinal cord cause a condition called atonia." },
+              { letter: "G", text: "Atonia can cause sleepers to wake up." },
+            ],
+            items: [
+              { q: 14, text: "First answer" },
+              { q: 15, text: "Second answer" },
+              { q: 16, text: "Third answer" },
+            ],
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 17-19",
+            instructions: [
+              "Choose THREE letters (from A–G).",
+              "What can happen to people during an attack of sleep paralysis?",
+            ],
+            choices: [
+              { letter: "A", text: "Their minds suddenly go to sleep." },
+              { letter: "B", text: "They sense something pushing on their body." },
+              { letter: "C", text: "They often feel afraid for no reason." },
+              { letter: "D", text: "They experience physical pain." },
+              { letter: "E", text: "They are able to move their eyes." },
+              { letter: "F", text: "Their bodies develop a strange smell." },
+              { letter: "G", text: "They sense things which are not present." },
+            ],
+            items: [
+              { q: 17, text: "First answer" },
+              { q: 18, text: "Second answer" },
+              { q: 19, text: "Third answer" },
+            ],
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 20-25",
+            instructions: [
+              "Choose the correct figure(s).",
+            ],
+            endings: {
+              CT: "Conspiracy theorists",
+              HF: "Henry Fuseli",
+              OH: "The Old Hag",
+              PA: "Paulus Aegenita",
+              SP: "Shadow People",
+            },
+            items: [
+              { q: 20, text: "Can draw parallels between a personal experience and the symptoms of sleep paralysis." },
+              { q: 21, text: "Believed sleep paralysis to be a sign of underlying health problems." },
+              { q: 22, text: "Can be referred to by an alternative name depending on which country you are in." },
+              { q: 23, text: "Is/are believed by many to exist due to the extensive recording of visions." },
+              { q: 24, text: "Received inspiration from folklore." },
+              { q: 25, text: "Is/are thought to cause bad dreams." },
+            ],
+          },
+          {
+            type: "mcq",
+            title: "Question 26",
+            instructions: ["Choose the correct answer."],
+            items: [
+              { q: 26, text: "What is the most appropriate title for this text?", choices: { A: "The role of folklore in dreams.", B: "The physical symptoms and effects of sleep paralysis.", C: "Investigating the source of irregular sleep patterns.", D: "Paranormal theories for an unexplained phenomenon." } },
+            ],
+          },
+        ],
+      },
+      {
+        id: "part3",
+        passageText: `The Antikythera Mechanism
+
+One spring day in 1900, a party of Greek sponge divers took shelter from a storm near the island of Antikythera, which lies about 50 kilometres northwest of the western tip of Crete. After the storm, one of the group, Elias Stadiatis, decided to dive in search of giant clams to eat for their dinner. On a shelf about 43 metres below the surface of the water, he chanced upon the wreck of an ancient ship. Fragments of statues, looking like body parts, covered this ledge. The diver returned to the surface, bearing an arm made of bronze as proof of what he had discovered. He reported his find to the authorities and, in the autumn, he and his companions returned to dive on the Antikythera wreck on behalf of the Greek government. They spent the next ten months bringing up pieces of marble and bronze statues, amphorae, lamps and coins, all of which were sent to the National Museum in Athens for cleaning and restoration.
+
+Among the artefacts retrieved from the shipwreck was a rather unprepossessing lump of bronze inside what seemed to be a wooden casing. This object was covered in barnacles and badly corroded by seawater, and didn’t attract much attention at first. It wasn’t until May 1902 that the leading Greek archaeologist Valerios Stais noticed that the wooden covering had dried out and split open, and the fused lump of metal inside it had separated into several pieces. The largest of these fragments was a dial about 14cm in diameter, with some inscriptions on it. Some other fragments also appeared to be parts of dials with perfectly formed triangular teeth, like gear wheels. The evidence seemed to point to this being part of a kind of mechanical clock, but the researchers ultimately rejected this possibility as the wreck had been dated to the first century BCE, and it was known that precise gears like these had not existed until fourteen centuries after that.
+
+Little progress on identifying either the purpose or origins of the mechanism was made until the late 1950s, when the device attracted the attention of a British-born polymath, Derek de Solla Price, who was working at Princeton University in the United States. Price realised that the inscriptions on the large dial indicated days, months and zodiac signs and theorised that the device used gears to trace the paths of the sun, moon and other planets in relation to the earth and to indicate their position at any given moment by means of pointers that had since been lost. Although his interpretation was basically sound, further research was hampered by the fact that only a few of the gears appear on the surface of the fused metal fragments of the mechanism.
+
+In 1971, the National Museum in Athens gave permission for Price, working with a Greek radiographer, to X-ray the fragments of the Antikythera mechanism. These two-dimensional images revealed many of the hidden gears and allowed Price to develop schematic drawings of how the mechanism must have worked. What he discovered confounded all previous theories of technology in the Hellenistic era and indicated that the ancient Greeks’ mechanical know-how and knowledge of astronomy came close to that of modern times. However, despite positive scholarly reviews of Price’s work, his idea that the Antikythera mechanism is an ancient analogue computer, published in his 1974 book “Gears from the Greeks”, fell on deaf ears where mainstream historians were concerned. This may have been due, at least in part, to the contemporaneous popularity of books by the Swiss writer Erich von Daniken, who postulated that ancient aliens had brought advanced technology to earth; Price’s work may have inadvertently become associated with fringe theories and UFO-hunters as a result.
+
+Whatever the reason, little more official research was conducted on the mechanism until the 2005 launch of the Antikythera Mechanism Research Project, an international, multi-disciplinary study that operates under the supervision of the Hellenic Ministry of Culture. The project examined the fragments of the Antikythera mechanism using state-of-the-art imaging equipment. One machine, nicknamed BladeRunner, was originally designed to detect cracks in aircraft turbine blades by means of three-dimensional X-ray technology. This project is ongoing and new findings are being constantly made and revealed. Enough has already been discovered to vindicate Price.
+
+This modern research places the construction of the mechanism towards the end of the second century BCE and confirms that its bronze dials and gears would have been housed in a wooden box roughly the size of a modern shoebox. Like the clocks our grandparents’ generation kept on the mantelpiece, the mechanism had a circular dial at the front with rotating hands. Rather than showing hours and minutes, however, these hands indicated the exact whereabouts of the sun and the moon in the sky at any given time, as well as of Mercury, Venus, Mars, Jupiter and Saturn, the five planets that are visible to the naked human eye. In addition, the mechanism also allowed for the fact that the orbit of some planets around the sun appears to go backwards, or “retrograde”, at certain times during the celestial cycle.
+
+It has also been discovered that there were two dials on the back of the mechanism, one of which was a calendar and the other which showed when solar and lunar eclipses would take place. A number of breathtaking models of the mechanism have been produced, including one made out of Lego blocks. These reveal the outstanding mechanical skills and astronomical knowledge of whoever built the Antikythera mechanism two thousand years or more before we developed the technological skills to start unlocking its secrets.`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 27-32",
+            instructions: [
+              "Complete the summary.",
+              "Write NO MORE THAN THREE WORDS from the text for each answer.",
+            ],
+            items: [
+              { q: 27, text: "The Antikythera mechanism was discovered by a diver who was looking for", tail: "." },
+              { q: 28, text: "Having been commissioned to recover the relics, the same divers spent", tail: " retrieving items such as sculptures made of" },
+              { q: 29, text: "", leadingBlank: true, text2: " for the National Museum." },
+              { q: 30, text: "Another item they found was a", tail: " which contained a piece of metal." },
+              { q: 31, text: "This was ignored until over a year later when a renowned archaeologist noticed that the inside was composed of several pieces, one of which had", tail: " on it," },
+              { q: 32, text: "and others appeared to be apparatus of some sort, leading the investigators to think at first that the artefact might have been a", tail: ", although the historical origin of it suggested this was impossible." },
+            ],
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 33-37",
+            instructions: [
+              "Complete each sentence with the correct ending.",
+              "Write the appropriate letters, A-H.",
+            ],
+            endings: {
+              A: "... to calculate how the calendar operated.",
+              B: "... to identify problems in aeronautical components.",
+              C: "... to discover historical artifacts.",
+              D: "... to link the ancient device to theories about extra terrestrials.",
+              E: "... to use gears to calculate astronomical movements.",
+              F: "... to study a wooden box and its contents more closely.",
+              G: "... to produce a picture showing what the mechanism looked like inside.",
+              H: "... to retrieve the outstanding relics.",
+            },
+            items: [
+              { q: 33, text: "Elias Stadiatis had not intended" },
+              { q: 34, text: "The group of divers were asked" },
+              { q: 35, text: "Valerios Stais was the first" },
+              { q: 36, text: "Using an X-ray, Derek de Solla Price managed" },
+              { q: 37, text: "The Antikythera Mechanism Research Project used technology originally created" },
+            ],
+          },
+          {
+            type: "mcq",
+            title: "Questions 38-40",
+            instructions: ["Choose the correct answer. Write the appropriate letter A-D for each question."],
+            items: [
+              { q: 38, text: "How is the mechanism similar to more contemporary clock designs?", choices: { A: "It has a small, box shape.", B: "The casing is made of wood.", C: "It has hands which turn around in a circle.", D: "It indicates how many minutes and hours have passed." } },
+              { q: 39, text: "What was the Antikythera Mechanism able to show?", choices: { A: "The current time of day", B: "The position of some of the planets", C: "The direction the planets are spinning in", D: "The distance between the sun and the moon" } },
+              { q: 40, text: "What do our current models of the mechanism show?", choices: { A: "The mechanism is so advanced in design, we couldn’t understand it until modern times.", B: "The creators of the Antikythera mechanism knew far more about astronomy than we do.", C: "We have only recently possessed the technology that belonged to the ancient Greeks.", D: "There are still things we don’t understand about the Antikythera mechanism." } },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+};
+
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -3850,6 +4295,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts7: test7,
   ielts8: test8,
   ielts9: test9,
+  ielts10: test10,
 };
 
 export function getProtectedTestContent(testId) {

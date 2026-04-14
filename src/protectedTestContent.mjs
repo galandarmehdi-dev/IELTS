@@ -4122,20 +4122,27 @@ However, other voices in the field claim there is no bee crisis. Although they a
             title: "Questions 6-9",
             instructions: [
               "Complete the notes.",
-              "Write NO MORE THAN ONE WORD AND / OR A NUMBER from the text for each answer.",
+              "Use NO MORE THAN ONE WORD AND / OR A NUMBER from Reading Passage 1, To Bee or not to Bee.",
+              "Write them in answer boxes 6-9.",
             ],
-            contextTitle: "Colony Collapse Disorder",
-            contextLines: [
-              { text: "• bee numbers have fallen to their lowest in decades." },
-              { text: "• in addition to bees, these species needed for crops due to a continual increase in human populations." },
-              { label: "Reasons for Vanishing Bees", text: "" },
-              { text: "• genetically modified crops and the relocation of hives could be to blame." },
-            ],
-            items: [
-              { q: 6, text: "Colony Collapse Disorder: name arrived at due to reported issues in", tail: "." },
-              { q: 7, text: "In addition to bees,", tail: " have also dramatically reduced in number in the US and parts of Europe." },
-              { q: 8, text: "Climatic changes bring forward flowering of plants to when bees are still in", tail: "." },
-              { q: 9, text: "Research shows mass", tail: " of non-domesticated bees could be due to pesticides." },
+            inlineSections: [
+              {
+                heading: "Colony Collapse Disorder",
+                lines: [
+                  { bullet: true, segments: ["name arrived at due to reported issues in ", { q: 6 }, "."] },
+                  { bullet: true, segments: ["bee numbers have fallen to their lowest in decades."] },
+                  { bullet: true, segments: ["in addition to bees, ", { q: 7 }, " have also dramatically reduced in number in the US and parts of Europe."] },
+                  { bullet: true, segments: ["these species needed for crops due to a continual increase in human populations."] },
+                ],
+              },
+              {
+                heading: "Reasons for Vanishing Bees",
+                lines: [
+                  { bullet: true, segments: ["climatic changes bring forward flowering of plants to when bees are still in ", { q: 8 }, "."] },
+                  { bullet: true, segments: ["research shows mass ", { q: 9 }, " of non-domesticated bees could be due to pesticides."] },
+                  { bullet: true, segments: ["genetically modified crops and the relocation of hives could be to blame."] },
+                ],
+              },
             ],
           },
           {
@@ -4268,16 +4275,18 @@ It has also been discovered that there were two dials on the back of the mechani
             title: "Questions 27-32",
             instructions: [
               "Complete the summary.",
-              "Write NO MORE THAN THREE WORDS from the text for each answer.",
+              "Use NO MORE THAN THREE WORDS from Reading Passage 3, The Antikythera Mechanism, for each answer.",
+              "Write them in answer boxes 27-32.",
             ],
-            contextTitle: "The Discovery of the Antikythera Mechanism",
-            items: [
-              { q: 27, text: "The Antikythera mechanism was discovered by a diver who was looking for", tail: "." },
-              { q: 28, text: "Having been commissioned to recover the relics, the same divers spent", tail: " retrieving items such as sculptures made of" },
-              { q: 29, inlineWithPrevious: true, text2: " for the National Museum." },
-              { q: 30, text: "Another item they found was a", tail: " which contained a piece of metal." },
-              { q: 31, text: "This was ignored until over a year later when a renowned archaeologist noticed that the inside was composed of several pieces, one of which had", tail: " on it," },
-              { q: 32, text: "and others appeared to be apparatus of some sort, leading the investigators to think at first that the artefact might have been a", tail: ", although the historical origin of it suggested this was impossible." },
+            inlineSections: [
+              {
+                heading: "The Discovery of the Antikythera Mechanism",
+                lines: [
+                  { segments: ["The Antikythera mechanism was discovered by a diver who was looking for ", { q: 27 }, ". Instead, he found the remains of an ancient ship, from which he took proof to show his fellow divers."] },
+                  { segments: ["Having been commissioned to recover the relics, the same divers spent ", { q: 28 }, " retrieving items such as sculptures made of ", { q: 29 }, " for the National Museum. Another item they found was a ", { q: 30 }, " which contained a piece of metal."] },
+                  { segments: ["This was ignored until over a year later when a renowned archaeologist noticed that the inside was composed of several pieces, one of which had ", { q: 31 }, " on it, and others appeared to be apparatus of some sort, leading the investigators to think at first that the artefact might have been a ", { q: 32 }, ", although the historical origin of it suggested this was impossible."] },
+                ],
+              },
             ],
           },
           {

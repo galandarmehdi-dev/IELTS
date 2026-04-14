@@ -1,5 +1,6 @@
 ADMIN_RESULTS_PASSCODE=replace-with-google-apps-script-admin-passcode
 ADMIN_ALLOWED_EMAILS=admin@example.com
+TEST_ENTRY_PASSWORD=replace-with-student-test-entry-password
 SHARED_STUDENT_PASSWORD=replace-with-shared-student-password
 SHARED_STUDENT_TOKEN_SECRET=replace-with-long-random-shared-token-secret
 SHARED_STUDENT_BYPASS_PASSWORD=replace-with-admin-only-bypass-password

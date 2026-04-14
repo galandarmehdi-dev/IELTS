@@ -27,6 +27,10 @@ export default {
       return handleSharedStudentSetup(request, env);
     }
 
+    if (url.pathname === "/api/test-password/verify") {
+      return handleTestPasswordVerify(request, env);
+    }
+
     if (url.pathname === "/api/test-content") {
       return handleProtectedTestContentApi(request);
     }
@@ -351,6 +355,31 @@ async function handleSharedStudentSetup(request, env) {
     requiresSetup: false,
     message: "Your student password is ready.",
   });
+}
+
+async function handleTestPasswordVerify(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const configuredPassword = String(env.TEST_ENTRY_PASSWORD || "").trim();
+  if (!configuredPassword) {
+    return json(503, { ok: false, error: "Test password is not configured yet." });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const password = String(payload?.password || "").trim();
+
+  if (!password) {
+    return json(400, { ok: false, error: "Please enter the test password." });
+  }
+
+  if (password !== configuredPassword) {
+    await logSecurityEvent(env, request, "test_password_wrong", {});
+    return json(401, { ok: false, error: "Wrong password. Please try again." });
+  }
+
+  return json(200, { ok: true });
 }
 
 async function handleContactApi(request, env) {

@@ -35,6 +35,21 @@
     );
   }
 
+  async function verifyTestPassword(password) {
+    const endpoint = String(R()?.TEST_PASSWORD_VERIFY_PATH || "/api/test-password/verify").trim();
+    const url = new URL(endpoint, window.location.origin);
+    const response = await fetch(url.toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: String(password || "") }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.ok) {
+      throw new Error(data?.error || "Could not verify the test password.");
+    }
+    return true;
+  }
+
   function hideModal() {
     if (MODAL_MODE === "locked") return; // locked means cannot close
     const modal = $("modal");
@@ -153,23 +168,20 @@
           const passInput = $("modalPasscode");
           const passError = $("modalPassError");
           const typed = String(passInput?.value || "");
-          const expected = String(window.IELTS?.Registry?.TEST_PASSWORD || "").trim();
-
-          if (!expected) {
-            // if not configured, allow through (fail-open)
-            const fn = MODAL_ONCONFIRM;
-            MODAL_ONCONFIRM = null;
-            MODAL_ONCANCEL = null;
-            hideModal();
-            if (typeof fn === "function") fn();
-            return;
+          if (submit) submit.disabled = true;
+          if (passError) {
+            passError.textContent = "";
+            passError.classList.add("hidden");
           }
 
-          if (typed.trim() !== expected) {
+          try {
+            await verifyTestPassword(typed.trim());
+          } catch (error) {
             if (passError) {
-              passError.textContent = "Wrong password. Please try again.";
+              passError.textContent = error?.message || "Wrong password. Please try again.";
               passError.classList.remove("hidden");
             }
+            if (submit) submit.disabled = false;
             passInput?.focus?.();
             passInput?.select?.();
             return;
@@ -180,6 +192,7 @@
           MODAL_ONCANCEL = null;
           hideModal();
           if (typeof fn === "function") fn();
+          if (submit) submit.disabled = false;
           return;
         }
 

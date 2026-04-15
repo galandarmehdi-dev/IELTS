@@ -299,3 +299,23 @@ body.exam-guard #speakingSection::after{
 body.exam-guard #hlToolbar{
   z-index:10;
 }
+
+
+/* ===================== EXAM PROTECTION V2 ===================== */
+.exam-display-btn.is-active{
+  background:linear-gradient(135deg, #17324d 0%, #214668 46%, #c44536 100%);
+  color:#fff;
+  border-color:transparent;
+}
+
+body.exam-guard:not([data-highlight-mode="on"]) #listeningSection,
+body.exam-guard:not([data-highlight-mode="on"]) #container,
+body.exam-guard:not([data-highlight-mode="on"]) #writingSection{
+  cursor:default;
+}
+
+body.exam-guard[data-highlight-mode="on"] #listeningSection [data-hl-root-key],
+body.exam-guard[data-highlight-mode="on"] #container [data-hl-root-key],
+body.exam-guard[data-highlight-mode="on"] #writingSection [data-hl-root-key]{
+  cursor:text;
+}

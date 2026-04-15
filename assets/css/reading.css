@@ -302,3 +302,76 @@
   border:1px solid rgba(56,47,39,.10) !important;
   box-shadow:0 18px 36px rgba(34,30,26,.06) !important;
 }
+
+
+/* ===================== AUTHENTIC EXAM REDESIGN V2 ===================== */
+.exam-nav{
+  padding:12px 18px;
+  background:rgba(247,242,234,.92);
+  border-bottom:1px solid rgba(56,47,39,.08);
+}
+
+.exam-nav-left b,
+.exam-nav-status{
+  letter-spacing:.10em;
+}
+
+.exam-nav-timer,
+.exam-display-btn,
+.btn.secondary{
+  border-radius:10px;
+}
+
+.controls{
+  padding:12px 18px;
+  background:rgba(250,246,240,.92);
+}
+
+.container{
+  background:linear-gradient(180deg, #efe7da 0%, #e6dccf 100%);
+}
+
+.passage,
+.questions{
+  background:#fcfaf6 !important;
+}
+
+.passage{
+  padding:28px 26px 36px;
+  border-right:1px solid rgba(56,47,39,.08);
+}
+
+.passage h2,
+.questions .task-title,
+.questions h3,
+.questions h4{
+  font-family:var(--font-display);
+  letter-spacing:-.015em;
+}
+
+.passage h2{
+  font-size:42px;
+  margin-bottom:16px;
+}
+
+.passage p,
+.passage li,
+.questions p,
+.questions li,
+.questions label{
+  font-size:17px;
+  line-height:1.88;
+}
+
+.qcard,
+.panel,
+.optionsBox{
+  border-radius:16px !important;
+  border:1px solid rgba(56,47,39,.10) !important;
+  box-shadow:0 14px 30px rgba(36,32,28,.05) !important;
+}
+
+.splitter{
+  flex-basis:10px;
+  background:linear-gradient(180deg, #ddd1c2 0%, #d6c8b7 100%);
+}

@@ -4406,26 +4406,12 @@ const test11 = {
       <div class="listen-inst">Label the map below. Write the correct letter, <b>A-F</b>, next to each question.</div>
 
       <div style="margin: 14px 0; display:flex; justify-content:center;">
-        <div style="position:relative; width:430px; height:430px; background:#f7f7f7; border:2px solid #444; overflow:hidden;">
-          <div style="position:absolute; top:18px; left:28px; width:85px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
-          <div style="position:absolute; top:18px; left:168px; width:90px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
-          <div style="position:absolute; top:18px; left:307px; width:90px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
-          <div style="position:absolute; top:82px; left:45px; width:78px; height:54px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">A</div>
-          <div style="position:absolute; top:145px; left:45px; width:78px; height:54px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">B</div>
-          <div style="position:absolute; top:95px; left:165px; width:95px; height:82px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">C</div>
-          <div style="position:absolute; top:110px; left:305px; width:48px; height:70px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">D</div>
-          <div style="position:absolute; top:255px; left:30px; width:120px; height:85px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">E</div>
-          <div style="position:absolute; top:336px; left:150px; width:120px; height:74px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">F</div>
-
-          <div style="position:absolute; top:195px; left:150px; width:130px; height:72px; border:2px solid #666; background:#fff; display:flex; align-items:center; justify-content:center; text-align:center; font-size:15px; font-weight:600;">Car Park</div>
-          <div style="position:absolute; top:280px; left:180px; width:78px; height:82px; border:2px solid #666; background:#fff; display:flex; align-items:center; justify-content:center; text-align:center; font-size:14px; font-weight:600;">Main<br>Lecture<br>Hall</div>
-          <div style="position:absolute; top:260px; left:305px; width:95px; height:150px; border:2px solid #666; background:#fff;"></div>
-          <div style="position:absolute; bottom:18px; right:16px; text-align:center; font-size:12px; font-weight:700;">University of<br><span style="font-size:20px;">Westley</span></div>
-
-          <div style="position:absolute; top:214px; left:-12px; width:165px; height:38px; border-top:6px solid #666; border-bottom:6px solid #666; border-radius:40px; transform:skewX(-20deg);"></div>
-          <div style="position:absolute; bottom:20px; left:18px; width:128px; height:58px; background:#d9d9d9; border:2px solid #666;"></div>
-        </div>
-      </div>
+  <img
+    src="https://audio.ieltsmock.org/Screenshot%202026-04-15%20at%2013.43.12.png"
+    alt="University of Westley map"
+    style="max-width:100%; width:430px; height:auto; border:1px solid #ccc; border-radius:8px;"
+  >
+</div>
 
       <div class="note-row"><span class="qnum">11</span> Students' Union
         <select class="l-select" data-lq="11">

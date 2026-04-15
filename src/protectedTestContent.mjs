@@ -4335,6 +4335,596 @@ It has also been discovered that there were two dials on the back of the mechani
   },
 };
 
+const test11 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Listening1.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the form below. Write <b>NO MORE THAN TWO WORDS AND / OR LETTERS AND NUMBERS</b> for each answer.</div>
+      <div class="listen-card-title">Pan Asian Airways - Lost Property Report Form</div>
+
+      <div class="listen-notes">
+        <div class="note-row">First Name: Kirsty</div>
+        <div class="note-row">Surname: Allen</div>
+        <div class="note-row">Address: <span class="qnum">1</span> <input data-lq="1" class="l-input"> Windham Road</div>
+        <div class="note-row">Richmond</div>
+        <div class="note-row">Postcode: <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+        <div class="note-row">Home tel: 020 8927 7651</div>
+        <div class="note-row">Mobile tel: <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+        <div class="note-row">Flight number: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">Seat number: <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+        <div class="note-row">From: New York</div>
+        <div class="note-row">To: London Heathrow</div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 6-8</div>
+      <div class="listen-inst">Choose <b>THREE</b> letters, A-F.</div>
+      <div class="listen-card-title">What THREE items did Kirsty’s bag contain?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="A"> A) £17</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="B"> B) $200</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="C"> C) Her passport</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="D"> D) A book</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="E"> E) Pens</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="F"> F) Her house keys</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 9-10</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">9</span> What has Kirsty done regarding the loss of her credit card?</div>
+        <label class="mcq-opt"><input type="radio" name="q9" value="A" data-lq-radio="9"> A) Informed the police but not the credit card company.</label>
+        <label class="mcq-opt"><input type="radio" name="q9" value="B" data-lq-radio="9"> B) Informed the credit card company but not the police.</label>
+        <label class="mcq-opt"><input type="radio" name="q9" value="C" data-lq-radio="9"> C) Informed both the police and the credit card company.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">10</span> What must Kirsty do after the call regarding her lost handbag?</div>
+        <label class="mcq-opt"><input type="radio" name="q10" value="A" data-lq-radio="10"> A) Call back after 1½ hours.</label>
+        <label class="mcq-opt"><input type="radio" name="q10" value="B" data-lq-radio="10"> B) Just wait for a call back.</label>
+        <label class="mcq-opt"><input type="radio" name="q10" value="C" data-lq-radio="10"> C) Call back after 1½ hours if she has heard nothing.</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-14</div>
+      <div class="listen-inst">Label the map below. Write the correct letter, <b>A-F</b>, next to each question.</div>
+
+      <div style="margin: 14px 0; display:flex; justify-content:center;">
+        <div style="position:relative; width:430px; height:430px; background:#f7f7f7; border:2px solid #444; overflow:hidden;">
+          <div style="position:absolute; top:18px; left:28px; width:85px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
+          <div style="position:absolute; top:18px; left:168px; width:90px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
+          <div style="position:absolute; top:18px; left:307px; width:90px; text-align:center; font-size:12px;">Halls of<br>Residence</div>
+          <div style="position:absolute; top:82px; left:45px; width:78px; height:54px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">A</div>
+          <div style="position:absolute; top:145px; left:45px; width:78px; height:54px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">B</div>
+          <div style="position:absolute; top:95px; left:165px; width:95px; height:82px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">C</div>
+          <div style="position:absolute; top:110px; left:305px; width:48px; height:70px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">D</div>
+          <div style="position:absolute; top:255px; left:30px; width:120px; height:85px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">E</div>
+          <div style="position:absolute; top:336px; left:150px; width:120px; height:74px; border:2px solid #666; display:flex; align-items:center; justify-content:center; font-weight:700;">F</div>
+
+          <div style="position:absolute; top:195px; left:150px; width:130px; height:72px; border:2px solid #666; background:#fff; display:flex; align-items:center; justify-content:center; text-align:center; font-size:15px; font-weight:600;">Car Park</div>
+          <div style="position:absolute; top:280px; left:180px; width:78px; height:82px; border:2px solid #666; background:#fff; display:flex; align-items:center; justify-content:center; text-align:center; font-size:14px; font-weight:600;">Main<br>Lecture<br>Hall</div>
+          <div style="position:absolute; top:260px; left:305px; width:95px; height:150px; border:2px solid #666; background:#fff;"></div>
+          <div style="position:absolute; bottom:18px; right:16px; text-align:center; font-size:12px; font-weight:700;">University of<br><span style="font-size:20px;">Westley</span></div>
+
+          <div style="position:absolute; top:214px; left:-12px; width:165px; height:38px; border-top:6px solid #666; border-bottom:6px solid #666; border-radius:40px; transform:skewX(-20deg);"></div>
+          <div style="position:absolute; bottom:20px; left:18px; width:128px; height:58px; background:#d9d9d9; border:2px solid #666;"></div>
+        </div>
+      </div>
+
+      <div class="note-row"><span class="qnum">11</span> Students' Union
+        <select class="l-select" data-lq="11">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">12</span> Library
+        <select class="l-select" data-lq="12">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">13</span> Refectory
+        <select class="l-select" data-lq="13">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">14</span> Sports hall
+        <select class="l-select" data-lq="14">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-16</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO of the following are true of the Students' Union building?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="A"> A) You need to be a member to access its facilities.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="B"> B) All eating and drinking facilities are located on the same floor.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="C"> C) It is a good place to go if you want to find out about joining student groups or clubs.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="D"> D) You can play football there.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="E"> E) It always closes at the same time.</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 17-18</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO of the following does the guide say about the library?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="A"> A) Students can get part-time work there.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="B"> B) It is the main reason most students chose to come to the university.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="C"> C) Students should visit it as soon as possible.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="D"> D) Students can have tours of it throughout the year.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="E"> E) It has different opening hours at certain times of the year.</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 19-20</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO of the following are true of the university sports hall?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="A"> A) It is the newest building at the university.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="B"> B) It is very popular.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="C"> C) You need to pay extra to use it.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="D"> D) You can get a map there.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="E"> E) You can use your discount card there.</label>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-25</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> Why did John come back to university on Thursday?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) To prepare for new second year subjects</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) To sort out his timetable</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) To speak to his tutor about his workload</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> Which subject do John and Jane both study?</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) History</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) Maths</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) Economics</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> Which statement about their Monday timetables is true?</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) John will be busier than Jane.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) Jane will be busier than John.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) They will be equally busy.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> John can't attend his preferred club until</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) they buy new boots.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) they repair the equipment.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) they lower the price of membership.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">25</span> Which one of the following is mentioned about Jane and John's sport choices?</div>
+        <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) They have chosen the same sport.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) The sports they have chosen share a venue.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) The sports they have chosen take place at the same time.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 26-29</div>
+      <div class="listen-inst">Answer the questions. Use <b>NO MORE THAN THREE WORDS AND / OR A NUMBER</b> for each answer.</div>
+
+      <div class="note-row"><span class="qnum">26</span> Students can choose from how many essay titles for their first assignment?
+        <input data-lq="26" class="l-input">
+      </div>
+      <div class="note-row"><span class="qnum">27</span> What is ONE of the places John travelled during the summer?
+        <input data-lq="27" class="l-input">
+      </div>
+      <div class="note-row"><span class="qnum">28</span> How many words longer are essays expected to be this year?
+        <input data-lq="28" class="l-input">
+      </div>
+      <div class="note-row"><span class="qnum">29</span> When must the first essay be handed in by?
+        <input data-lq="29" class="l-input">
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Question 30</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">30</span> Where will John and Jane meet up later that day?</div>
+        <label class="mcq-opt"><input type="radio" name="q30" value="A" data-lq-radio="30"> A) The economics course office</label>
+        <label class="mcq-opt"><input type="radio" name="q30" value="B" data-lq-radio="30"> B) The economics common room</label>
+        <label class="mcq-opt"><input type="radio" name="q30" value="C" data-lq-radio="30"> C) The campus cafeteria</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-34</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">31</span> Japan relies on oil tankers because</div>
+        <label class="mcq-opt"><input type="radio" name="q31" value="A" data-lq-radio="31"> A) Japan has a prominent shipbuilding industry.</label>
+        <label class="mcq-opt"><input type="radio" name="q31" value="B" data-lq-radio="31"> B) oil forms a major part of Japan's economy.</label>
+        <label class="mcq-opt"><input type="radio" name="q31" value="C" data-lq-radio="31"> C) the country has no natural oil resources.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">32</span> Professor Wilson says that oil tankers are</div>
+        <label class="mcq-opt"><input type="radio" name="q32" value="A" data-lq-radio="32"> A) very safe.</label>
+        <label class="mcq-opt"><input type="radio" name="q32" value="B" data-lq-radio="32"> B) quite safe.</label>
+        <label class="mcq-opt"><input type="radio" name="q32" value="C" data-lq-radio="32"> C) quite unsafe.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">33</span> According to Professor Wilson, the main cause of oil slicks is</div>
+        <label class="mcq-opt"><input type="radio" name="q33" value="A" data-lq-radio="33"> A) accidents while loading and unloading oil.</label>
+        <label class="mcq-opt"><input type="radio" name="q33" value="B" data-lq-radio="33"> B) collisions.</label>
+        <label class="mcq-opt"><input type="radio" name="q33" value="C" data-lq-radio="33"> C) deliberate releases of oil.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">34</span> According to Professor Wilson, slicks are rarely burned off nowadays because</div>
+        <label class="mcq-opt"><input type="radio" name="q34" value="A" data-lq-radio="34"> A) the oil is refined.</label>
+        <label class="mcq-opt"><input type="radio" name="q34" value="B" data-lq-radio="34"> B) it usually doesn't work.</label>
+        <label class="mcq-opt"><input type="radio" name="q34" value="C" data-lq-radio="34"> C) it creates too much air pollution.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 35-39</div>
+      <div class="listen-inst">Complete the table. Write <b>NO MORE THAN THREE WORDS</b> for each answer.</div>
+      <div class="listen-card-title">Oil Exploration Clean-up Techniques</div>
+
+      <div style="overflow-x:auto; margin-top:10px;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ccc; padding:8px; text-align:left;">Techniques</th>
+              <th style="border:1px solid #ccc; padding:8px; text-align:left;">Advantages</th>
+              <th style="border:1px solid #ccc; padding:8px; text-align:left;">Disadvantages</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="border:1px solid #ccc; padding:8px;">The Containment Boom</td>
+              <td style="border:1px solid #ccc; padding:8px;">Cheap and easy</td>
+              <td style="border:1px solid #ccc; padding:8px;">Only good when there are <span class="qnum">35</span> <input data-lq="35" class="l-input"></td>
+            </tr>
+            <tr>
+              <td style="border:1px solid #ccc; padding:8px;">Chemical Detergents</td>
+              <td style="border:1px solid #ccc; padding:8px;">Good for treating <span class="qnum">36</span> <input data-lq="36" class="l-input"></td>
+              <td style="border:1px solid #ccc; padding:8px;">Chemicals remain in the water and kill marine life</td>
+            </tr>
+            <tr>
+              <td style="border:1px solid #ccc; padding:8px;">The Sponge</td>
+              <td style="border:1px solid #ccc; padding:8px;">Oil remains permanently in the sponge</td>
+              <td style="border:1px solid #ccc; padding:8px;">The sponge mats turn into <span class="qnum">37</span> <input data-lq="37" class="l-input"></td>
+            </tr>
+            <tr>
+              <td style="border:1px solid #ccc; padding:8px;">Bacteria</td>
+              <td style="border:1px solid #ccc; padding:8px;">Cheap<br>Easy to administer<br>Totally <span class="qnum">38</span> <input data-lq="38" class="l-input"></td>
+              <td style="border:1px solid #ccc; padding:8px;">There aren't any <span class="qnum">39</span> <input data-lq="39" class="l-input"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Question 40</div>
+      <div class="listen-inst">Complete the notes. Write <b>NO MORE THAN THREE WORDS</b> for each answer.</div>
+      <div class="listen-card-title">Optional Essay Question</div>
+      <div class="listen-notes">
+        <div class="note-row">Remember to check out the faculty’s notice boards. You will find:</div>
+        <div class="note-row bullet">- reading lists</div>
+        <div class="note-row bullet">- essay questions</div>
+        <div class="note-row bullet">- <span class="qnum">40</span> <input data-lq="40" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+    `
+  },
+
+  writing: {
+    task1Type: "Bar chart",
+    task2Type: "Problem and solution",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The bar chart shows the percentage of adult male smokers in seven countries along with the world average in 2000 and 2015.<br>
+      Summarise the information by selecting and reporting the main features and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/WT1BG.png",
+    task2Html: `
+      Write about the following topic:<br><br>
+      Some species of animals are almost extinct; and many others seem to be fast approaching a similar risk. What are the reasons for this? What should be done to solve this problem?<br><br>
+      Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `INSOMNIA – THE ENEMY OF SLEEP
+
+A
+It is not unusual to have sleep troubles from time to time. But, if you feel you do not get enough sleep, or satisfying sleep, you may have insomnia, a sleep disorder. People with insomnia have one or more of the following: difficulty in falling asleep, waking up often during the night and having trouble going back to sleep, waking up too early in the morning, and unrefreshing sleep. Insomnia is not defined by the number of hours you sleep every night. The amount of sleep a person needs varies. While most people need between 7 and 8 hours of sleep a night, some people do well with less, and some need more.
+
+B
+Insomnia occurs most frequently in people over the age of 60, in people with a history of depression, and in women, especially after the menopause. Severe emotional trauma can also cause insomnia, with divorced, widowed and separated people being the most likely to suffer from this sleep disorder. An irregular work schedule, jet lag or brain damage from a stroke or Alzheimer’s disease can also cause insomnia as can excessive use of alcohol or illicit drugs. However, stress, anxiety, illness and other disorders such as restless legs syndrome are the most common causes of insomnia.
+
+C
+The mechanism that induces sleep and the reason why sleep is necessary for good health and efficient mental functioning is not fully understood. We do know that sleep consists of two very different states: rapid eye movement (REM) sleep and non-REM sleep. In REM sleep, dreams occur, the eyes move under the closed lids and there is an increase in oxygen consumption, blood flow and neural activity. REM sleep occurs four or five times during a night. Beginning periods last about 10 to 15 minutes but the periods get longer as the night goes on. These interludes alternate with longer periods of non-REM sleep, when body functions slow down. Non-REM sleep has four stages. During the deepest stages (3 and 4) it is hard to rouse a sleeper. As the night goes on, the periods of non-REM sleep become progressively lighter. Sleep in stages 1 and 2 is felt to be restorative, as during this time the body repairs itself, utilising a hormone called “somatostatin”.
+
+D
+Researchers and healthcare providers define insomnia in several ways. One way is to categorise insomnia by how often it occurs. Another way is to identify the insomnia by what is causing the sleep deprivation. The two main types of insomnia have been described as “primary insomnia” and “secondary insomnia”. Primary insomnia is a chronic condition with little apparent association with stress or a medical problem. The most common form of primary insomnia is psychophysiological insomnia. Secondary insomnia is caused by symptoms that accompany a medical condition such as anxiety, depression or pain.
+
+E
+Improving one’s sleep hygiene helps improve insomnia in all patients. Relaxing during the hour before you go to sleep and creating a comfortable environment suited for sleep can be helpful. Older people who wake up earlier than normal or have trouble falling asleep may need less sleep than they used to. Changing one’s sleep pattern, either by going to bed later or waking up earlier, can be effective in dealing with insomnia in older people. Therapy also depends on the cause and severity of the insomnia. Transient and intermittent insomnia may not require any direct action since these conditions last only a few days at a time. However, if insomnia interferes with a person’s daily activities, something should be done. Usually the best method of dealing with insomnia is by attacking the underlying cause. For example, people who are depressed often have insomnia and working on this problem may eliminate the sleeping difficulties.
+
+F
+Not getting enough sleep can make you less productive, irritable and unable to concentrate. Lack of sleep can make it seem as if you “got out of the wrong side of bed". Waking up with a headache or feeling as if you never went to sleep can result in frustration. Stress can cause insomnia but insomnia also increases stress. Insomnia can make driving unsafe and can cause you to become less productive at work. It may leave you feeling as if you just can’t get enough done. Insomnia can also mask serious mental disorders. People with insomnia may think that not getting enough sleep is their only problem, but the insomnia may actually be one symptom of a larger disorder, such as depression. Studies show that people with insomnia are four times more likely to be depressed than people with a healthy sleeping pattern. In addition, lack of sleep can tax the heart and lead to serious conditions like heart disease.
+
+G
+Establishing certain set routines can help insomniacs get better sleep. Examples of these routines include: going to bed and getting up at the same time every day, avoiding naps, avoiding caffeine, nicotine, alcohol and eating heavily late in the day, exercising regularly and making your bedroom comfortable in terms of the bed, noise and temperature. Insomniacs should also only use their bedroom for sleep so that their bodies associate the room with sleep. Finally, if you can’t get to sleep, don’t toss and turn all night. Get up and read or do something that is not overly stimulating until you feel really sleepy again.`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 1 – 6",
+            instructions: [
+              "Reading Passage 1, Insomnia – The Enemy of Sleep, has seven paragraph. A – G.",
+              "From the list of headings below, choose the most suitable ones for each paragraph, B – G.",
+              "Write the appropriate number (i – ix) in answer boxes 1 – 6.",
+              "NB There are more headings than paragraphs, so you will not use them all."
+            ],
+            listTitle: "List of Headings",
+            headings: [
+              { value: "i", label: "Normal Sleep Patterns" },
+              { value: "ii", label: "What Medication Is Available?" },
+              { value: "iii", label: "Habits to Promote a Good Night’s Sleep" },
+              { value: "iv", label: "What is Insomnia?" },
+              { value: "v", label: "Complications for Insomniacs" },
+              { value: "vi", label: "Government Action" },
+              { value: "vii", label: "When Should Insomnia be Treated?" },
+              { value: "viii", label: "The Roots of Insomnia" },
+              { value: "ix", label: "Classes of Insomnia" }
+            ],
+            questions: [
+              { q: 1, paragraph: "Paragraph B" },
+              { q: 2, paragraph: "Paragraph C" },
+              { q: 3, paragraph: "Paragraph D" },
+              { q: 4, paragraph: "Paragraph E" },
+              { q: 5, paragraph: "Paragraph F" },
+              { q: 6, paragraph: "Paragraph G" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 7 – 14",
+            instructions: [
+              "Do the statements below (question 7 – 14) agree with the claims of the writer of Reading Passage 1, Insomnia – The Enemy of Sleep?",
+              "In answer boxes 7 – 14, write:",
+              "YES if the statement agrees with the writer",
+              "NO if the statement contradicts the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 7, text: "Someone who onlly gets four hours of sleep a night must be suffering from insomnia." },
+              { q: 8, text: "Flying over long distances can cause insomnia." },
+              { q: 9, text: "REM sleep is thought to be the most important for the body’s rest." },
+              { q: 10, text: "Secondary insomnia is far more common than primary insomnia." },
+              { q: 11, text: "Some sufferers of chronic insomnia may find changing the hours they sleep helpful." },
+              { q: 12, text: "Many people who suffer from insomnia don’t realise that they suffer from it." },
+              { q: 13, text: "There is no correlation linking insomnia and depression." },
+              { q: 14, text: "Sleeping during the day can make insomnia worse." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `Pollution in the Oceans
+
+A
+Everybody uses the sea directly or indirectly as a rubbish bin. Most of the substances thrown into the sea cannot be reused or broken down by nature and they cause soiling, destruction and death to the sea’s inhabitants. The marine protection organisation, Oceana, estimates that worldwide about 680 tonnes of waste are thrown directly into the oceans every hour, and more than half of this waste is made of plastic.
+
+B
+Between Hawaii and California, the Great Pacific Garbage Patch, an accumulation of small floating plastic pieces derived from bottle caps, carrier bags, fishing nets and so on, covers an area of the ocean’s surface as big as Western Europe. Due to its constant growth, the exact size of the Great Pacific Garbage Patch is unknown. The garbage patch developed in this area because of the North Pacific Subtropical Gyre, one of many oceanic gyres created by a convergence of ocean currents and wind. As the currents meet, the earth’s coriolis effect causes the water to slowly rotate, acting like a funnel that pulls together any rubbish that is floating in the water. The existence of a garbage patch was predicted in 1988 by the National Oceanic and Atmospheric Association (NOAA), but it was not officially discovered until 1997, because of its remote location and harsh conditions for navigation. The North Pacific gyre is one of five major ocean gyres, and it is likely that this trash vortex problem is present in other oceans as well.
+
+C
+Plastics can soak up and concentrate damaging pollutants, known as persistent organic pollutants (POPs), chemicals that can cause different cancers, increased infertility and brain and nervous system abnormalities. Any organism eating pieces of plastic debris will also take in these highly toxic pollutants. This leads to biomagnification, whereby the concentration of POPs increases greatly at every step in the food chain, and top predators end up with extremely high levels. Killer whales, for example, acquire the lifetime accumulation of POPs of the animals they eat. These toxins are also passed from female to calf during gestation and nursing.
+
+D
+In addition to these hazards, the floating plastics can also affect marine ecosystems by providing a ready surface for organisms to live on. These plants and animals can then be transported on the plastic far outside their normal environments, populating new ones and becoming possible nuisance species by interfering with the food chains or breeding pools in these new ecosystems.
+
+E
+Not all plastic floats; approximately 70 per cent of discarded plastic sinks to the bottom. In the North Sea, Dutch scientists have counted around 110 pieces of litter for every square kilometre of the seabed, which represents a staggering 600,000 tonnes in the North Sea alone. These plastics can smother the sea bottom and kill the marine life that is found there. A lot of this underwater rubbish comes from rivers, which also carry the rubbish underwater and is therefore unseen. The UK’s River Thames, for example, has recently undergone an experiment. Scientists used crab nets to catch underwater rubbish and retrieved more than 8,000 pieces of plastic over 3 months. All this rubbish would have ended up in the North Sea.
+
+F
+The idea of sea water rubbish processors being placed in the ocean to gather trash is currently under development. The processors would float on the surface of oceans and use long arms, known as "booms", to divert rubbish into the main body of the processor where small pieces of plastic debris would be filtered out of the water. The use of booms rather than net meshes would mean that even the smallest particles would be diverted and extracted, but virtually no by-catch would occur. The platforms would be completely self-supporting, receiving their energy from the sun, currents and waves. According to the inventor, reprocessing and selling the plastic retrieved by rubbish processors from the world’s gyres could potentially even be profitable.
+
+G
+Many campaigners against marine debris are sceptical about this suggestion, however. They point out that the size of the world’s oceans is so vast and the scope of the plastic trash problem so great that, even if they worked efficiently, processors of this type would have a negligible effect on the amount of trash in the oceans. What’s more, the sceptics say that recycled ocean plastic waste has very little commercial value, as it requires cleaning to remove sea life and toxins before it can be used. They also assert that it is extremely brittle, making it unsuitable for many of the purposes for which plastic is normally used.
+
+H
+Environmentalists like these believe that ocean clean-up solutions are pointless and futile and that the answer to the problem lies in prevention rather than cure. At a personal level, everyone can contribute by avoiding plastics in the things they buy and by disposing of their plastic waste responsibly. Publicity campaigns can make ship owners and operators, offshore platforms and fishing boat operators more aware of the consequences of the irresponsible disposal of plastic items at sea. Furthermore, by signing petitions, contributing to environmental organisations, taking part in beach clean-ups and exerting pressure on locally elected officials, members of the public can make their concerns known and contribute to the goal of preventing plastic waste ever reaching the sea.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 15 – 21",
+            instructions: [
+              "Reading Passage 2, Pollution in the Oceans, has eight paragraphs (A – H).",
+              "Which paragraph contains the information below?",
+              "Write the correct letter, A – H, in answers boxes 15 – 21.",
+              "NB You can use any letter more than once."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F",
+              G: "Paragraph G",
+              H: "Paragraph H"
+            },
+            items: [
+              { q: 15, text: "Food poinsoning in marine animals." },
+              { q: 16, text: "Renewable energy powering machine rubbish collectors." },
+              { q: 17, text: "The public’s role in marine pollution solutions." },
+              { q: 18, text: "The ineffectiveness of marine rubbish collectors." },
+              { q: 19, text: "Problematic travel area for ships." },
+              { q: 20, text: "Negative effect on breeding in marine organisms." },
+              { q: 21, text: "The spreading of species to new areas of the ocean." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 22 – 24",
+            instructions: [
+              "Complete each sentence with the correct ending.",
+              "Choose from the list, A – D, below.",
+              "Write the appropriate letters, A – D, in answer boxes 22 – 24."
+            ],
+            endings: {
+              A: "… originates in the United States.",
+              B: "… is plastic.",
+              C: "… ends up in the Great Pacific Garbage Patch.",
+              D: "… comes from ships."
+            },
+            items: [
+              { q: 22, text: "Oceana has claimed that more than 50 per cent of all marine rubbish …" },
+              { q: 23, text: "People do not know how big the Great Pacific Garbage Patch is because …" },
+              { q: 24, text: "Scientists have recently discovered that rubbish in the River Thames …" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 25 – 27",
+            instructions: [
+              "Do the statements below (questions 25 – 27) agree with the information given in Reading Passage 2, Pollution in the Oceans?",
+              "In answer boxes 25 – 27, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 25, text: "The person who came up with the idea for the sea water rubbish processors believes that sales of his machine could be profitable." },
+              { q: 26, text: "Critics of marine clean-up operations claim that plastic recovered from the oceans is not appropriate for recycling." },
+              { q: 27, text: "Many campaigners believe that the most effective solution to marine pollution is to deal with plastic waste on land." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `Alternative Farming Methods in Oregon
+
+Onion growers in eastern Oregon are adopting a system that saves water and keeps topsoil in place, while producing the highest quality “super colossal” onions. Pear growers in southern Oregon have reduced their use of some of the most toxic pesticides by up to two-thirds, and are still producing top-quality pears. Range managers throughout the state have controlled the poisonous weed, tansy ragwort, with insect predators and saved the Oregon livestock industry up to $4.8 million a year.
+
+These are some of the results Oregon growers have achieved in collaboration with Oregon State University (OSU) researchers as they test new farming methods including Integrated Pest Management (IPM). Nationwide, however, IPM has not delivered results comparable to those in Oregon. A recent US General Accounting Office (GAO) report indicates that while Integrated Pest Management can result in dramatically reduced pesticide use, the federal government has been lacking in effectively promoting that goal and implementing IPM. Farmers also blame the government for not making the new options of pest management attractive. “Wholesale changes in the way that farmers control the pests on their farms is an expensive business,” Tony Brown, of the National Farmers Association says. “If the farmers are given tax breaks to offset the expenditure, then they would willingly accept the new practices.” The report goes on to note that even though the use of the riskiest pesticides has declined nationwide, they still make up more than 40 per cent of all pesticides used today; and national pesticide use has risen by 40 million kilograms since 1992. “Our food supply remains the safest and highest quality on Earth but we continue to overdose our farmland with powerful and toxic pesticides and to underuse the safe and effective alternatives,” charges Patrick Leahy, who commissioned the report. Green action groups disagree about the safety issue. “There is no way that habitual consumption of foodstuffs grown using toxic chemicals of the nature found on today’s farms can be healthy for consumers,” notes Bill Bowler, spokesman for Green Action, one of many lobbyists interested in this issue.
+
+The GAO report singles out Oregon’s apple and pear producers who have used the new IPM techniques with growing success. Although Oregon is clearly ahead of the nation, scientists at OSU are taking the Government Accounting Office criticisms seriously. “We must continue to develop effective alternative practices that will reduce environmental hazards and produce high-quality products,” says Paul Jepson, a professor of entomology at OSU and new director of OSU’s Integrated Plant Protection Center (IPPC). The IPPC brings together scientists from OSU’s Agricultural Experiment Station, OSU Extension service, the US Department of Agriculture and Oregon farmers to help develop agricultural systems that will save water and soil, and reduce pesticides. In response to the GAO report, the Center is putting even more emphasis on integrating research and farming practices to improve Oregon agriculture environmentally and economically.
+
+“The GAO report criticises agencies for not clearly communicating the goals of IPM,” says Jepson. “Our challenge is to greatly improve the communication to and from growers, to learn what works and what doesn’t. The work coming from OSU researchers must be adopted in the field and not simply languish in scientific journals.”
+
+In Oregon, growers and scientists are working together to instigate new practices. For example, a few years ago scientists at OSU’s Malheur Experiment Station began testing a new drip irrigation system to replace old ditches that wasted water and washed soil and fertiliser into streams. The new system cut water and fertiliser use by half, kept topsoil in place and protected water quality. In addition, the new system produced crops of very large onions, rated “super colossal” and highly valued by the restaurant industry and food processors. Art Pimms, one of the researchers at Malheur comments: “Growers are finding that when they adopt more environmentally benign practices, they can have excellent results. The new practices benefit the environment and give the growers their success.”
+
+OSU researchers in Malheur next tested straw mulch and found that it successfully held soil in place and kept the ground moist with less irrigation. In addition, and unexpectedly, the scientists found that the mulched soil created a home for beneficial beetles and spiders that prey on onion thrips – a notorious pest in commercial onion fields – a discovery that could reduce the need for pesticides. “I would never have believed that we could replace the artificial pest controls that we had before and still keep our good results,” comments Steve Black, a commercial onion farmer in Oregon, “but instead we have actually surpassed expectations.”
+
+OSU researchers throughout the state have been working to reduce dependence on broad-spectrum chemical sprays that are toxic to many kinds of organisms, including humans. “Consumers are rightly putting more and more pressure on the industry to change its reliance on chemical pesticides, but they still want a picture-perfect product,” says Rick Hilton, entomologist at OSU’s Southern Oregon Research and Extension Center, where researchers help pear growers reduce the need for highly toxic pesticides. Picture-perfect pears are an important product in Oregon, and traditionally they have required lots of chemicals. In recent years, the industry has faced stiff competition from overseas producers, so any new methods that growers adopt must make sense economically as well as environmentally. Hilton is testing a growth regulator that interferes with the molting of codling moth larvae. Another study used pheromone dispensers to disrupt codling moth mating. These and other methods of Integrated Pest Management have allowed pear growers to reduce their use of organophosphates by two-thirds and reduce all other synthetic pesticides by even more and still produce top-quality pears. These and other studies around the state are part of the effort of the IPPC to find alternative farming practices that benefit both the economy and the environment.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 28 - 35",
+            instructions: [
+              "Look at statements 28 - 35 and the list of people below.",
+              "Match each statement with the correct person.",
+              "Write the appropriate initials of the people in answer boxes 28 - 35."
+            ],
+            endings: {
+              TB: "Tony Brown",
+              PL: "Patrick Leahy",
+              BB: "Bill Bowler",
+              PJ: "Paul Jepson",
+              AP: "Art Pimms",
+              SB: "Steve Black",
+              RH: "Rick Hilton"
+            },
+            items: [
+              { q: 28, text: "There is a double advantage to the new techniques." },
+              { q: 29, text: "Expectations of end-users of agricultural goods affect the products." },
+              { q: 30, text: "The work on developing these alternative techniques is not finished." },
+              { q: 31, text: "Eating food that has had chemicals used in its production is dangerous to our health." },
+              { q: 32, text: "Changing current farming methods is not a cheap process." },
+              { q: 33, text: "Results have exceeded anticipations." },
+              { q: 34, text: "The research done should be translated into practical projects." },
+              { q: 35, text: "The US produces the best food in the world." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 36 - 40",
+            instructions: [
+              "Do the statements below (questions 36 - 40) agree with the information given in Reading Passage 3, Alternative Farming Methods in Oregon?",
+              "In answer boxes 36 - 40, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 36, text: "Integrated Pest Management has generally been regarded as a success in the US." },
+              { q: 37, text: "Oregon farmers of apples and pears have been promoted as successful examples of Integrated Pest Management." },
+              { q: 38, text: "The IPPC uses scientists from different organisations." },
+              { q: 39, text: "Straw mulch experiments produced unplanned benefits." },
+              { q: 40, text: "The apple industry is now facing a lot of competition from abroad." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -4347,6 +4937,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts8: test8,
   ielts9: test9,
   ielts10: test10,
+  ielts11: test11,
 };
 
 export function getProtectedTestContent(testId) {

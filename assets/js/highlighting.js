@@ -15,14 +15,6 @@
   let btnRemove = null;
   let btnClear = null;
 
-  function isHighlightModeEnabled() {
-    try {
-      return window.IELTS?.App?.isHighlightModeEnabled?.() === true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   function readStore() {
     return S()?.getJSON?.(STORAGE_KEY, {}) || {};
   }
@@ -66,7 +58,6 @@
 
       const marks = applyHighlightToRange(range, rootInfo.el);
       if (marks.length) saveHighlightsFromDOM(rootInfo);
-      try { window.IELTS?.App?.setHighlightMode?.(false); } catch (e) {}
 
       hideToolbar();
       try { sel.removeAllRanges(); } catch (e) {}
@@ -383,11 +374,6 @@
   }
 
   function onSelectionChange() {
-    if (!isHighlightModeEnabled()) {
-      hideToolbar();
-      return;
-    }
-
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) {
       hideToolbar();
@@ -444,6 +430,5 @@
     saveReadingPartHighlights,
     restoreReadingPartHighlights,
     clearReadingPartHighlights,
-    hideToolbar,
   };
 })();

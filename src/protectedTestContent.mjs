@@ -4058,14 +4058,26 @@ const test10 = {
       </div>
     `,
   },
-  writing: {
-    task1Type: "Map",
-    task2Type: "Discussion",
-    task1Html: `<p>The two maps below show the changes that have taken place in the town of Westley since 1815.</p>`,
-    task1ImageSrc: "https://audio.ieltsmock.org/Map10.png",
-    task2Html: `<p>Many people try to achieve success through their career or education.</p><p>What can success mean to different people?</p><p>What is your view of success?</p>`,
-    samples: { task1: [], task2: [] },
-  },
+writing: {
+  task1Type: "Map",
+  task2Type: "Two-part question",
+  task1Html: `
+    You should spend about 20 minutes on this task.<br>
+    The two maps below show the changes that have taken place in the town of Westley since 1815.<br>
+    Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+    <b>Write at least 150 words.</b>
+  `,
+  task1ImageSrc: "https://audio.ieltsmock.org/Map10.png",
+  task2Html: `
+    You should spend about 40 minutes on this task.<br><br>
+    Many people try to achieve success through their career or education.<br><br>
+    What can success mean to different people?<br>
+    What is your view of success?<br><br>
+    Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
+    <b>Write at least 250 words.</b>
+  `,
+  samples: { task1: [], task2: [] },
+},
   reading: {
     parts: [
       {

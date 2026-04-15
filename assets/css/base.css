@@ -25,17 +25,21 @@
   --radius-lg:30px;
   --exam-nav-h:64px;
   --ielts-font-scale:1;
+  --font-body:"DM Sans", Arial, Helvetica, sans-serif;
+  --font-display:"Fraunces", Georgia, serif;
 }
 
 body[data-font-scale="small"]{ --ielts-font-scale:.93; }
-body[data-font-scale="medium"]{ --ielts-font-scale:1; }
+body[data-font-scale="medium"]{ --ielts-font-scale:1;
+  --font-body:"DM Sans", Arial, Helvetica, sans-serif;
+  --font-display:"Fraunces", Georgia, serif; }
 body[data-font-scale="large"]{ --ielts-font-scale:1.12; }
 
 *{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
 body{
   margin:0;
-  font-family: "Manrope", Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   background:
     radial-gradient(980px 520px at 0% 0%, rgba(23,50,77,.10), transparent 54%),
     radial-gradient(860px 460px at 100% 0%, rgba(196,69,54,.10), transparent 48%),
@@ -81,12 +85,12 @@ body.exam-guard #speakingSection :not(input):not(textarea):not(select):not(butto
   user-select:none;
 }
 
-body.exam-guard #listeningSection [data-hl-root-key],
-body.exam-guard #listeningSection [data-hl-root-key] *,
-body.exam-guard #container [data-hl-root-key],
-body.exam-guard #container [data-hl-root-key] *,
-body.exam-guard #writingSection [data-hl-root-key],
-body.exam-guard #writingSection [data-hl-root-key] *,
+body.exam-guard[data-highlight-mode="on"] #listeningSection [data-hl-root-key],
+body.exam-guard[data-highlight-mode="on"] #listeningSection [data-hl-root-key] *,
+body.exam-guard[data-highlight-mode="on"] #container [data-hl-root-key],
+body.exam-guard[data-highlight-mode="on"] #container [data-hl-root-key] *,
+body.exam-guard[data-highlight-mode="on"] #writingSection [data-hl-root-key],
+body.exam-guard[data-highlight-mode="on"] #writingSection [data-hl-root-key] *,
 body.exam-guard mark.hl,
 body.exam-guard #hlToolbar,
 body.exam-guard #hlToolbar *{
@@ -745,4 +749,88 @@ textarea{
 
 .auth-divider span{
   background:#f7f0e7;
+}
+
+
+/* ===================== AUTHENTIC REDESIGN V2 ===================== */
+body{
+  background:
+    radial-gradient(1200px 680px at -10% -12%, rgba(32,57,79,.12), transparent 58%),
+    radial-gradient(900px 600px at 110% -8%, rgba(159,73,49,.10), transparent 54%),
+    linear-gradient(180deg, #efe6d8 0%, #f5efe6 34%, #ece3d7 100%);
+  color:#23313f;
+}
+
+body::selection,
+body *::selection{
+  background:rgba(196,69,54,.18);
+}
+
+body:not([data-highlight-mode="on"]).exam-guard,
+body:not([data-highlight-mode="on"]).exam-guard *{
+  -webkit-touch-callout:none !important;
+}
+
+body.exam-guard #listeningSection,
+body.exam-guard #readingControls,
+body.exam-guard #container,
+body.exam-guard #writingSection,
+body.exam-guard #speakingSection{
+  position:relative;
+}
+
+body.exam-guard #listeningSection::before,
+body.exam-guard #container::before,
+body.exam-guard #writingSection::before,
+body.exam-guard #speakingSection::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:2;
+  background:
+    linear-gradient(180deg, rgba(255,251,245,.02), rgba(0,0,0,.015)),
+    repeating-linear-gradient(135deg, rgba(0,0,0,.012) 0 2px, transparent 2px 11px);
+  mix-blend-mode:multiply;
+  opacity:.5;
+}
+
+.btn,
+.home-btn{
+  border-radius:14px;
+  min-height:44px;
+  padding:12px 18px;
+  box-shadow:0 12px 24px rgba(36,32,28,.14);
+}
+
+.btn.secondary,
+.home-btn.ghost{
+  border-radius:12px;
+  background:rgba(255,252,247,.92);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+select,
+textarea{
+  border-radius:12px;
+  background:#fffdfa;
+}
+
+.auth-shell,
+.auth-card,
+.auth-showcase,
+.home-wordmark,
+.hero-stat,
+.home-preferences,
+.home-notes,
+.resource-hub-section,
+.dashboard-panel,
+.history-table-wrap,
+.admin-results-table-wrap,
+.history-detail,
+.admin-result-detail{
+  backdrop-filter:none;
 }

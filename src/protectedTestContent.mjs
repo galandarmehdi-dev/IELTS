@@ -3847,64 +3847,56 @@ const test10 = {
       <div class="listen-page" id="listenSec1">
         <div class="listen-block">
           <div class="listen-h">SECTION 1 - Questions 1-10</div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 1-5</div>
-            <div class="listen-inst">Complete the notes. Write <b>TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Questions 1-6</div>
+            <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
             <div class="listen-card-title">Colvin Lettings - notepad</div>
             <div class="listen-notes">
-              <div class="note-row">Looking for a 2-bed flat</div>
-              <div class="note-row">Location: The <span class="qnum">1</span> <input data-lq="1" class="l-input"> Side or the Old Port</div>
-              <div class="note-row">Needs it by September the <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
-              <div class="note-row">Budget: £900 - <span class="qnum">3</span> £<input data-lq="3" class="l-input tiny"></div>
-              <div class="note-row">Name: Miss <span class="qnum">4</span> <input data-lq="4" class="l-input"> Russell</div>
+              <div class="note-row">Customer is looking for a 2-bed flat</div>
+              <div class="note-row">Preferred locations:</div>
+              <div class="note-row bullet">• the East Side</div>
+              <div class="note-row bullet">• the Old <span class="qnum">1</span> <input data-lq="1" class="l-input small"></div>
+              <div class="note-row">Needs it by <span class="qnum">2</span> <input data-lq="2" class="l-input"> at the latest</div>
+              <div class="note-row">Budget: from £900 to <span class="qnum">3</span> £<input data-lq="3" class="l-input tiny"></div>
+              <div class="note-row">Customer's name: Miss <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
               <div class="note-row">Tel: <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+              <div class="note-row">Email: <span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
               <div class="note-row">Call her back later.</div>
             </div>
           </div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 6-10</div>
-            <div class="listen-inst">Complete the notes. Write <b>TWO WORDS AND / OR A NUMBER</b> for each answer.</div>
-            <div class="listen-card-title">Notes for Miss Russell</div>
+            <div class="listen-card-title">Questions 7-10</div>
+            <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+            <div class="listen-card-title">Three flats to rent</div>
             <div class="listen-table-wrap">
               <table class="listen-table">
                 <thead>
                   <tr>
-                    <th>Location</th>
-                    <th>Type</th>
-                    <th>Price (pcm)</th>
-                    <th>Extras</th>
-                    <th>Available</th>
+                    <th>Flat</th>
+                    <th>Area / details</th>
+                    <th>Availability / price</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>The Old Port</td>
-                    <td>2-bed flat</td>
-                    <td>£1250</td>
-                    <td><span class="qnum">6</span> <input data-lq="6" class="l-input"></td>
-                    <td>12th Sept</td>
+                    <td>1</td>
+                    <td>a flat in the Old Port area<br>2 beds<br>has a big <span class="qnum">7</span> <input data-lq="7" class="l-input small"></td>
+                    <td>available from the 12th<br>costs £1250 a month</td>
                   </tr>
                   <tr>
-                    <td>The Old Port</td>
-                    <td>1-bed flat</td>
-                    <td>£<span class="qnum">7</span> <input data-lq="7" class="l-input tiny"></td>
-                    <td>-</td>
-                    <td>9th Sept</td>
+                    <td>2</td>
+                    <td>a flat also in the Old Port area<br>one bed, but quite spacious</td>
+                    <td>costs <span class="qnum">8</span> £<input data-lq="8" class="l-input tiny"> a month</td>
                   </tr>
                   <tr>
-                    <td><span class="qnum">8</span> <input data-lq="8" class="l-input"></td>
-                    <td>2-bed flat</td>
-                    <td>£950</td>
-                    <td><span class="qnum">9</span> <input data-lq="9" class="l-input"></td>
-                    <td>11th Sept</td>
+                    <td>3</td>
+                    <td>in the <span class="qnum">9</span> <input data-lq="9" class="l-input small"> (down a side street)<br>2 beds<br>has a space for <span class="qnum">10</span> <input data-lq="10" class="l-input small"></td>
+                    <td>£950 / month<br>available from the 11th</td>
                   </tr>
                 </tbody>
               </table>
-            </div>
-            <div class="listen-notes">
-              <div class="note-row"><b>VIEWING DETAILS</b></div>
-              <div class="note-row">Available to view 1st to 3rd Sept - possibly the <span class="qnum">10</span> <input data-lq="10" class="l-input"> - will email to confirm</div>
-              <div class="note-row">Contact email b.russell64@xmail.co.uk</div>
             </div>
           </div>
         </div>
@@ -3913,33 +3905,33 @@ const test10 = {
       <div class="listen-page hidden" id="listenSec2">
         <div class="listen-block">
           <div class="listen-h">SECTION 2 - Questions 11-20</div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 11-14</div>
-            <div class="listen-inst">Complete the sentences. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
-            <div class="listen-notes">
-              <div class="note-row"><span class="qnum">11</span> The new system has been implemented to improve the way we manage our <input data-lq="11" class="l-input"></div>
-              <div class="note-row"><span class="qnum">12</span> <input data-lq="12" class="l-input"> have been posted to all citizens living in areas with the new system.</div>
-              <div class="note-row"><span class="qnum">13</span> Those who don't have a copy can get one from the council's <input data-lq="13" class="l-input"></div>
-              <div class="note-row"><span class="qnum">14</span> At the moment, the changes affect residents living in the outskirts and the <input data-lq="14" class="l-input"></div>
-            </div>
+            <div class="listen-card-title">Questions 11-15</div>
+            <div class="listen-inst">Choose the correct letter, <b>A</b>, <b>B</b>, or <b>C</b>.</div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">11</span> How does Kevin feel about the amount of waste that is recycled in Bookwall?</div><label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) hopeful that it will start improving</label><label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) surprised that it is so high</label><label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) pleased with the progress that has been made</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">12</span> What point is Kevin making when he talks about drinks cans?</div><label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) People should ideally avoid buying canned drinks.</label><label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) Recycling an item uses less energy than making a new one would.</label><label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) Before buying a product, it is worth checking whether packaging can be recycled.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">13</span> Kevin mentions ships in order to</div><label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) explain how much waste is produced.</label><label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) warn how dangerous rubbish in the sea can be.</label><label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) point out that a lot of the UK's rubbish is sent overseas.</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">14</span> What children's activity is being organised this year?</div><label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) making something out of recycled objects</label><label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) writing a story about recycling</label><label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) photographing people recycling</label></div>
+            <div class="mcq"><div class="mcq-q"><span class="qnum">15</span> What does Kevin say about the recycling centres in Bookwall?</div><label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) They are easy to get to.</label><label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) Several new ones have recently opened.</label><label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) They are good places to learn about recycling.</label></div>
           </div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 15-20</div>
-            <div class="listen-inst">Choose the correct recycling location for each item. Write the appropriate letter, <b>A-E</b>, for each question.</div>
+            <div class="listen-card-title">Questions 16-20</div>
+            <div class="listen-inst">What should people do if they want to take each of the following items to a recycling centre? Write the appropriate letter, <b>A-C</b>, for each question.</div>
+            <div class="people-box">
+              <div><b>Actions</b></div>
+              <div>A) make an appointment to visit</div>
+              <div>B) bring it in any time</div>
+              <div>C) check for further details before coming</div>
+            </div>
             <div class="listen-notes">
-              <div class="note-row"><b>Recycling locations</b></div>
-              <div class="note-row">A Red bin</div>
-              <div class="note-row">B Blue bin</div>
-              <div class="note-row">C Yellow bin</div>
-              <div class="note-row">D Mini recycling sites</div>
-              <div class="note-row">E Refuse centre</div>
               <div class="note-row"><b>Items</b></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">15</span> old letters <select data-lq="15" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">16</span> hard plastics <select data-lq="16" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">17</span> glass bottles separated by colour <select data-lq="17" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">18</span> grass cuttings <select data-lq="18" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">19</span> electrical appliances <select data-lq="19" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
-              <div class="note-row" data-listening-question-host><span class="qnum">20</span> non-recyclable items <select data-lq="20" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">16</span> batteries <select data-lq="16" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">17</span> clothes <select data-lq="17" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">18</span> building materials <select data-lq="18" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">19</span> furniture <select data-lq="19" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">20</span> electronics <select data-lq="20" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option></select></div>
             </div>
           </div>
         </div>
@@ -3948,75 +3940,56 @@ const test10 = {
       <div class="listen-page hidden" id="listenSec3">
         <div class="listen-block">
           <div class="listen-h">SECTION 3 - Questions 21-30</div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 21-26</div>
-            <div class="listen-inst">Choose the correct letter, <b>A</b>, <b>B</b>, or <b>C</b>.</div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">21</span> The main focus of the presentation about the book must be</div><label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) its historical details.</label><label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) the readers' reactions to it.</label><label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) biographies of the main characters.</label></div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">22</span> When was <i>Sunrise Lake</i> first published in book form?</div><label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) December 1960</label><label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) August 1961</label><label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) October 1961</label></div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">23</span> How many other books had the author written in this narrative style before <i>Sunrise Lake</i>?</div><label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) One</label><label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) Two</label><label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) Ten</label></div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">24</span> What do Rachel and Owen agree on about the character of Matthew?</div><label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) They both wanted him to be successful.</label><label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) They both felt pity for him from the beginning.</label><label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) They both think he is a sympathetic and highly intelligent character.</label></div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">25</span> Rachel and Owen both describe Sally Baxter's character as</div><label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) sinister</label><label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) vengeful</label><label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) strange</label></div>
-            <div class="mcq"><div class="mcq-q"><span class="qnum">26</span> Regarding the character Lucy, Owen believes that</div><label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) Matthew's feelings for Lucy are reciprocated.</label><label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) Matthew wanted to be as rich and cultured as Lucy.</label><label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) Lucy wants to hurt Matthew as Sally Baxter wishes.</label></div>
+            <div class="listen-card-title">Questions 21 and 22</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
+            <div class="mcq-q">For which <b>TWO</b> reasons did <i>Sunrise Lake</i> become so popular?</div>
+            <label class="mcq-opt"><input id="t10q21a" name="t10q21group" type="checkbox" data-lq-check="21" value="A" autocomplete="off"> A) Critics loved it.</label>
+            <label class="mcq-opt"><input id="t10q21b" name="t10q21group" type="checkbox" data-lq-check="21" value="B" autocomplete="off"> B) It is brilliantly written.</label>
+            <label class="mcq-opt"><input id="t10q21c" name="t10q21group" type="checkbox" data-lq-check="21" value="C" autocomplete="off"> C) It was marketed effectively.</label>
+            <label class="mcq-opt"><input id="t10q21d" name="t10q21group" type="checkbox" data-lq-check="21" value="D" autocomplete="off"> D) Its writer was already a celebrity.</label>
+            <label class="mcq-opt"><input id="t10q21e" name="t10q21group" type="checkbox" data-lq-check="21" value="E" autocomplete="off"> E) It was made into a successful film.</label>
           </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 23 and 24</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
+            <div class="mcq-q">What <b>TWO</b> questions about the novel do the students plan to address in the seminar?</div>
+            <label class="mcq-opt"><input id="t10q23a" name="t10q23group" type="checkbox" data-lq-check="23" value="A" autocomplete="off"> A) what happens in the story</label>
+            <label class="mcq-opt"><input id="t10q23b" name="t10q23group" type="checkbox" data-lq-check="23" value="B" autocomplete="off"> B) what makes the book unique</label>
+            <label class="mcq-opt"><input id="t10q23c" name="t10q23group" type="checkbox" data-lq-check="23" value="C" autocomplete="off"> C) which other books it is similar to</label>
+            <label class="mcq-opt"><input id="t10q23d" name="t10q23group" type="checkbox" data-lq-check="23" value="D" autocomplete="off"> D) why other students should read it</label>
+            <label class="mcq-opt"><input id="t10q23e" name="t10q23group" type="checkbox" data-lq-check="23" value="E" autocomplete="off"> E) how they feel about the characters</label>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 25 and 26</div>
+            <div class="listen-inst">Choose <b>TWO</b> letters, <b>A-E</b>.</div>
+            <div class="mcq-q">What <b>TWO</b> things do the students say can affect their mark for the seminar?</div>
+            <label class="mcq-opt"><input id="t10q25a" name="t10q25group" type="checkbox" data-lq-check="25" value="A" autocomplete="off"> A) sticking to the time limit</label>
+            <label class="mcq-opt"><input id="t10q25b" name="t10q25group" type="checkbox" data-lq-check="25" value="B" autocomplete="off"> B) preparing attractive slides</label>
+            <label class="mcq-opt"><input id="t10q25c" name="t10q25group" type="checkbox" data-lq-check="25" value="C" autocomplete="off"> C) explaining the book's relevance nowadays</label>
+            <label class="mcq-opt"><input id="t10q25d" name="t10q25group" type="checkbox" data-lq-check="25" value="D" autocomplete="off"> D) using quotations from the book effectively</label>
+            <label class="mcq-opt"><input id="t10q25e" name="t10q25group" type="checkbox" data-lq-check="25" value="E" autocomplete="off"> E) responding well to their classmates' questions</label>
+          </div>
+
           <div class="listen-card">
             <div class="listen-card-title">Questions 27-30</div>
-            <div class="listen-inst">Complete the notes. Write <b>NO MORE THAN TWO WORDS</b> for each answer.</div>
-            <div class="listen-card-title">PRESENTATION: Joy Care's <i>Sunrise Lake</i></div>
-            <div class="listen-notes">
-              <div class="note-row"><b>LENGTH:</b> 15 minutes</div>
-              <div class="note-row"><b>STUDENTS:</b> Rachel, Owen, Suzie</div>
+            <div class="listen-inst">What comments do the students make about each of the following characters in <i>Sunrise Lake</i>? Write the appropriate letter, <b>A-E</b>, for each question.</div>
+            <div class="people-box">
+              <div><b>Comments</b></div>
+              <div>A) She is intelligent.</div>
+              <div>B) They feel sorry for her.</div>
+              <div>C) They admire her determination.</div>
+              <div>D) She creates difficulties for others.</div>
+              <div>E) Her personality develops throughout the story.</div>
             </div>
-            <div class="listen-table-wrap">
-              <table class="listen-table">
-                <thead>
-                  <tr>
-                    <th>What to discuss</th>
-                    <th>Presenter</th>
-                    <th>Aids/props</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td colspan="3"><b>INTRODUCTION</b></td>
-                  </tr>
-                  <tr>
-                    <td>1 Facts / dates</td>
-                    <td>Owen</td>
-                    <td>Powerpoint</td>
-                  </tr>
-                  <tr>
-                    <td>2 <span class="qnum">27</span> <input data-lq="27" class="l-input"></td>
-                    <td>Suzie</td>
-                    <td>Powerpoint</td>
-                  </tr>
-                  <tr>
-                    <td colspan="3"><b>BODY</b></td>
-                  </tr>
-                  <tr>
-                    <td>1 Characters / roles</td>
-                    <td>Rachel</td>
-                    <td><span class="qnum">28</span> <input data-lq="28" class="l-input"></td>
-                  </tr>
-                  <tr>
-                    <td>2 Character relationships</td>
-                    <td>Owen</td>
-                    <td><span class="qnum">29</span> <input data-lq="29" class="l-input"></td>
-                  </tr>
-                  <tr>
-                    <td>3 Opinions</td>
-                    <td>Suzie</td>
-                    <td>None</td>
-                  </tr>
-                  <tr>
-                    <td colspan="3"><b>CONCLUSION</b></td>
-                  </tr>
-                  <tr>
-                    <td><span class="qnum">30</span> <input data-lq="30" class="l-input"></td>
-                    <td>Rachel</td>
-                    <td>Modern day images</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="listen-notes">
+              <div class="note-row" data-listening-question-host><span class="qnum">27</span> Betty <select data-lq="27" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">28</span> Sally Baxter <select data-lq="28" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">29</span> Mrs Dawson <select data-lq="29" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+              <div class="note-row" data-listening-question-host><span class="qnum">30</span> The cook <select data-lq="30" class="l-select"><option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
             </div>
           </div>
         </div>
@@ -4025,33 +3998,53 @@ const test10 = {
       <div class="listen-page hidden" id="listenSec4">
         <div class="listen-block">
           <div class="listen-h">SECTION 4 - Questions 31-40</div>
+
           <div class="listen-card">
-            <div class="listen-card-title">Questions 31-40</div>
+            <div class="listen-card-title">Questions 31-35</div>
             <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
             <div class="listen-card-title">SWOT analysis</div>
             <div class="listen-notes">
-              <div class="note-row"><b>What is SWOT?</b></div>
-              <div class="note-row">A business planning analysis framework.</div>
-              <div class="note-row">Thought to come from Stanford Research Institute.</div>
-              <div class="note-row">Originally wanted an explanation for the <span class="qnum">31</span> <input data-lq="31" class="l-input"> of existing planning methods.</div>
-              <div class="note-row">SWOT stands for Strengths, Weaknesses, Opportunities and Threats.</div>
-              <div class="note-row"><b>Internal/External</b></div>
-              <div class="note-row">Internal factors - <span class="qnum">32</span> <input data-lq="32" class="l-input"> that could give it advantage or disadvantage.</div>
-              <div class="note-row">Strengths and weaknesses.</div>
-              <div class="note-row">Examples: product / service / price / a company's <span class="qnum">33</span> <input data-lq="33" class="l-input"> / company’s financial situation and manufacturing capabilities.</div>
-              <div class="note-row">External factors - things that are out of your <span class="qnum">34</span> <input data-lq="34" class="l-input">.</div>
-              <div class="note-row">Could benefit you or cause problems.</div>
-              <div class="note-row">Opportunities and threats.</div>
-              <div class="note-row">Examples: activities of your <span class="qnum">35</span> <input data-lq="35" class="l-input"> and changes in society.</div>
-              <div class="note-row"><b>Uses for SWOT Analysis</b></div>
-              <div class="note-row">Some existing companies perform SWOT analysis every <span class="qnum">36</span> <input data-lq="36" class="l-input"> to assess the marketplace.</div>
-              <div class="note-row">New companies perform one as part of planning process.</div>
-              <div class="note-row"><span class="qnum">37</span> <input data-lq="37" class="l-input"> departments carry out SWOT analyses on rivals.</div>
-              <div class="note-row">Non-profit organisations and <span class="qnum">38</span> <input data-lq="38" class="l-input"> projects also perform them to help create objectives and goals.</div>
-              <div class="note-row"><b>Drawbacks to SWOT analysis</b></div>
-              <div class="note-row">Can <span class="qnum">39</span> <input data-lq="39" class="l-input"> a complex situation.</div>
-              <div class="note-row">It is too subjective - somebody makes a judgement on what is good or bad.</div>
-              <div class="note-row">All identified areas are identically <span class="qnum">40</span> <input data-lq="40" class="l-input"></div>
+              <div class="note-row">S-W-O-T analysis may have been the idea of Albert Humphrey, who wanted to explain why <span class="qnum">31</span> <input data-lq="31" class="l-input"> planning was not working.</div>
+              <div class="note-row"><b>Definition of SWOT</b></div>
+              <div class="note-row bullet">S = strengths, which give a business an advantage over others</div>
+              <div class="note-row bullet">W = weaknesses, which give it a disadvantage</div>
+              <div class="note-row bullet">O = opportunities, which a business could usefully <span class="qnum">32</span> <input data-lq="32" class="l-input small"></div>
+              <div class="note-row bullet">T = threats, which may cause trouble</div>
+              <div class="note-row"><b>Internal factors</b> (strengths and weaknesses)</div>
+              <div class="note-row">Examples include:</div>
+              <div class="note-row bullet">• what a firm sells</div>
+              <div class="note-row bullet">• the price of its products or services</div>
+              <div class="note-row bullet">• all the firm's <span class="qnum">33</span> <input data-lq="33" class="l-input small"></div>
+              <div class="note-row bullet">• the firm's financial situation and output possibilities</div>
+              <div class="note-row"><b>External factors</b> (opportunities and threats)</div>
+              <div class="note-row">These are usually outside a company's control.</div>
+              <div class="note-row">Understanding them can reduce a company's exposure to <span class="qnum">34</span> <input data-lq="34" class="l-input small"></div>
+              <div class="note-row">Factors include:</div>
+              <div class="note-row bullet">• activities of other businesses</div>
+              <div class="note-row bullet">• changes in society and fashions</div>
+              <div class="note-row bullet">• new <span class="qnum">35</span> <input data-lq="35" class="l-input small"> that are made</div>
+              <div class="note-row bullet">• what happens in the marketplace</div>
+            </div>
+          </div>
+
+          <div class="listen-card">
+            <div class="listen-card-title">Questions 36-40</div>
+            <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+            <div class="listen-notes">
+              <div class="note-row"><b>Uses of SWOT analysis</b></div>
+              <div class="note-row bullet">• for seeing what's changing in a particular area</div>
+              <div class="note-row bullet">• for reviewing a business's strategy every <span class="qnum">36</span> <input data-lq="36" class="l-input small"></div>
+              <div class="note-row bullet">• <span class="qnum">37</span> <input data-lq="37" class="l-input small"> departments of many companies do a SWOT analysis on their principal competitors</div>
+              <div class="note-row bullet">• SWOT is a useful technique not only for profit-making companies, but also for <span class="qnum">38</span> <input data-lq="38" class="l-input small"></div>
+              <div class="note-row bullet">• projects in the community</div>
+              <div class="note-row bullet">• other non-profit groups</div>
+              <div class="note-row"><b>Advantages of SWOT analysis</b></div>
+              <div class="note-row">Conducting a SWOT is <span class="qnum">39</span> <input data-lq="39" class="l-input small">, as anyone can do it.</div>
+              <div class="note-row">It improves a person's understanding of their organisation.</div>
+              <div class="note-row"><b>Limitations of SWOT analysis</b></div>
+              <div class="note-row">Because an effective analysis is quick, it's not a very detailed piece of research.</div>
+              <div class="note-row">It's based on subjective judgement, and might not be consistent.</div>
+              <div class="note-row">SWOT fails to take into consideration factors that might be particularly <span class="qnum">40</span> <input data-lq="40" class="l-input small"> in certain circumstances.</div>
             </div>
           </div>
         </div>

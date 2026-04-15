@@ -233,47 +233,6 @@
     return !!el.closest('[data-hl-root-key], #hlToolbar, mark.hl');
   }
 
-  function isHighlightModeEnabled() {
-    try {
-      return document.body?.dataset?.highlightMode === "on";
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function setHighlightMode(enabled) {
-    const on = !!enabled;
-    try { document.body.dataset.highlightMode = on ? "on" : "off"; } catch (e) {}
-    const btn = UI().$("examHighlightModeBtn");
-    const label = UI().$("examHighlightModeLabel");
-    if (btn) {
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-      btn.classList.toggle("is-active", on);
-    }
-    if (label) label.textContent = on ? "On" : "Off";
-    if (!on) {
-      try { window.getSelection?.()?.removeAllRanges?.(); } catch (e) {}
-      try { window.IELTS?.Highlighting?.hideToolbar?.(); } catch (e) {}
-    }
-  }
-
-  function shouldAllowExamSelectionTarget(target) {
-    if (!isExamGuardActive()) return true;
-    if (isEditableTarget(target)) return true;
-    return isHighlightModeEnabled() && isHighlightingTarget(target);
-  }
-
-  function clearUnsafeExamSelection() {
-    try {
-      const sel = window.getSelection?.();
-      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
-      const anchor = sel.anchorNode;
-      const focus = sel.focusNode;
-      if (shouldAllowExamSelectionTarget(anchor) && shouldAllowExamSelectionTarget(focus)) return;
-      sel.removeAllRanges();
-    } catch (e) {}
-  }
-
   function installAntiCheatGuards() {
     if (window.__IELTS_ANTI_CHEAT_GUARDS__) return;
     window.__IELTS_ANTI_CHEAT_GUARDS__ = true;
@@ -281,7 +240,6 @@
     document.addEventListener(
       "contextmenu",
       (event) => {
-        if (isHighlightModeEnabled() && isHighlightingTarget(event.target)) return;
         event.preventDefault();
       },
       true
@@ -293,23 +251,11 @@
         const key = String(event.key || "").toLowerCase();
         const cmdOrCtrl = !!(event.ctrlKey || event.metaKey);
         const shift = !!event.shiftKey;
-        const examShortcutBlock =
-          isExamGuardActive() &&
-          cmdOrCtrl &&
-          (key === "a" || key === "c" || key === "x");
         const blockedCombos =
           (cmdOrCtrl && (key === "f" || key === "p" || key === "s" || key === "u")) ||
           (cmdOrCtrl && shift && (key === "i" || key === "j" || key === "c")) ||
-          examShortcutBlock ||
           key === "f12" ||
           key === "f3";
-
-        if (key === "escape" && isHighlightModeEnabled()) {
-          event.preventDefault();
-          event.stopPropagation();
-          setHighlightMode(false);
-          return;
-        }
 
         if (!blockedCombos) return;
 
@@ -335,20 +281,14 @@
     const examOnlyBlock = (event) => {
       if (!isExamGuardActive()) return;
       if (isEditableTarget(event.target)) return;
-      if (event.type === "selectstart" && shouldAllowExamSelectionTarget(event.target)) {
+      if (
+        isHighlightingTarget(event.target) &&
+        (event.type === "selectstart" || event.type === "dblclick")
+      ) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
-    };
-
-    const examMouseBlock = (event) => {
-      if (!isExamGuardActive()) return;
-      if (isEditableTarget(event.target)) return;
-      if (event.detail > 1) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
     };
 
     document.addEventListener("copy", examOnlyBlock, true);
@@ -356,11 +296,6 @@
     document.addEventListener("dragstart", examOnlyBlock, true);
     document.addEventListener("selectstart", examOnlyBlock, true);
     document.addEventListener("dblclick", examOnlyBlock, true);
-    document.addEventListener("mousedown", examMouseBlock, true);
-    document.addEventListener("selectionchange", clearUnsafeExamSelection, true);
-    document.addEventListener("webkitmouseforcewillbegin", examOnlyBlock, true);
-    document.addEventListener("webkitmouseforcedown", examOnlyBlock, true);
-    document.addEventListener("webkitmouseforcechanged", examOnlyBlock, true);
   }
 
 
@@ -480,17 +415,13 @@
       const brightnessLabel = $("examBrightnessLabel");
       const darkLabel = $("examDarkModeLabel");
       const textLabel = $("examTextSizeLabel");
-      const highlightLabel = $("examHighlightModeLabel");
       const darkBtn = $("examDarkModeBtn");
-      const highlightBtn = $("examHighlightModeBtn");
       const brightnessMap = { darker: "Darker", soft: "Soft", normal: "Normal", bright: "Bright" };
       const textMap = { normal: "100%", large: "112%", xlarge: "125%" };
       if (brightnessLabel) brightnessLabel.textContent = brightnessMap[state.brightness] || "Normal";
       if (darkLabel) darkLabel.textContent = state.theme === "dark" ? "On" : "Off";
       if (textLabel) textLabel.textContent = textMap[state.textScale] || "100%";
-      if (highlightLabel) highlightLabel.textContent = isHighlightModeEnabled() ? "On" : "Off";
       if (darkBtn) darkBtn.setAttribute("aria-pressed", state.theme === "dark" ? "true" : "false");
-      if (highlightBtn) highlightBtn.setAttribute("aria-pressed", isHighlightModeEnabled() ? "true" : "false");
     }
 
     function initExamDisplayPreferences() {
@@ -498,7 +429,6 @@
       const darkBtn = $("examDarkModeBtn");
       const brightnessBtn = $("examBrightnessBtn");
       const textBtn = $("examTextSizeBtn");
-      const highlightBtn = $("examHighlightModeBtn");
 
       if (!EXAM_DISPLAY_BUTTONS.darkMode && darkBtn) darkBtn.classList.add("hidden");
       if (!EXAM_DISPLAY_BUTTONS.brightness && brightnessBtn) brightnessBtn.classList.add("hidden");
@@ -545,12 +475,6 @@
         updateExamDisplayControlLabels(state);
       });
 
-      highlightBtn?.addEventListener("click", () => {
-        setHighlightMode(!isHighlightModeEnabled());
-        updateExamDisplayControlLabels(state);
-      });
-
-      setHighlightMode(false);
       updateExamDisplayControlLabels(state);
     }
 
@@ -3898,8 +3822,6 @@ function startFreshExam() {
     window.IELTS = window.IELTS || {};
     window.IELTS.App = window.IELTS.App || {};
     window.IELTS.App.startFreshExamForTest = startFreshExamForTest;
-    window.IELTS.App.setHighlightMode = setHighlightMode;
-    window.IELTS.App.isHighlightModeEnabled = isHighlightModeEnabled;
     window.IELTS.App.leavePracticeReviewToHome = leavePracticeReviewToHome;
     window.IELTS.Practice = window.IELTS.Practice || {};
     window.IELTS.Practice.submitObjectiveSection = submitObjectiveSectionPractice;

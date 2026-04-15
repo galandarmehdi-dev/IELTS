@@ -25,21 +25,17 @@
   --radius-lg:30px;
   --exam-nav-h:64px;
   --ielts-font-scale:1;
-  --font-body:"DM Sans", Arial, Helvetica, sans-serif;
-  --font-display:"Fraunces", Georgia, serif;
 }
 
 body[data-font-scale="small"]{ --ielts-font-scale:.93; }
-body[data-font-scale="medium"]{ --ielts-font-scale:1;
-  --font-body:"DM Sans", Arial, Helvetica, sans-serif;
-  --font-display:"Fraunces", Georgia, serif; }
+body[data-font-scale="medium"]{ --ielts-font-scale:1; }
 body[data-font-scale="large"]{ --ielts-font-scale:1.12; }
 
 *{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; }
 body{
   margin:0;
-  font-family: var(--font-body);
+  font-family: "Manrope", Arial, Helvetica, sans-serif;
   background:
     radial-gradient(980px 520px at 0% 0%, rgba(23,50,77,.10), transparent 54%),
     radial-gradient(860px 460px at 100% 0%, rgba(196,69,54,.10), transparent 48%),
@@ -85,12 +81,12 @@ body.exam-guard #speakingSection :not(input):not(textarea):not(select):not(butto
   user-select:none;
 }
 
-body.exam-guard[data-highlight-mode="on"] #listeningSection [data-hl-root-key],
-body.exam-guard[data-highlight-mode="on"] #listeningSection [data-hl-root-key] *,
-body.exam-guard[data-highlight-mode="on"] #container [data-hl-root-key],
-body.exam-guard[data-highlight-mode="on"] #container [data-hl-root-key] *,
-body.exam-guard[data-highlight-mode="on"] #writingSection [data-hl-root-key],
-body.exam-guard[data-highlight-mode="on"] #writingSection [data-hl-root-key] *,
+body.exam-guard #listeningSection [data-hl-root-key],
+body.exam-guard #listeningSection [data-hl-root-key] *,
+body.exam-guard #container [data-hl-root-key],
+body.exam-guard #container [data-hl-root-key] *,
+body.exam-guard #writingSection [data-hl-root-key],
+body.exam-guard #writingSection [data-hl-root-key] *,
 body.exam-guard mark.hl,
 body.exam-guard #hlToolbar,
 body.exam-guard #hlToolbar *{
@@ -572,265 +568,4 @@ th, td{ text-align:left; }
   .auth-inline-btn,
   .auth-full-btn,
   .auth-code-btn{ width:100%; justify-content:center; }
-}
-
-/* ===================== AUTHENTIC REDESIGN OVERRIDES ===================== */
-:root{
-  --font-sans:"DM Sans", Arial, Helvetica, sans-serif;
-  --font-display:"Fraunces", Georgia, serif;
-  --brand:#9a4633;
-  --brand-dark:#6e2c20;
-  --brand-soft:#f2dfd5;
-  --navy:#1c3248;
-  --navy-soft:#e3ebf1;
-  --ink:#171615;
-  --text:#2f3740;
-  --muted:#6f747a;
-  --line:#d9d1c8;
-  --line-strong:#beb2a5;
-  --paper:#f8f3eb;
-  --soft:#efe7dd;
-  --soft-2:#e6ddd1;
-  --shadow-sm:0 8px 18px rgba(28, 27, 24, .06);
-  --shadow:0 20px 48px rgba(28, 27, 24, .10);
-  --shadow-lg:0 32px 84px rgba(28, 27, 24, .14);
-}
-
-html{
-  background:
-    linear-gradient(180deg, #efe8dd 0%, #f5efe7 100%);
-}
-
-body{
-  font-family:var(--font-sans);
-  background:
-    radial-gradient(920px 480px at -5% -5%, rgba(28,50,72,.10), transparent 56%),
-    radial-gradient(720px 360px at 102% -8%, rgba(154,70,51,.10), transparent 54%),
-    linear-gradient(180deg, #efe8dd 0%, #f7f1e8 48%, #efe7dc 100%);
-  color:var(--text);
-}
-
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  z-index:-1;
-  pointer-events:none;
-  opacity:.14;
-  background-image:
-    linear-gradient(rgba(63,57,50,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(63,57,50,.03) 1px, transparent 1px);
-  background-size:20px 20px;
-  mix-blend-mode:multiply;
-}
-
-.btn,
-.home-btn{
-  background:linear-gradient(135deg, #24394d 0%, #314d66 58%, #9a4633 100%);
-  box-shadow:0 14px 26px rgba(36,57,77,.18);
-  border-radius:18px;
-}
-
-.btn.secondary,
-.home-btn.ghost{
-  background:rgba(248,243,235,.92);
-  border:1px solid rgba(28,50,72,.16);
-  border-radius:16px;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="number"],
-input[type="password"],
-select,
-textarea{
-  background:#fbf7f1;
-  border:1px solid rgba(41,41,41,.10);
-  border-radius:14px;
-}
-
-.auth-gate{
-  background:
-    linear-gradient(180deg, rgba(237,231,221,.94) 0%, rgba(243,237,228,.98) 100%);
-}
-
-.auth-shell{
-  gap:18px;
-}
-
-.auth-showcase,
-.auth-card{
-  border-radius:24px;
-}
-
-.auth-showcase{
-  padding:40px 36px;
-  background:
-    linear-gradient(180deg, rgba(26,40,56,.98) 0%, rgba(33,52,73,.98) 100%);
-  border:1px solid rgba(255,255,255,.10);
-}
-
-.auth-showcase::after{
-  inset:auto 24px 22px auto;
-  width:140px;
-  height:140px;
-  border-radius:0;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.08), transparent 82%);
-  clip-path:polygon(0 0, 100% 0, 100% 68%, 0 100%);
-}
-
-.auth-kicker,
-.auth-card-topline{
-  border-radius:10px;
-  min-height:28px;
-  letter-spacing:.12em;
-}
-
-.auth-showcase-title,
-.auth-title{
-  font-family:var(--font-display);
-  font-variation-settings:"opsz" 48;
-  letter-spacing:-.03em;
-}
-
-.auth-showcase-title{
-  max-width:10ch;
-  line-height:1.02;
-}
-
-.auth-showcase-copy{
-  max-width:44ch;
-  color:rgba(255,255,255,.76);
-}
-
-.auth-feature-pill{
-  border-radius:12px;
-  background:rgba(255,255,255,.07);
-  border-color:rgba(255,255,255,.10);
-}
-
-.auth-showcase-grid{
-  gap:10px;
-}
-
-.auth-showcase-metric{
-  border-radius:18px;
-  background:rgba(255,255,255,.06);
-}
-
-.auth-card{
-  background:
-    linear-gradient(180deg, rgba(251,247,241,.96) 0%, rgba(244,237,228,.96) 100%);
-  border:1px solid rgba(77,67,55,.10);
-  box-shadow:0 30px 70px rgba(32,28,25,.14);
-}
-
-.auth-card::before{
-  height:3px;
-  background:linear-gradient(90deg, #1c3248 0%, #8a3e2f 100%);
-}
-
-.auth-title{
-  font-size:40px;
-  max-width:11ch;
-}
-
-.auth-email-shell,
-.auth-recovery-box,
-#bypassResetBox,
-#sharedSetupBox,
-#passwordResetBox{
-  border-radius:18px;
-  background:rgba(255,250,245,.9);
-  border:1px solid rgba(77,67,55,.10);
-  box-shadow:none;
-}
-
-.auth-divider span{
-  background:#f7f0e7;
-}
-
-
-/* ===================== AUTHENTIC REDESIGN V2 ===================== */
-body{
-  background:
-    radial-gradient(1200px 680px at -10% -12%, rgba(32,57,79,.12), transparent 58%),
-    radial-gradient(900px 600px at 110% -8%, rgba(159,73,49,.10), transparent 54%),
-    linear-gradient(180deg, #efe6d8 0%, #f5efe6 34%, #ece3d7 100%);
-  color:#23313f;
-}
-
-body::selection,
-body *::selection{
-  background:rgba(196,69,54,.18);
-}
-
-body:not([data-highlight-mode="on"]).exam-guard,
-body:not([data-highlight-mode="on"]).exam-guard *{
-  -webkit-touch-callout:none !important;
-}
-
-body.exam-guard #listeningSection,
-body.exam-guard #readingControls,
-body.exam-guard #container,
-body.exam-guard #writingSection,
-body.exam-guard #speakingSection{
-  position:relative;
-}
-
-body.exam-guard #listeningSection::before,
-body.exam-guard #container::before,
-body.exam-guard #writingSection::before,
-body.exam-guard #speakingSection::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index:2;
-  background:
-    linear-gradient(180deg, rgba(255,251,245,.02), rgba(0,0,0,.015)),
-    repeating-linear-gradient(135deg, rgba(0,0,0,.012) 0 2px, transparent 2px 11px);
-  mix-blend-mode:multiply;
-  opacity:.5;
-}
-
-.btn,
-.home-btn{
-  border-radius:14px;
-  min-height:44px;
-  padding:12px 18px;
-  box-shadow:0 12px 24px rgba(36,32,28,.14);
-}
-
-.btn.secondary,
-.home-btn.ghost{
-  border-radius:12px;
-  background:rgba(255,252,247,.92);
-}
-
-input[type="text"],
-input[type="email"],
-input[type="number"],
-input[type="password"],
-select,
-textarea{
-  border-radius:12px;
-  background:#fffdfa;
-}
-
-.auth-shell,
-.auth-card,
-.auth-showcase,
-.home-wordmark,
-.hero-stat,
-.home-preferences,
-.home-notes,
-.resource-hub-section,
-.dashboard-panel,
-.history-table-wrap,
-.admin-results-table-wrap,
-.history-detail,
-.admin-result-detail{
-  backdrop-filter:none;
 }

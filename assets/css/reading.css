@@ -251,3 +251,54 @@
 #container .mcqPrompt{
   color:#000000 !important;
 }
+
+/* ===================== AUTHENTIC REDESIGN OVERRIDES ===================== */
+.exam-nav{
+  background:rgba(248,243,236,.88);
+  border-bottom:1px solid rgba(56,47,39,.08);
+  box-shadow:0 14px 28px rgba(34,30,26,.08);
+}
+
+.exam-nav-timer,
+.exam-nav .btn.secondary{
+  border-radius:12px;
+}
+
+.controls{
+  background:rgba(248,243,236,.92);
+  border-bottom:1px solid rgba(56,47,39,.08);
+}
+
+.container{
+  position:relative;
+  isolation:isolate;
+  background:linear-gradient(180deg, #eee6db 0%, #f4eee6 100%);
+}
+
+.passage,
+.questions,
+.qcard{
+  background:linear-gradient(180deg, rgba(250,246,239,.98) 0%, rgba(243,236,227,.98) 100%) !important;
+}
+
+.passage{
+  border-right:1px solid rgba(56,47,39,.08);
+}
+
+.passage h2,
+.questions .task-title,
+.questions h3,
+.questions h4{
+  font-family:var(--font-display);
+  letter-spacing:-.02em;
+}
+
+.passage h2{ font-size:38px; }
+
+.qcard,
+.panel,
+.optionsBox{
+  border-radius:18px;
+  border:1px solid rgba(56,47,39,.10) !important;
+  box-shadow:0 18px 36px rgba(34,30,26,.06) !important;
+}

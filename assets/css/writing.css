@@ -146,37 +146,3 @@
   .writing-footer{ flex-direction:column; align-items:flex-start; }
   .writing-name{ min-width:0; width:100%; }
 }
-
-/* ===================== AUTHENTIC REDESIGN OVERRIDES ===================== */
-.writing-screen{
-  background:
-    linear-gradient(180deg, #eee6db 0%, #f4eee6 100%);
-}
-
-.writing-shell{
-  position:relative;
-  isolation:isolate;
-  border-radius:24px;
-  border:1px solid rgba(56,47,39,.10);
-  background:linear-gradient(180deg, rgba(250,246,239,.98) 0%, rgba(243,236,227,.98) 100%);
-  box-shadow:0 30px 70px rgba(34,30,26,.12);
-}
-
-.writing-title,
-.writing-card-title{
-  font-family:var(--font-display);
-  letter-spacing:-.02em;
-}
-
-.writing-title{ font-size:42px; }
-
-.writing-timer{
-  border-radius:12px;
-}
-
-.writing-card,
-.writing-graph{
-  border-radius:18px;
-  border:1px solid rgba(56,47,39,.10);
-  box-shadow:0 18px 36px rgba(34,30,26,.06);
-}

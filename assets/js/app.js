@@ -233,6 +233,23 @@
     return !!el.closest('[data-hl-root-key], #hlToolbar, mark.hl');
   }
 
+  function shouldAllowExamSelectionTarget(target) {
+    if (!isExamGuardActive()) return true;
+    if (isEditableTarget(target)) return true;
+    return isHighlightingTarget(target);
+  }
+
+  function clearUnsafeExamSelection() {
+    try {
+      const sel = window.getSelection?.();
+      if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+      const anchor = sel.anchorNode;
+      const focus = sel.focusNode;
+      if (shouldAllowExamSelectionTarget(anchor) && shouldAllowExamSelectionTarget(focus)) return;
+      sel.removeAllRanges();
+    } catch (e) {}
+  }
+
   function installAntiCheatGuards() {
     if (window.__IELTS_ANTI_CHEAT_GUARDS__) return;
     window.__IELTS_ANTI_CHEAT_GUARDS__ = true;
@@ -251,9 +268,14 @@
         const key = String(event.key || "").toLowerCase();
         const cmdOrCtrl = !!(event.ctrlKey || event.metaKey);
         const shift = !!event.shiftKey;
+        const examShortcutBlock =
+          isExamGuardActive() &&
+          cmdOrCtrl &&
+          (key === "a" || key === "c" || key === "x");
         const blockedCombos =
           (cmdOrCtrl && (key === "f" || key === "p" || key === "s" || key === "u")) ||
           (cmdOrCtrl && shift && (key === "i" || key === "j" || key === "c")) ||
+          examShortcutBlock ||
           key === "f12" ||
           key === "f3";
 
@@ -281,14 +303,20 @@
     const examOnlyBlock = (event) => {
       if (!isExamGuardActive()) return;
       if (isEditableTarget(event.target)) return;
-      if (
-        isHighlightingTarget(event.target) &&
-        (event.type === "selectstart" || event.type === "dblclick")
-      ) {
+      if (event.type === "selectstart" && isHighlightingTarget(event.target)) {
         return;
       }
       event.preventDefault();
       event.stopPropagation();
+    };
+
+    const examMouseBlock = (event) => {
+      if (!isExamGuardActive()) return;
+      if (isEditableTarget(event.target)) return;
+      if (event.detail > 1) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     };
 
     document.addEventListener("copy", examOnlyBlock, true);
@@ -296,6 +324,8 @@
     document.addEventListener("dragstart", examOnlyBlock, true);
     document.addEventListener("selectstart", examOnlyBlock, true);
     document.addEventListener("dblclick", examOnlyBlock, true);
+    document.addEventListener("mousedown", examMouseBlock, true);
+    document.addEventListener("selectionchange", clearUnsafeExamSelection, true);
   }
 
 

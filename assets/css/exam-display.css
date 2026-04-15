@@ -266,3 +266,36 @@ body[data-exam-theme="dark"] #container textarea::placeholder{
     justify-content:space-between;
   }
 }
+
+/* ===================== EXAM SHIELD + VISUAL OVERRIDES ===================== */
+.exam-display-btn{
+  border-radius:12px;
+}
+
+body.exam-guard .listening-shell,
+body.exam-guard #container,
+body.exam-guard .writing-shell,
+body.exam-guard #speakingSection{
+  position:relative;
+  isolation:isolate;
+}
+
+body.exam-guard .listening-shell::after,
+body.exam-guard #container::after,
+body.exam-guard .writing-shell::after,
+body.exam-guard #speakingSection::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:2;
+  opacity:.18;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(33,26,19,.03)),
+    repeating-linear-gradient(180deg, rgba(91,81,68,.05) 0 1px, transparent 1px 4px);
+  mix-blend-mode:multiply;
+}
+
+body.exam-guard #hlToolbar{
+  z-index:10;
+}

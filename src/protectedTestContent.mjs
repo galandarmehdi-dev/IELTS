@@ -5428,6 +5428,536 @@ As more research into the condition becomes available, maybe combating it will l
   }
 };
 
+const test13 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Listening%2034.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Getting a visa to travel to Thailand</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Main types of visa:</b></div>
+        <div class="note-row">business visa (for working in Thailand)</div>
+        <div class="note-row bullet">● lasts for <span class="qnum">1</span> <input data-lq="1" class="l-input tiny"> days</div>
+        <div class="note-row">for people going to Thailand on holiday or visiting for <span class="qnum">2</span> <input data-lq="2" class="l-input"> reasons</div>
+        <div class="note-row bullet">● lasts for 60 days</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Getting a tourist visa</b></div>
+        <div class="note-row">may need to provide a <span class="qnum">3</span> <input data-lq="3" class="l-input"> certificate or a driving licence</div>
+        <div class="note-row">will need a passport that is still valid for a minimum of <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">need to:</div>
+        <div class="note-row bullet">● fill in a form to apply for a tourist visa</div>
+        <div class="note-row bullet">● provide two passport photos — must be <span class="qnum">5</span> <input data-lq="5" class="l-input"> and the same size</div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 6-10</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Tourist visa application form</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>PERSONAL DETAILS</b></div>
+        <div class="note-row">Nationality <span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
+        <div class="note-row">Surname Johnston</div>
+        <div class="note-row">First name Alan</div>
+        <div class="note-row">Middle name <span class="qnum">7</span> <input data-lq="7" class="l-input"></div>
+        <div class="note-row">Mobile number <span class="qnum">8</span> <input data-lq="8" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>TRAVEL DETAILS</b></div>
+        <div class="note-row">Years of previous trips to Thailand 1992 and <span class="qnum">9</span> <input data-lq="9" class="l-input tiny"></div>
+        <div class="note-row">Start date of visa for travel to Thailand September 1</div>
+        <div class="note-row">Probable destination country after departure from Thailand <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-12</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO things has the building been in the past?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="A"> A) a factory</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="B"> B) a warehouse</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="C"> C) an artists’ studio</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="D"> D) a railway station</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="11" value="E"> E) a shopping centre</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 13-14</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO facilities will residents of the building be able to use for free?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="A"> A) the pool</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="B"> B) the gym</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="C"> C) the laundry</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="D"> D) a parking space</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="13" value="E"> E) the common room</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-16</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">In which TWO ways is the building sustainable?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="A"> A) There is a space for wildlife on top of the building.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="B"> B) It has small windows to conserve heat.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="C"> C) All the apartments have heat pumps.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="D"> D) No gas is used in the building.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="E"> E) Natural materials were used.</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 17-20</div>
+      <div class="listen-inst">What feature does the speaker recommend about each of the following apartments? Write the appropriate letter, <b>A-C</b>, for each question.</div>
+      <div class="people-box">
+        <div><b>A</b> what is already provided in the rooms</div>
+        <div><b>B</b> the views from the apartment</div>
+        <div><b>C</b> the apartment’s outdoor area</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">17</span> Keyboard Apartment
+        <select class="l-select" data-lq="17">
+          <option value=""></option><option>A</option><option>B</option><option>C</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">18</span> The Brubeck
+        <select class="l-select" data-lq="18">
+          <option value=""></option><option>A</option><option>B</option><option>C</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">19</span> Sonata Rooms
+        <select class="l-select" data-lq="19">
+          <option value=""></option><option>A</option><option>B</option><option>C</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">20</span> The Nyman Flat
+        <select class="l-select" data-lq="20">
+          <option value=""></option><option>A</option><option>B</option><option>C</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-24</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> Why did James choose his work placement with the manufacturing company?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) He thought its products were interesting.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) He failed to get one with the software firm.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) He wanted to work for a large global business.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> What did James like best about his work placement?</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) broadening his business experience</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) getting to know people in different departments</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) learning how market analysis is linked to product design</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> James says that if his placement had been with a smaller company, he’d have been able to</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) earn more money.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) prevent others from taking risks.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) have a greater effect on the business.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> In what way does James feel the placement was well-organised?</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) He never had any problems while he was with the company.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) There was one person he could always contact if necessary.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) Various managers showed him how their departments work.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 25-30</div>
+      <div class="listen-inst">Complete the flow-chart. Write the appropriate letter, <b>A-G</b>, in the space for each answer.</div>
+      <div class="people-box">
+        <div><b>A</b> check it for any mistakes</div>
+        <div><b>B</b> arrange another appointment</div>
+        <div><b>C</b> identify suitable titles for different sections</div>
+        <div><b>D</b> submit a small sample of work to the tutor</div>
+        <div><b>E</b> think of possible ways to organise the portfolio</div>
+        <div><b>F</b> see what other people think about your ideas</div>
+        <div><b>G</b> find out what you are assessed on</div>
+      </div>
+
+      <div class="note-row">Use the module handbook to <span class="qnum">25</span>
+        <select class="l-select" data-lq="25">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row">Use old assignments in the library to <span class="qnum">26</span>
+        <select class="l-select" data-lq="26">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row">Consult the Learning Objectives in order to <span class="qnum">27</span>
+        <select class="l-select" data-lq="27">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">28</span>
+        <select class="l-select" data-lq="28">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+        and get feedback
+      </div>
+      <div class="note-row">Use the online forum to <span class="qnum">29</span>
+        <select class="l-select" data-lq="29">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row">Ask another person to <span class="qnum">30</span>
+        <select class="l-select" data-lq="30">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">The Chimp Paradox by Professor Steve Peters</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>The basic idea of The Chimp Paradox</b></div>
+        <div class="note-row">Sometimes, humans behave a bit like chimpanzees!</div>
+        <div class="note-row">According to Peters, the brain contains two parts: ‘human’ and ‘chimp’</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>The ‘human’ is the part of the brain that:</b></div>
+        <div class="note-row bullet">● is usually <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+        <div class="note-row bullet">● likes to have <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>The ‘chimp’</b></div>
+        <div class="note-row bullet">● is more <span class="qnum">33</span> <input data-lq="33" class="l-input"> than the human</div>
+        <div class="note-row bullet">● can be a friend or an enemy</div>
+
+        <div class="note-row">Having these two very different parts of the brain often leads to a <span class="qnum">34</span> <input data-lq="34" class="l-input">; this is the ‘chimp paradox’</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Examples of the chimp paradox</b></div>
+        <div class="note-row bullet">● entering a room full of <span class="qnum">35</span> <input data-lq="35" class="l-input"> and being unsure how to react</div>
+        <div class="note-row bullet">● deciding whether to complete a dull task or to <span class="qnum">36</span> <input data-lq="36" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Applications of The Chimp Paradox in sport</b></div>
+        <div class="note-row">The Chimp Paradox famously helped convince a well-known <span class="qnum">37</span> <input data-lq="37" class="l-input"> to continue</div>
+        <div class="note-row">She says the ‘chimp’ approach helped her become a <span class="qnum">38</span> <input data-lq="38" class="l-input"></div>
+        <div class="note-row">Snooker player Ronnie O’Sullivan said that Peters’ ideas enabled him to deal with <span class="qnum">39</span> <input data-lq="39" class="l-input"></div>
+        <div class="note-row">Peters encouraged O’Sullivan to find time for <span class="qnum">40</span> <input data-lq="40" class="l-input">, which he enjoyed</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+    `
+  },
+
+  writing: {
+    task1Type: "Line graph",
+    task2Type: "Opinion essay",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The line graphs below show the subscriptions to mobile and fixed phone lines in four different countries between 2005 and 2015.<br>
+      Summarise the information by selecting and reporting the main features and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/Screenshot%202026-04-16%20at%2009.49.43.png",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      Write about the following topic:<br><br>
+      There is a lot of pressure on young people today to succeed academically. As a result, some people believe that non-academic subjects, such as physical education and cookery, should be removed from the school syllabus so that children can concentrate on academic work.<br>
+      To what extent do you agree or disagree?<br><br>
+      Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `MINDFULNESS
+
+In 2011, the World Health Organisation released a report stating that by 2030 mental ill-health would be the biggest burden of disease in developed countries. In searching for new approaches to tackle this rising global epidemic, mindfulness has gained significant ground. Although research around it remains in its infancy, this ever-accelerating phenomenon has recently become the subject of academic curiosity due to practitioners’ claims of its countless health benefits and flexibility of application.
+
+Mindfulness, commonly defined as the state of being attentive to and aware of the present moment, has its roots in reflective Eastern traditions of philosophy. While modern day mindfulness is used as a preventative or therapeutic tool, it was originally taught as a means of seeing the true nature of reality. It was believed that, through careful attention to the sensory experience, one was able to realise the impermanent nature of all things, transcend the concept of self, and ultimately attain a state free from suffering, known as enlightenment.
+
+Through the 1970s, Western interest in these concepts and practices rapidly grew, drawing travellers from America and Europe to Asia. One MIT molecular biology student, Jon Kabat-Zinn, was able to take a modern scientific-based perspective to traditional Eastern principles of mindfulness and meditation, resulting in the familiar Western concept which downplays the traditional spiritual or religious aspects. He later founded the Stress Reduction Clinic at the University of Massachusetts Medical School, going on to develop a Mindfulness-Based Stress Reduction (MBSR) programme: an eight-week course aimed at reducing people’s stress levels; and later a Mindfulness-Based Cognitive Therapy (MBCT) programme dealing with severe mental health issues such as depression and anxiety.
+
+These days, scientific research into mindfulness abounds and a number of reports have emphasised its potential. A 2013 study conducted by Massachusetts General Hospital of sufferers of Generalised Anxiety Disorder (GAD) showed participants receiving mindfulness-based treatment to have a significantly greater reduction in anxiety than a control group. This response to mindfulness-based treatment does not appear to merely be a psychological one either. A recent paper from Pittsburgh University’s Neuroscience department showed mindfulness can actually shrink the amygdala - the part of our brain controlling our 'fight or flight' response - while simultaneously diminishing the connection between the amygdala and the rest of the brain. What this amounts to is that, through mindfulness, our brain becomes better able to mediate our primal response to stress and, thus, not let it affect us so much.
+
+Another booming area of research is the use of mindfulness for helping cancer patients deal with the fear that accompanies diagnosis. One of the largest studies in this area, published in the Journal of Clinical Oncology, showed breast cancer survivors who practised mindfulness exhibited increased calm and wellbeing, better sleep and less physical pain. One cancer survivor, Andy Puddicombe, founder of the mindfulness app 'Headspace', says mindfulness enables us to recognise the patterns of negative thinking that a cancer diagnosis can bring about- such as depressive or anxious thoughts - and embrace them rather than be overwhelmed by them.
+
+Yet despite advocates of mindfulness extolling its virtues, there has been a recent backlash against it. One criticism levelled at mindfulness is that, conversely to what has been claimed, it may actually be causing anxiety and depression. The Guardian newspaper recently published the story of a woman who, while attending a three-day mindfulness retreat, experienced panic attacks that continued throughout the retreat and long after, eventually leading her to a nervous breakdown and a spell in a psychiatric ward. And it seems this is not an isolated case. Psychologist Miguel Farias and Catherine Wikholm, who in their book 'The Buddha Pill' explore the adverse effects of mindfulness, have seen numerous accounts of people suffering panic attacks, feelings of dissociation, or hearing voices as a product of their mindfulness practice.
+
+Along with the validity of the practice itself, opponents of mindfulness have begun questioning the motivation of many employers and experts who champion its benefits. Will Davies, senior lecturer at Goldsmiths and author of 'The Happiness Industry', claims our mental health has become a huge money-making opportunity. “Companies are increasingly aware of the financial costs that stress, depression and anxiety saddle them with,” he says and, as such, are shifting the responsibility onto the individual by encouraging their employees to meditate and attend relaxation sessions. In doing so, Davies argues they are placing any blame for mental health problems on the individual.
+
+This criticism has been acknowledged by some of the leading proponents of mindfulness. Jon Kabat-Zinn states, “As critics are correct to point out, a real understanding of the subtlety of mindfulness is required if it is to be taught effectively: it can never be a quick fix. Some argue that for certain opportunistic elements, mindfulness has become a business that can only disappoint the vulnerable consumers who look to it as a panacea.” He believes the answer is not to reject mindfulness but to increase funding to provide the necessary evidence to establish and disseminate best practice, train teachers, and identify and support those most in need of mindfulness.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1 - 6",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 1, Mindfulness?",
+              "In answer boxes 1 - 6, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 1, text: "Mindfulness is a relatively new topic of study." },
+              { q: 2, text: "The original practice of mindfulness differed from its current application." },
+              { q: 3, text: "Jon Kabat-Zinn came from a religious background." },
+              { q: 4, text: "Kabat-Zinn's clinic aimed to help people with a range of problems." },
+              { q: 5, text: "Mindfulness enables people to increase their fight or flight response." },
+              { q: 6, text: "Kabatt-Zinn believes criticism of Western mindfulness practice is unjustified." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 7 - 13",
+            instructions: [
+              "Complete the summary.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 1, Mindfulness, for each answer.",
+              "Write them in answer boxes 7 - 13."
+            ],
+            items: [
+              { q: 7, text: "Mindfulness has been proven to have a positive impact on people’s wellbeing. One study in 2013 showed patients responding positively to", tail: " involving mindfulness." },
+              { q: 8, text: "This is due to a reduction in the size of the", tail: ", which makes us react to danger." },
+              { q: 9, text: "Mindfulness can also help cancer patients with negative emotions following", tail: "." },
+              { q: 10, text: "Many companies are dealing with their workers’ mental health issues by making", tail: " responsible for mental well-being." },
+              { q: 11, text: "Two writers give many examples of the", tail: " of mindfulness." },
+              { q: 12, text: "While the practice is intended to reduce", tail: " and depression, some argue that it may be the cause of those conditions." },
+              { q: 13, text: "Jon Kabat-Zinn sees mindfulness's current shortfalls being a need for", tail: " and lack of funding." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `BEHIND THE TIMES
+
+From observations of the moon’s phases to the introduction of the quartz crystal - regardless of our ever-improving capacity to measure time, its fundamental nature remains an enigma. Despite this intangible intrigue, we must accept time as the driver of our lives. It can be found everywhere that man is, and increasingly pursues him on his daily route - on his wrist, in his pocket, possibly even, in the not-too-distant future, on his retina. Our awareness of time dictates how we live, eat, work, sleep and feel. But how and why did our world become so obsessed with time?
+
+You might be surprised to learn that time as we know it - a precise measurement structured into ordered geographic zones of regular intervals - is a relatively recent phenomenon. If you went back as few as two or three centuries, you would find the human experience of time to be quite different, especially if your time travel was followed by travel of the traditional variety. For example, whereas now London and Bristol - approximately 100 miles apart - share the exact same time, Bristol of the early 1800s was approximately ten minutes behind the capital.
+
+To understand this leap better, let me start by painting a picture of early Enlightenment Britain. For the most part, and certainly relative to the Britain of today, the country was rather disconnected. There were, of course, roads connecting all settlements regardless of size, but because journeys between them were slow there was little call for exact measurements of duration. Besides, each little town kept its own time, based on its own astronomical observations - specifically the location of the sun throughout the day - and thus kept their own slow pace.
+
+This pace began to quicken around the turn of the nineteenth century. As industrial centres ‘blossomed’ far from London, so the need for improved transport links to facilitate trade became more urgent. With the introduction of railroads, the journey to our familiar ‘small world’ had begun. To assist the increasingly confused travellers, who were forced to re-adjust their watches at every station, a standard British time based upon the yearly average time the sun crossed the Greenwich Meridian was introduced. By 1855, 98% of British clocks had been set to this time.
+
+While Greenwich’s role in establishing the concept of time standardisation was crucial, the diminutive size of the country meant that the problems Britain had faced were solved by this simple development. Across the Atlantic, American infrastructure and industry were expanding so fast and on such scale that further adaptations had to be made. The introduction of 100 railroad time zones, while a step in the right direction, was only a partial solution and as trains became more rapid, so safety concerns become greater - with many trains sharing a single track, exact time became critical.
+
+On November 18, 1883, the United States and Canada introduced five standard time zones. The exception was Detroit, who chose to continue using a local time basis until 1900, when the City Council gave in and prepared to follow Central Standard Time. Even then, though, there remained problems. Half of the city’s businesses obeyed, but many individuals refused, citing what they saw as the ‘dehumanising effect’ of exact time. Incredibly, this reluctance to standardise influenced the City Council to revert to its original solar time. However, it wasn’t long until pressure from railway companies forced them to re-adapt.
+
+Not long after the establishment of time zones in North America, interest began to emerge for a standardised system worldwide, largely due to the booming shipping industry, which found itself in a situation not unlike that of the aforementioned railroads. They needed to agree upon just one prime meridian - a global standard. A number of meridians had been used for longitudinal references in the late 1800s but that in Greenwich became almost universally accepted at the International Meridian Conference in 1884. The reasons for this near-unanimity included the fact that an incredible 72% of the world’s commerce was reliant on sea-charts based around the Greenwich Meridian.
+
+However, the French fervently refused to acknowledge the decision, instead establishing their meridian within Paris until 1911. Rather than suffer the indignity of giving in to their fierce historical rivals, they finally succumbed to using Greenwich Mean Time (later renamed as Coordinated Universal Time (UTC)) but retained national pride by labelling it as ‘Paris Mean Time minus 9 minutes and 21 seconds’. Not long after, France switched to Central European Time and has remained as such ever since.
+
+From the 1920s, the recognition and official registration of time zones spread throughout the world, culminating in Nepal’s 1986 adoption of UTC + 5:45. We now have 24 standard meridians of longitude, 15 degrees apart, with which we structure our days. The concept is vital for our co-operation and commerce, which together form the driving force of the modern world. It is, however, important to recognise just how quickly this change has occurred - it is incredible to think that little over a century ago, the majority would have been comfortable referring to time simply as ‘morning’, ‘afternoon’, ‘evening’ and ‘night’. Might those resolute citizens of Detroit have had a point?`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 14 - 20",
+            instructions: [
+              "Complete the sentences.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 2, Behind the Times, for each answer.",
+              "Write them in answer boxes 14 - 20."
+            ],
+            items: [
+              { q: 14, text: "Before the introduction of modern time zones, Bristol and London were", tail: " apart." },
+              { q: 15, text: "Due to the length of journeys in 18th century Britain,", tail: " of time were unnecessary." },
+              { q: 16, text: "People used to use", tail: " to measure time in each individual settlement." },
+              { q: 17, text: "British standard time became necessary as more", tail: " were built." },
+              { q: 18, text: "Britain didn’t need to adapt different time zones because of its", tail: "." },
+              { q: 19, text: "Faster trains led to increased", tail: " over the number of vehicles on one line." },
+              { q: 20, text: "Despite previous attempts to change the time system, it was ultimately", tail: " that made Detroit adopt Central Standard Time." }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 21 - 24",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the appropriate letters, A - D, in answer boxes 21 - 24."
+            ],
+            items: [
+              {
+                q: 21,
+                text: "What was the main factor which drove the need for global time standardisation?",
+                choices: {
+                  A: "The need to do business with North America",
+                  B: "The decline in the use of trains",
+                  C: "The rapid expansion of sea trade",
+                  D: "The number of different meridians was causing confusion"
+                }
+              },
+              {
+                q: 22,
+                text: "Which is one of the reasons given for Greenwich being accepted as the global standard meridian?",
+                choices: {
+                  A: "The USA was in the same time zone as Greenwich",
+                  B: "Greenwich Observatory was conducting the best research on time",
+                  C: "The 1884 Conference was held in Greenwich",
+                  D: "The majority of trade depended on maps that used the Greenwich Meridian"
+                }
+              },
+              {
+                q: 23,
+                text: "According to the writer, why did France initially refuse to adopt Greenwich as their meridian?",
+                choices: {
+                  A: "Paris was nearly ten minutes ahead of Greenwich",
+                  B: "The French were too proud to accept a British system",
+                  C: "The decision to use Greenwich was made without French knowledge",
+                  D: "They already had their own system which they had used for a long time"
+                }
+              },
+              {
+                q: 24,
+                text: "According to the writer, what might the inhabitants of Detroit have been right about?",
+                choices: {
+                  A: "Exact time making us feel less human",
+                  B: "Our need for precise time measurement for trade",
+                  C: "Time standardisation happening too quickly",
+                  D: "Days being much simpler when divided into only four time periods"
+                }
+              }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 25 - 27",
+            instructions: [
+              "Which THREE statements are true of the writer’s opinion?",
+              "Choose THREE correct letters (from A - G) and write them in any order in answer boxes 25 - 27."
+            ],
+            choices: [
+              { letter: "A", text: "Knowing what the time is affects our behaviour." },
+              { letter: "B", text: "The idea of measuring time started in the 19th Century." },
+              { letter: "C", text: "The standardisation of time zones caused the rise of industry in America and Britain." },
+              { letter: "D", text: "Time zones are essential for humans to work and trade together." },
+              { letter: "E", text: "Some day, we may have clocks in our eyes." },
+              { letter: "F", text: "Humanity is close to understanding how time works." },
+              { letter: "G", text: "Most people have responded positively to the introduction of global time systems." }
+            ],
+            items: [
+              { q: 25, text: "Writer opinion answer 1" },
+              { q: 26, text: "Writer opinion answer 2" },
+              { q: 27, text: "Writer opinion answer 3" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `ONKALO
+
+Despite nuclear energy generally being considered an environmentally friendly source of electricity, the radioactive waste it leaves remains hazardous to life for at least 100,000 years. What to do with this unwanted by-product and how to protect people and the environment from it is a major challenge facing the proponents of nuclear power generation. Currently, it is mostly stored in cool water, which acts as a seal for the radiation, in facilities requiring round-the-clock guarding, surveillance, and maintenance. This may be an effective storage method for now, however, a solution is needed for the next hundred millennia and so scientists have been researching one.
+
+In a remote area on the west coast of Finland, there may be an answer: Onkalo. Currently under construction, this spent nuclear fuel repository located at the Olkiluoto Nuclear Power Plant in the municipality of Eurajoki is where they plan to bury this nuclear waste 500 metres below ground in the most secure and stable environment known: the bedrock. While above ground there are wars, natural disasters, the rise and fall of civilisations, the bedrock below remains unchanged for millions of years. This stability, argue scientists, makes it ideal for toxic material disposal. After intense screening of possible sites in the Finnish territory, this location was chosen due to the estimated lower geographical and environmental impact it would cause, as well as taking into consideration the consent of the local community. Construction began in 2004 and is expected to be finished in 2100, when Onkalo will be sealed, hopefully never to be opened again.
+
+Onkalo means ‘hiding place’ or ‘cavity’ in Finnish, and will live up to its name. On a flat stretch of pine-tree-covered land, kilometres from the nearest town, Rauma, on Olkiluoto Island, stands an unprepossessing metal shutter set between walls of rock. From this entrance, a tunnel will snake down five kilometres, 500m into the depths of the earth, ending in tomb-like storage capsules. Nothing like Onkalo has been attempted by humanity before. The facility must last, undisturbed, for 100,000 years – an unimaginably long time, far longer than any other manmade structure so far. The Giza Pyramids, for example, currently the world’s oldest free-standing buildings, have yet to reach the 5000 year mark, a mere one-twentieth of the time Onkalo must withstand.
+
+The main purpose of Onkalo is to keep future generations safe from the lethal waste buried within. It is ironic, then, that the main threat to the facility’s security is the very people it aims to protect. Scientists are concerned about future generations finding and opening Onkalo, and perhaps not understanding what they come across. These future generations are essentially unknowable. While it may be possible to predict the nature of people in a hundred years, Onkalo has to consider them in 1,000, 10,000, 100,000 years. The future becomes very foggy when thinking in these timescales and so, when thinking of the future, scientists often look to the past first. Considering 100,000 years ago Neanderthals still walked the Earth, it stands to reason that in another 100,000 people will be unimaginably different from us now. They may have more advanced technology, or, is it possible some disaster will have led them to lose it entirely? Is it equally possible that such poor environmental conditions mean life is only possible underground, or only on other planets? Future generations may interpret Onkalo as something religious, a burial ground, a hidden treasure. The human race could have ceased to exist at all.
+
+There are many conflicting ideas about how to tackle this potential problem. One of the fiercest debates is whether to leave warnings for future generations in the form of markers. These would be penned in all major UN languages plus pictographs engraved in stone monoliths around the site. But others point out that anybody able to heed the warning may have died long before these messages were ever discovered. Even pictographs, which we instinctively feel are universal, may be interpreted differently in 50,000 years. More outlandish ideas include covering the ground above Onkalo with a concrete forest of enormous thorns, to make the area as foreboding as possible. Also, the very existence of markers may stoke people’s curiosity, driving them to want to find out what has been hidden. Could talk of Onkalo have become mythical, a legend similar to the Lost City of Atlantis, or would future generations even be familiar with the nature of nuclear waste, possibly having invented new energy sources? Again, we can connect to the past and the discovery of ancient Egyptian tombs; these were covered in warnings to leave well alone that were either not understood or completely disregarded. There is no reason to think the people of the future would be any different. This has led many scientists to conclude no markers should be left and that Onkalo should simply be sealed, covered, and forgotten.
+
+Onkalo may very well end up being the longest lasting trace of Western civilisation, yet it will not be a thing of wonder like the Pyramids. It is something that must never be opened, for the safety of the future, though the Ancient Egyptians thought similarly and the deterrents they left were ultimately ignored. Despite the question of whether the past can help us to predict the future remaining moot, the need for a place like Onkalo leaves one with a certain feeling of ambivalence towards nuclear energy. This waste that comes as part and parcel of generating electricity in this manner is, for many, too high a price to pay.`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 28 - 32",
+            instructions: [
+              "Complete the notes.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 3, Onkalo.",
+              "Write them in answer boxes 28 - 32."
+            ],
+            items: [
+              { q: 28, text: "Ideal as", tail: " is durable and consistent over millennia." },
+              { q: 29, text: "Site selected taking into account its effect on ecology and approval by the", tail: "." },
+              { q: 30, text: "Deep passage leads down to", tail: "." },
+              { q: 31, text: "Covering the area in a number of large artifical", tail: " is one idea to keep future civilizations away." },
+              { q: 32, text: "Onkalo could arouse the curiosity of future peoples, though they may not understand what", tail: " is." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 33 - 37",
+            instructions: [
+              "Complete each sentence with the correct ending, A - H.",
+              "Write the appropriate letters, A - H, in answer boxes 33 - 37."
+            ],
+            endings: {
+              A: "... involves digging deep into the earth.",
+              B: "... calls for careful consideration of the site's protection.",
+              C: "... involves storing it in cold water.",
+              D: "... suggests the extinction of the human race.",
+              E: "... calls for a retrospective view from scientists.",
+              F: "... relates to those it is designed to safeguard.",
+              G: "... presumes a threat to the future of nuclear power.",
+              H: "... assumes the similarity of future humans to us."
+            },
+            items: [
+              { q: 33, text: "The current method of dealing with nuclear waste ..." },
+              { q: 34, text: "The Onkalo solution ..." },
+              { q: 35, text: "The principal risk to the protection of Onkalo ..." },
+              { q: 36, text: "The unforeseeable nature of future civilizations ..." },
+              { q: 37, text: "The idea by some scientists to hide Onkalo completely ..." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 38 - 40",
+            instructions: [
+              "Do the statements agree with the claims of the writer of Reading Passage 3, Onkalo?",
+              "In answer boxes 38 - 40 write:",
+              "YES if the statement agrees with the writer",
+              "NO if the statement contradicts the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 38, text: "As a permanent testimony to our civilisation, Onkalo may well be revered by future inhabitants of the earth." },
+              { q: 39, text: "Examining historical events to predict future ones is a debatable practice." },
+              { q: 40, text: "The future of nuclear power production is uncertain due to increasing costs." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -5441,6 +5971,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts10: test10,
   ielts11: test11,
   ielts12: test12,
+  ielts13: test13,
 };
 
 export function getProtectedTestContent(testId) {

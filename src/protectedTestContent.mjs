@@ -4912,6 +4912,522 @@ OSU researchers throughout the state have been working to reduce dependence on b
   }
 };
 
+const test12 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Listening35.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-7</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Report about a customer problem with a product</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Summary of customer’s problem</b></div>
+        <div class="note-row bullet">● one bit of the item he bought was <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+        <div class="note-row bullet">● another piece was broken</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Customer details</b></div>
+        <div class="note-row">Name Gordon Cooper</div>
+        <div class="note-row">Address 77 Woolbridge Lane, Whitesands</div>
+        <div class="note-row">Postcode <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Product details</b></div>
+        <div class="note-row">Type of item Bookcase</div>
+        <div class="note-row">Name of item Maine <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+        <div class="note-row">Order reference <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">Details of damage the <span class="qnum">5</span> <input data-lq="5" class="l-input"> shelf was broken</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Arrangement for collection</b></div>
+        <div class="note-row">Day of collection Wednesday</div>
+        <div class="note-row">Time <span class="qnum">6</span> <input data-lq="6" class="l-input tiny"> pm</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Contact details for customer</b></div>
+        <div class="note-row">Email: <span class="qnum">7</span> <input data-lq="7" class="l-input">@mail.com</div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 8-10</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Customer feedback</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Customer feels that the info about products on the website isn’t as <span class="qnum">8</span> <input data-lq="8" class="l-input"> as it could be:</div>
+        <div class="note-row bullet">There is very little detail about:</div>
+        <div class="note-row bullet">● how large the items are</div>
+        <div class="note-row bullet">● their <span class="qnum">9</span> <input data-lq="9" class="l-input"></div>
+        <div class="note-row bullet">● what materials are used</div>
+        <div class="note-row">Some photos on the website are so <span class="qnum">10</span> <input data-lq="10" class="l-input"> that it’s hard to see the details.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-14</div>
+      <div class="listen-inst">Label the map below. Write the correct letter, <b>A-E</b>, next to each question.</div>
+
+      <div style="margin: 14px 0; display:flex; justify-content:center;">
+        <img
+          src="https://audio.ieltsmock.org/Screenshot%202026-04-15%20at%2020.09.23.png"
+          alt="Hargrove Nature Reserve map"
+          style="max-width:100%; width:430px; height:auto; border:1px solid #ccc; border-radius:8px;"
+        >
+      </div>
+
+      <div class="note-row"><span class="qnum">11</span> allotment garden
+        <select class="l-select" data-lq="11">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">12</span> toilet
+        <select class="l-select" data-lq="12">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">13</span> pond
+        <select class="l-select" data-lq="13">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">14</span> tool shed
+        <select class="l-select" data-lq="14">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-16</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO things are a current challenge for the conservation group?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="A"> A) lack of money</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="B"> B) damage from rain</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="C"> C) getting enough volunteers</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="D"> D) litter that is left at the reserve</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="15" value="E"> E) finding the time to complete tasks</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 17-18</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO jobs will be done today?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="A"> A) cutting grass</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="B"> B) planting trees</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="C"> C) identifying flowers</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="D"> D) mending equipment</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="17" value="E"> E) assembling new furniture</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 19-20</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO benefits does the speaker say that people get from volunteering?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="A"> A) a better understanding of nature</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="B"> B) new friendships</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="C"> C) a sense of achievement</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="D"> D) their expenses reimbursed</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="19" value="E"> E) the chance to gain new skills</label>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-24</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> This week’s seminar will focus on the numbers of</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) women and men entering university.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) girls and boys and in primary education.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) females and males in education in developing countries.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> The students agree that the chapter by Hall</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) contained useful references.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) provided a helpful summary.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) had more detail than they needed.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> What problem did the students have with the reading list?</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) They were unable to access the online articles.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) Some of the books they needed were unavailable.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) It was unclear which texts they were supposed to read.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> What does Alice say she has changed her mind about?</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) the reasons why so few women receive a higher education</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) the reliability of statistics about gender and education</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) the actual number of men and women getting into higher education</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 25-30</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE OR TWO WORDS OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Gender studies — notes from pre-lecture reading</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Key statistics</b></div>
+        <div class="note-row">One paper said that <span class="qnum">25</span> <input data-lq="25" class="l-input tiny">% more women than men were getting into university</div>
+        <div class="note-row">There’s a higher chance that men on a course will <span class="qnum">26</span> <input data-lq="26" class="l-input">; men also do less well in their degrees</div>
+        <div class="note-row">There are more males than females studying certain subjects, e.g. <span class="qnum">27</span> <input data-lq="27" class="l-input"> and some science courses</div>
+        <div class="note-row">Most universities in the country have more women than men</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Possible reasons for the differences</b></div>
+        <div class="note-row">There are fewer male than female <span class="qnum">28</span> <input data-lq="28" class="l-input">, so there’s a lack of role models for males</div>
+        <div class="note-row">There is no proof that this difference benefits women in a <span class="qnum">29</span> <input data-lq="29" class="l-input"> way</div>
+        <div class="note-row">For assessment, schools have moved away from using <span class="qnum">30</span> <input data-lq="30" class="l-input">; this change has helped girls</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">The rise and fall of plasma TVs</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Plasma TV screens used to be popular in the early 2000’s</div>
+        <div class="note-row">The screens contain cells filled with gas, which light up; this forms the picture</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>The development of plasma screens</b></div>
+        <div class="note-row">Plasma screens were first developed at a <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+        <div class="note-row">Plasma screens could be used to clearly display information, e.g. in:</div>
+        <div class="note-row bullet">● a hotel <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+        <div class="note-row bullet">● stock exchanges</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Advantages of plasma TVs</b></div>
+        <div class="note-row">Plasma technology enabled TVs to be on the <span class="qnum">33</span> <input data-lq="33" class="l-input"> in people’s homes</div>
+        <div class="note-row">Compared to older TVs, plasma TVs:</div>
+        <div class="note-row bullet">● looked good from different <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
+        <div class="note-row bullet">● had a very <span class="qnum">35</span> <input data-lq="35" class="l-input"> picture</div>
+        <div class="note-row">Plasma TV screens got 75% <span class="qnum">36</span> <input data-lq="36" class="l-input"> between 2006 and 2011</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Criticisms of plasma TVs</b></div>
+        <div class="note-row">Some people argued that because the colours weren’t so intense, plasma TVs:</div>
+        <div class="note-row bullet">● were not so good for watching <span class="qnum">37</span> <input data-lq="37" class="l-input"></div>
+        <div class="note-row bullet">● didn’t look their best in <span class="qnum">38</span> <input data-lq="38" class="l-input"> during the day</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>The decline of plasma TVs</b></div>
+        <div class="note-row">Plasma TVs required more <span class="qnum">39</span> <input data-lq="39" class="l-input"> than other kinds of TV (e.g. OLED)</div>
+        <div class="note-row">Sales <span class="qnum">40</span> <input data-lq="40" class="l-input"> in 2010</div>
+        <div class="note-row">Manufacturers stopped making them in 2014</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+    `
+  },
+
+  writing: {
+    task1Type: "Table",
+    task2Type: "Advantages and disadvantages",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The table below shows local catches and imports of fresh fish into Perth, Australia for the years 2004 - 2014.<br>
+      Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+      <b>You should write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/table.png",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      Write about the following topic:<br><br>
+      In some countries there are more young people choosing to enrol in work-based training instead of attending university.<br>
+      Do the advantages of this situation outweigh the disadvantages?<br><br>
+      Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `FROM @TIBER TO @TWITTER
+#ASymbolicSaga
+
+Humans have shown a particular knack for the re-adaptation of the old and obsolete for novel purposes. Two examples of this inventiveness within the field of typography are the hash (#) and the 'at' sign (@).
+
+The ‘at’ sign and the hash are most familiar to us nowadays thanks to the key parts they play in web communication. Both symbols are crucial to the functioning of microblogging networks in that they vastly increase the interconnectedness of postings, and hence readership. But while you probably won’t be surprised to learn that neither symbol was created specifically for this purpose, you may be by their journeys through history.
+
+The hash has no official name, but has over the course of its history gone by close to twenty in the English language alone. Its roots are in the Ancient Roman phrase ‘libra pondo’ meaning ‘pound in weight’, shortened to ‘libra’ and abbreviated to ‘lb’. Medieval merchants later chose to include a small line across the top to indicate this contraction eventually resulting in the abbreviation beginning to appear as a single character. As European trade flourished in the sixteenth and seventeenth centuries, rushed writing made the symbol more abstract. Finally, by the late seventeenth century, English printers had made this new form of the abbreviation into an official character of their printing sets.
+
+Linguists are divided as to when the 'at' symbol, also lacking an official name in English, made its first appearance. One theory suggests it dates back to the sixth or seventh century as an adaptation of the Latin word ad meaning ‘at’ or ‘towards’ and that in an attempt to simplify the number of pen strokes used, the upstroke of the letter ‘d’ became wrapped around the ‘a’. Others argue that the symbol is an abbreviation of arroba (from the Arabic ar-ruba meaning ‘one quarter’, or 25 pounds), which continues to be the Spanish term used for the symbol. A collection of fourteenth-century Florentine documents were recently discovered, suggesting the symbol may be used as a measure of quantity, an amphora, itself originally a type of container used to carry wine and grain.
+
+By the late nineteenth century, the hash symbol had become so closely associated in American business usage with the marking of numbers that it had begun to be called the ‘number sign’ and was a prime candidate for inclusion on the new Qwerty keyboard layout. At this point it was mainly still used by business people whose accounts and transactions were typewritten. In the 1960s, it was introduced to the general public through its addition to Bell Lab’s new push button telephone keypad as one of two symbols to be used for touch-tone dialling. However, the age of the machine was not initially so kind to the 'at' sign. The same typewriters that included a place for the hash sign, did not do so for its future partner in social media. Furthermore, it was roundly ignored when decisions were made about symbols to be incorporated into the punch-card tabulating systems of the 1950s that paved the way for modern computer programming, although it did make its way onto the more spacious modern keyboards.
+
+This presence on computer keyboards was noted by a young engineer named Ray Tomlinson, who had devised a method of leaving messages for other users while working on a precursor to the modern Internet. In 1972, he sent the first electronic message, using the symbol to mark the recipient’s location or institution, or where that person was ‘at’. He had chosen the symbol because it had not yet been tied to any other major computing function or textual context - essential, given that a computer would interpret its usage and any confusion would result in lost messages. This established usage meant that later developments in social networking were just a logical extension.
+
+Meanwhile, the hash symbol had been singled out by early programmers, who appropriated it into the world of early online chat platforms to denote a specific ‘channel’ or chat room (i.e. ‘#sports’). This remained its primary function in communication for several decades until 2007 when Chris Messina, an early Twitter user, proposed its use to refer to topics. One key factor behind his choice of the hash symbol was the fact that it had been included in close proximity to the alphanumeric keys on increasingly web-compatible mobile phones. However, it was not until later that year that the concept became popular with users of the site, when another user began his tweets about a wildfire in San Jose with “San Jose fire”. This made a lot of sense to humans, but much less to the computers processing thousands of tweets in the system. Messina suggested that he write the phrase as one word preceded by a hash, and the benefits were immediately noticed - the hashtag had arrived.
+
+While both symbols have garnered an array of creative names over the course of their histories, the fact that the hashtag is now immediately recognisable to billions around the world thanks to its latest role means that it is this name that persists. However, that is not to say that the ‘at’ sign’s evolution has avoided attention - it has recently been inducted into the Museum of Modern Art’s permanent collection, due to its standing as a symbol of “the possible future directions that are embedded in the arts of our time."`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 1 - 6",
+            instructions: [
+              "Look at statements 1 - 6 and the list of symbols below.",
+              "Match each statement with the correct symbol.",
+              "Write the appropriate letter in answer boxes 1 - 6.",
+              "NB There are more questions than symbols."
+            ],
+            endings: {
+              A: "The 'at' symbol (@)",
+              B: "The 'hash' symbol (#)",
+              C: "Both the 'at' (@) and the 'hash' (#) symbols",
+              D: "Neither the 'at' (@) nor the 'hash' (#) symbols"
+            },
+            items: [
+              { q: 1, text: "This symbol was designed to aid internet communication." },
+              { q: 2, text: "The original symbol later received an addition to its appearance." },
+              { q: 3, text: "The exact origins of this symbol are unclear." },
+              { q: 4, text: "This symbol is not referred to universally or officially by one term." },
+              { q: 5, text: "This symbol gained popularity in the twentieth century through its use in telecommunications developments." },
+              { q: 6, text: "The lack of an established role for this symbol influenced its modern usage." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 7 - 9",
+            instructions: [
+              "Complete the sentences.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 1, From Tiber to Twitter, for each answer.",
+              "Write them in answer boxes 7 - 9."
+            ],
+            items: [
+              { q: 7, text: "The # and @ sign are useful tools in", tail: " communities, where they can help messages gain more views." },
+              { q: 8, text: "Increased European import and export leading up to the 1800s led to the 'hash' symbol becoming more", tail: "." },
+              { q: 9, text: "Some believe the 'at' symbol derives from a Latin word and that the", tail: " of its second letter became part of the first." }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 10 - 11",
+            instructions: [
+              "For each question, choose TWO correct options.",
+              "Write them in any order in answer boxes 10 - 11.",
+              "Which TWO statements are true of the 'at' sign (@)?"
+            ],
+            choices: [
+              { letter: "A", text: "Its first appearance in communications came in the twentieth century." },
+              { letter: "B", text: "It was used in a system which anticipated the development of computer programming." },
+              { letter: "C", text: "Online use of the symbol evolved as a natural extension of earlier usage." },
+              { letter: "D", text: "The development of the 'at sign' has received less attention than its social media partner, the hashtag." },
+              { letter: "E", text: "Its cultural significance has received official recognition." }
+            ],
+            items: [
+              { q: 10, text: "Which TWO statements are true of the 'at' sign (@)? Answer 1" },
+              { q: 11, text: "Which TWO statements are true of the 'at' sign (@)? Answer 2" }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 12 - 13",
+            instructions: [
+              "For each question, choose TWO correct options.",
+              "Write them in any order in answer boxes 12 - 13.",
+              "Which TWO statements are true of the 'hash' sign (#)?"
+            ],
+            choices: [
+              { letter: "A", text: "It was a late addition to the Qwerty keyboard layout." },
+              { letter: "B", text: "It was chosen to be used in telephony because it was already well-known to the general public." },
+              { letter: "C", text: "It was used in online communication before Twitter" },
+              { letter: "D", text: "Its selection for use on Twitter stemmed from the development of other technologies." },
+              { letter: "E", text: "The symbol became immediately popular on Twitter." }
+            ],
+            items: [
+              { q: 12, text: "Which TWO statements are true of the 'hash' sign (#)? Answer 1" },
+              { q: 13, text: "Which TWO statements are true of the 'hash' sign (#)? Answer 2" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `Last Grains in the Hourglass
+
+Few people would consider the sand they lie on at the beach a precious resource. However, we use more of it than any other substance except water and air, and it accounts for 87% of everything mined from the planet. Why? Since ancient Egyptian times, it has been used for construction and is the major ingredient in both concrete and glass. Almost all modern roads, buildings and bridges, silicon chips, detergents, cosmetics and even toothpaste are only possible thanks to billions of tonnes of sand. Humanity’s dependence on sand shows no signs of disappearing as our growing urban population will need countless more tonnes to sustain itself - it is estimated that China used more building aggregate (the mix of sand, gravel and crushed stone used in concrete) between 2011 and 2013 than did the United States in the entire 20th century. Environmentalists are now starting to realise the unsustainability of this; more sand is taken from the earth than can ever be replenished.
+
+Looking at the world’s deserts, the idea that sand may be running out could seem ludicrous. In fact, these arid landscapes are growing as desertification and droughts affect nearly 170 countries. Ironically, though, they consist of the wrong sand for either construction or other manufacturing uses. Being formed by wind, desert sand is incredibly fine and rounded, with none of the sharp edges needed for human purposes, whereas sand dredged from rivers and ocean beds is perfect, as the water has insulated the grains, preventing them from rubbing against each other and losing their angular edges. In addition to beaches and riverbeds, we can also mine quartz sand from open pits but these are rapidly depleting.
+
+The fact that we can only use certain types of sand from finite sources reveals the problem we are facing. Some countries, such as Australia, have large sand reserves. However, the price of the commodity can more than double when exported because of transport costs. For this reason, it is important that deposits are as near to construction sites as possible; otherwise, the increased costs are reflected in the price of housing and infrastructure. While some countries with no reserves are able to buy foreign sand - Singapore is one big importer, and the mighty Burj Khalifa tower in Dubai was made from Australian sand - the problem will become serious when a country depletes its local supply and is unable to import the volumes needed.
+
+Though when a country does have access to sand supplies, there are still problems to consider. Extensive extraction alters rivers and coastal ecosystems and research shows sand mining has an adverse effect on many species - including dolphins, fish, crocodiles and crustaceans - due to their loss of habitats. The impact on humans is also potentially devastating because of the erosion of beaches and wetlands, whose geographical features protect communities from floods and storm surges and whose loss could be catastrophic.
+
+A preventative measure implemented against this degradation is increasing restrictions on sand mining - imposing limits on quantities of sand that can be removed and requiring payment for land restoration in affected sites. Yet the ever-growing demand for construction has led to a huge increase in unlicensed, criminal extraction of sand to be sold on the black market. Half of all construction projects in Morocco are thought to use sand illegally sourced from its beaches, a trend being replicated all over the world. This problem is perhaps most acutely felt in India, where so-called ‘sand mafias’ battle to control illegal sand mining sources, leading to hundreds of deaths. Given that it is so hard to prove the provenance of sand, legislative measures to address the problem are difficult to enforce. It is an easily accessible resource which is almost impossible to regulate. The complexity of this issue is perhaps why it is often overlooked in policy and international development debate.
+
+So, are there any measures we can take to avert this seemingly looming crisis? Certainly, we can and should recycle all concrete and stone structures; it is possible to re-extract sand from these materials rather than locating new sources. Yet nowhere near enough is generated through this process to meet our construction demands; it is thought that in 2012 alone we used enough sand to build a wall thirty metres wide and thirty metres tall around the circumference of the earth. Other than recycling, engineers are trialling more creative solutions. In the UK, a group of researchers are experimenting with a concrete that substitutes up to 10% of sand with tiny particles of waste plastic. However, this would only be a partial solution and many environmentalists would take issue with the potential release of trillions of plastic particles into the ecosystem. Another group of researchers in the Netherlands are experimenting with a type of bio-concrete, which utilises bacteria to self-heal by filling cracks with limestone, thereby dramatically reducing the need to repair or replace existing concrete structures. However, these measures are only a partial fix to a complex problem. Unless we are able to quench our thirst for construction or find a sustainable alternative, the sands of time will inevitably run out.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 14 - 20",
+            instructions: [
+              "Complete each sentence with the correct ending, A - I.",
+              "Write the appropriate letters, A - I, in answer boxes 14 - 20."
+            ],
+            endings: {
+              A: "... too smooth for building needs.",
+              B: "... thought to have been used more in one three-year period than in the previous century.",
+              C: "... problematic due to a synthetic component.",
+              D: "... being investigated as a solution for building maintenance.",
+              E: "... always stored on sites for efficient usage.",
+              F: "... having an adverse effect on flora and fauna.",
+              G: "... ideal for human purposes due to its roughness.",
+              H: "... unviable for many projects due to its cost.",
+              I: "... a cause of death and conflict in some regions."
+            },
+            items: [
+              { q: 14, text: "A common sand composite is ..." },
+              { q: 15, text: "Sand in deserts is ..." },
+              { q: 16, text: "Sand taken from under bodies of water is ..." },
+              { q: 17, text: "Foreign sand is ..." },
+              { q: 18, text: "Mined sand is ..." },
+              { q: 19, text: "The unlawful extraction of sand is ..." },
+              { q: 20, text: "Bio-concrete is ..." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 21 - 24",
+            instructions: [
+              "Complete the summary.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 2, Last Grains in the Hourglass, for each answer.",
+              "Write them in answer boxes 21 - 24."
+            ],
+            items: [
+              { q: 21, text: "Whereas sand created by winds is too", tail: " in shape for building and manufacturing purposes," },
+              { q: 22, text: "", tail: " from the seabed are ideal due to their sharp edges." },
+              { q: 23, text: "Yet changes in rivers and", tail: " are leading to the elimination of many creatures' habitats." },
+              { q: 24, text: "Mankind may also suffer the consequences due to the", tail: " of the coastal landscape safeguarding urban areas." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 25 - 27",
+            instructions: [
+              "Do the statements agree with the claims of the writer of Reading Passage 2, Last Grains in the Hourglass?",
+              "In answer boxes 25 - 27 write:",
+              "YES if the statement agrees with the writer",
+              "NO if the statement contradicts the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 25, text: "Calculations for future sand usage show we will need more than exists on the entire planet." },
+              { q: 26, text: "The only complete solution is to research alternative sand-free building materials." },
+              { q: 27, text: "The catastrophic effects of running out of sand are close to happening." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `HOME SWEET HOME
+
+A
+Culture shock is not an uncommon phenomenon. Most of us, when travelling to unfamiliar shores would be shocked not to suffer some disorientation at being flung into a new time zone, operating under a different set of beliefs and traditions to those we are used to. However, reverse culture shock - that same sensation experienced upon returning to one's home country after time spent abroad - is often an unexpected surprise. The extent to which one suffers will depend upon many factors. However, re-entry in the worst of cases can lead to the asking of such basic existential questions as 'who am I?' or 'where do I belong?'
+
+B
+To answer these questions, it is necessary to consider the often pleasurable experience of first setting foot in the foreign country that is to become your home and the four phases of the subsequent cultural readjustment. First is the honeymoon period. Upon arriving, a stage of acclimatisation is expected and often exciting, as new cuisine, timetables and customs are discovered. A new language may be challenging, you may have a new job, new friends and neighbours, a new home. Yet once the novelty wears off, it may be replaced by feeling lonely and homesick. This is the negotiation period, followed by the adjustment phase, during which, over time, these 'fish-out-of-water' feelings subside, until you subconsciously adopt the once strange and foreign as extended facets of yourself. This place now feels like home and the fourth stage - adaptation - is complete.
+
+C
+But what is home? Craig Storti in his book The Art of Coming Home gives two definitions. The most literal is that home is the place you are raised, where you share a language and behaviour with others. The more profound is that 'home' relates to feeling and routines, the place you are understood, accepted and forgiven, where you can truly 'be yourself'. And here begins the problem. Those who have spent significant time abroad, and have paid visits to their country of origin are undoubtedly familiar with the euphoria of catching up with loved ones, knowing they will soon be back 'home' and again living their daily routine. The very definition of 'home', and with it identity of self, can become confused as sufferers feel they have one foot firmly planted in each culture, yet actually find themselves neither here nor there.
+
+D
+The enthusiasm those living abroad feel when visiting their homeland can be replicated when returning permanently. Feelings of longing for 'home', having possibly been idealised, may make the prospect a shining one. Storti, quoting a theory proposed by Lysgaard in 1955, views the transition as U-shaped, with this initial feeling a high point. Nevertheless, once reality sets in and initial euphoria wears off, it can be quickly replaced by alienation. You no longer feel you fit into your own culture, family, friendship network, customs: home. This is the bottom of the U. Gullahorn and Gullahorn expanded the U hypothesis in 1963, introducing their W-curve hypothesis, exemplifying both the initial shock and that felt upon returning. Both 'shocks' may be considered to contain the same four aforementioned phases.
+
+E
+This dip to the depths of the second U can be explained by several factors. Firstly, you have come to view old norms, values, faces and places from a 'foreign' perspective not available to you pre-travel. Additionally, returners' expectations may be of 'taking up where you left off', only to find a new reality that appears similar, yet whose functions are completely alien. Further considerations are the voluntary or involuntary nature of one's return, length of time abroad, the degree of interaction with the foreign culture, and the levels of difference between it and the home culture. Research suggests millions of people, their families and children included, are affected by culture shock at any one time, the reverse type being much more complex to overcome due to its unexpected nature.
+
+F
+So, how to deal with this and the questions raised earlier? The US Department of State, in offering advice to repatriates, states three main considerations. Firstly, you have changed. Your recent life-changing experience means your idea of self has evolved and morphed. Additionally, home and your perceptions of it have been redefined, along with your relationships and, finally, your culture has changed. Having taken on a new cultural identity, now you must adapt anew. Storti also discusses four effects seen during this process. Those returning can become highly critical and judgemental of the home environment, in addition to feeling marginalised as they no longer fit in. A change in day-to-day routines, paying attention to patterns and customs can be exhausting, and these former three points and the disconnection they create, can lead to withdrawal and depression.
+
+G
+As more research into the condition becomes available, maybe combating it will lie in being aware of it beforehand and creating the mentality to deal with it: forewarned is forearmed. Pico Iyer, a British-born essayist and novelist of Indian origin, residing mainly in the US for the last 48 years, yet spending as much time as possible in Japan over the last 25, offers sound advice. In a talk for TED he discusses his multiple ‘origins’, rationalising them as 'taking pieces of many places and putting them together in a stained glass whole’. He goes on to discuss home as anything but a physical place, echoing Storti's second definition of home, stating 'home has less to do with a piece of soil than a piece of soul', suggesting the new international, intercultural you is a positive to be embraced, not a negative to be denied.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 28 - 35",
+            instructions: [
+              "Reading Passage 3, Home Sweet Home has seven paragraphs, A - G.",
+              "Which paragraph contains the following information?",
+              "Write the appropriate letters, A - G, in answer boxes 28 - 35.",
+              "NB You can use any letter more than once."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F",
+              G: "Paragraph G"
+            },
+            items: [
+              { q: 28, text: "An account from an experienced expatriate." },
+              { q: 29, text: "The development of an earlier academic theory." },
+              { q: 30, text: "A comparison of different types of culture shock," },
+              { q: 31, text: "The factors leading to feeling detached and despondent." },
+              { q: 32, text: "The dual interpretations of home." },
+              { q: 33, text: "The development of a two-phase theory." },
+              { q: 34, text: "Pleasant initial feelings in a new country." },
+              { q: 35, text: "Questions that some people seek answers to." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 36 - 40",
+            instructions: [
+              "Do the statements agree with the claims of the writer of Reading Passage 3, Home Sweet Home?",
+              "In answer boxes 36 - 40 write:",
+              "YES if the statement agrees with the writer",
+              "NO if the statement contradicts the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 36, text: "Expatriates feel a sense of isolation in new countries because everything is so new." },
+              { q: 37, text: "There are four stages to the process of readjusting back to your home culture." },
+              { q: 38, text: "People don’t anticipate reverse culture shock, which makes it harder to deal with." },
+              { q: 39, text: "Those who return to their home country are more sensitive to their fellow countrymen’s opinions." },
+              { q: 40, text: "People who live abroad make a choice to identify with either their home culture or the foreign culture." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -4924,6 +5440,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts9: test9,
   ielts10: test10,
   ielts11: test11,
+  ielts12: test12,
 };
 
 export function getProtectedTestContent(testId) {

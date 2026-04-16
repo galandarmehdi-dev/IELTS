@@ -3230,10 +3230,32 @@
       return wrap;
     }
 
+    const FULL_EXAM_GROUPS = [
+      { key: "irm", label: "IRM", testNumbers: [1, 2] },
+      { key: "og", label: "OG", testNumbers: [3, 4, 5, 6, 7] },
+      { key: "collins", label: "Collins", testNumbers: [8] },
+      { key: "cambridge", label: "Cambridge", testNumbers: [9] },
+      { key: "irp", label: "IRP", testNumbers: [10, 11, 12] },
+    ];
+
+    function getExamNumberFromId(testId) {
+      const match = String(testId || "").match(/(\d+)/);
+      return match ? Number(match[1]) : NaN;
+    }
+
+    function groupFullExamCatalogItems(items) {
+      const byNumber = new Map((items || []).map((item) => [getExamNumberFromId(item.id), item]));
+      return FULL_EXAM_GROUPS.map((group) => ({
+        ...group,
+        items: group.testNumbers.map((n) => byNumber.get(n)).filter(Boolean),
+      })).filter((group) => group.items.length);
+    }
+
     function renderHomeMenus() {
       if (!homeExploreMenus) return;
       clearElement(homeExploreMenus);
-      const fullExamItems = (R()?.buildHomeCatalog?.()?.fullExams || []).map((item) => ({
+      const fullExamCatalog = R()?.buildHomeCatalog?.()?.fullExams || [];
+      const quickStartItems = fullExamCatalog.slice(0, 3).map((item) => ({
         label: `Start ${item.label}`,
         copy: `Quick start ${item.label.toLowerCase()}.`,
         onClick: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
@@ -3244,7 +3266,9 @@
           label: "Take Full Exam",
           items: [
             { label: "Open full exam page", copy: "See all uploaded complete exams in one place.", onClick: () => openResourceHub("fullExam") },
-          ].concat(fullExamItems),
+          ].concat(quickStartItems).concat([
+            { label: "See more full exams", copy: "Browse the grouped full exam collections.", onClick: () => openResourceHub("fullExam") },
+          ]),
         },
         {
           kicker: "Skill page",
@@ -3322,20 +3346,22 @@
         resourceHubBadge.textContent = "Full exam page";
         resourceHubTitle.textContent = "Take the full IELTS mock";
         resourceHubSubtitle.textContent = "Every uploaded exam still works as a complete mock first, with Listening, Reading, and Writing in sequence.";
-        addSection("full-exam-list", "Available full exams", "Choose the complete mock you want to run.", () => {
-          const grid = document.createElement("div");
-          grid.className = "resource-hub-grid";
-          catalog.fullExams.forEach((item) => {
-            grid.appendChild(createCatalogCard({
-              kicker: "Full exam",
-              title: item.label,
-              copy: item.description,
-              meta: item.meta,
-              primaryLabel: "Start full exam",
-              onPrimary: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
-            }));
+        groupFullExamCatalogItems(catalog.fullExams).forEach((group) => {
+          addSection(`full-exam-${group.key}`, group.label, `Choose from the ${group.label} full exam set.`, () => {
+            const grid = document.createElement("div");
+            grid.className = "resource-hub-grid";
+            group.items.forEach((item) => {
+              grid.appendChild(createCatalogCard({
+                kicker: group.label,
+                title: item.label,
+                copy: item.description,
+                meta: item.meta,
+                primaryLabel: "Start full exam",
+                onPrimary: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
+              }));
+            });
+            return grid;
           });
-          return grid;
         });
         addSection("full-exam-notes", "How full exams work", "Use the full path when you want realistic sequencing and timing.", () => renderStaticTips([
           createNoteCard("Best use case", ["Take a full exam when you want stamina practice, timing, and realistic transitions."], "Strategy"),

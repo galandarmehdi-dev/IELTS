@@ -1048,7 +1048,6 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
     throw new Error(data?.error || "Could not save the student password.");
   }
-
   saveSharedSession({
     token: data.token,
     user: data.user,
@@ -1057,6 +1056,7 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   });
   saveUser(data.user);
   syncAuthExport();
+  markPersonalPasswordEnabled(email);
   clearAuthFlowModes();
   await refreshAuthUI({ forceHome: true });
   return {
@@ -1132,6 +1132,31 @@ async function signInWithBypass() {
   await refreshAuthUI();
 }
 
+async function verifyOtpCode() {
+  const email = getEl("otpEmail")?.value.trim() || "";
+  const token = getEl("otpCode")?.value.trim() || "";
+
+  if (!email || !token) {
+    setMessage("Enter both email and code.", { tone: "error" });
+    return;
+  }
+
+  setMessage("Verifying code...", { sticky: true });
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email"
+  });
+
+  if (error) {
+    console.error("[AUTH] OTP verify error:", error);
+    setMessage(error.message, { tone: "error", sticky: true });
+    return;
+  }
+
+  await refreshAuthUI({ forceHome: true });
+}
+
 async function logout() {
   if (loggingOut) return;
   loggingOut = true;
@@ -1170,6 +1195,8 @@ getEl("showBypassRecoveryBtn")?.addEventListener("click", () => {
 getEl("useBypassBtn")?.addEventListener("click", signInWithBypass);
 getEl("openSignUpBtn")?.addEventListener("click", openSignUpBox);
 getEl("createAccountBtn")?.addEventListener("click", createStudentAccount);
+getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
+getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 getEl("finishPasswordResetBtn")?.addEventListener("click", finishPasswordReset);
 getEl("finishSharedSetupBtn")?.addEventListener("click", completeSharedStudentSetup);
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);

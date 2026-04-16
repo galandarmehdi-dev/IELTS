@@ -5689,11 +5689,11 @@ const test13 = {
     task2Type: "Opinion essay",
     task1Html: `
       You should spend about 20 minutes on this task.<br>
-      The line graphs below show the subscriptions to mobile and fixed phone lines in four different countries between 2005 and 2015.<br>
+      The chart below gives information about European people of different age groups who went to the gym once a month or more between 1990 and 2010.<br>
       Summarise the information by selecting and reporting the main features and make comparisons where relevant.<br>
       <b>Write at least 150 words.</b>
     `,
-    task1ImageSrc: "https://audio.ieltsmock.org/Screenshot%202026-04-16%20at%2009.49.43.png",
+    task1ImageSrc: "https://audio.ieltsmock.org/654416156_1285183377045727_339760894409887745_n.jpg",
     task2Html: `
       You should spend about 40 minutes on this task.<br><br>
       Write about the following topic:<br><br>

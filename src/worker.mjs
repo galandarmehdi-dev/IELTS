@@ -469,7 +469,7 @@ async function handleAdminApi(request, env) {
     backendUrl.searchParams.set("action", "results");
     backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
     backendUrl.searchParams.set("t", String(Date.now()));
-    return proxy(request, backendUrl.toString());
+    return proxy(request, backendUrl.toString(), env);
   }
 
   if (request.method === "GET" && action === "resultsSummary") {
@@ -566,7 +566,7 @@ async function handleAdminApi(request, env) {
     backendUrl.searchParams.set("examId", oneLine(url.searchParams.get("examId") || ""));
     backendUrl.searchParams.set("reason", oneLine(url.searchParams.get("reason") || ""));
     backendUrl.searchParams.set("t", String(Date.now()));
-    return proxy(request, backendUrl.toString());
+    return proxy(request, backendUrl.toString(), env);
   }
 
   if (request.method === "GET" && action === "studentRegistry") {
@@ -660,7 +660,7 @@ async function handleAdminApi(request, env) {
     backendUrl.search = url.search;
     const response = await fetch(backendUrl.toString(), {
       method: "GET",
-      headers: filteredProxyHeaders(request),
+      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true) {
@@ -730,7 +730,7 @@ async function handleAdminApi(request, env) {
     backendUrl.searchParams.set("action", "studentObjectiveDetail");
     const response = await fetch(backendUrl.toString(), {
       method: "GET",
-      headers: filteredProxyHeaders(request),
+      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -811,7 +811,7 @@ async function handleAdminApi(request, env) {
     backendUrl.search = url.search;
     const response = await fetch(backendUrl.toString(), {
       method: request.method,
-      headers: filteredProxyHeaders(request),
+      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -895,7 +895,7 @@ async function handleAdminApi(request, env) {
   }
 
   if (request.method === "POST") {
-    return proxy(request, String(env.ADMIN_BACKEND_URL || ""));
+    return proxy(request, String(env.ADMIN_BACKEND_URL || ""), env);
   }
 
   return json(405, { ok: false, error: "Method not allowed." });
@@ -1091,30 +1091,60 @@ function fromBase64Url(value) {
   return new TextDecoder().decode(bytes);
 }
 
-function proxy(request, backendUrl) {
+async function proxy(request, backendUrl, env) {
   if (!backendUrl) {
     return json(503, { ok: false, error: "Admin backend is not configured." });
   }
 
   return fetch(backendUrl, {
     method: request.method,
-    headers: buildAppsScriptHeaders(request),
+    headers: await buildAppsScriptHeaders(request, env, backendUrl),
     body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
   });
 }
 
-function filteredProxyHeaders(request) {
-  return buildAppsScriptHeaders(request);
+async function filteredProxyHeaders(request, env, backendUrl = "") {
+  return buildAppsScriptHeaders(request, env, backendUrl);
 }
 
-function buildAppsScriptHeaders(request) {
+async function buildAppsScriptHeaders(request, env, backendUrl = "") {
   const headers = new Headers();
   const accept = oneLine(request.headers.get("Accept") || "");
   const contentType = oneLine(request.headers.get("Content-Type") || "");
   if (accept) headers.set("Accept", accept);
   if (contentType) headers.set("Content-Type", contentType);
   headers.set("X-IELTS-Worker-Proxy", "1");
+  const signingSecret = String(env?.ADMIN_BACKEND_SIGNING_SECRET || "").trim();
+  if (signingSecret && backendUrl) {
+    const timestamp = String(Date.now());
+    const signaturePayload = [
+      String(request.method || "GET").toUpperCase(),
+      timestamp,
+      String(backendUrl || ""),
+    ].join("\n");
+    headers.set("X-IELTS-Worker-Timestamp", timestamp);
+    headers.set(
+      "X-IELTS-Worker-Signature",
+      await signBackendProxyPayload(signaturePayload, signingSecret)
+    );
+  }
   return headers;
+}
+
+async function signBackendProxyPayload(payload, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(String(secret || "")),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(String(payload || ""))
+  );
+  return toBase64UrlFromBytes(new Uint8Array(signature));
 }
 
 function buildWritingSamplesFromSheet(csvText) {

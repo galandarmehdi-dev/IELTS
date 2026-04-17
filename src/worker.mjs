@@ -658,9 +658,14 @@ async function handleAdminApi(request, env) {
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
-    const response = await fetch(backendUrl.toString(), {
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const response = await fetch(signedBackendUrl, {
       method: "GET",
+<<<<<<< HEAD
       headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
+=======
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+>>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true) {
@@ -728,9 +733,14 @@ async function handleAdminApi(request, env) {
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
     backendUrl.searchParams.set("action", "studentObjectiveDetail");
-    const response = await fetch(backendUrl.toString(), {
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const response = await fetch(signedBackendUrl, {
       method: "GET",
+<<<<<<< HEAD
       headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
+=======
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+>>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -809,9 +819,14 @@ async function handleAdminApi(request, env) {
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.search = url.search;
-    const response = await fetch(backendUrl.toString(), {
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const response = await fetch(signedBackendUrl, {
       method: request.method,
+<<<<<<< HEAD
       headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
+=======
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+>>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -1096,18 +1111,25 @@ async function proxy(request, backendUrl, env) {
     return json(503, { ok: false, error: "Admin backend is not configured." });
   }
 
-  return fetch(backendUrl, {
+  const method = String(request.method || "GET").toUpperCase();
+  const bodyText =
+    method === "GET" || method === "HEAD"
+      ? ""
+      : await request.clone().text().catch(() => "");
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl, method, bodyText, env);
+
+  return fetch(signedUrl, {
     method: request.method,
-    headers: await buildAppsScriptHeaders(request, env, backendUrl),
-    body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+    headers: await buildAppsScriptHeaders(request, env, signedUrl, bodyText),
+    body: method === "GET" || method === "HEAD" ? undefined : bodyText,
   });
 }
 
-async function filteredProxyHeaders(request, env, backendUrl = "") {
-  return buildAppsScriptHeaders(request, env, backendUrl);
+async function filteredProxyHeaders(request, env, backendUrl = "", bodyText = "") {
+  return buildAppsScriptHeaders(request, env, backendUrl, bodyText);
 }
 
-async function buildAppsScriptHeaders(request, env, backendUrl = "") {
+async function buildAppsScriptHeaders(request, env, backendUrl = "", bodyText = "") {
   const headers = new Headers();
   const accept = oneLine(request.headers.get("Accept") || "");
   const contentType = oneLine(request.headers.get("Content-Type") || "");
@@ -1116,13 +1138,17 @@ async function buildAppsScriptHeaders(request, env, backendUrl = "") {
   headers.set("X-IELTS-Worker-Proxy", "1");
   const signingSecret = String(env?.ADMIN_BACKEND_SIGNING_SECRET || "").trim();
   if (signingSecret && backendUrl) {
+    const url = new URL(backendUrl);
     const timestamp = String(Date.now());
+    const bodyHash = await sha256Base64Url(bodyText);
     const signaturePayload = [
       String(request.method || "GET").toUpperCase(),
       timestamp,
-      String(backendUrl || ""),
+      String(url.search || "").replace(/^\?/, ""),
+      bodyHash,
     ].join("\n");
     headers.set("X-IELTS-Worker-Timestamp", timestamp);
+    headers.set("X-IELTS-Worker-Body-SHA256", bodyHash);
     headers.set(
       "X-IELTS-Worker-Signature",
       await signBackendProxyPayload(signaturePayload, signingSecret)
@@ -1147,6 +1173,47 @@ async function signBackendProxyPayload(payload, secret) {
   return toBase64UrlFromBytes(new Uint8Array(signature));
 }
 
+<<<<<<< HEAD
+=======
+async function buildSignedAppsScriptUrl(rawUrl, method, bodyText, env) {
+  const url = new URL(String(rawUrl || ""));
+  const signingSecret = String(env?.ADMIN_BACKEND_SIGNING_SECRET || "").trim();
+  if (!signingSecret) return url.toString();
+
+  const timestamp = String(Date.now());
+  const bodyHash = await sha256Base64Url(bodyText);
+  url.searchParams.set("_workerTs", timestamp);
+  url.searchParams.set("_workerBodySha256", bodyHash);
+
+  const signaturePayload = [
+    String(method || "GET").toUpperCase(),
+    timestamp,
+    canonicalizeSearchParams(url.searchParams, new Set(["_workerSig"])),
+    bodyHash,
+  ].join("\n");
+  url.searchParams.set(
+    "_workerSig",
+    await signBackendProxyPayload(signaturePayload, signingSecret)
+  );
+  return url.toString();
+}
+
+function canonicalizeSearchParams(searchParams, exclude = new Set()) {
+  const pairs = [];
+  searchParams.forEach((value, key) => {
+    if (exclude.has(key)) return;
+    pairs.push([String(key || ""), String(value || "")]);
+  });
+  pairs.sort((a, b) => {
+    if (a[0] === b[0]) return a[1].localeCompare(b[1]);
+    return a[0].localeCompare(b[0]);
+  });
+  return pairs
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join("&");
+}
+
+>>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
 function buildWritingSamplesFromSheet(csvText) {
   const rows = parseCsv(csvText);
   if (!rows.length) return [];
@@ -2028,7 +2095,8 @@ async function getAdminResultsSummary(env, options = {}) {
   backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
   backendUrl.searchParams.set("t", String(Date.now()));
 
-  const response = await fetch(backendUrl.toString(), { method: "GET" });
+  const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+  const response = await fetch(signedBackendUrl, { method: "GET" });
   const data = await response.json().catch(() => null);
   if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
     throw new Error(data?.error || "Could not load admin results summary.");

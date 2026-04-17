@@ -665,9 +665,14 @@
         if (hasWritingText) {
           try {
             const immediate = await fetchStudentResultFromBackend(finalPayload);
-            if (immediate?.graded && immediate?.result) {
+            if (immediate?.result) {
+              try { window.IELTS?.History?.mergeResultIntoLocalRows?.(localHistoryRow, immediate.result); } catch (e) {}
               await updateAttemptScoresInSupabase(finalPayload, immediate.result);
-              sheetsSaved = true;
+              if (immediate?.graded) {
+                sheetsSaved = true;
+              } else {
+                startMarkedResultPolling(finalPayload);
+              }
             } else {
               startMarkedResultPolling(finalPayload);
             }

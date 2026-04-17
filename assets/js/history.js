@@ -580,6 +580,28 @@
     };
   }
 
+  function mergeResultIntoLocalRows(matchRow, result) {
+    const email = getHistoryEmail();
+    if (!email || !matchRow || !result) return null;
+    const targetKey = buildMatchKey(matchRow);
+    if (!targetKey) return null;
+    const mergedRows = mergeRowsByMatchKey(
+      loadLocalRows(email).map((row) => (
+        buildMatchKey(row) === targetKey ? mergeBackendResult(row, result) : row
+      )),
+      []
+    );
+    saveLocalRows(email, mergedRows);
+    if (state.email === email && Array.isArray(state.rows)) {
+      state.rows = mergeRowsByMatchKey(
+        state.rows.map((row) => (buildMatchKey(row) === targetKey ? mergeBackendResult(row, result) : row)),
+        []
+      );
+      state.filtered = state.rows.slice();
+    }
+    return mergedRows.find((row) => buildMatchKey(row) === targetKey) || null;
+  }
+
   async function fetchStudentResultsForRows(rows) {
     const endpoint = Registry()?.buildAdminApiUrl?.({ action: "studentResults" });
     const eligibleRows = (rows || []).filter((row) => {
@@ -1094,7 +1116,15 @@
   });
 
   window.IELTS = window.IELTS || {};
-  window.IELTS.History = { openHistory, closeHistory, refresh: openHistory, loadRows, rememberLocalAttempt, prefetch: prefetchHistoryRows };
+  window.IELTS.History = {
+    openHistory,
+    closeHistory,
+    refresh: openHistory,
+    loadRows,
+    rememberLocalAttempt,
+    mergeResultIntoLocalRows,
+    prefetch: prefetchHistoryRows
+  };
 
   document.addEventListener("partials:loaded", () => {
     $("openHistoryBtn")?.addEventListener("click", openHistory);

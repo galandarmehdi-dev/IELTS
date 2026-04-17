@@ -2536,38 +2536,101 @@
     }
 
     function appendRichText(root, html) {
-      const template = document.createElement("template");
-      template.innerHTML = String(html || "");
-      const allowedTags = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "SPAN", "SUP", "SUB"]);
+      const allowedTags = new Set(["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "span", "sup", "sub", "a"]);
+      const voidTags = new Set(["br"]);
+      const stack = [{ tag: "__root__", el: root }];
 
-      const sanitizeNode = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          return document.createTextNode(node.textContent || "");
+      function decodeEntities(text) {
+        return String(text || "").replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+          const named = {
+            amp: "&",
+            lt: "<",
+            gt: ">",
+            quot: "\"",
+            apos: "'",
+            nbsp: " ",
+          };
+          if (named[entity]) return named[entity];
+          if (entity[0] === "#") {
+            const isHex = entity[1]?.toLowerCase() === "x";
+            const raw = entity.slice(isHex ? 2 : 1);
+            const code = parseInt(raw, isHex ? 16 : 10);
+            return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+          }
+          return match;
+        });
+      }
+
+      function currentParent() {
+        return stack[stack.length - 1]?.el || root;
+      }
+
+      function appendText(text) {
+        const value = decodeEntities(text);
+        if (!value) return;
+        currentParent().appendChild(document.createTextNode(value));
+      }
+
+      function parseAttributes(raw) {
+        const attrs = {};
+        const attrRe = /([a-zA-Z_:][\w:.-]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>/=`]+)))?/g;
+        let match;
+        while ((match = attrRe.exec(raw))) {
+          attrs[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? "";
         }
-        if (node.nodeType !== Node.ELEMENT_NODE) {
-          return document.createDocumentFragment();
+        return attrs;
+      }
+
+      function popToTag(tag) {
+        for (let i = stack.length - 1; i > 0; i -= 1) {
+          if (stack[i].tag === tag) {
+            stack.length = i;
+            return;
+          }
+        }
+      }
+
+      const tokenRe = /<!--[\s\S]*?-->|<\/?[a-zA-Z][^>]*>|[^<]+/g;
+      let match;
+      while ((match = tokenRe.exec(String(html || "")))) {
+        const token = match[0];
+        if (!token) continue;
+        if (token.startsWith("<!--")) continue;
+        if (token[0] !== "<") {
+          appendText(token);
+          continue;
         }
 
-        const tagName = String(node.nodeName || "").toUpperCase();
-        if (!allowedTags.has(tagName)) {
-          const fragment = document.createDocumentFragment();
-          Array.from(node.childNodes || []).forEach((child) => fragment.appendChild(sanitizeNode(child)));
-          return fragment;
+        const closing = /^<\//.test(token);
+        const nameMatch = token.match(/^<\/?\s*([a-zA-Z0-9]+)/);
+        const rawTag = String(nameMatch?.[1] || "").toLowerCase();
+        if (!rawTag || !allowedTags.has(rawTag)) continue;
+
+        if (closing) {
+          popToTag(rawTag);
+          continue;
         }
 
-        const next = document.createElement(tagName.toLowerCase());
-        if (tagName === "SPAN") {
-          const className = String(node.getAttribute("class") || "").trim();
-          if (/^[a-zA-Z0-9_\- ]+$/.test(className)) {
-            next.className = className;
+        const selfClosing = /\/\s*>$/.test(token) || voidTags.has(rawTag);
+        const el = document.createElement(rawTag === "b" ? "strong" : rawTag);
+        const attrs = parseAttributes(token);
+
+        if (rawTag === "span") {
+          const className = String(attrs.class || "").trim();
+          if (/^[a-zA-Z0-9_\- ]+$/.test(className)) el.className = className;
+        }
+        if (rawTag === "a") {
+          const href = String(attrs.href || "").trim();
+          if (/^(https?:)?\/\//i.test(href) || href.startsWith("/") || href.startsWith("./") || href.startsWith("../")) {
+            el.setAttribute("href", href);
+            el.setAttribute("rel", "noopener noreferrer");
+            el.setAttribute("target", "_blank");
           }
         }
 
-        Array.from(node.childNodes || []).forEach((child) => next.appendChild(sanitizeNode(child)));
-        return next;
-      };
-
-      Array.from(template.content.childNodes || []).forEach((child) => root.appendChild(sanitizeNode(child)));
+        currentParent().appendChild(el);
+        if (!selfClosing) stack.push({ tag: rawTag, el });
+      }
     }
 
     function getWritingSampleDisplayTitle(entry) {

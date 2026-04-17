@@ -1302,6 +1302,25 @@
       return `${ADMIN_RESULTS_PERSISTENT_CACHE_KEY}:${String(mode || "full")}`;
     }
 
+    function readSessionValueWithLegacyFallback(key) {
+      try {
+        const sessionValue = sessionStorage.getItem(key);
+        if (sessionValue !== null) return sessionValue;
+      } catch (e) {}
+      try {
+        const legacyValue = localStorage.getItem(key);
+        if (legacyValue !== null) {
+          try {
+            sessionStorage.setItem(key, legacyValue);
+            localStorage.removeItem(key);
+          } catch (e) {}
+        }
+        return legacyValue;
+      } catch (e) {
+        return null;
+      }
+    }
+
     function updateAdminResultsModeChrome() {
       const fullBtn = $("adminResultsModeFullBtn");
       const practiceBtn = $("adminResultsModePracticeBtn");
@@ -1539,14 +1558,14 @@
       try {
         const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
         sessionStorage.setItem(adminCacheKey(mode), payload);
-        localStorage.setItem(adminPersistentCacheKey(mode), payload);
+        localStorage.removeItem(adminPersistentCacheKey(mode));
       } catch (e) {}
     }
 
     function loadAdminResultsCache(mode = adminState.mode) {
       try {
-        const sessionRaw = sessionStorage.getItem(adminCacheKey(mode));
-        const localRaw = localStorage.getItem(adminPersistentCacheKey(mode));
+        const sessionRaw = readSessionValueWithLegacyFallback(adminCacheKey(mode));
+        const localRaw = readSessionValueWithLegacyFallback(adminPersistentCacheKey(mode));
         const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : null;
         const localParsed = localRaw ? JSON.parse(localRaw) : null;
         const sessionSavedAt = Number(sessionParsed?.savedAt || 0);

@@ -73,6 +73,34 @@ function clearSensitiveSessionKey(key) {
   } catch (e) {}
 }
 
+function readSessionStringWithLegacyFallback(key) {
+  try {
+    const sessionValue = sessionStorage.getItem(key);
+    if (sessionValue !== null) return sessionValue;
+  } catch (e) {}
+  try {
+    const legacyValue = localStorage.getItem(key);
+    if (legacyValue !== null) {
+      try {
+        sessionStorage.setItem(key, legacyValue);
+        localStorage.removeItem(key);
+      } catch (e) {}
+    }
+    return legacyValue;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeSessionString(key, value) {
+  try {
+    sessionStorage.setItem(key, String(value));
+  } catch (e) {}
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {}
+}
+
 function getSavedUser() {
   return readSessionJsonWithLegacyFallback(AUTH_USER_KEY);
 }
@@ -529,7 +557,7 @@ function getDesiredView() {
   } catch (e) {}
 
   try {
-    const saved = localStorage.getItem("IELTS:HOME:lastView");
+    const saved = readSessionStringWithLegacyFallback("IELTS:HOME:lastView");
     if (saved && String(saved).trim()) return String(saved).trim();
   } catch (e) {}
 
@@ -699,8 +727,8 @@ function routeHomeAfterLogin() {
 
   const resumeView = getResumeView();
   try {
-    localStorage.setItem("IELTS:HOME:lastView", resumeView || "home");
-    localStorage.setItem("IELTS:EXAM:started", resumeView ? "true" : "false");
+    writeSessionString("IELTS:HOME:lastView", resumeView || "home");
+    writeSessionString("IELTS:EXAM:started", resumeView ? "true" : "false");
   } catch (e) {}
 
   hideBlockingModals();
@@ -847,8 +875,8 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     if (window.IELTS?.Router?.setHashRoute) {
       window.IELTS.Router.setHashRoute(activeTestId, "home");
     }
-    localStorage.setItem("IELTS:HOME:lastView", "home");
-    localStorage.setItem("IELTS:EXAM:started", "false");
+    writeSessionString("IELTS:HOME:lastView", "home");
+    writeSessionString("IELTS:EXAM:started", "false");
     window.IELTS?.UI?.showOnly?.("home");
     window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
     window.IELTS?.UI?.updateHomeStatusLine?.("Status: Browse the platform or log in to start a test");

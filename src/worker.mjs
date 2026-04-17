@@ -1096,21 +1096,24 @@ function proxy(request, backendUrl) {
     return json(503, { ok: false, error: "Admin backend is not configured." });
   }
 
-  const headers = new Headers(request.headers);
-  headers.delete("Authorization");
-  headers.delete("Host");
-
   return fetch(backendUrl, {
     method: request.method,
-    headers,
+    headers: buildAppsScriptHeaders(request),
     body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
   });
 }
 
 function filteredProxyHeaders(request) {
-  const headers = new Headers(request.headers);
-  headers.delete("Authorization");
-  headers.delete("Host");
+  return buildAppsScriptHeaders(request);
+}
+
+function buildAppsScriptHeaders(request) {
+  const headers = new Headers();
+  const accept = oneLine(request.headers.get("Accept") || "");
+  const contentType = oneLine(request.headers.get("Content-Type") || "");
+  if (accept) headers.set("Accept", accept);
+  if (contentType) headers.set("Content-Type", contentType);
+  headers.set("X-IELTS-Worker-Proxy", "1");
   return headers;
 }
 

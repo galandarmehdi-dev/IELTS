@@ -102,6 +102,43 @@
     const zoomResetBtn = $("writingZoomResetBtn");
     const ZOOM_KEY = "IELTSPREF:writingGraphZoom";
 
+    function appendSafeRichText(root, html) {
+      if (!root) return;
+      while (root.firstChild) root.removeChild(root.firstChild);
+
+      const template = document.createElement("template");
+      template.innerHTML = String(html || "");
+      const allowedTags = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "SPAN", "SUP", "SUB"]);
+
+      const sanitizeNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return document.createTextNode(node.textContent || "");
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+          return document.createDocumentFragment();
+        }
+
+        const tag = String(node.nodeName || "").toUpperCase();
+        if (!allowedTags.has(tag)) {
+          const fragment = document.createDocumentFragment();
+          Array.from(node.childNodes || []).forEach((child) => {
+            fragment.appendChild(sanitizeNode(child));
+          });
+          return fragment;
+        }
+
+        const next = document.createElement(tag.toLowerCase());
+        Array.from(node.childNodes || []).forEach((child) => {
+          next.appendChild(sanitizeNode(child));
+        });
+        return next;
+      };
+
+      Array.from(template.content.childNodes || []).forEach((child) => {
+        root.appendChild(sanitizeNode(child));
+      });
+    }
+
     function applyActiveWritingContent() {
       const content = (typeof R().getActiveTestContent === "function" && R().getActiveTestContent()) || {};
       const writing = content.writing || {};
@@ -112,9 +149,9 @@
       const task1GraphImg = cards[0].querySelector(".writing-graph img");
       const task2Inst = cards[1].querySelector(".writing-inst");
 
-      if (task1Inst && writing.task1Html) task1Inst.innerHTML = writing.task1Html;
+      if (task1Inst && writing.task1Html) appendSafeRichText(task1Inst, writing.task1Html);
       if (task1GraphImg && writing.task1ImageSrc) task1GraphImg.src = writing.task1ImageSrc;
-      if (task2Inst && writing.task2Html) task2Inst.innerHTML = writing.task2Html;
+      if (task2Inst && writing.task2Html) appendSafeRichText(task2Inst, writing.task2Html);
     }
 
     function setGraphZoom(value) {

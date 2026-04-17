@@ -362,6 +362,19 @@ async function handleTestPasswordVerify(request, env) {
     return json(405, { ok: false, error: "Method not allowed." });
   }
 
+  const limitKey = `rate:test-password:${buildRateLimitScope(request, "", "test-password")}`;
+  const rate = await consumeRateLimit(env, limitKey, {
+    limit: 8,
+    windowMs: 10 * 60 * 1000,
+  });
+  if (!rate.allowed) {
+    await logSecurityEvent(env, request, "test_password_rate_limited", {});
+    return json(429, {
+      ok: false,
+      error: "Too many password attempts. Please wait a few minutes and try again.",
+    });
+  }
+
   const configuredPassword = String(env.TEST_ENTRY_PASSWORD || "").trim();
   if (!configuredPassword) {
     return json(503, { ok: false, error: "Test password is not configured yet." });

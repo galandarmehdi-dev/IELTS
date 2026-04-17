@@ -1966,24 +1966,27 @@ qnum.textContent = `${item.q}`;
     }
 
     function renderPassageForActivePart() {
-  const passageEl = $("passage");
-  if (!passageEl) return;
+      const passageEl = $("passage");
+      if (!passageEl) return;
 
-  const partCfg = getActivePartConfig();
-  const text = String(partCfg?.passageText || "").trim();
+      const partCfg = getActivePartConfig();
+      const text = String(partCfg?.passageText || "").trim();
+      clearNodeChildren(passageEl);
 
-  const html = text
-    .split("\n\n")
-    .map((para, i) => {
-      const p = para.trim();
-      if (!p) return "";
-      if (i === 0) return `<h2>${escapeHtml(p)}</h2>`;
-      return `<p>${escapeHtml(p).replace(/\n/g, "<br>")}</p>`;
-    })
-    .join("");
-
-  passageEl.innerHTML = html;
-}
+      text
+        .split("\n\n")
+        .map((para) => para.trim())
+        .filter(Boolean)
+        .forEach((para, index) => {
+          const node = document.createElement(index === 0 ? "h2" : "p");
+          const lines = para.split("\n");
+          lines.forEach((line, lineIndex) => {
+            if (lineIndex) node.appendChild(document.createElement("br"));
+            node.appendChild(document.createTextNode(line));
+          });
+          passageEl.appendChild(node);
+        });
+    }
     function renderQuestionsForActivePart(answers) {
       const card = $("qCard");
       if (!card) return;

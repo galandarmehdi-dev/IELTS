@@ -661,11 +661,7 @@ async function handleAdminApi(request, env) {
     const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
     const response = await fetch(signedBackendUrl, {
       method: "GET",
-<<<<<<< HEAD
-      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
-=======
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
->>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true) {
@@ -736,11 +732,7 @@ async function handleAdminApi(request, env) {
     const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
     const response = await fetch(signedBackendUrl, {
       method: "GET",
-<<<<<<< HEAD
-      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
-=======
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
->>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -822,11 +814,7 @@ async function handleAdminApi(request, env) {
     const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
     const response = await fetch(signedBackendUrl, {
       method: request.method,
-<<<<<<< HEAD
-      headers: await filteredProxyHeaders(request, env, backendUrl.toString()),
-=======
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
->>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
     });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !data.result) {
@@ -1173,8 +1161,6 @@ async function signBackendProxyPayload(payload, secret) {
   return toBase64UrlFromBytes(new Uint8Array(signature));
 }
 
-<<<<<<< HEAD
-=======
 async function buildSignedAppsScriptUrl(rawUrl, method, bodyText, env) {
   const url = new URL(String(rawUrl || ""));
   const signingSecret = String(env?.ADMIN_BACKEND_SIGNING_SECRET || "").trim();
@@ -1212,8 +1198,6 @@ function canonicalizeSearchParams(searchParams, exclude = new Set()) {
     .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join("&");
 }
-
->>>>>>> b44f37b (Prepare signed requests for Apps Script backend)
 function buildWritingSamplesFromSheet(csvText) {
   const rows = parseCsv(csvText);
   if (!rows.length) return [];

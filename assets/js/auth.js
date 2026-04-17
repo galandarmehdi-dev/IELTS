@@ -246,6 +246,21 @@ function saveProfileCacheByEmail(next) {
   } catch (e) {}
 }
 
+function markPersonalPasswordEnabled(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return;
+  const cache = getProfileCacheByEmail();
+  const current = cache[normalizedEmail] && typeof cache[normalizedEmail] === "object"
+    ? cache[normalizedEmail]
+    : {};
+  cache[normalizedEmail] = {
+    ...current,
+    personalPasswordEnabled: true,
+    updatedAt: new Date().toISOString(),
+  };
+  saveProfileCacheByEmail(cache);
+}
+
 function buildProfileFromMetadata(metadata) {
   return {
     username: String(metadata.username || "").trim(),

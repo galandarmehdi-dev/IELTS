@@ -467,7 +467,6 @@ async function handleAdminApi(request, env) {
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "results");
-    backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
     backendUrl.searchParams.set("t", String(Date.now()));
     return proxy(request, backendUrl.toString(), env);
   }
@@ -867,10 +866,13 @@ async function handleAdminApi(request, env) {
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "results");
-    backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
     backendUrl.searchParams.set("t", String(Date.now()));
 
-    const response = await fetch(backendUrl.toString(), { method: "GET" });
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const response = await fetch(signedBackendUrl, {
+      method: "GET",
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+    });
     const data = await response.json().catch(() => null);
     if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
       return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
@@ -2076,7 +2078,6 @@ async function getAdminResultsSummary(env, options = {}) {
 
   const backendUrl = new URL(env.ADMIN_BACKEND_URL);
   backendUrl.searchParams.set("action", "resultsSummary");
-  backendUrl.searchParams.set("adminPasscode", String(env.ADMIN_RESULTS_PASSCODE || ""));
   backendUrl.searchParams.set("t", String(Date.now()));
 
   const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);

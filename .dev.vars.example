@@ -1,4 +1,3 @@
-ADMIN_RESULTS_PASSCODE=replace-with-google-apps-script-admin-passcode
 ADMIN_BACKEND_SIGNING_SECRET=optional-long-random-secret-for-worker-to-apps-script-signing
 ADMIN_ALLOWED_EMAILS=admin@example.com
 TEST_ENTRY_PASSWORD=replace-with-student-test-entry-password

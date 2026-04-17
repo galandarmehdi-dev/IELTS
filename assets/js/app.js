@@ -3112,7 +3112,7 @@
       formCard.appendChild(form);
 
       try {
-        const savedUser = window.IELTS?.Auth?.getSavedUser?.() || JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+        const savedUser = window.IELTS?.Auth?.getSavedUser?.() || null;
         if (savedUser?.email && emailInput) emailInput.value = savedUser.email;
         const knownName = savedUser?.profile?.preferredName || savedUser?.name || "";
         if (knownName && fullNameInput) fullNameInput.value = knownName;

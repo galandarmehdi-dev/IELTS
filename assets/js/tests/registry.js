@@ -370,9 +370,19 @@
 
   function stripHtmlToText(html) {
     try {
-      const div = document.createElement("div");
-      div.innerHTML = String(html || "");
-      return (div.textContent || div.innerText || "").replace(/\s+/g, " ").trim();
+      return String(html || "")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
+        .replace(/<li\b[^>]*>/gi, "• ")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, "\"")
+        .replace(/&#39;/gi, "'")
+        .replace(/\s+/g, " ")
+        .trim();
     } catch (e) {
       return String(html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     }

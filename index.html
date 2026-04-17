@@ -756,6 +756,52 @@
       </div>
     </div>
 
+    <div class="admin-results-controls history-results-controls">
+      <label class="admin-field">
+        <span>Search</span>
+        <input id="historySearch" type="search" placeholder="Test name or reason">
+      </label>
+
+      <label class="admin-field">
+        <span>Test</span>
+        <select id="historyExamFilter">
+          <option value="">All tests</option>
+        </select>
+      </label>
+
+      <label class="admin-field">
+        <span>Month</span>
+        <select id="historyMonthFilter">
+          <option value="">All months</option>
+        </select>
+      </label>
+
+      <label class="admin-field">
+        <span>Year</span>
+        <select id="historyYearFilter">
+          <option value="">All years</option>
+        </select>
+      </label>
+
+      <label class="admin-field">
+        <span>Sort by</span>
+        <select id="historySort">
+          <option value="submitted_at_desc">Newest first</option>
+          <option value="submitted_at_asc">Oldest first</option>
+          <option value="exam_id_asc">Test A–Z</option>
+          <option value="exam_id_desc">Test Z–A</option>
+          <option value="final_writing_band_desc">Writing high→low</option>
+          <option value="final_writing_band_asc">Writing low→high</option>
+          <option value="speaking_band_desc">Speaking high→low</option>
+          <option value="speaking_band_asc">Speaking low→high</option>
+          <option value="overall_band_desc">Overall high→low</option>
+          <option value="overall_band_asc">Overall low→high</option>
+          <option value="listening_total_desc">Listening high→low</option>
+          <option value="reading_total_desc">Reading high→low</option>
+        </select>
+      </label>
+    </div>
+
     <div class="history-summary">
       <div class="history-stat-card">
         <div class="history-stat-label">Completed tests</div>

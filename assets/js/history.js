@@ -10,7 +10,7 @@
   const Registry = () => window.IELTS?.Registry;
   const Router = () => window.IELTS?.Router;
 
-  const state = { rows: [], email: "" };
+  const state = { rows: [], filtered: [], email: "" };
   const detailState = { sourceRowId: null, sourceScrollY: 0 };
   const objectiveDetailCache = new Map();
   const objectivePrefetchPending = new Set();
@@ -103,6 +103,11 @@
 
   function speakingBand(row) {
     return nullableNumber(row?.speaking_band);
+  }
+
+  function speakingDisplayText(row, fallback = "Pending") {
+    const band = speakingBand(row);
+    return band === null ? fallback : `Band ${band.toFixed(1)}`;
   }
 
   function overallBand(row) {
@@ -713,11 +718,11 @@
       if (el) el.textContent = String(value);
     };
 
-    const avg = (items, key) => {
+    const avg = (items, key, { emptyText = "null" } = {}) => {
       const nums = items
         .map((r) => key === "final_writing_band" ? effectiveWritingBand(r) : key === "overall_band" ? overallBand(r) : nullableNumber(r?.[key]))
         .filter((n) => n !== null);
-      if (!nums.length) return "null";
+      if (!nums.length) return emptyText;
       return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
     };
 
@@ -725,10 +730,123 @@
     setText("historyStatListening", avg(rows, "listening_band"));
     setText("historyStatReading", avg(rows, "reading_band"));
     setText("historyStatWriting", avg(rows, "final_writing_band"));
-    setText("historyStatSpeaking", avg(rows, "speaking_band"));
+    setText("historyStatSpeaking", avg(rows, "speaking_band", { emptyText: rows.length ? "Pending" : "null" }));
     setText("historyStatOverall", avg(rows, "overall_band"));
     setText("historyStatLatest", rows[0] ? fmtDate(rows[0].submitted_at) : "—");
     setText("historyStatWords", rows[0] ? totalWords(rows[0]) : 0);
+  }
+
+  function setSelectOptions(selectId, values, formatter) {
+    const el = $(selectId);
+    if (!el) return;
+    const current = String(el.value || "");
+    while (el.options.length > 1) el.remove(1);
+    values.forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = formatter ? formatter(value) : value;
+      el.appendChild(option);
+    });
+    if ([...el.options].some((option) => option.value === current)) {
+      el.value = current;
+    }
+  }
+
+  function fillHistoryExamFilter(rows) {
+    const values = Array.from(new Set(
+      rows
+        .map((row) => String(row?.exam_id || row?.active_test_id || "").trim())
+        .filter(Boolean)
+    )).sort((a, b) => examLabel({ exam_id: a }).localeCompare(examLabel({ exam_id: b })));
+    setSelectOptions("historyExamFilter", values, (value) => examLabel({ exam_id: value }));
+  }
+
+  function fillHistoryMonthYearFilters(rows) {
+    const months = new Set();
+    const years = new Set();
+    rows.forEach((row) => {
+      const d = new Date(row?.submitted_at || 0);
+      if (Number.isNaN(d.getTime())) return;
+      months.add(String(d.getMonth() + 1).padStart(2, "0"));
+      years.add(String(d.getFullYear()));
+    });
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    setSelectOptions("historyMonthFilter", Array.from(months).sort(), (value) => monthNames[Math.max(0, Number(value) - 1)] || value);
+    setSelectOptions("historyYearFilter", Array.from(years).sort((a, b) => Number(b) - Number(a)));
+  }
+
+  function applyHistoryFilters() {
+    const q = String($("historySearch")?.value || "").trim().toLowerCase();
+    const examFilter = String($("historyExamFilter")?.value || "").trim();
+    const monthFilter = String($("historyMonthFilter")?.value || "").trim();
+    const yearFilter = String($("historyYearFilter")?.value || "").trim();
+    const sortValue = String($("historySort")?.value || "submitted_at_desc");
+    let rows = state.rows.slice();
+
+    if (q) {
+      rows = rows.filter((row) => {
+        const hay = [row.exam_id, row.active_test_id, row.reason, examLabel(row)]
+          .map((value) => String(value || "").toLowerCase())
+          .join(" ");
+        return hay.includes(q);
+      });
+    }
+    if (examFilter) {
+      rows = rows.filter((row) => String(row?.exam_id || row?.active_test_id || "") === examFilter);
+    }
+    if (monthFilter || yearFilter) {
+      rows = rows.filter((row) => {
+        const d = new Date(row?.submitted_at || 0);
+        if (Number.isNaN(d.getTime())) return false;
+        const rowMonth = String(d.getMonth() + 1).padStart(2, "0");
+        const rowYear = String(d.getFullYear());
+        if (monthFilter && rowMonth !== monthFilter) return false;
+        if (yearFilter && rowYear !== yearFilter) return false;
+        return true;
+      });
+    }
+
+    const [field, dir] = sortValue.split("_");
+    rows.sort((a, b) => {
+      let av = a?.[field];
+      let bv = b?.[field];
+      if (field === "submitted_at") {
+        av = new Date(av || 0).getTime();
+        bv = new Date(bv || 0).getTime();
+      } else if (["listening_total", "reading_total"].includes(field)) {
+        av = nullableNumber(av);
+        bv = nullableNumber(bv);
+        av = av === null ? -1 : av;
+        bv = bv === null ? -1 : bv;
+      } else if (field === "final_writing_band") {
+        av = effectiveWritingBand(a);
+        bv = effectiveWritingBand(b);
+        av = av === null ? -1 : av;
+        bv = bv === null ? -1 : bv;
+      } else if (field === "speaking_band") {
+        av = speakingBand(a);
+        bv = speakingBand(b);
+        av = av === null ? -1 : av;
+        bv = bv === null ? -1 : bv;
+      } else if (field === "overall_band") {
+        av = overallBand(a);
+        bv = overallBand(b);
+        av = av === null ? -1 : av;
+        bv = bv === null ? -1 : bv;
+      } else if (field === "exam_id") {
+        av = examLabel(a).toLowerCase();
+        bv = examLabel(b).toLowerCase();
+      } else {
+        av = String(av || "").toLowerCase();
+        bv = String(bv || "").toLowerCase();
+      }
+      if (av < bv) return dir === "desc" ? 1 : -1;
+      if (av > bv) return dir === "desc" ? -1 : 1;
+      return 0;
+    });
+
+    state.filtered = rows;
+    renderTable(rows);
   }
 
   function renderTable(rows) {
@@ -762,10 +880,6 @@
       examTd.textContent = examLabel(row);
       tr.appendChild(examTd);
 
-      const nameTd = document.createElement("td");
-      nameTd.textContent = row.student_full_name || "—";
-      tr.appendChild(nameTd);
-
       const listeningTd = document.createElement("td");
       listeningTd.textContent = listeningStatus.listText;
       tr.appendChild(listeningTd);
@@ -784,7 +898,7 @@
       tr.appendChild(writingTd);
 
       const speakingTd = document.createElement("td");
-      speakingTd.textContent = speaking === null ? "null" : `Band ${speaking.toFixed(1)}`;
+      speakingTd.textContent = speakingDisplayText(row);
       tr.appendChild(speakingTd);
 
       const overallTd = document.createElement("td");
@@ -830,7 +944,7 @@
     appendLabeledLine(scoresEl, "Listening", listeningStatus.detailText);
     appendLabeledLine(scoresEl, "Reading", readingStatus.detailText);
     appendLabeledLine(scoresEl, "Writing", writing.text);
-    appendLabeledLine(scoresEl, "Speaking", speaking === null ? "null" : `Band ${speaking.toFixed(1)}`);
+    appendLabeledLine(scoresEl, "Speaking", speakingDisplayText(row));
     appendLabeledLine(scoresEl, "Overall", overall === null ? "null" : `Band ${overall.toFixed(1)}`);
     appendLabeledLine(scoresEl, "Writing words", String(totalWords(row) || "null"));
     scoresEl.appendChild(document.createElement("br"));
@@ -877,28 +991,45 @@
         Router()?.setHashRoute?.(testId, "history");
       } catch (e) {}
       const email = getHistoryEmail();
+      const pendingOpenKey = getLastOpenHistoryKey();
       const cachedRows = email ? mergeRowsByMatchKey(loadRemoteHistoryCache(email), loadLocalRows(email)) : [];
       if (cachedRows.length) {
         state.rows = cachedRows;
+        state.filtered = cachedRows.slice();
         state.email = email;
-        renderTable(cachedRows);
+        fillHistoryExamFilter(cachedRows);
+        fillHistoryMonthYearFilters(cachedRows);
+        applyHistoryFilters();
         prefetchObjectiveDetails(cachedRows, 4);
+        if (pendingOpenKey) {
+          const cachedIdx = state.filtered.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
+          if (cachedIdx >= 0) {
+            clearLastOpenHistoryKey();
+            renderDetail(state.filtered[cachedIdx], {
+              sourceRowId: `history-row-${cachedIdx}`
+            }).catch(() => {});
+          }
+        }
       } else if (state.rows.length && state.email === email) {
-        renderTable(state.rows);
+        fillHistoryExamFilter(state.rows);
+        fillHistoryMonthYearFilters(state.rows);
+        applyHistoryFilters();
       } else if ($("historyTbody")) {
         $("historyTbody").innerHTML = '<tr><td colspan="9">Loading history...</td></tr>';
       }
       let rows = await prefetchHistoryRows();
       state.rows = rows;
+      state.filtered = rows.slice();
       state.email = email;
-      renderTable(rows);
+      fillHistoryExamFilter(rows);
+      fillHistoryMonthYearFilters(rows);
+      applyHistoryFilters();
       prefetchObjectiveDetails(rows, 4);
-      const pendingOpenKey = getLastOpenHistoryKey();
       if (pendingOpenKey) {
-        const idx = rows.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
+        const idx = state.filtered.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
         if (idx >= 0) {
           clearLastOpenHistoryKey();
-          await renderDetail(rows[idx], {
+          await renderDetail(state.filtered[idx], {
             sourceRowId: `history-row-${idx}`
           });
         }
@@ -916,9 +1047,12 @@
         if (!updated) return;
         let refreshedRows = await fetchMergedHistoryRows(email);
         state.rows = refreshedRows;
+        state.filtered = refreshedRows.slice();
         state.email = email;
         if (email) saveRemoteHistoryCache(email, refreshedRows);
-        renderTable(refreshedRows);
+        fillHistoryExamFilter(refreshedRows);
+        fillHistoryMonthYearFilters(refreshedRows);
+        applyHistoryFilters();
         prefetchObjectiveDetails(refreshedRows, 4);
       }).catch(() => {});
     } catch (err) {
@@ -954,7 +1088,7 @@
     const btn = e.target.closest("[data-history-view]");
     if (!btn) return;
     const idx = Number(btn.getAttribute("data-history-view"));
-    renderDetail(state.rows[idx], {
+    renderDetail(state.filtered[idx], {
       sourceRowId: btn.getAttribute("data-history-row-id") || null
     });
   });
@@ -967,6 +1101,11 @@
     $("historyRefreshBtn")?.addEventListener("click", openHistory);
     $("historyBackBtn")?.addEventListener("click", closeHistory);
     $("historyDetailCloseBtn")?.addEventListener("click", () => $("historyDetail")?.classList.add("hidden"));
+    $("historySearch")?.addEventListener("input", applyHistoryFilters);
+    $("historyExamFilter")?.addEventListener("change", applyHistoryFilters);
+    $("historyMonthFilter")?.addEventListener("change", applyHistoryFilters);
+    $("historyYearFilter")?.addEventListener("change", applyHistoryFilters);
+    $("historySort")?.addEventListener("change", applyHistoryFilters);
     window.addEventListener("ielts:authchanged", () => {
       if (getHistoryUser()) prefetchHistoryRows().catch(() => {});
     });

@@ -20,6 +20,7 @@ const authGate = document.getElementById("authGate");
 const authMessage = document.getElementById("authMessage");
 const SHARED_SESSION_KEY = "IELTS:AUTH:sharedSession";
 const PROFILE_CACHE_BY_EMAIL_KEY = "IELTS:AUTH:profileByEmail";
+const AUTH_USER_KEY = "IELTS:AUTH:user";
 
 let authReady = false;
 let loggingOut = false;
@@ -35,20 +36,49 @@ function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function getSavedUser() {
+function readSessionJsonWithLegacyFallback(key) {
   try {
-    return JSON.parse(localStorage.getItem("IELTS:AUTH:user") || "null");
+    const sessionRaw = sessionStorage.getItem(key);
+    if (sessionRaw) return JSON.parse(sessionRaw || "null");
+  } catch (e) {}
+  try {
+    const legacyRaw = localStorage.getItem(key);
+    if (!legacyRaw) return null;
+    const parsed = JSON.parse(legacyRaw || "null");
+    try {
+      sessionStorage.setItem(key, JSON.stringify(parsed));
+      localStorage.removeItem(key);
+    } catch (e) {}
+    return parsed;
   } catch (e) {
     return null;
   }
 }
 
-function getSharedSession() {
+function writeSessionJson(key, value) {
   try {
-    return JSON.parse(localStorage.getItem(SHARED_SESSION_KEY) || "null");
-  } catch (e) {
-    return null;
-  }
+    sessionStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {}
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function clearSensitiveSessionKey(key) {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (e) {}
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {}
+}
+
+function getSavedUser() {
+  return readSessionJsonWithLegacyFallback(AUTH_USER_KEY);
+}
+
+function getSharedSession() {
+  return readSessionJsonWithLegacyFallback(SHARED_SESSION_KEY);
 }
 
 function isSharedPasswordUser() {
@@ -255,39 +285,30 @@ function saveUser(user) {
         },
       });
     }
-    localStorage.setItem(
-      "IELTS:AUTH:user",
-      JSON.stringify({
-        id: user?.id || "",
-        identityKey: getIdentityKeyFromUserLike(user),
-        email: user?.email || "",
-        name: fullName,
-        avatarUrl: avatar,
-        provider,
-        createdAt: user?.created_at || "",
-        lastSignInAt: user?.last_sign_in_at || "",
-        profile
-      })
-    );
+    writeSessionJson(AUTH_USER_KEY, {
+      id: user?.id || "",
+      identityKey: getIdentityKeyFromUserLike(user),
+      email: user?.email || "",
+      name: fullName,
+      avatarUrl: avatar,
+      provider,
+      createdAt: user?.created_at || "",
+      lastSignInAt: user?.last_sign_in_at || "",
+      profile
+    });
   } catch (e) {}
 }
 
 function clearSavedUser() {
-  try {
-    localStorage.removeItem("IELTS:AUTH:user");
-  } catch (e) {}
+  clearSensitiveSessionKey(AUTH_USER_KEY);
 }
 
 function saveSharedSession(session) {
-  try {
-    localStorage.setItem(SHARED_SESSION_KEY, JSON.stringify(session));
-  } catch (e) {}
+  writeSessionJson(SHARED_SESSION_KEY, session);
 }
 
 function clearSharedSession() {
-  try {
-    localStorage.removeItem(SHARED_SESSION_KEY);
-  } catch (e) {}
+  clearSensitiveSessionKey(SHARED_SESSION_KEY);
 }
 
 function syncAuthExport() {

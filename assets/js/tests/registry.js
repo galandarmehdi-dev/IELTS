@@ -51,6 +51,36 @@
     LAUNCH_CONTEXT: "IELTS:EXAM:launchContext",
   };
 
+  function getSessionValueWithLegacyFallback(key) {
+    try {
+      const sessionValue = sessionStorage.getItem(key);
+      if (sessionValue !== null) return sessionValue;
+    } catch (e) {}
+    try {
+      const legacyValue = localStorage.getItem(key);
+      if (legacyValue !== null) {
+        try {
+          sessionStorage.setItem(key, legacyValue);
+          localStorage.removeItem(key);
+        } catch (e) {}
+      }
+      return legacyValue;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setSessionValue(key, value) {
+    try { sessionStorage.setItem(key, String(value)); } catch (e) {}
+    try { localStorage.removeItem(key); } catch (e) {}
+    return value;
+  }
+
+  function removeSessionValue(key) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+
   const SECTION_META = {
     full: { key: "full", label: "Full Exam", summary: "Full Listening, Reading, and Writing flow" },
     listening: { key: "listening", label: "Listening", summary: "Take only the listening section" },
@@ -149,7 +179,7 @@
 
   function getActiveTestId() {
     try {
-      return localStorage.getItem(KEYS.ACTIVE_TEST_ID) || TESTS.defaultTestId;
+      return getSessionValueWithLegacyFallback(KEYS.ACTIVE_TEST_ID) || TESTS.defaultTestId;
     } catch (e) {
       return TESTS.defaultTestId;
     }
@@ -157,7 +187,7 @@
 
   function setActiveTestId(id) {
     const next = TESTS.byId[id] ? id : TESTS.defaultTestId;
-    try { localStorage.setItem(KEYS.ACTIVE_TEST_ID, next); } catch (e) {}
+    setSessionValue(KEYS.ACTIVE_TEST_ID, next);
     return next;
   }
 
@@ -298,9 +328,9 @@
     const next = context && typeof context === "object" ? { ...context } : null;
     try {
       if (!next) {
-        localStorage.removeItem(KEYS.LAUNCH_CONTEXT);
+        removeSessionValue(KEYS.LAUNCH_CONTEXT);
       } else {
-        localStorage.setItem(KEYS.LAUNCH_CONTEXT, JSON.stringify(next));
+        setSessionValue(KEYS.LAUNCH_CONTEXT, JSON.stringify(next));
       }
     } catch (e) {}
     return next;
@@ -308,7 +338,7 @@
 
   function getLaunchContext() {
     try {
-      const raw = localStorage.getItem(KEYS.LAUNCH_CONTEXT);
+      const raw = getSessionValueWithLegacyFallback(KEYS.LAUNCH_CONTEXT);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : null;

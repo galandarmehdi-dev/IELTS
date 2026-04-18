@@ -652,7 +652,13 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
+    const submissionLookup = {
+      submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+      studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+      examId: oneLine(url.searchParams.get("examId") || ""),
+      reason: oneLine(url.searchParams.get("reason") || ""),
+    };
+    const owned = await authorizeStudentSubmissionAccess(submissionLookup, auth, request, env);
     if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -666,7 +672,7 @@ async function handleAdminApi(request, env) {
     if (!response.ok || !data || data.ok !== true) {
       return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load student result." });
     }
-    const scoreMeta = await readSubmissionScoreMeta(env, url.searchParams);
+    const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
     return json(200, { ...data, result: mergedResult });
   }
@@ -675,7 +681,13 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
+    const submissionLookup = {
+      submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+      studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+      examId: oneLine(url.searchParams.get("examId") || ""),
+      reason: oneLine(url.searchParams.get("reason") || ""),
+    };
+    const owned = await authorizeStudentSubmissionAccess(submissionLookup, auth, request, env);
     if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
 
     const resultBackendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -708,7 +720,7 @@ async function handleAdminApi(request, env) {
     }
 
     const objectiveData = await objectiveResponse?.json?.().catch(() => null);
-    const scoreMeta = await readSubmissionScoreMeta(env, url.searchParams);
+    const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = resultData.result ? mergeSummaryWithScoreMeta(resultData.result, scoreMeta) : resultData.result;
     const objectiveResult = objectiveResponse?.ok && objectiveData?.ok === true && objectiveData?.result
       ? objectiveData.result
@@ -879,7 +891,13 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
+    const submissionLookup = {
+      submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+      studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+      examId: oneLine(url.searchParams.get("examId") || ""),
+      reason: oneLine(url.searchParams.get("reason") || ""),
+    };
+    const owned = await authorizeStudentSubmissionAccess(submissionLookup, auth, request, env);
     if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
 
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);

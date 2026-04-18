@@ -11,9 +11,11 @@
   const Router = () => window.IELTS?.Router;
 
   const state = { rows: [], filtered: [], email: "" };
-  const detailState = { sourceRowId: null, sourceScrollY: 0 };
+  const detailState = { sourceRowId: null, sourceScrollY: 0, matchKey: "", objectivePollToken: 0 };
   const objectiveDetailCache = new Map();
   const objectivePrefetchPending = new Set();
+  const fullResultCache = new Map();
+  const fullResultPrefetchPending = new Set();
   const historyPrefetchState = { promise: null, email: "", startedAt: 0 };
   const LOCAL_HISTORY_KEY_PREFIX = "IELTS:LOCAL:HISTORY:";
   const LOCAL_HISTORY_LAST_OPEN_KEY = "IELTS:LOCAL:HISTORY:lastOpen";
@@ -427,6 +429,9 @@
       });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true) return null;
+      if (data?.result) {
+        fullResultCache.set(buildMatchKey(row), data.result);
+      }
       return data;
     } catch (err) {
       if (String(err?.name || "") === "AbortError") return null;
@@ -443,6 +448,11 @@
       String(row?.examId || row?.exam_id || row?.active_test_id || "").trim().toLowerCase(),
       String(row?.reason || "").replace(/\s+/g, " ").trim().toLowerCase(),
     ].join("::");
+  }
+
+  function isDetailOpenForRow(row) {
+    const detail = $("historyDetail");
+    return !!detail && !detail.classList.contains("hidden") && buildMatchKey(row) === detailState.matchKey;
   }
 
   function mergeRowsByMatchKey(primaryRows, secondaryRows) {
@@ -629,6 +639,7 @@
     if (!email || !matchRow || !result) return null;
     const targetKey = buildMatchKey(matchRow);
     if (!targetKey) return null;
+    fullResultCache.set(targetKey, result);
     const mergedRows = mergeRowsByMatchKey(
       loadLocalRows(email).map((row) => (
         buildMatchKey(row) === targetKey ? mergeBackendResult(row, result) : row
@@ -644,6 +655,23 @@
       state.filtered = state.rows.slice();
     }
     return mergedRows.find((row) => buildMatchKey(row) === targetKey) || null;
+  }
+
+  function mergeRowIntoState(row) {
+    if (!row) return null;
+    const targetKey = buildMatchKey(row);
+    if (!targetKey) return row;
+    if (Array.isArray(state.rows) && state.rows.length) {
+      state.rows = mergeRowsByMatchKey([row], state.rows);
+      state.filtered = state.rows.slice();
+    }
+    const email = state.email || getHistoryEmail();
+    if (email) {
+      saveRemoteHistoryCache(email, state.rows);
+      const localRows = mergeRowsByMatchKey([row], loadLocalRows(email));
+      saveLocalRows(email, localRows);
+    }
+    return state.rows.find((item) => buildMatchKey(item) === targetKey) || row;
   }
 
   async function fetchStudentResultsForRows(rows) {
@@ -675,8 +703,11 @@
     return data.results;
   }
 
-  async function fetchStudentSummaryRows() {
-    const endpoint = Registry()?.buildAdminApiUrl?.({ action: "studentResultsSummary" });
+  async function fetchStudentSummaryRows(options = {}) {
+    const endpoint = Registry()?.buildAdminApiUrl?.({
+      action: "studentResultsSummary",
+      ...(options.forceRefresh ? { refresh: "1", t: Date.now() } : {}),
+    });
     if (!endpoint) return [];
     const token = await window.IELTS?.Auth?.getAccessToken?.();
     const res = await fetch(endpoint.toString(), {
@@ -689,8 +720,8 @@
     return data.results.map(normalizeHistoryRow);
   }
 
-  async function fetchMergedHistoryRows(email) {
-    let rows = mergeRowsByMatchKey(await fetchStudentSummaryRows().catch(() => []), loadLocalRows(email));
+  async function fetchMergedHistoryRows(email, options = {}) {
+    let rows = mergeRowsByMatchKey(await fetchStudentSummaryRows(options).catch(() => []), loadLocalRows(email));
     const practiceEndpoint = Registry()?.buildAdminApiUrl?.({ action: "studentPracticeResults" });
     if (practiceEndpoint) {
       const token = await window.IELTS?.Auth?.getAccessToken?.();
@@ -708,17 +739,46 @@
     return rows;
   }
 
-  function prefetchHistoryRows() {
+  function prefetchStudentFullResults(rows, limit) {
+    (rows || [])
+      .slice(0, Math.max(0, Number(limit) || 0))
+      .forEach((row) => {
+        const cacheKey = buildMatchKey(row);
+        if (!cacheKey || fullResultCache.has(cacheKey) || fullResultPrefetchPending.has(cacheKey)) return;
+        fullResultPrefetchPending.add(cacheKey);
+        fetchStudentResultForRow(row)
+          .then((data) => {
+            if (!data?.result) return;
+            const merged = mergeBackendResult(row, data.result);
+            mergeRowIntoState(merged);
+            if (document.body?.dataset?.activeView === "history") {
+              fillHistoryExamFilter(state.rows);
+              fillHistoryMonthYearFilters(state.rows);
+              applyHistoryFilters();
+              if (isDetailOpenForRow(merged)) {
+                renderDetail(merged, {
+                  sourceRowId: detailState.sourceRowId || null,
+                  skipFullFetch: true,
+                }).catch(() => {});
+              }
+            }
+          })
+          .catch(() => null)
+          .finally(() => fullResultPrefetchPending.delete(cacheKey));
+      });
+  }
+
+  function prefetchHistoryRows(options = {}) {
     const email = getHistoryEmail();
     if (!email) return Promise.resolve([]);
     const now = Date.now();
-    if (historyPrefetchState.promise && historyPrefetchState.email === email) return historyPrefetchState.promise;
-    if (state.rows.length && state.email === email && historyPrefetchState.email === email && now - historyPrefetchState.startedAt < 30000) {
+    if (historyPrefetchState.promise && historyPrefetchState.email === email && !options.forceRefresh) return historyPrefetchState.promise;
+    if (!options.forceRefresh && state.rows.length && state.email === email && historyPrefetchState.email === email && now - historyPrefetchState.startedAt < 30000) {
       return Promise.resolve(state.rows.slice());
     }
     historyPrefetchState.email = email;
     historyPrefetchState.startedAt = now;
-    historyPrefetchState.promise = fetchMergedHistoryRows(email)
+    historyPrefetchState.promise = fetchMergedHistoryRows(email, options)
       .then((rows) => {
         state.rows = rows;
         state.email = email;
@@ -766,16 +826,21 @@
 
   async function refreshPendingRows(rows) {
     const limit = Number(Registry()?.POLLING?.historyRefreshPendingLimit || 8);
-    const pending = (rows || []).filter(isPending).slice(0, limit);
+    const pending = (rows || []).filter((row) => (
+      isPending(row) ||
+      objectiveSectionStatus(row, "listening").state === "saved" ||
+      objectiveSectionStatus(row, "reading").state === "saved"
+    )).slice(0, limit);
     if (!pending.length) return false;
 
     let updatedAny = false;
     for (const row of pending) {
       try {
         const data = await fetchStudentResultForRow(row);
-        if (data?.graded && data?.result) {
+        if (data?.result) {
+          mergeResultIntoLocalRows(row, data.result);
           const ok = await syncRowToSupabase(row, data.result);
-          if (ok) updatedAny = true;
+          if (ok || data?.graded) updatedAny = true;
         }
       } catch (err) {
         if (String(err?.name || "") !== "AbortError") {
@@ -995,11 +1060,7 @@
     renderSummary(rows);
   }
 
-  async function renderDetail(row, options = {}) {
-    const detail = $("historyDetail");
-    if (!detail || !row) return;
-    detailState.sourceRowId = options.sourceRowId || null;
-    detailState.sourceScrollY = window.scrollY || 0;
+  function renderDetailFromRow(row) {
     const payload = row.final_payload || {};
     const listeningStatus = objectiveSectionStatus(row, "listening");
     const readingStatus = objectiveSectionStatus(row, "reading");
@@ -1010,12 +1071,12 @@
     const metaEl = $("historyDetailMeta");
     clearElement(metaEl);
     appendLabeledLine(metaEl, "Submitted", fmtDate(row.submitted_at));
-    appendLabeledLine(metaEl, "Name used", row.student_full_name || "—");
-    appendLabeledLine(metaEl, "Email", row.user_email || "—");
+    appendLabeledLine(metaEl, "Name used", row.student_full_name || payload?.studentFullName || "—");
+    appendLabeledLine(metaEl, "Email", row.user_email || payload?.studentEmail || "—");
 
     const scoresEl = $("historyDetailScores");
     clearElement(scoresEl);
-    appendLabeledLine(scoresEl, "Exam ID", row.exam_id || row.active_test_id || "—");
+    appendLabeledLine(scoresEl, "Exam ID", row.exam_id || row.active_test_id || payload?.examId || "—");
     appendLabeledLine(scoresEl, "Listening", listeningStatus.detailText);
     appendLabeledLine(scoresEl, "Reading", readingStatus.detailText);
     appendLabeledLine(scoresEl, "Writing", writing.text);
@@ -1044,14 +1105,59 @@
     setText("historyDetailTask2", row.writing_task2 || "");
     setText("historyDetailTask1Feedback", row.task1_feedback || "");
     setText("historyDetailTask2Feedback", row.task2_feedback || "");
-    renderObjectiveReview("historyDetail", null);
+  }
+
+  async function pollObjectiveDetailForRow(row, { attempts = 10, intervalMs = 2500 } = {}) {
+    const token = ++detailState.objectivePollToken;
+    const cacheKey = buildMatchKey(row);
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (detailState.matchKey !== cacheKey || detailState.objectivePollToken !== token) return null;
+      const result = await fetchObjectiveDetailForRow(row).catch(() => null);
+      if (result?.listening?.length || result?.reading?.length) {
+        if (detailState.matchKey === cacheKey && detailState.objectivePollToken === token) {
+          renderObjectiveReview("historyDetail", result);
+        }
+        return result;
+      }
+      if (attempt < attempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+    }
+    if (detailState.matchKey === cacheKey && detailState.objectivePollToken === token) {
+      renderObjectiveReview("historyDetail", null);
+    }
+    return null;
+  }
+
+  async function renderDetail(row, options = {}) {
+    const detail = $("historyDetail");
+    if (!detail || !row) return;
+    detailState.sourceRowId = options.sourceRowId || null;
+    detailState.sourceScrollY = window.scrollY || 0;
+    detailState.matchKey = buildMatchKey(row);
+    renderDetailFromRow(row);
+    renderObjectiveReview("historyDetail", {
+      listening: [],
+      reading: [],
+    });
     detail.classList.remove("hidden");
     try {
       detail.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (e) {}
     try {
-      const objectiveResult = await fetchObjectiveDetailForRow(row);
-      renderObjectiveReview("historyDetail", objectiveResult);
+      let activeRow = row;
+      if (!options.skipFullFetch) {
+        const fullData = await fetchStudentResultForRow(row).catch(() => null);
+        if (fullData?.result) {
+          activeRow = mergeBackendResult(row, fullData.result);
+          activeRow = mergeResultIntoLocalRows(row, fullData.result) || mergeRowIntoState(activeRow) || activeRow;
+          renderDetailFromRow(activeRow);
+          fillHistoryExamFilter(state.rows);
+          fillHistoryMonthYearFilters(state.rows);
+          applyHistoryFilters();
+        }
+      }
+      await pollObjectiveDetailForRow(activeRow);
     } catch (e) {
       renderObjectiveReview("historyDetail", null);
     }
@@ -1092,13 +1198,15 @@
       } else if ($("historyTbody")) {
         $("historyTbody").innerHTML = '<tr><td colspan="9">Loading history...</td></tr>';
       }
-      let rows = await prefetchHistoryRows();
+      const shouldForceRefresh = !!pendingOpenKey || !!window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
+      let rows = await prefetchHistoryRows({ forceRefresh: shouldForceRefresh });
       state.rows = rows;
       state.filtered = rows.slice();
       state.email = email;
       fillHistoryExamFilter(rows);
       fillHistoryMonthYearFilters(rows);
       applyHistoryFilters();
+      prefetchStudentFullResults(rows, 12);
       prefetchObjectiveDetails(rows, 4);
       if (pendingOpenKey) {
         const idx = state.filtered.findIndex((row) => buildMatchKey(row) === pendingOpenKey);
@@ -1120,7 +1228,7 @@
       }
       refreshPendingRows(rows).then(async (updated) => {
         if (!updated) return;
-        let refreshedRows = await fetchMergedHistoryRows(email);
+        let refreshedRows = await fetchMergedHistoryRows(email, { forceRefresh: true });
         state.rows = refreshedRows;
         state.filtered = refreshedRows.slice();
         state.email = email;
@@ -1128,7 +1236,16 @@
         fillHistoryExamFilter(refreshedRows);
         fillHistoryMonthYearFilters(refreshedRows);
         applyHistoryFilters();
+        prefetchStudentFullResults(refreshedRows, 12);
         prefetchObjectiveDetails(refreshedRows, 4);
+        if (detailState.matchKey) {
+          const openRow = refreshedRows.find((row) => buildMatchKey(row) === detailState.matchKey);
+          if (openRow) {
+            renderDetail(openRow, {
+              sourceRowId: detailState.sourceRowId || null,
+            }).catch(() => {});
+          }
+        }
       }).catch(() => {});
     } catch (err) {
       const tbody = $("historyTbody");
@@ -1139,6 +1256,8 @@
   function closeHistory() {
     const detail = $("historyDetail");
     detail?.classList.add("hidden");
+    detailState.matchKey = "";
+    detailState.objectivePollToken += 1;
     if (detailState.sourceRowId) {
       const source = document.getElementById(detailState.sourceRowId);
       if (source) {

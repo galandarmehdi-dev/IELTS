@@ -1606,9 +1606,35 @@ qnum.textContent = `${item.q}`;
   return panel;
 }
 
+    function resolveTFNGChoices(cfg) {
+      const instructionText = []
+        .concat(Array.isArray(cfg?.instructions) ? cfg.instructions : [])
+        .map((value) => String(value || "").toLowerCase())
+        .join(" ");
+
+      const writerMode =
+        /\b(views?|claims?)\s+of\s+the\s+writer\b/.test(instructionText) ||
+        /\bwhat\s+the\s+writer\s+thinks\b/.test(instructionText) ||
+        /\byes\s+if\s+the\s+statement\s+agrees\b/.test(instructionText);
+
+      const provided = Array.isArray(cfg?.customChoices) ? cfg.customChoices.map((value) => String(value || "").trim().toUpperCase()) : null;
+      if (provided && provided.length) {
+        if (writerMode) {
+          return provided.map((choice) => {
+            if (choice === "TRUE") return "YES";
+            if (choice === "FALSE") return "NO";
+            return choice;
+          });
+        }
+        return provided;
+      }
+
+      return writerMode ? ["YES", "NO", "NOT GIVEN"] : ["TRUE", "FALSE", "NOT GIVEN"];
+    }
+
     function renderTFNGBlock(cfg, answers) {
       const panel = renderPanel(cfg.title, cfg.instructions);
-      const choices = cfg.customChoices || ["TRUE", "FALSE", "NOT GIVEN"];
+      const choices = resolveTFNGChoices(cfg);
 
       cfg.items.forEach((item) => {
         const block = document.createElement("div");

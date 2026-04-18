@@ -441,6 +441,45 @@
     }
   }
 
+  async function fetchStudentBundleForRow(row) {
+    const url = Registry()?.buildAdminApiUrl?.({
+      action: "studentResultBundle",
+      submittedAt: row.submitted_at || "",
+      studentFullName: row.student_full_name || "",
+      examId: row.exam_id || row.active_test_id || "",
+      reason: row.reason || "",
+      t: Date.now(),
+    });
+    if (!url) return null;
+
+    const timeoutMs = Number(Registry()?.TIMEOUTS?.historySyncMs || 45000);
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = setTimeout(() => {
+      try { controller?.abort("history-timeout"); } catch (e) {}
+    }, timeoutMs);
+
+    try {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        signal: controller ? controller.signal : undefined,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true) return null;
+      const cacheKey = buildMatchKey(row);
+      if (data?.result) fullResultCache.set(cacheKey, data.result);
+      if (data?.objective) objectiveDetailCache.set(cacheKey, data.objective);
+      return data;
+    } catch (err) {
+      if (String(err?.name || "") === "AbortError") return null;
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   function buildMatchKey(row) {
     return [
       String(row?.submittedAt || row?.submitted_at || "").trim().toLowerCase(),
@@ -746,7 +785,7 @@
         const cacheKey = buildMatchKey(row);
         if (!cacheKey || fullResultCache.has(cacheKey) || fullResultPrefetchPending.has(cacheKey)) return;
         fullResultPrefetchPending.add(cacheKey);
-        fetchStudentResultForRow(row)
+        fetchStudentBundleForRow(row)
           .then((data) => {
             if (!data?.result) return;
             const merged = mergeBackendResult(row, data.result);
@@ -758,7 +797,8 @@
               if (isDetailOpenForRow(merged)) {
                 renderDetail(merged, {
                   sourceRowId: detailState.sourceRowId || null,
-                  skipFullFetch: true,
+                  skipBundleFetch: true,
+                  objectiveResult: data.objective || null,
                 }).catch(() => {});
               }
             }
@@ -1112,7 +1152,15 @@
     const cacheKey = buildMatchKey(row);
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       if (detailState.matchKey !== cacheKey || detailState.objectivePollToken !== token) return null;
-      const result = await fetchObjectiveDetailForRow(row).catch(() => null);
+      const bundle = await fetchStudentBundleForRow(row).catch(() => null);
+      const bundleResult = bundle?.result ? mergeBackendResult(row, bundle.result) : null;
+      if (bundleResult) {
+        const merged = mergeResultIntoLocalRows(row, bundle.result) || mergeRowIntoState(bundleResult) || bundleResult;
+        if (detailState.matchKey === cacheKey && detailState.objectivePollToken === token) {
+          renderDetailFromRow(merged);
+        }
+      }
+      const result = bundle?.objective || await fetchObjectiveDetailForRow(row).catch(() => null);
       if (result?.listening?.length || result?.reading?.length) {
         if (detailState.matchKey === cacheKey && detailState.objectivePollToken === token) {
           renderObjectiveReview("historyDetail", result);
@@ -1146,18 +1194,24 @@
     } catch (e) {}
     try {
       let activeRow = row;
-      if (!options.skipFullFetch) {
-        const fullData = await fetchStudentResultForRow(row).catch(() => null);
-        if (fullData?.result) {
-          activeRow = mergeBackendResult(row, fullData.result);
-          activeRow = mergeResultIntoLocalRows(row, fullData.result) || mergeRowIntoState(activeRow) || activeRow;
+      let immediateObjective = options.objectiveResult || null;
+      if (!options.skipBundleFetch) {
+        const bundleData = await fetchStudentBundleForRow(row).catch(() => null);
+        if (bundleData?.result) {
+          activeRow = mergeBackendResult(row, bundleData.result);
+          activeRow = mergeResultIntoLocalRows(row, bundleData.result) || mergeRowIntoState(activeRow) || activeRow;
           renderDetailFromRow(activeRow);
           fillHistoryExamFilter(state.rows);
           fillHistoryMonthYearFilters(state.rows);
           applyHistoryFilters();
         }
+        immediateObjective = bundleData?.objective || immediateObjective;
       }
-      await pollObjectiveDetailForRow(activeRow);
+      if (immediateObjective?.listening?.length || immediateObjective?.reading?.length) {
+        renderObjectiveReview("historyDetail", immediateObjective);
+      } else {
+        await pollObjectiveDetailForRow(activeRow);
+      }
     } catch (e) {
       renderObjectiveReview("historyDetail", null);
     }

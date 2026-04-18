@@ -285,7 +285,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
                 "Choose TRUE / NO / NOT GIVEN.",
                 "Write your answers in the gaps.",
               ],
-              customChoices: ["TRUE", "NO", "NOT GIVEN"],
+              customChoices: ["YES", "NO", "NOT GIVEN"],
               items: [
                 { q: 32, text: "In general, humans have become less rational over the last 100 years." },
                 { q: 33, text: "Most people lack a clear sense of their own personal identity." },

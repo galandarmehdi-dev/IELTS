@@ -671,6 +671,31 @@ async function handleAdminApi(request, env) {
     return json(200, { ...data, result: mergedResult });
   }
 
+  if (request.method === "GET" && action === "studentResultsSummary") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const email = normalizeEmail(auth?.user?.email || "");
+    if (!email) return json(400, { ok: false, error: "Missing student email." });
+
+    const summaries = await getAdminResultsSummary(env, {
+      forceRefresh: url.searchParams.get("refresh") === "1",
+    });
+    const fullRows = summaries.filter((row) => !isPracticeExamId(row?.examId));
+    const owned = [];
+    for (const row of fullRows) {
+      if (await studentOwnsSubmission(row, email, env)) owned.push(row);
+    }
+
+    return json(200, {
+      ok: true,
+      results: owned,
+      total: owned.length,
+      filteredTotal: owned.length,
+      generatedAt: new Date().toISOString(),
+    });
+  }
+
   if (request.method === "POST" && action === "submitPracticeObjective") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -1580,6 +1605,47 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   }
 
   return { ok: true, status: 200, record: null };
+}
+
+async function studentOwnsSubmission(rowLike, email, env) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail || !env?.STUDENT_REGISTRY) return false;
+
+  const key = buildSubmissionMetaKey({
+    submittedAt: rowLike?.submittedAt || rowLike?.submitted_at || "",
+    studentFullName: rowLike?.studentFullName || rowLike?.student_full_name || "",
+    examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
+    reason: rowLike?.reason || "",
+  });
+  if (!key) return false;
+
+  const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+  if (record?.email) {
+    return normalizeEmail(record.email) === normalizedEmail;
+  }
+
+  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return false;
+  const submittedAt = oneLine(rowLike?.submittedAt || rowLike?.submitted_at || "");
+  const examId = oneLine(rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "");
+  if (!submittedAt || !examId) return false;
+
+  const verifyUrl = new URL(`${String(env.SUPABASE_URL || "").replace(/\/$/, "")}/rest/v1/exam_attempts`);
+  verifyUrl.searchParams.set("select", "id");
+  verifyUrl.searchParams.set("submitted_at", `eq.${submittedAt}`);
+  verifyUrl.searchParams.set("exam_id", `eq.${examId}`);
+  verifyUrl.searchParams.set("user_email", `eq.${normalizedEmail}`);
+  verifyUrl.searchParams.set("limit", "1");
+
+  const verifyRes = await fetch(verifyUrl.toString(), {
+    method: "GET",
+    headers: {
+      apikey: String(env.SUPABASE_PUBLISHABLE_KEY || ""),
+      Authorization: `Bearer ${String(env.SUPABASE_PUBLISHABLE_KEY || "")}`,
+    },
+  }).catch(() => null);
+  if (!verifyRes?.ok) return false;
+  const rows = await verifyRes.json().catch(() => []);
+  return Array.isArray(rows) && rows.length > 0;
 }
 
 function parseCsv(text) {

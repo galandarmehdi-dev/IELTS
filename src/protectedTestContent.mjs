@@ -4805,23 +4805,44 @@ Environmentalists like these believe that ocean clean-up solutions are pointless
             ]
           },
           {
-            type: "endingsMatch",
+            type: "mcq",
             title: "Questions 22 – 24",
             instructions: [
               "Complete each sentence with the correct ending.",
               "Choose from the list, A – D, below.",
               "Write the appropriate letters, A – D, in answer boxes 22 – 24."
             ],
-            endings: {
-              A: "… originates in the United States.",
-              B: "… is plastic.",
-              C: "… ends up in the Great Pacific Garbage Patch.",
-              D: "… comes from ships."
-            },
             items: [
-              { q: 22, text: "Oceana has claimed that more than 50 per cent of all marine rubbish …" },
-              { q: 23, text: "People do not know how big the Great Pacific Garbage Patch is because …" },
-              { q: 24, text: "Scientists have recently discovered that rubbish in the River Thames …" }
+              {
+                q: 22,
+                text: "Oceana has claimed that more than 50 per cent of all marine rubbish ...",
+                choices: {
+                  A: "... originates in the United States.",
+                  B: "... is plastic.",
+                  C: "... ends up in the Great Pacific Garbage Patch.",
+                  D: "... comes from ships."
+                }
+              },
+              {
+                q: 23,
+                text: "People do not know how big the Great Pacific Garbage Patch is because ...",
+                choices: {
+                  A: "... the research to determine this would be too expensive.",
+                  B: "... its exact location is not known.",
+                  C: "... it is continually expanding.",
+                  D: "... the earth's coriolis effect makes the water move."
+                }
+              },
+              {
+                q: 24,
+                text: "Scientists have recently discovered that rubbish in the River Thames ...",
+                choices: {
+                  A: "... travels downstream below the surface of the river.",
+                  B: "... has damaged the river's crab stocks.",
+                  C: "... is now always caught by nets before it reaches the open sea.",
+                  D: "... is responsible for the majority of marine pollution in the North Sea."
+                }
+              }
             ]
           },
           {

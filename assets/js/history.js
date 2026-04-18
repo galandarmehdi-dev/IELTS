@@ -580,6 +580,50 @@
     };
   }
 
+  function normalizeHistoryRow(row) {
+    if (!row || typeof row !== "object") return row;
+    if ("submitted_at" in row || "student_full_name" in row || "user_email" in row) {
+      return row;
+    }
+    return {
+      id: row.id || "",
+      user_id: row.userId || "",
+      user_email: row.studentEmail || row.userEmail || "",
+      student_full_name: row.studentFullName || "",
+      exam_id: row.examId || row.active_test_id || "",
+      active_test_id: row.activeTestId || row.examId || "",
+      submitted_at: row.submittedAt || "",
+      reason: row.reason || "",
+      writing_task1: row.writingTask1 || "",
+      writing_task2: row.writingTask2 || "",
+      task1_words: row.task1Words ?? 0,
+      task2_words: row.task2Words ?? 0,
+      final_payload: row.finalPayload || {
+        attemptKind: /^ielts-practice-/i.test(String(row.examId || "")) ? "practice" : "full",
+        examId: row.examId || "",
+        submittedAt: row.submittedAt || "",
+        studentFullName: row.studentFullName || "",
+        reason: row.reason || "",
+      },
+      listening_total: row.listeningTotal ?? null,
+      listening_band: row.listeningBand ?? null,
+      reading_total: row.readingTotal ?? null,
+      reading_band: row.readingBand ?? null,
+      final_writing_band: row.finalWritingBand ?? null,
+      speaking_band: row.speakingBand ?? null,
+      overall_band: row.overallBand ?? null,
+      task1_band: row.task1Band ?? null,
+      task2_band: row.task2Band ?? null,
+      task1_breakdown: row.task1Breakdown ?? null,
+      task2_breakdown: row.task2Breakdown ?? null,
+      task1_feedback: row.task1Feedback ?? null,
+      task2_feedback: row.task2Feedback ?? null,
+      overall_feedback: row.overallFeedback ?? null,
+      listening_total_questions: row.listeningTotalQuestions ?? null,
+      reading_total_questions: row.readingTotalQuestions ?? null,
+    };
+  }
+
   function mergeResultIntoLocalRows(matchRow, result) {
     const email = getHistoryEmail();
     if (!email || !matchRow || !result) return null;
@@ -631,8 +675,22 @@
     return data.results;
   }
 
+  async function fetchStudentSummaryRows() {
+    const endpoint = Registry()?.buildAdminApiUrl?.({ action: "studentResultsSummary" });
+    if (!endpoint) return [];
+    const token = await window.IELTS?.Auth?.getAccessToken?.();
+    const res = await fetch(endpoint.toString(), {
+      method: "GET",
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok !== true || !Array.isArray(data.results)) return [];
+    return data.results.map(normalizeHistoryRow);
+  }
+
   async function fetchMergedHistoryRows(email) {
-    let rows = await loadRows();
+    let rows = mergeRowsByMatchKey(await fetchStudentSummaryRows().catch(() => []), loadLocalRows(email));
     const practiceEndpoint = Registry()?.buildAdminApiUrl?.({ action: "studentPracticeResults" });
     if (practiceEndpoint) {
       const token = await window.IELTS?.Auth?.getAccessToken?.();
@@ -643,13 +701,8 @@
       }).catch(() => null);
       const practiceData = await practiceRes?.json?.().catch(() => null);
       if (practiceRes?.ok && practiceData?.ok === true && Array.isArray(practiceData.results)) {
-        rows = mergeRowsByMatchKey(rows, practiceData.results);
+        rows = mergeRowsByMatchKey(rows, practiceData.results.map(normalizeHistoryRow));
       }
-    }
-    const backendResults = await fetchStudentResultsForRows(rows).catch(() => []);
-    if (backendResults.length) {
-      const byKey = new Map(backendResults.map((entry) => [String(entry.requestedKey || ""), entry.result]).filter((pair) => pair[0]));
-      rows = rows.map((row) => mergeBackendResult(row, byKey.get(buildMatchKey(row))));
     }
     if (email) saveRemoteHistoryCache(email, rows);
     return rows;

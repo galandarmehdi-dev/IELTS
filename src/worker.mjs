@@ -671,6 +671,61 @@ async function handleAdminApi(request, env) {
     return json(200, { ...data, result: mergedResult });
   }
 
+  if (request.method === "GET" && action === "studentResultBundle") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const owned = await authorizeStudentSubmissionAccess(url.searchParams, auth, request, env);
+    if (!owned.ok) return json(owned.status, { ok: false, error: owned.error });
+
+    const resultBackendUrl = new URL(env.ADMIN_BACKEND_URL);
+    resultBackendUrl.search = url.search;
+    resultBackendUrl.searchParams.set("action", "studentResult");
+    const signedResultUrl = await buildSignedAppsScriptUrl(resultBackendUrl.toString(), "GET", "", env);
+
+    const objectiveBackendUrl = new URL(env.ADMIN_BACKEND_URL);
+    objectiveBackendUrl.search = url.search;
+    objectiveBackendUrl.searchParams.set("action", "studentObjectiveDetail");
+    const signedObjectiveUrl = await buildSignedAppsScriptUrl(objectiveBackendUrl.toString(), "GET", "", env);
+
+    const [resultResponse, objectiveResponse] = await Promise.all([
+      fetch(signedResultUrl, {
+        method: "GET",
+        headers: await filteredProxyHeaders(request, env, signedResultUrl),
+      }).catch(() => null),
+      fetch(signedObjectiveUrl, {
+        method: "GET",
+        headers: await filteredProxyHeaders(request, env, signedObjectiveUrl),
+      }).catch(() => null),
+    ]);
+
+    const resultData = await resultResponse?.json?.().catch(() => null);
+    if (!resultResponse?.ok || !resultData || resultData.ok !== true) {
+      return json(resultResponse?.ok ? 502 : (resultResponse?.status || 502), {
+        ok: false,
+        error: resultData?.error || "Could not load student result bundle.",
+      });
+    }
+
+    const objectiveData = await objectiveResponse?.json?.().catch(() => null);
+    const scoreMeta = await readSubmissionScoreMeta(env, url.searchParams);
+    const mergedResult = resultData.result ? mergeSummaryWithScoreMeta(resultData.result, scoreMeta) : resultData.result;
+    const objectiveResult = objectiveResponse?.ok && objectiveData?.ok === true && objectiveData?.result
+      ? objectiveData.result
+      : null;
+
+    if (objectiveResult) {
+      setCachedObjectiveDetail(buildObjectiveDetailCacheKey(url.searchParams), objectiveResult);
+    }
+
+    return json(200, {
+      ok: true,
+      graded: resultData.graded === true,
+      result: mergedResult,
+      objective: objectiveResult,
+    });
+  }
+
   if (request.method === "GET" && action === "studentResultsSummary") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });

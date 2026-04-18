@@ -1758,21 +1758,6 @@ qnum.textContent = `${item.q}`;
     function renderEndingsMatchBlock(cfg, answers) {
       const panel = renderPanel(cfg.title, cfg.instructions);
 
-      const box = document.createElement("div");
-      box.className = "optionsBox";
-      const grid = document.createElement("div");
-      grid.className = "optionsGrid";
-
-      Object.entries(cfg.endings).forEach(([letter, txt]) => {
-        const cell = document.createElement("div");
-        cell.className = "optCell";
-        cell.innerHTML = `<b>${letter}.</b> ${escapeHtml(txt)}`;
-        grid.appendChild(cell);
-      });
-
-      box.appendChild(grid);
-      panel.appendChild(box);
-
       const rows = document.createElement("div");
       rows.className = "qrows";
 
@@ -1787,7 +1772,7 @@ qnum.textContent = `${item.q}`;
 
         const qtext = document.createElement("div");
         qtext.className = "qtext";
-        qtext.textContent = `${item.q}. ${item.text}`;
+        qtext.textContent = item.text;
 
         const select = document.createElement("select");
         select.className = "qselect";
@@ -1821,6 +1806,21 @@ qnum.textContent = `${item.q}`;
       });
 
       panel.appendChild(rows);
+
+      const box = document.createElement("div");
+      box.className = "optionsBox";
+      const grid = document.createElement("div");
+      grid.className = "optionsGrid";
+
+      Object.entries(cfg.endings).forEach(([letter, txt]) => {
+        const cell = document.createElement("div");
+        cell.className = "optCell";
+        cell.innerHTML = `<b>${letter}.</b> ${escapeHtml(txt)}`;
+        grid.appendChild(cell);
+      });
+
+      box.appendChild(grid);
+      panel.appendChild(box);
       return panel;
     }
 

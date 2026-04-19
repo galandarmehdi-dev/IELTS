@@ -282,7 +282,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
               title: "Questions 32–36",
               instructions: [
                 "Do the following statements agree with the claims of the writer?",
-                "Choose TRUE / NO / NOT GIVEN.",
+                "Choose YES / NO / NOT GIVEN.",
                 "Write your answers in the gaps.",
               ],
               customChoices: ["YES", "NO", "NOT GIVEN"],

@@ -527,7 +527,7 @@
     const writing = finalPayload?.writing || {};
     return {
       id: `local:${buildMatchKey(finalPayload)}`,
-      user_id: String(Auth()?.getIdentityKey?.() || user?.identityKey || user?.email || user?.id || "").trim().toLowerCase(),
+      user_id: String(Auth()?.getIdentityKey?.() || user?.id || user?.identityKey || user?.email || "").trim().toLowerCase(),
       user_email: String(user?.email || "").trim().toLowerCase(),
       organization_id: finalPayload?.organizationId || getCurrentOrganizationId() || "",
       student_full_name: finalPayload?.studentFullName || user?.name || "",

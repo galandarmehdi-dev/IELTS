@@ -217,7 +217,7 @@ function prefillSharedSetupFields(userLike) {
 }
 
 function getIdentityKeyFromUserLike(user) {
-  return normalizeEmail(user?.email) || String(user?.id || "").trim() || "guest";
+  return String(user?.id || "").trim() || normalizeEmail(user?.email) || "guest";
 }
 
 function readEmailScopedDashboardSettings(email) {

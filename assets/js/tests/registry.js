@@ -254,7 +254,12 @@
     const task = (async () => {
       const url = new URL("/api/test-content", window.location.origin);
       url.searchParams.set("testId", id);
-      const res = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
+      const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true || !data.content) {
         throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
@@ -278,19 +283,30 @@
     const key = String(url || "").trim();
     if (!key) return Promise.resolve(false);
     if (remoteScriptPromises.has(key)) return remoteScriptPromises.get(key);
-    const task = new Promise((resolve, reject) => {
+    const task = new Promise(async (resolve, reject) => {
       const existing = document.querySelector(`script[data-protected-script="${CSS.escape(key)}"]`);
       if (existing) {
         resolve(true);
         return;
       }
-      const script = document.createElement("script");
-      script.src = key;
-      script.async = true;
-      script.dataset.protectedScript = key;
-      script.onload = () => resolve(true);
-      script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
-      document.head.appendChild(script);
+      const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
+      try {
+        const res = await fetch(key, {
+          method: "GET",
+          credentials: "same-origin",
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
+        const source = await res.text();
+        if (!res.ok) throw new Error(source || `Could not load protected script: ${key}`);
+        const script = document.createElement("script");
+        script.async = true;
+        script.dataset.protectedScript = key;
+        script.textContent = source;
+        document.head.appendChild(script);
+        resolve(true);
+      } catch (err) {
+        reject(err instanceof Error ? err : new Error(`Could not load protected script: ${key}`));
+      }
     }).finally(() => {
       remoteScriptPromises.delete(key);
     });

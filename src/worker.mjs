@@ -6,6 +6,8 @@ const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
 const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_PRIMARY_ORGANIZATION_ID = "ieltsmock";
+const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
 export default {
   async fetch(request, env) {
@@ -32,11 +34,11 @@ export default {
     }
 
     if (url.pathname === "/api/test-content") {
-      return handleProtectedTestContentApi(request);
+      return handleProtectedTestContentApi(request, env);
     }
 
     if (url.pathname === "/api/test-content-script") {
-      return handleProtectedTestContentScriptApi(request);
+      return handleProtectedTestContentScriptApi(request, env);
     }
 
     if (url.pathname === "/api/admin") {
@@ -47,6 +49,108 @@ export default {
     return applyDocumentSecurityHeaders(response);
   },
 };
+
+function normalizeOrganizationId(value, fallback = "") {
+  return String(value || fallback || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function parseJsonEnvObject(value) {
+  if (!String(value || "").trim()) return {};
+  try {
+    const parsed = JSON.parse(String(value || ""));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function getPrimaryTenantHost(env) {
+  return oneLine(env?.PRIMARY_TENANT_HOST || DEFAULT_PRIMARY_TENANT_HOST).toLowerCase();
+}
+
+function getPrimaryOrganizationId(env) {
+  return normalizeOrganizationId(env?.PRIMARY_ORGANIZATION_ID, DEFAULT_PRIMARY_ORGANIZATION_ID);
+}
+
+function getTenantHostMap(env) {
+  const configured = parseJsonEnvObject(env?.TENANT_HOST_MAP);
+  const out = {};
+  Object.entries(configured).forEach(([host, raw]) => {
+    const hostname = oneLine(host || "").toLowerCase();
+    if (!hostname) return;
+    const organizationId =
+      typeof raw === "string"
+        ? normalizeOrganizationId(raw)
+        : normalizeOrganizationId(raw?.organizationId || raw?.organization_id || "");
+    if (!organizationId) return;
+    out[hostname] = {
+      organizationId,
+      name: oneLine(raw?.name || "") || organizationId,
+      logoUrl: oneLine(raw?.logoUrl || raw?.logo_url || ""),
+    };
+  });
+  const primaryHost = getPrimaryTenantHost(env);
+  if (primaryHost && !out[primaryHost]) {
+    out[primaryHost] = {
+      organizationId: getPrimaryOrganizationId(env),
+      name: "IELTS Mock Practice Portal",
+      logoUrl: "",
+    };
+  }
+  if (primaryHost && primaryHost.startsWith("www.") && !out[primaryHost.slice(4)]) {
+    out[primaryHost.slice(4)] = out[primaryHost];
+  } else if (primaryHost && !primaryHost.startsWith("www.") && !out[`www.${primaryHost}`]) {
+    out[`www.${primaryHost}`] = out[primaryHost];
+  }
+  return out;
+}
+
+function resolveTenantContext(request, env) {
+  const url = new URL(request.url);
+  const hostname = oneLine(url.hostname || "").toLowerCase();
+  const hostMap = getTenantHostMap(env);
+  const primaryHost = getPrimaryTenantHost(env);
+  const primaryOrganizationId = getPrimaryOrganizationId(env);
+  const workersFallbackHosts = new Set(["localhost", "127.0.0.1"]);
+
+  const mapped = hostMap[hostname]
+    || (hostname.startsWith("www.") ? hostMap[hostname.slice(4)] : null)
+    || ((!hostname || workersFallbackHosts.has(hostname) || hostname.endsWith(".workers.dev"))
+      ? hostMap[primaryHost] || {
+        organizationId: primaryOrganizationId,
+        name: "IELTS Mock Practice Portal",
+        logoUrl: "",
+      }
+      : null);
+
+  const organizationId = normalizeOrganizationId(mapped?.organizationId || primaryOrganizationId);
+  return {
+    hostname,
+    organizationId,
+    name: oneLine(mapped?.name || "") || organizationId || "Tenant",
+    logoUrl: oneLine(mapped?.logoUrl || ""),
+    isPrimaryTenant: organizationId === primaryOrganizationId,
+  };
+}
+
+function getTenantAdminMap(env) {
+  const configured = parseJsonEnvObject(env?.TENANT_ADMIN_MAP);
+  const out = {};
+  Object.entries(configured).forEach(([email, raw]) => {
+    const normalizedEmail = normalizeEmail(email);
+    const organizationId =
+      typeof raw === "string"
+        ? normalizeOrganizationId(raw)
+        : normalizeOrganizationId(raw?.organizationId || raw?.organization_id || "");
+    if (!normalizedEmail || !organizationId) return;
+    out[normalizedEmail] = organizationId;
+  });
+  return out;
+}
 
 const WRITING_SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU/export?format=csv&gid=1669784116";
@@ -90,10 +194,13 @@ function buildContentSecurityPolicy() {
   ].join("; ");
 }
 
-async function handleProtectedTestContentApi(request) {
+async function handleProtectedTestContentApi(request, env) {
   if (request.method !== "GET") {
     return json(405, { ok: false, error: "Method not allowed." });
   }
+
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
   const url = new URL(request.url);
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
@@ -118,10 +225,13 @@ async function handleProtectedTestContentApi(request) {
   );
 }
 
-async function handleProtectedTestContentScriptApi(request) {
+async function handleProtectedTestContentScriptApi(request, env) {
   if (request.method !== "GET") {
     return json(405, { ok: false, error: "Method not allowed." });
   }
+
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
   const url = new URL(request.url);
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
@@ -458,12 +568,31 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "session") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error, authorized: false });
-    return json(200, { ok: true, authorized: true, email: auth.user.email || "" });
+    return json(200, {
+      ok: true,
+      authorized: true,
+      email: auth.user.email || "",
+      role: auth.role || "super_admin",
+      organizationId: getActorOrganizationId(auth),
+      tenant: auth.tenant || resolveTenantContext(request, env),
+      isSuperAdmin: auth.isSuperAdmin === true,
+    });
+  }
+
+  if (request.method === "GET" && action === "tenantBootstrap") {
+    const tenant = resolveTenantContext(request, env);
+    return json(200, {
+      ok: true,
+      tenant,
+    });
   }
 
   if (request.method === "GET" && action === "results") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin) {
+      return json(403, { ok: false, error: "Tenant admins must use the filtered results summary flow." });
+    }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "results");
@@ -476,7 +605,7 @@ async function handleAdminApi(request, env) {
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     const forceRefresh = url.searchParams.get("refresh") === "1";
 
-    const cacheUrl = buildAdminResultsSummaryCacheUrl(url);
+    const cacheUrl = buildAdminResultsSummaryCacheUrl(url, auth);
     const cache = caches.default;
     const cacheRequest = new Request(cacheUrl.toString(), { method: "GET" });
     const cachedResponse = forceRefresh ? null : await cache.match(cacheRequest);
@@ -493,9 +622,12 @@ async function handleAdminApi(request, env) {
 
     let summaries;
     try {
-      summaries = await getAdminResultsSummary(env, { forceRefresh });
+      summaries = await getAdminResultsSummary(env, {
+        forceRefresh,
+        actor: auth,
+      });
     } catch (error) {
-      const staleSummaries = getAnyCachedAdminResultsSummary("all");
+      const staleSummaries = getAnyCachedAdminResultsSummary(auth?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(auth) || "public"}`);
       if (staleSummaries?.length) {
         summaries = staleSummaries;
       } else {
@@ -554,6 +686,7 @@ async function handleAdminApi(request, env) {
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     const rows = await getPracticeResultsSummary(env, {
       forceRefresh: url.searchParams.get("refresh") === "1",
+      actor: auth,
     });
     return json(200, {
       ok: true,
@@ -567,13 +700,16 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "resultDetail") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-
     const submissionLookup = {
       submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
       studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
       examId: oneLine(url.searchParams.get("examId") || ""),
       reason: oneLine(url.searchParams.get("reason") || ""),
     };
+    const submissionOrganizationId = await inferSubmissionOrganizationId(env, submissionLookup, getActorOrganizationId(auth));
+    if (!canActorAccessOrganization(auth, submissionOrganizationId)) {
+      return json(403, { ok: false, error: "This result does not belong to the current tenant." });
+    }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "studentResult");
@@ -605,8 +741,17 @@ async function handleAdminApi(request, env) {
       const value = await readJsonKv(env.STUDENT_REGISTRY, key.name);
       if (value) students.push(value);
     }
-    students.sort((a, b) => Date.parse(String(b?.lastSeenAt || "")) - Date.parse(String(a?.lastSeenAt || "")));
-    return json(200, { ok: true, students });
+    const scopedStudents = auth.isSuperAdmin
+      ? students
+      : students.filter((value) => {
+        const actorOrganizationId = getActorOrganizationId(auth);
+        const orgs = Array.isArray(value?.organizationIds)
+          ? value.organizationIds.map((entry) => normalizeOrganizationId(entry)).filter(Boolean)
+          : [normalizeOrganizationId(value?.organizationId || "")].filter(Boolean);
+        return orgs.includes(actorOrganizationId);
+      });
+    scopedStudents.sort((a, b) => Date.parse(String(b?.lastSeenAt || "")) - Date.parse(String(a?.lastSeenAt || "")));
+    return json(200, { ok: true, students: scopedStudents });
   }
 
   if (request.method === "GET" && action === "writingSamples") {
@@ -771,13 +916,15 @@ async function handleAdminApi(request, env) {
     const email = normalizeEmail(auth?.user?.email || "");
     if (!email) return json(400, { ok: false, error: "Missing student email." });
 
+    const tenant = resolveTenantContext(request, env);
     const summaries = await getAdminResultsSummary(env, {
       forceRefresh: url.searchParams.get("refresh") === "1",
+      actor: { isSuperAdmin: false, organizationId: tenant.organizationId, tenant },
     });
     const fullRows = summaries.filter((row) => !isPracticeExamId(row?.examId));
     const owned = [];
     for (const row of fullRows) {
-      if (await studentOwnsSubmission(row, email, env)) owned.push(row);
+      if (await studentOwnsSubmission(row, email, env, tenant.organizationId)) owned.push(row);
     }
 
     return json(200, {
@@ -804,15 +951,24 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
-    const key = buildSubmissionMetaKey({
+    const submissionLookup = {
       submittedAt: url.searchParams.get("submittedAt") || "",
       studentFullName: url.searchParams.get("studentFullName") || "",
       examId: url.searchParams.get("examId") || "",
       reason: url.searchParams.get("reason") || "",
-    });
-    if (!key) return json(400, { ok: false, error: "Missing submission lookup fields." });
+    };
+    const keys = buildSubmissionLookupKeys(submissionLookup, getActorOrganizationId(auth));
+    if (!keys.length) return json(400, { ok: false, error: "Missing submission lookup fields." });
 
-    const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+    let record = null;
+    for (const key of keys) {
+      record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+      if (record) break;
+    }
+    const submissionOrganizationId = normalizeOrganizationId(record?.organizationId || getActorOrganizationId(auth));
+    if (record && !canActorAccessOrganization(auth, submissionOrganizationId)) {
+      return json(403, { ok: false, error: "This result does not belong to the current tenant." });
+    }
     return json(200, { ok: true, record: record || null });
   }
 
@@ -828,8 +984,20 @@ async function handleAdminApi(request, env) {
     if (!submittedAt || !studentFullName || !examId) {
       return json(400, { ok: false, error: "Missing result lookup fields." });
     }
-    const meta = await writeSubmissionScoreMeta(env, { submittedAt, studentFullName, examId, reason }, { speakingBand });
-    try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
+    const submissionOrganizationId = await inferSubmissionOrganizationId(
+      env,
+      { submittedAt, studentFullName, examId, reason },
+      getActorOrganizationId(auth)
+    );
+    if (!canActorAccessOrganization(auth, submissionOrganizationId)) {
+      return json(403, { ok: false, error: "This result does not belong to the current tenant." });
+    }
+    const meta = await writeSubmissionScoreMeta(
+      env,
+      { submittedAt, studentFullName, examId, reason, organizationId: submissionOrganizationId },
+      { speakingBand, organizationId: submissionOrganizationId }
+    );
+    try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
     return json(200, { ok: true, speakingBand, meta });
   }
 
@@ -899,6 +1067,16 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "objectiveDetailAdmin") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const submissionLookup = {
+      submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+      studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+      examId: oneLine(url.searchParams.get("examId") || ""),
+      reason: oneLine(url.searchParams.get("reason") || ""),
+    };
+    const submissionOrganizationId = await inferSubmissionOrganizationId(env, submissionLookup, getActorOrganizationId(auth));
+    if (!canActorAccessOrganization(auth, submissionOrganizationId)) {
+      return json(403, { ok: false, error: "This result does not belong to the current tenant." });
+    }
 
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
     const cached = getCachedObjectiveDetail(cacheKey);
@@ -930,6 +1108,7 @@ async function handleAdminApi(request, env) {
     const email = normalizeEmail(auth.user?.email || payload?.email || "");
     if (!email) return json(400, { ok: false, error: "Missing student email." });
 
+    const tenant = resolveTenantContext(request, env);
     const provider = oneLine(payload?.provider || auth.user?.app_metadata?.provider || "email");
     const fullName = oneLine(payload?.fullName || auth.user?.user_metadata?.name || auth.user?.user_metadata?.preferred_name || deriveNameFromEmail(email));
     const record = await upsertStudentRegistry(env, {
@@ -937,6 +1116,7 @@ async function handleAdminApi(request, env) {
       fullName,
       provider,
       isSharedPassword: provider === "shared-password",
+      organizationId: tenant.organizationId,
     });
     return json(200, { ok: true, record });
   }
@@ -945,6 +1125,7 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const tenant = resolveTenantContext(request, env);
     const payload = await request.json().catch(() => null);
     const submittedAt = oneLine(payload?.submittedAt);
     const studentFullName = oneLine(payload?.studentFullName);
@@ -956,7 +1137,8 @@ async function handleAdminApi(request, env) {
       return json(400, { ok: false, error: "Missing submission metadata." });
     }
 
-    const key = buildSubmissionMetaKey({ submittedAt, studentFullName, examId, reason });
+    const organizationId = normalizeOrganizationId(payload?.organizationId || tenant.organizationId);
+    const key = buildSubmissionMetaKeyWithOrganization({ submittedAt, studentFullName, examId, reason, organizationId });
     const record = {
       email,
       provider,
@@ -964,6 +1146,7 @@ async function handleAdminApi(request, env) {
       examId,
       submittedAt,
       reason,
+      organizationId,
       updatedAt: new Date().toISOString(),
     };
     await writeJsonKv(env.STUDENT_REGISTRY, `submission:${key}`, record);
@@ -972,6 +1155,7 @@ async function handleAdminApi(request, env) {
       fullName: studentFullName,
       provider,
       isSharedPassword: provider === "shared-password",
+      organizationId,
     });
     return json(200, { ok: true, record });
   }
@@ -1020,6 +1204,10 @@ async function handleAdminApi(request, env) {
 
     const adminAuth = await authenticateAdmin(request, env);
     const email = normalizeEmail(auth?.user?.email || "");
+    const recordOrganizationId = normalizeOrganizationId(record?.organizationId || resolveTenantContext(request, env).organizationId);
+    if (adminAuth.ok && !canActorAccessOrganization(adminAuth, recordOrganizationId)) {
+      return json(403, { ok: false, error: "This practice result does not belong to the current tenant." });
+    }
     if (!adminAuth.ok && normalizeEmail(record?.email || "") !== email) {
       await logSecurityEvent(env, request, "practice_result_owner_mismatch", {
         email,
@@ -1039,6 +1227,7 @@ async function handleAdminApi(request, env) {
   if (request.method === "POST" && action === "studentResults") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const tenant = resolveTenantContext(request, env);
 
     const payload = await request.json().catch(() => null);
     const rows = Array.isArray(payload?.rows) ? payload.rows : [];
@@ -1064,10 +1253,15 @@ async function handleAdminApi(request, env) {
     if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
       return json(response.ok ? 502 : response.status, { ok: false, error: "Could not load student result matches." });
     }
+    const visibleResults = await filterRowsForAdminActor(data.results, {
+      isSuperAdmin: false,
+      organizationId: tenant.organizationId,
+      tenant,
+    }, env);
 
     const matches = await Promise.all(ownedRows
       .map((row) => {
-        const match = matchStudentResultRow(row, data.results);
+        const match = matchStudentResultRow(row, visibleResults);
         if (!match) return null;
         return readSubmissionScoreMeta(env, row).then((scoreMeta) => ({
           requestedKey: buildResultMatchKey(row),
@@ -1079,15 +1273,84 @@ async function handleAdminApi(request, env) {
     return json(200, { ok: true, results: filteredMatches });
   }
 
+  if (request.method === "POST" && action === "uploadSpeaking") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const tenant = resolveTenantContext(request, env);
+    const payload = await request.json().catch(() => null);
+    if (!payload || typeof payload !== "object") {
+      return json(400, { ok: false, error: "Missing speaking upload payload." });
+    }
+    const studentEmail = normalizeEmail(auth?.user?.email || payload?.studentEmail || "");
+    const signInMethod = oneLine(payload?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+    const nextPayload = {
+      ...payload,
+      studentEmail,
+      signInMethod,
+      organizationId: tenant.organizationId,
+    };
+    const backendUrl = new URL(String(env.ADMIN_BACKEND_URL || ""));
+    const bodyText = JSON.stringify(nextPayload);
+    const signedUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "POST", bodyText, env);
+    const response = await fetch(signedUrl, {
+      method: "POST",
+      headers: await buildAppsScriptHeaders(
+        new Request(request.url, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8", Accept: "application/json" },
+        }),
+        env,
+        signedUrl,
+        bodyText
+      ),
+      body: bodyText,
+    });
+    const text = await response.text();
+    return new Response(text, {
+      status: response.status,
+      headers: {
+        "content-type": response.headers.get("content-type") || "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    });
+  }
+
   if (request.method === "GET" && action === "studentPracticeResults") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const rows = await getStudentPracticeRows(env, normalizeEmail(auth?.user?.email || ""));
+    const tenant = resolveTenantContext(request, env);
+    const rows = await getStudentPracticeRows(env, normalizeEmail(auth?.user?.email || ""), tenant.organizationId);
     return json(200, { ok: true, results: rows });
   }
 
   if (request.method === "POST") {
-    return proxy(request, String(env.ADMIN_BACKEND_URL || ""), env);
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const tenant = resolveTenantContext(request, env);
+    const bodyText = await request.clone().text().catch(() => "");
+    const contentType = String(request.headers.get("Content-Type") || "").toLowerCase();
+    let nextBodyText = bodyText;
+    if (contentType.includes("application/x-www-form-urlencoded")) {
+      const params = new URLSearchParams(bodyText);
+      const payloadText = params.get("payload");
+      if (payloadText) {
+        try {
+          const parsed = JSON.parse(payloadText);
+          parsed.organizationId = normalizeOrganizationId(parsed?.organizationId || tenant.organizationId);
+          parsed.studentEmail = normalizeEmail(parsed?.studentEmail || auth?.user?.email || "");
+          parsed.signInMethod = oneLine(parsed?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+          params.set("payload", JSON.stringify(parsed));
+          nextBodyText = params.toString();
+        } catch (e) {}
+      }
+    }
+    const backendUrl = String(env.ADMIN_BACKEND_URL || "");
+    const signedUrl = await buildSignedAppsScriptUrl(backendUrl, request.method, nextBodyText, env);
+    return fetch(signedUrl, {
+      method: request.method,
+      headers: await buildAppsScriptHeaders(request, env, signedUrl, nextBodyText),
+      body: nextBodyText,
+    });
   }
 
   return json(405, { ok: false, error: "Method not allowed." });
@@ -1100,21 +1363,35 @@ async function authenticateAdmin(request, env) {
     return { ok: false, status: 403, error: "Shared-password student sign-in cannot use admin tools." };
   }
 
+  const tenant = resolveTenantContext(request, env);
   const allowedEmails = String(env.ADMIN_ALLOWED_EMAILS || "")
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
+  const tenantAdminMap = getTenantAdminMap(env);
 
-  if (!allowedEmails.length) {
+  if (!allowedEmails.length && !Object.keys(tenantAdminMap).length) {
     return { ok: false, status: 503, error: "Admin access is not configured." };
   }
 
   const email = String(auth.user?.email || "").trim().toLowerCase();
-  if (!allowedEmails.includes(email)) {
+  const isSuperAdmin = allowedEmails.includes(email);
+  const tenantAdminOrg = tenantAdminMap[email] || "";
+  if (!isSuperAdmin && !tenantAdminOrg) {
     return { ok: false, status: 403, error: "Your account is not allowed to use admin tools." };
   }
 
-  return auth;
+  if (!isSuperAdmin && tenant.organizationId && tenantAdminOrg !== tenant.organizationId) {
+    return { ok: false, status: 403, error: "This admin account is not allowed to use this tenant domain." };
+  }
+
+  return {
+    ...auth,
+    role: isSuperAdmin ? "super_admin" : "tenant_admin",
+    isSuperAdmin,
+    organizationId: isSuperAdmin ? null : tenantAdminOrg,
+    tenant,
+  };
 }
 
 async function authenticateUser(request, env) {
@@ -1161,6 +1438,17 @@ async function authenticateUser(request, env) {
   }
 
   return { ok: true, status: 200, kind: "supabase", user };
+}
+
+function getActorOrganizationId(actor) {
+  return normalizeOrganizationId(actor?.organizationId || actor?.tenant?.organizationId || "");
+}
+
+function canActorAccessOrganization(actor, organizationId) {
+  const normalizedOrganizationId = normalizeOrganizationId(organizationId);
+  if (!normalizedOrganizationId) return !!actor?.isSuperAdmin;
+  if (actor?.isSuperAdmin) return true;
+  return getActorOrganizationId(actor) === normalizedOrganizationId;
 }
 
 function deriveNameFromEmail(email) {
@@ -1434,8 +1722,26 @@ function buildSubmissionMetaKey(row) {
   ].join("::");
 }
 
+function buildSubmissionMetaKeyWithOrganization(row) {
+  const organizationId = normalizeOrganizationId(row?.organizationId || row?.organization_id || "");
+  const base = buildSubmissionMetaKey(row);
+  if (!base) return "";
+  return organizationId ? `${organizationId}::${base}` : base;
+}
+
+function buildSubmissionLookupKeys(row, preferredOrganizationId = "") {
+  const base = buildSubmissionMetaKey(row);
+  const organizationId = normalizeOrganizationId(
+    row?.organizationId || row?.organization_id || preferredOrganizationId || ""
+  );
+  const keys = [];
+  if (base && organizationId) keys.push(`${organizationId}::${base}`);
+  if (base) keys.push(base);
+  return Array.from(new Set(keys.filter(Boolean)));
+}
+
 function buildSubmissionScoreKey(row) {
-  const key = buildSubmissionMetaKey(row);
+  const key = buildSubmissionMetaKeyWithOrganization(row);
   return key ? `score:${key}` : "";
 }
 
@@ -1449,10 +1755,13 @@ function toRoundedOverallBand(parts) {
 }
 
 async function readSubmissionScoreMeta(env, row) {
-  const key = buildSubmissionScoreKey(row);
-  if (!env?.STUDENT_REGISTRY || !key) return {};
-  const record = await readJsonKv(env.STUDENT_REGISTRY, key);
-  return record && typeof record === "object" ? record : {};
+  if (!env?.STUDENT_REGISTRY) return {};
+  const keys = buildSubmissionLookupKeys(row).map((key) => `score:${key}`);
+  for (const key of keys) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, key);
+    if (record && typeof record === "object") return record;
+  }
+  return {};
 }
 
 async function writeSubmissionScoreMeta(env, row, patch = {}) {
@@ -1462,6 +1771,10 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
   const next = {
     ...current,
     ...patch,
+    organizationId:
+      normalizeOrganizationId(
+        patch?.organizationId || patch?.organization_id || row?.organizationId || row?.organization_id || current?.organizationId || ""
+      ) || undefined,
     updatedAt: new Date().toISOString(),
   };
   await writeJsonKv(env.STUDENT_REGISTRY, key, next);
@@ -1487,6 +1800,7 @@ function mergeSummaryWithScoreMeta(summary, scoreMeta) {
   ]);
   return {
     ...summary,
+    organizationId: normalizeOrganizationId(scoreMeta?.organizationId || summary?.organizationId || summary?.organization_id || ""),
     task1Band,
     task2Band,
     finalWritingBand,
@@ -1677,9 +1991,18 @@ async function upsertStudentRegistry(env, payload) {
     ...(current.methods && typeof current.methods === "object" ? current.methods : {}),
     [provider]: true,
   };
+  const nextOrganizationId = normalizeOrganizationId(payload?.organizationId || current.organizationId || "");
+  const organizationIds = new Set(
+    Array.isArray(current.organizationIds)
+      ? current.organizationIds.map((value) => normalizeOrganizationId(value)).filter(Boolean)
+      : []
+  );
+  if (nextOrganizationId) organizationIds.add(nextOrganizationId);
 
   const next = {
     email,
+    organizationId: nextOrganizationId || undefined,
+    organizationIds: Array.from(organizationIds),
     fullName: oneLine(payload?.fullName || current.fullName || deriveNameFromEmail(email)),
     firstName: oneLine(payload?.firstName || current.firstName || ""),
     lastName: oneLine(payload?.lastName || current.lastName || ""),
@@ -1709,19 +2032,35 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
     return { ok: false, status: 503, error: "Student registry is not configured." };
   }
 
-  const key = buildSubmissionMetaKey({
-    submittedAt: rowLike?.submittedAt || rowLike?.submitted_at || "",
-    studentFullName: rowLike?.studentFullName || rowLike?.student_full_name || "",
-    examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
-    reason: rowLike?.reason || "",
-  });
-  if (!key) {
+  const tenant = resolveTenantContext(request, env);
+  const organizationId = normalizeOrganizationId(
+    rowLike?.organizationId || rowLike?.organization_id || tenant.organizationId
+  );
+  const lookupRow = {
+    ...rowLike,
+    organizationId,
+  };
+  const keys = buildSubmissionLookupKeys(lookupRow, organizationId);
+  if (!keys.length) {
     await logSecurityEvent(env, request, "student_submission_missing_lookup_fields", { email });
     return { ok: false, status: 400, error: "Missing submission lookup fields." };
   }
 
-  const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+  let record = null;
+  for (const key of keys) {
+    record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+    if (record) break;
+  }
   if (record?.email) {
+    const recordOrganizationId = normalizeOrganizationId(record.organizationId || organizationId);
+    if (organizationId && recordOrganizationId && recordOrganizationId !== organizationId) {
+      await logSecurityEvent(env, request, "student_submission_org_mismatch", {
+        email,
+        organizationId,
+        recordOrganizationId,
+      });
+      return { ok: false, status: 403, error: "This submission is not available for the current account." };
+    }
     if (normalizeEmail(record.email) !== email) {
       await logSecurityEvent(env, request, "student_submission_owner_mismatch", {
         email,
@@ -1743,6 +2082,7 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
     await logSecurityEvent(env, request, "student_submission_denied_no_registry_match", {
       email,
       examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
+      organizationId,
     });
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
@@ -1759,6 +2099,7 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   verifyUrl.searchParams.set("submitted_at", `eq.${submittedAt}`);
   verifyUrl.searchParams.set("exam_id", `eq.${examId}`);
   verifyUrl.searchParams.set("user_email", `eq.${email}`);
+  if (organizationId) verifyUrl.searchParams.set("organization_id", `eq.${organizationId}`);
   verifyUrl.searchParams.set("limit", "1");
 
   const verifyRes = await fetch(verifyUrl.toString(), {
@@ -1774,6 +2115,7 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
       email,
       examId,
       submittedAt,
+      organizationId,
     });
     return { ok: false, status: 403, error: "This submission is not available for the current account." };
   }
@@ -1781,21 +2123,23 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   return { ok: true, status: 200, record: null };
 }
 
-async function studentOwnsSubmission(rowLike, email, env) {
+async function studentOwnsSubmission(rowLike, email, env, organizationId = "") {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail || !env?.STUDENT_REGISTRY) return false;
 
-  const key = buildSubmissionMetaKey({
-    submittedAt: rowLike?.submittedAt || rowLike?.submitted_at || "",
-    studentFullName: rowLike?.studentFullName || rowLike?.student_full_name || "",
-    examId: rowLike?.examId || rowLike?.exam_id || rowLike?.active_test_id || "",
-    reason: rowLike?.reason || "",
-  });
-  if (!key) return false;
+  const normalizedOrganizationId = normalizeOrganizationId(organizationId);
+  const keys = buildSubmissionLookupKeys(rowLike, normalizedOrganizationId);
+  if (!keys.length) return false;
 
-  const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
-  if (record?.email) {
-    return normalizeEmail(record.email) === normalizedEmail;
+  for (const key of keys) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+    if (record?.email) {
+      const recordOrganizationId = normalizeOrganizationId(record.organizationId || normalizedOrganizationId);
+      if (normalizedOrganizationId && recordOrganizationId && recordOrganizationId !== normalizedOrganizationId) {
+        return false;
+      }
+      return normalizeEmail(record.email) === normalizedEmail;
+    }
   }
 
   if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return false;
@@ -1808,6 +2152,7 @@ async function studentOwnsSubmission(rowLike, email, env) {
   verifyUrl.searchParams.set("submitted_at", `eq.${submittedAt}`);
   verifyUrl.searchParams.set("exam_id", `eq.${examId}`);
   verifyUrl.searchParams.set("user_email", `eq.${normalizedEmail}`);
+  if (normalizedOrganizationId) verifyUrl.searchParams.set("organization_id", `eq.${normalizedOrganizationId}`);
   verifyUrl.searchParams.set("limit", "1");
 
   const verifyRes = await fetch(verifyUrl.toString(), {
@@ -1820,6 +2165,39 @@ async function studentOwnsSubmission(rowLike, email, env) {
   if (!verifyRes?.ok) return false;
   const rows = await verifyRes.json().catch(() => []);
   return Array.isArray(rows) && rows.length > 0;
+}
+
+async function inferSubmissionOrganizationId(env, rowLike, preferredOrganizationId = "") {
+  const direct = normalizeOrganizationId(
+    rowLike?.organizationId || rowLike?.organization_id || ""
+  );
+  if (direct) return direct;
+  const keys = buildSubmissionLookupKeys(rowLike, preferredOrganizationId);
+  for (const key of keys) {
+    const record = await readJsonKv(env?.STUDENT_REGISTRY, `submission:${key}`);
+    const recordOrganizationId = normalizeOrganizationId(record?.organizationId || "");
+    if (recordOrganizationId) return recordOrganizationId;
+    const scoreRecord = await readJsonKv(env?.STUDENT_REGISTRY, `score:${key}`);
+    const scoreOrganizationId = normalizeOrganizationId(scoreRecord?.organizationId || "");
+    if (scoreOrganizationId) return scoreOrganizationId;
+  }
+  return "";
+}
+
+async function filterRowsForAdminActor(rows, actor, env) {
+  if (actor?.isSuperAdmin) return Array.isArray(rows) ? rows : [];
+  const organizationId = getActorOrganizationId(actor);
+  const filtered = [];
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const rowOrganizationId = await inferSubmissionOrganizationId(env, row, organizationId);
+    if (rowOrganizationId && rowOrganizationId === organizationId) {
+      filtered.push({
+        ...row,
+        organizationId: rowOrganizationId,
+      });
+    }
+  }
+  return filtered;
 }
 
 function parseCsv(text) {
@@ -2033,6 +2411,7 @@ function summarizePracticeResultRecord(record) {
     practiceSection: section,
     practiceLabel: record?.practiceLabel || inferPracticeLabel(record?.examId || ""),
     studentEmail: normalizeEmail(record?.email || ""),
+    organizationId: normalizeOrganizationId(record?.organizationId || ""),
     signInMethod: oneLine(record?.signInMethod || "email") || "email",
     submittedAt: record?.submittedAt || "",
     studentFullName: record?.studentFullName || "",
@@ -2073,6 +2452,7 @@ function buildPracticeHistoryRow(record) {
     practice_id: summary.id,
     user_id: "",
     user_email: normalizeEmail(record?.email || ""),
+    organization_id: summary.organizationId || null,
     student_full_name: summary.studentFullName || "",
     exam_id: summary.examId || "",
     active_test_id: record?.activeTestId || summary.examId || "",
@@ -2126,6 +2506,8 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
     "email"
   ) || "email";
   const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
+  const tenant = resolveTenantContext(request, env);
+  const organizationId = tenant.organizationId;
 
   if (!email || !["listening", "reading"].includes(section) || !activeTestId || !examId || !studentFullName) {
     return { ok: false, status: 400, error: "Missing practice submission inputs." };
@@ -2170,6 +2552,7 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
     submittedAt,
     studentFullName,
     email,
+    organizationId,
     signInMethod,
     examId,
     activeTestId,
@@ -2201,10 +2584,14 @@ async function listJsonByPrefix(namespace, prefix, limit = 1000) {
   return rows;
 }
 
-async function getStudentPracticeRows(env, email) {
+async function getStudentPracticeRows(env, email, organizationId = "") {
   if (!env?.STUDENT_REGISTRY || !email) return [];
   const records = await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${email}:`, 500);
   const rows = await Promise.all(records.map(async (record) => {
+    const recordOrganizationId = normalizeOrganizationId(record?.organizationId || "");
+    if (organizationId && recordOrganizationId !== normalizeOrganizationId(organizationId)) {
+      return null;
+    }
     const scoreMeta = await readSubmissionScoreMeta(env, record);
     const row = buildPracticeHistoryRow(record);
     row.speaking_band = toNullableBand(scoreMeta?.speakingBand);
@@ -2217,10 +2604,12 @@ async function getStudentPracticeRows(env, email) {
     return row;
   }));
   return rows
+    .filter(Boolean)
     .sort((a, b) => Date.parse(String(b?.submitted_at || "")) - Date.parse(String(a?.submitted_at || "")));
 }
 
 async function getPracticeResultsSummary(env, options = {}) {
+  const actor = options?.actor || null;
   const objectiveRows = (await listJsonByPrefix(env?.STUDENT_REGISTRY, "practice-result:", 1000))
     .map(summarizePracticeResultRecord);
 
@@ -2250,7 +2639,10 @@ async function getPracticeResultsSummary(env, options = {}) {
     backendRows = [];
   }
 
-  const merged = await Promise.all([...backendRows, ...objectiveRows].map(async (row) => {
+  const scopedRows = actor
+    ? await filterRowsForAdminActor([...backendRows, ...objectiveRows], actor, env)
+    : [...backendRows, ...objectiveRows];
+  const merged = await Promise.all(scopedRows.map(async (row) => {
     const scoreMeta = await readSubmissionScoreMeta(env, row);
     return mergeSummaryWithScoreMeta(row, scoreMeta);
   }));
@@ -2296,9 +2688,11 @@ function getCachedAdminResultsSummary(key) {
   return Array.isArray(entry.value) ? entry.value : null;
 }
 
-function buildAdminResultsSummaryCacheUrl(url) {
+function buildAdminResultsSummaryCacheUrl(url, actor = null) {
   const cacheUrl = new URL(url.toString());
   cacheUrl.searchParams.delete("t");
+  const scope = actor?.isSuperAdmin ? "super" : getActorOrganizationId(actor) || "public";
+  cacheUrl.searchParams.set("_tenantScope", scope);
   return cacheUrl;
 }
 
@@ -2361,7 +2755,8 @@ async function fetchAppsScriptJsonWithRetry(url, options = {}) {
 }
 
 async function getAdminResultsSummary(env, options = {}) {
-  const cacheKey = "all";
+  const actor = options?.actor || null;
+  const cacheKey = actor?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(actor) || "public"}`;
   const forceRefresh = options?.forceRefresh === true;
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
@@ -2381,13 +2776,14 @@ async function getAdminResultsSummary(env, options = {}) {
       throw new Error("Could not load admin results summary.");
     }
 
-    const summaries = await Promise.all(data.results.map(async (row) => {
-      const summary = summarizeAdminResultRow(row);
-      const scoreMeta = await readSubmissionScoreMeta(env, summary);
-      return mergeSummaryWithScoreMeta(summary, scoreMeta);
-    }));
-    setCachedAdminResultsSummary(cacheKey, summaries);
-    return summaries;
+  const visibleRows = await filterRowsForAdminActor(data.results, actor || { isSuperAdmin: true }, env);
+  const summaries = await Promise.all(visibleRows.map(async (row) => {
+    const summary = summarizeAdminResultRow(row);
+    const scoreMeta = await readSubmissionScoreMeta(env, summary);
+    return mergeSummaryWithScoreMeta(summary, scoreMeta);
+  }));
+  setCachedAdminResultsSummary(cacheKey, summaries);
+  return summaries;
   } catch (error) {
     const stale = getAnyCachedAdminResultsSummary(cacheKey);
     if (stale?.length) return stale;
@@ -2412,6 +2808,7 @@ function summarizeAdminResultRow(row) {
     studentFullName: oneLine(row?.studentFullName || row?.student_full_name || ""),
     examId: oneLine(row?.examId || row?.exam_id || row?.active_test_id || ""),
     reason: oneLine(row?.reason || ""),
+    organizationId: normalizeOrganizationId(row?.organizationId || row?.organization_id || ""),
     listeningTotal: toNullableNumber(row?.listeningTotal ?? row?.listening_total),
     listeningBand: toNullableBand(row?.listeningBand || row?.listening_band || ""),
     readingTotal: toNullableNumber(row?.readingTotal ?? row?.reading_total),

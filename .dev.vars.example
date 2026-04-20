@@ -1,5 +1,9 @@
 ADMIN_BACKEND_SIGNING_SECRET=optional-long-random-secret-for-worker-to-apps-script-signing
 ADMIN_ALLOWED_EMAILS=admin@example.com
+PRIMARY_TENANT_HOST=ieltsmock.org
+PRIMARY_ORGANIZATION_ID=ieltsmock
+TENANT_HOST_MAP={"ieltsmock.org":{"organizationId":"ieltsmock","name":"IELTS Mock Practice Portal","logoUrl":""}}
+TENANT_ADMIN_MAP={"tenant-admin@example.com":"ieltsmock"}
 TEST_ENTRY_PASSWORD=replace-with-student-test-entry-password
 SHARED_STUDENT_PASSWORD=replace-with-shared-student-password
 SHARED_STUDENT_TOKEN_SECRET=replace-with-long-random-shared-token-secret

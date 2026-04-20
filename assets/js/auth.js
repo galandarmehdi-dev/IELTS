@@ -648,11 +648,27 @@ function sanitizeDesiredView(view, activeTestId) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
   const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
+  const launchContext = window.IELTS?.Registry?.getLaunchContext?.() || null;
+  const hasFreshLaunch = (() => {
+    try {
+      const rawFresh = sessionStorage.getItem("IELTS:EXAM:freshLaunch");
+      if (!rawFresh) return false;
+      const payload = JSON.parse(rawFresh);
+      const ageMs = Date.now() - Number(payload?.ts || 0);
+      if (ageMs < 0 || ageMs > 20000) return false;
+      if (String(payload?.testId || "").trim() !== String(activeTestId || "").trim()) return false;
+      return String(payload?.view || "").trim() === normalized;
+    } catch (e) {
+      return false;
+    }
+  })();
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
   if (["listening", "reading", "writing"].includes(normalized)) {
     if (window.IELTS?.Access?.isAdmin?.() === true) return normalized;
+    if (hasFreshLaunch) return normalized;
+    if (launchContext?.mode === "full") return normalized;
     if (!hasResumableStoredAttempt(activeTestId)) return "home";
   }
   return normalized;

@@ -61,6 +61,36 @@
       return null;
     }
   }
+  const FRESH_LAUNCH_KEY = "IELTS:EXAM:freshLaunch";
+  function setFreshLaunch(view) {
+    try {
+      sessionStorage.setItem(
+        FRESH_LAUNCH_KEY,
+        JSON.stringify({
+          view: String(view || "").trim(),
+          testId: String(getActiveTestId() || "").trim(),
+          ts: Date.now(),
+        })
+      );
+    } catch (e) {}
+  }
+  function clearFreshLaunch() {
+    try { sessionStorage.removeItem(FRESH_LAUNCH_KEY); } catch (e) {}
+  }
+  function hasFreshLaunch(view) {
+    try {
+      const raw = sessionStorage.getItem(FRESH_LAUNCH_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      const ageMs = Date.now() - Number(payload?.ts || 0);
+      if (!payload?.view || !payload?.testId || ageMs < 0 || ageMs > 20000) return false;
+      if (String(payload.testId).trim() !== String(getActiveTestId() || "").trim()) return false;
+      if (view && String(payload.view).trim() !== String(view).trim()) return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
   function isFullExamFlow() {
     const ctx = getLaunchContext();
     return !ctx || ctx.mode === "full";
@@ -78,6 +108,7 @@
 
   function resetToPublicHomeFromStaleRoute() {
     try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+    try { clearFreshLaunch(); } catch (e) {}
     try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
     try { UI().setExamStarted(false); } catch (e) {}
     try { R()?.clearLaunchContext?.(); } catch (e) {}
@@ -572,6 +603,9 @@
       if (isExamRouteView(nextRoute.view)) {
         if (isAdminView()) {
           if (document.body?.dataset?.activeView !== nextRoute.view) openAdminRoute(nextRoute);
+          return;
+        }
+        if (hasFreshLaunch(nextRoute.view)) {
           return;
         }
         if (!hasResumableStudentAttempt()) {
@@ -3122,9 +3156,14 @@
 
 function startFreshExam() {
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
-      R()?.clearLaunchContext?.();
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
+      clearFreshLaunch();
+      setFreshLaunch("listening");
+      R()?.setLaunchContext?.({
+        mode: "full",
+        testId: window.IELTS?.Registry?.getActiveTestId?.() || "ielts1",
+      });
       safe(() => Modal().hideModal());
 
       try { UI().setExamStarted(true); } catch (e) {}

@@ -2111,9 +2111,7 @@ qnum.textContent = `${item.q}`;
         if (hasSubmittedReading) return;
         Modal().showModal("Submit Reading now?", "Students will be asked to start Writing.", {
           mode: "confirm",
-          showCancel: true,
           submitText: "Submit now",
-          cancelText: "Cancel",
           onConfirm: async () => {
             const latest = collectCurrentAnswersFromDOM(answersRef.current);
             answersRef.current = latest;

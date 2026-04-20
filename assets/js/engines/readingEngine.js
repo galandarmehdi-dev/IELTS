@@ -427,10 +427,10 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
               title: "Questions 32–36",
               instructions: [
                 "Do the following statements agree with the claims of the writer?",
-                "Choose YES / NO / NOT GIVEN.",
+                "Choose TRUE / NO / NOT GIVEN.",
                 "Write your answers in the gaps.",
               ],
-              customChoices: ["YES", "NO", "NOT GIVEN"],
+              customChoices: ["TRUE", "NO", "NOT GIVEN"],
               items: [
                 { q: 32, text: "In general, humans have become less rational over the last 100 years." },
                 { q: 33, text: "Most people lack a clear sense of their own personal identity." },

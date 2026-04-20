@@ -2,7 +2,6 @@
 (function () {
   "use strict";
 
-  const Auth = () => window.IELTS?.Auth;
   const ADMIN_API_PATH = "/api/admin";
 
   const SPEAKING_UPLOAD_ENDPOINT =
@@ -255,12 +254,7 @@
     const task = (async () => {
       const url = new URL("/api/test-content", window.location.origin);
       url.searchParams.set("testId", id);
-      const token = await Auth()?.getAccessToken?.().catch(() => null);
-      const res = await fetch(url.toString(), {
-        method: "GET",
-        credentials: "same-origin",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const res = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true || !data.content) {
         throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
@@ -280,14 +274,6 @@
     return ensureTestContent(getActiveTestId());
   }
 
-  async function buildProtectedScriptUrl(url) {
-    const token = await Auth()?.getAccessToken?.().catch(() => null);
-    if (!token) throw new Error("You need to be signed in to load protected test content.");
-    const next = new URL(String(url || ""), window.location.origin);
-    next.searchParams.set("accessToken", token);
-    return next.toString();
-  }
-
   function loadScriptOnce(url) {
     const key = String(url || "").trim();
     if (!key) return Promise.resolve(false);
@@ -299,16 +285,12 @@
         return;
       }
       const script = document.createElement("script");
-      buildProtectedScriptUrl(key)
-        .then((signedUrl) => {
-          script.src = signedUrl;
-          script.async = true;
-          script.dataset.protectedScript = key;
-          script.onload = () => resolve(true);
-          script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
-          document.head.appendChild(script);
-        })
-        .catch(reject);
+      script.src = key;
+      script.async = true;
+      script.dataset.protectedScript = key;
+      script.onload = () => resolve(true);
+      script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
+      document.head.appendChild(script);
     }).finally(() => {
       remoteScriptPromises.delete(key);
     });

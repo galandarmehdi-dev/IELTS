@@ -246,24 +246,6 @@ function saveProfileCacheByEmail(next) {
   } catch (e) {}
 }
 
-function clearPersistentStudentProfileState() {
-  try {
-    localStorage.removeItem(PROFILE_CACHE_BY_EMAIL_KEY);
-  } catch (e) {}
-  try {
-    const prefixes = ["IELTS:DASHBOARD:"];
-    const toRemove = [];
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (!key) continue;
-      if (prefixes.some((prefix) => key.startsWith(prefix))) toRemove.push(key);
-    }
-    toRemove.forEach((key) => {
-      try { localStorage.removeItem(key); } catch (e) {}
-    });
-  } catch (e) {}
-}
-
 function markPersonalPasswordEnabled(email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return;
@@ -1253,7 +1235,6 @@ async function logout() {
   showProtectedApp(false);
   clearSharedSession();
   clearSavedUser();
-  clearPersistentStudentProfileState();
   syncAuthExport();
   setMessage("");
   notifyAuthChanged();

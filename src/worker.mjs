@@ -95,9 +95,6 @@ async function handleProtectedTestContentApi(request) {
     return json(405, { ok: false, error: "Method not allowed." });
   }
 
-  const auth = await authenticateContentRequest(request, env);
-  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-
   const url = new URL(request.url);
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
   const content = getProtectedTestContent(testId);
@@ -125,9 +122,6 @@ async function handleProtectedTestContentScriptApi(request) {
   if (request.method !== "GET") {
     return json(405, { ok: false, error: "Method not allowed." });
   }
-
-  const auth = await authenticateContentRequest(request, env);
-  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
   const url = new URL(request.url);
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
@@ -1041,24 +1035,6 @@ async function authenticateUser(request, env) {
   }
 
   const token = String(authHeader.slice("Bearer ".length) || "").trim();
-  return authenticateBearerToken(token, env, authHeader);
-}
-
-async function authenticateContentRequest(request, env) {
-  const authHeader = request.headers.get("Authorization");
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    return authenticateUser(request, env);
-  }
-
-  const url = new URL(request.url);
-  const token = String(url.searchParams.get("accessToken") || "").trim();
-  if (!token) {
-    return { ok: false, status: 401, error: "Missing access token." };
-  }
-  return authenticateBearerToken(token, env, `Bearer ${token}`);
-}
-
-async function authenticateBearerToken(token, env, authHeader = `Bearer ${token}`) {
   if (token.startsWith("shared.")) {
     const payload = await verifySharedStudentToken(token, env);
     if (!payload?.email) {

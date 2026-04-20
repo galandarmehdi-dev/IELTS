@@ -21,9 +21,19 @@
     return authUser || sharedUser || null;
   }
 
-  function getCurrentOrganizationId() {
-    return String(Access()?.getOrganizationId?.() || "").trim().toLowerCase();
-  }
+    function getCurrentOrganizationId() {
+      return String(Access()?.getOrganizationId?.() || "").trim().toLowerCase();
+    }
+
+    async function getSubmissionAccessToken({ maxMs = 4000, intervalMs = 150 } = {}) {
+      const startedAt = Date.now();
+      while (Date.now() - startedAt <= maxMs) {
+        const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
+        if (token) return token;
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      }
+      return null;
+    }
 
   function startWritingSystem() {
     if (window.__IELTS_WRITING_INIT__) return;
@@ -397,7 +407,7 @@
         const url = R().buildAdminApiUrl?.({ action: "recordSubmissionMeta" });
         if (!url) return { ok: false, skipped: true };
         const user = getCurrentAuthUser();
-        const token = await window.IELTS?.Auth?.getAccessToken?.();
+        const token = await getSubmissionAccessToken();
         if (!token || !user?.email) return { ok: false, skipped: true };
 
         const payload = {
@@ -433,7 +443,7 @@
       try {
         const supabase = window.IELTS?.Auth?.supabase;
         const authUser = getCurrentAuthUser();
-        const identityKey = window.IELTS?.Auth?.getIdentityKey?.() || authUser?.identityKey || authUser?.email || authUser?.id || "";
+        const identityKey = window.IELTS?.Auth?.getIdentityKey?.() || authUser?.id || authUser?.identityKey || authUser?.email || "";
         const historyTable = window.IELTS?.Registry?.HISTORY_TABLE || "exam_attempts";
         if (!supabase || !identityKey || !authUser?.email) return { ok: false, skipped: true };
 
@@ -483,7 +493,7 @@
       });
       if (!url) return { ok: false, error: "Missing endpoint" };
 
-      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const token = await getSubmissionAccessToken();
       const res = await fetchWithTimeout(url.toString(), {
         method: "GET",
         cache: "no-store",
@@ -641,16 +651,18 @@
         let submissionWarning = "";
         if (endpoint) {
           try {
-            const body = new URLSearchParams({
-              payload: JSON.stringify(finalPayload)
-            });
+            const token = await getSubmissionAccessToken();
+            if (!token) throw new Error("Missing student access token.");
+            const submitUrl = R().buildAdminApiUrl?.({ action: "submitExam" });
+            if (!submitUrl) throw new Error("Submission endpoint is missing.");
 
-            const res = await fetchWithTimeout(endpoint, {
+            const res = await fetchWithTimeout(submitUrl.toString(), {
               method: "POST",
               headers: {
-                "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
               },
-              body: body.toString()
+              body: JSON.stringify(finalPayload)
             }, Number(R().TIMEOUTS?.submissionPostMs || 45000));
 
             const text = await res.text();

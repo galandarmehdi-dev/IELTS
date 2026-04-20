@@ -261,10 +261,15 @@
   }
 
   async function loadTenantBootstrap() {
+    const hostname = String(window.location.hostname || "").trim().toLowerCase();
+    if (!hostname || hostname === "localhost" || hostname === "127.0.0.1") {
+      return null;
+    }
     const url = R()?.buildAdminApiUrl?.({ action: "tenantBootstrap" });
     if (!url) return null;
     try {
       const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+      if (res.status === 404) return null;
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true || !data.tenant) return null;
       tenantBootstrap = data.tenant;

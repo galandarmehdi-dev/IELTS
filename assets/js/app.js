@@ -60,10 +60,41 @@
       return null;
     }
   }
+  const FRESH_LAUNCH_KEY = "IELTS:EXAM:freshLaunch";
+  function setFreshLaunch(view) {
+    try {
+      sessionStorage.setItem(
+        FRESH_LAUNCH_KEY,
+        JSON.stringify({
+          view: String(view || "").trim(),
+          testId: String(getActiveTestId() || "").trim(),
+          ts: Date.now(),
+        })
+      );
+    } catch (e) {}
+  }
+  function clearFreshLaunch() {
+    try { sessionStorage.removeItem(FRESH_LAUNCH_KEY); } catch (e) {}
+  }
+  function hasFreshLaunch(view) {
+    try {
+      const raw = sessionStorage.getItem(FRESH_LAUNCH_KEY);
+      if (!raw) return false;
+      const payload = JSON.parse(raw);
+      const ageMs = Date.now() - Number(payload?.ts || 0);
+      if (!payload?.view || !payload?.testId || ageMs < 0 || ageMs > 20000) return false;
+      if (String(payload.testId).trim() !== String(getActiveTestId() || "").trim()) return false;
+      if (view && String(payload.view).trim() !== String(view).trim()) return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
   function matchesActiveNonFullLaunch(view) {
     const ctx = getLaunchContext();
     const normalized = String(view || "").trim();
     if (!ctx || !normalized) return false;
+    if (ctx.mode === "full" && ["listening", "reading", "writing"].includes(normalized)) return true;
     if (ctx.mode === "section" && ctx.section === normalized) return true;
     if (ctx.mode === "practice" && ctx.skill === normalized) return true;
     return false;
@@ -205,6 +236,7 @@
 
   function resetToPublicHomeFromStaleRoute() {
     try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+    try { clearFreshLaunch(); } catch (e) {}
     try { S()?.set?.(R()?.KEYS?.HOME_LAST_VIEW, "home"); } catch (e) {}
     try { UI().setExamStarted(false); } catch (e) {}
     try { R()?.clearLaunchContext?.(); } catch (e) {}
@@ -671,6 +703,7 @@
 
     function resumeStudentExamRoute(route) {
       if (!route?.view) return;
+      try { clearFreshLaunch(); } catch (e) {}
       if (route.view === "listening") {
         try { UI().setExamStarted(true); } catch (e) {}
         try { startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to resume:', e)); } catch (e) {}
@@ -771,6 +804,9 @@
           return;
         }
         if (matchesActiveNonFullLaunch(nextRoute.view)) {
+          return;
+        }
+        if (hasFreshLaunch(nextRoute.view)) {
           return;
         }
         if (!hasResumableStudentAttempt()) {
@@ -1035,7 +1071,10 @@
         try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "listening"); } catch (e) {}
         UI().setExamNavStatus("Status: Viewing Listening");
         try {
-          startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
+          startEngineWhenReady("Listening", "initListeningSystem").catch((e) => {
+            console.error("[IELTS] Listening failed to start:", e);
+            try { showNotice("Listening failed to load. Please refresh once and try again.", "Listening"); } catch (_) {}
+          });
         } catch (e) {
           console.error("Listening failed to open from nav:", e);
           try { showNotice("Listening failed to load. Please refresh once and try again.", "Listening"); } catch (_) {}
@@ -1048,7 +1087,10 @@
         if (!isAdminView()) return;
         UI().setExamStarted(true);
         window.__IELTS_READING_INIT__ = false;
-        startEngineWhenReady("Reading", "startReadingSystem").catch(e => console.error('[IELTS] Reading failed to start:', e));
+        startEngineWhenReady("Reading", "startReadingSystem").catch((e) => {
+          console.error("[IELTS] Reading failed to start:", e);
+          try { showNotice("Reading failed to load. Please refresh once and try again.", "Reading"); } catch (_) {}
+        });
         UI().clearReadingLockStyles();
         UI().showOnly("reading");
         try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "reading"); } catch (e) {}
@@ -3893,6 +3935,8 @@ function startFreshExam() {
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       resetEngineInitFlags();
       clearAllStudentAttemptKeys();
+      clearFreshLaunch();
+      setFreshLaunch("listening");
       R()?.setLaunchContext?.({
         mode: "full",
         testId: window.IELTS?.Registry?.getActiveTestId?.() || "ielts1",

@@ -246,6 +246,24 @@ function saveProfileCacheByEmail(next) {
   } catch (e) {}
 }
 
+function clearPersistentStudentProfileState() {
+  try {
+    localStorage.removeItem(PROFILE_CACHE_BY_EMAIL_KEY);
+  } catch (e) {}
+  try {
+    const prefixes = ["IELTS:DASHBOARD:"];
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (prefixes.some((prefix) => key.startsWith(prefix))) toRemove.push(key);
+    }
+    toRemove.forEach((key) => {
+      try { localStorage.removeItem(key); } catch (e) {}
+    });
+  } catch (e) {}
+}
+
 function markPersonalPasswordEnabled(email) {
   const normalizedEmail = normalizeEmail(email);
   if (!normalizedEmail) return;
@@ -635,11 +653,26 @@ function sanitizeDesiredView(view, activeTestId) {
   const normalized = raw === "results" ? "adminResults" : raw;
   const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
   const launchContext = window.IELTS?.Registry?.getLaunchContext?.() || null;
+  const hasFreshLaunch = (() => {
+    try {
+      const rawFresh = sessionStorage.getItem("IELTS:EXAM:freshLaunch");
+      if (!rawFresh) return false;
+      const payload = JSON.parse(rawFresh);
+      const ageMs = Date.now() - Number(payload?.ts || 0);
+      if (ageMs < 0 || ageMs > 20000) return false;
+      if (String(payload?.testId || "").trim() !== String(activeTestId || "").trim()) return false;
+      return String(payload?.view || "").trim() === normalized;
+    } catch (e) {
+      return false;
+    }
+  })();
 
   if (!allowedViews.has(normalized)) return "home";
   if (normalized === "adminResults" && window.IELTS?.Access?.isAdmin?.() !== true) return "home";
   if (["listening", "reading", "writing"].includes(normalized)) {
     if (window.IELTS?.Access?.isAdmin?.() === true) return normalized;
+    if (hasFreshLaunch) return normalized;
+    if (launchContext?.mode === "full") return normalized;
     if (launchContext?.mode === "section" && launchContext?.section === normalized) return normalized;
     if (launchContext?.mode === "practice" && launchContext?.skill === normalized) return normalized;
     if (!hasResumableStoredAttempt(activeTestId)) return "home";
@@ -1235,6 +1268,7 @@ async function logout() {
   showProtectedApp(false);
   clearSharedSession();
   clearSavedUser();
+  clearPersistentStudentProfileState();
   syncAuthExport();
   setMessage("");
   notifyAuthChanged();

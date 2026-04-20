@@ -2,6 +2,7 @@
 (function () {
   "use strict";
 
+  const Auth = () => window.IELTS?.Auth;
   const ADMIN_API_PATH = "/api/admin";
 
   const SPEAKING_UPLOAD_ENDPOINT =
@@ -29,6 +30,16 @@
   const REMOTE_TEST_CONTENT = new Set(["ielts1", "ielts2", "ielts3", "ielts4", "ielts5", "ielts6", "ielts7", "ielts8", "ielts9", "ielts10", "ielts11", "ielts12", "ielts13"]);
   const remoteTestContentPromises = new Map();
   const remoteScriptPromises = new Map();
+
+  async function waitForProtectedContentToken({ maxMs = 4000, intervalMs = 120 } = {}) {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt <= maxMs) {
+      const token = await Auth()?.getAccessToken?.().catch(() => null);
+      if (token) return token;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+    return null;
+  }
 
   const POLLING = {
     markedResultIntervalMs: 10000,
@@ -254,7 +265,12 @@
     const task = (async () => {
       const url = new URL("/api/test-content", window.location.origin);
       url.searchParams.set("testId", id);
-      const res = await fetch(url.toString(), { method: "GET", credentials: "same-origin" });
+      const token = await waitForProtectedContentToken();
+      const res = await fetch(url.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const data = await res.json().catch(() => null);
       if (!res.ok || !data || data.ok !== true || !data.content) {
         throw new Error((data && data.error) || `Could not load protected content for ${id}.`);
@@ -274,24 +290,32 @@
     return ensureTestContent(getActiveTestId());
   }
 
+  async function buildProtectedScriptUrl(url) {
+    const token = await waitForProtectedContentToken();
+    if (!token) throw new Error("You need to be signed in to load protected test content.");
+    const next = new URL(String(url || ""), window.location.origin);
+    next.searchParams.set("accessToken", token);
+    return next.toString();
+  }
+
   function loadScriptOnce(url) {
     const key = String(url || "").trim();
     if (!key) return Promise.resolve(false);
     if (remoteScriptPromises.has(key)) return remoteScriptPromises.get(key);
-    const task = new Promise((resolve, reject) => {
+    const task = (async () => {
       const existing = document.querySelector(`script[data-protected-script="${CSS.escape(key)}"]`);
-      if (existing) {
-        resolve(true);
-        return;
-      }
+      if (existing) return true;
+      const signedUrl = await buildProtectedScriptUrl(key);
       const script = document.createElement("script");
-      script.src = key;
+      script.src = signedUrl;
       script.async = true;
       script.dataset.protectedScript = key;
-      script.onload = () => resolve(true);
-      script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
-      document.head.appendChild(script);
-    }).finally(() => {
+      return await new Promise((resolve, reject) => {
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error(`Could not load protected script: ${key}`));
+        document.head.appendChild(script);
+      });
+    })().finally(() => {
       remoteScriptPromises.delete(key);
     });
     remoteScriptPromises.set(key, task);

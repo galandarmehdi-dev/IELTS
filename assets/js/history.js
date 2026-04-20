@@ -7,6 +7,7 @@
 
   const UI = () => window.IELTS?.UI;
   const Auth = () => window.IELTS?.Auth;
+  const Access = () => window.IELTS?.Access;
   const Registry = () => window.IELTS?.Registry;
   const Router = () => window.IELTS?.Router;
 
@@ -338,6 +339,10 @@
     return Auth()?.getSavedUser?.() || Auth()?.getSharedSession?.()?.user || null;
   }
 
+  function getCurrentOrganizationId() {
+    return String(Access()?.getOrganizationId?.() || "").trim().toLowerCase();
+  }
+
   function getLocalHistoryStorageKey(email) {
     return `${LOCAL_HISTORY_KEY_PREFIX}${String(email || "").trim().toLowerCase()}`;
   }
@@ -389,8 +394,9 @@
 
     const query = supabase
       .from(table)
-      .select("id,user_id,user_email,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
+      .select("id,user_id,user_email,organization_id,student_full_name,exam_id,active_test_id,submitted_at,reason,task1_words,task2_words,writing_task1,writing_task2,final_payload,listening_total,listening_band,reading_total,reading_band,final_writing_band,task1_band,task2_band,task1_breakdown,task2_breakdown,task1_feedback,task2_feedback,overall_feedback")
       .ilike("user_email", email)
+      .eq("organization_id", getCurrentOrganizationId() || "")
       .order("submitted_at", { ascending: false })
       .limit(50);
 
@@ -523,6 +529,7 @@
       id: `local:${buildMatchKey(finalPayload)}`,
       user_id: String(Auth()?.getIdentityKey?.() || user?.identityKey || user?.email || user?.id || "").trim().toLowerCase(),
       user_email: String(user?.email || "").trim().toLowerCase(),
+      organization_id: finalPayload?.organizationId || getCurrentOrganizationId() || "",
       student_full_name: finalPayload?.studentFullName || user?.name || "",
       exam_id: finalPayload?.examId || "",
       active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || "",
@@ -534,6 +541,7 @@
       task2_words: Number(writing?.wordCount?.task2 || 0),
       final_payload: {
         attemptKind: finalPayload?.attemptKind || null,
+        organizationId: finalPayload?.organizationId || getCurrentOrganizationId() || null,
         practiceSection: finalPayload?.practiceSection || null,
         practiceLabel: finalPayload?.practiceLabel || null,
         practiceId: finalPayload?.practiceId || null,
@@ -604,6 +612,7 @@
     if (!result) return row;
     return {
       ...row,
+      organization_id: row.organization_id || result.organizationId || getCurrentOrganizationId() || "",
       submitted_at: row.submitted_at || result.submittedAt || "",
       student_full_name: row.student_full_name || result.studentFullName || "",
       exam_id: row.exam_id || result.examId || row.active_test_id || "",
@@ -638,6 +647,7 @@
       id: row.id || "",
       user_id: row.userId || "",
       user_email: row.studentEmail || row.userEmail || "",
+      organization_id: row.organizationId || row.organization_id || "",
       student_full_name: row.studentFullName || "",
       exam_id: row.examId || row.active_test_id || "",
       active_test_id: row.activeTestId || row.examId || "",
@@ -649,6 +659,7 @@
       task2_words: row.task2Words ?? 0,
       final_payload: row.finalPayload || {
         attemptKind: /^ielts-practice-/i.test(String(row.examId || "")) ? "practice" : "full",
+        organizationId: row.organizationId || row.organization_id || null,
         examId: row.examId || "",
         submittedAt: row.submittedAt || "",
         studentFullName: row.studentFullName || "",
@@ -856,8 +867,14 @@
       overall_band: result.overallBand ?? null,
     };
 
-    const { error } = await supabase.from(table).update(patch).eq("id", row.id).ilike("user_email", email);
-    return !error;
+    const { error } = await supabase
+      .from(table)
+      .update(patch)
+      .eq("id", row.id)
+      .eq("organization_id", row.organization_id || getCurrentOrganizationId() || "")
+      .ilike("user_email", email);
+    if (!error) return true;
+    return false;
   }
 
   function isPending(row) {

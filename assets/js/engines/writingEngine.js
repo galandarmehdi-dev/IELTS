@@ -10,6 +10,7 @@
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
+  const Access = () => window.IELTS?.Access;
   const Modal = () => window.IELTS.Modal;
 
   function getCurrentAuthUser() {
@@ -18,6 +19,10 @@
     const sharedUser = window.IELTS?.Auth?.getSharedSession?.()?.user || null;
     if (sharedUser?.email) return sharedUser;
     return authUser || sharedUser || null;
+  }
+
+  function getCurrentOrganizationId() {
+    return String(Access()?.getOrganizationId?.() || "").trim().toLowerCase();
   }
 
   function startWritingSystem() {
@@ -361,6 +366,7 @@
 
       return {
         attemptKind: finalPayload?.attemptKind || null,
+        organizationId: finalPayload?.organizationId || getCurrentOrganizationId() || null,
         practiceSection: finalPayload?.practiceSection || null,
         practiceLabel: finalPayload?.practiceLabel || null,
         examId: finalPayload?.examId || null,
@@ -399,6 +405,7 @@
           studentFullName: finalPayload?.studentFullName || user?.name || "",
           examId: finalPayload?.examId || "",
           reason: finalPayload?.reason || "",
+          organizationId: finalPayload?.organizationId || getCurrentOrganizationId() || "",
           email: String(user?.email || "").trim().toLowerCase(),
           provider: String(user?.provider || "").trim().toLowerCase() || "email",
         };
@@ -439,6 +446,7 @@
         const record = {
           user_id: String(identityKey).trim().toLowerCase(),
           user_email: String(authUser.email || "").trim().toLowerCase() || null,
+          organization_id: finalPayload?.organizationId || getCurrentOrganizationId() || null,
           student_full_name: finalPayload?.studentFullName || authUser.name || null,
           exam_id: finalPayload?.examId || null,
           active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || null,
@@ -515,6 +523,7 @@
           .from(historyTable)
           .update(patch)
           .ilike("user_email", email)
+          .eq("organization_id", finalPayload?.organizationId || getCurrentOrganizationId() || "")
           .eq("submitted_at", String(finalPayload?.submittedAt || ""))
           .eq("exam_id", String(finalPayload?.examId || ""));
 
@@ -601,6 +610,7 @@
 
         const finalPayload = {
           attemptKind: isPracticeWriting ? "practice" : "full",
+          organizationId: getCurrentOrganizationId() || null,
           practiceSection: isPracticeWriting ? "writing" : null,
           practiceLabel: isPracticeWriting ? (window.IELTS?.Practice?.buildPracticeLabel?.("writing", activeTestId, practiceScope) || "") : null,
           examId,

@@ -271,6 +271,8 @@
     remoteAudioEl = document.getElementById("remoteAudio");
 
     function getUploadEndpoint() {
+      const fromWorker = window.IELTS?.Registry?.buildAdminApiUrl?.({ action: "uploadSpeaking" });
+      if (fromWorker) return fromWorker.toString();
       const fromRegistry = window.IELTS && window.IELTS.Registry
         ? (window.IELTS.Registry.SPEAKING_UPLOAD_ENDPOINT || "")
         : "";
@@ -744,6 +746,7 @@
         const payload = {
           action: "uploadSpeaking",
           studentFullName,
+          organizationId: String(window.IELTS?.Access?.getOrganizationId?.() || "").trim().toLowerCase(),
           submittedAt: new Date().toISOString(),
           part1DurationSec: SPEAKING_CONFIG.part1.duration,
           part2PrepSec: SPEAKING_CONFIG.part2.prepDuration,
@@ -753,9 +756,13 @@
           base64Audio
         };
 
+        const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify(payload)
         });
 

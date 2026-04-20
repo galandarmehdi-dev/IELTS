@@ -11,6 +11,7 @@
   const DEFAULT_TTL_MIN = 180; // 3 hours
   const MODE_ADMIN = "admin";
   const MODE_STUDENT = "student";
+  let tenantBootstrap = null;
 
   let listenersBound = false;
   let initRan = false;
@@ -39,6 +40,28 @@
     try {
       S()?.setJSON?.(KEY, obj);
     } catch (e) {}
+  }
+
+  function getTenant() {
+    const sess = getSession();
+    if (sess?.tenant && typeof sess.tenant === "object") return sess.tenant;
+    return tenantBootstrap;
+  }
+
+  function getOrganizationId() {
+    const sess = getSession();
+    const explicit = String(sess?.organizationId || getTenant()?.organizationId || "").trim().toLowerCase();
+    if (explicit) return explicit;
+    const hostname = String(window.location.hostname || "").trim().toLowerCase();
+    if (!hostname || hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".workers.dev") || hostname === "ieltsmock.org" || hostname === "www.ieltsmock.org") {
+      return "ieltsmock";
+    }
+    return "";
+  }
+
+  function getAdminRole() {
+    const sess = getSession();
+    return hasVerifiedSession() ? String(sess?.role || "") : "";
   }
 
   function clearSession() {
@@ -131,9 +154,15 @@
         enabled: true,
         authorized: true,
         email: data.email || "",
+        role: data.role || "",
+        organizationId: data.organizationId || "",
+        tenant: data.tenant || tenantBootstrap || null,
+        isSuperAdmin: data.isSuperAdmin === true,
         activeMode: requestedMode,
         expiresAtMs: nowMs() + ttlMin * 60 * 1000,
       });
+      if (data.tenant) tenantBootstrap = data.tenant;
+      applyTenantBranding();
       applyViewMode();
       return true;
     } catch (e) {
@@ -194,6 +223,58 @@
     } catch (e) {}
   }
 
+  function applyTenantBranding() {
+    const tenant = getTenant();
+    if (!tenant) return;
+    const tenantName = String(tenant.name || tenant.organizationId || "IELTS Mock Practice Portal").trim() || "IELTS Mock Practice Portal";
+    try {
+      document.title = `${tenantName} · IELTS Mock Tests & Practice Portal`;
+    } catch (e) {}
+
+    const titleEl = document.querySelector(".home-wordmark-title");
+    if (titleEl) titleEl.textContent = tenantName;
+    const kickerEl = document.querySelector(".home-wordmark-kicker");
+    if (kickerEl) kickerEl.textContent = tenant.isPrimaryTenant ? "Mock test platform" : "Tenant workspace";
+    const footerBrand = document.querySelector(".footer-brand");
+    if (footerBrand) footerBrand.textContent = tenantName;
+
+    const host = document.querySelector(".home-brand");
+    if (host) {
+      let logo = host.querySelector("[data-tenant-logo='1']");
+      if (tenant.logoUrl) {
+        if (!logo) {
+          logo = document.createElement("img");
+          logo.setAttribute("data-tenant-logo", "1");
+          logo.alt = `${tenantName} logo`;
+          logo.style.width = "40px";
+          logo.style.height = "40px";
+          logo.style.objectFit = "contain";
+          logo.style.borderRadius = "10px";
+          logo.style.marginRight = "12px";
+          host.insertBefore(logo, host.firstChild);
+        }
+        logo.src = tenant.logoUrl;
+      } else if (logo) {
+        logo.remove();
+      }
+    }
+  }
+
+  async function loadTenantBootstrap() {
+    const url = R()?.buildAdminApiUrl?.({ action: "tenantBootstrap" });
+    if (!url) return null;
+    try {
+      const res = await fetch(url.toString(), { method: "GET", cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true || !data.tenant) return null;
+      tenantBootstrap = data.tenant;
+      applyTenantBranding();
+      return tenantBootstrap;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function applyViewMode() {
     try {
       if (!document.body) return;
@@ -203,7 +284,15 @@
     try {
       window.dispatchEvent(
         new CustomEvent("ielts:viewmodechange", {
-          detail: { isAdmin: isAdmin(), canToggleAdmin: canUseAdminToggle(), activeMode: getActiveMode(), adminEmail: getAdminEmail() },
+          detail: {
+            isAdmin: isAdmin(),
+            canToggleAdmin: canUseAdminToggle(),
+            activeMode: getActiveMode(),
+            adminEmail: getAdminEmail(),
+            role: getAdminRole(),
+            organizationId: getOrganizationId(),
+            tenant: getTenant(),
+          },
         })
       );
     } catch (e) {}
@@ -255,6 +344,7 @@
   function init() {
     initRan = true;
     applyNoTranslateFlags();
+    loadTenantBootstrap().catch(() => null);
     bindStudentLockdownListeners();
     maybeEnterAdminFromUrl();
     return isAdmin();
@@ -305,5 +395,8 @@
     toggleAdminMode,
     refreshAdminSession,
     syncAdminEligibility,
+    getTenant,
+    getOrganizationId,
+    getAdminRole,
   };
 })();

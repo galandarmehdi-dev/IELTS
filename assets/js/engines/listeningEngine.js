@@ -22,6 +22,13 @@
     while (node.firstChild) node.removeChild(node.firstChild);
   }
 
+  function getListeningGroupedCheckCount(inputs = []) {
+    const counts = inputs
+      .map((el) => Number(String(el?.dataset?.lqCount || "").trim()))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    return counts.length ? Math.max(...counts) : 2;
+  }
+
   function appendReviewValueRow(parent, className, label, value) {
     const row = document.createElement("div");
     row.className = className;
@@ -259,9 +266,12 @@ function applyActiveListeningContent() {
 
       Object.entries(groupedChecks).forEach(([startQRaw, values]) => {
         const startQ = Number(startQRaw);
-        const chosen = Array.isArray(values) ? values.slice(0, 2).sort() : [];
-        out[startQ] = chosen[0] || "";
-        out[startQ + 1] = chosen[1] || "";
+        const inputs = Array.from(root.querySelectorAll(`[data-lq-check="${startQ}"]`));
+        const groupCount = getListeningGroupedCheckCount(inputs);
+        const chosen = Array.isArray(values) ? values.slice(0, groupCount).sort() : [];
+        for (let offset = 0; offset < groupCount; offset += 1) {
+          out[startQ + offset] = chosen[offset] || "";
+        }
       });
 
       return out;
@@ -416,7 +426,10 @@ function applyActiveListeningContent() {
       const directMatches = Array.from(root.querySelectorAll(`[data-lq="${q}"], [data-lq-radio="${q}"]`));
       const checkboxMatches = Array.from(root.querySelectorAll("[data-lq-check]")).filter((el) => {
         const startQ = Number(String(el.dataset.lqCheck || "").trim());
-        return Number.isFinite(startQ) && (startQ === q || startQ + 1 === q);
+        if (!Number.isFinite(startQ)) return false;
+        const groupInputs = Array.from(root.querySelectorAll(`[data-lq-check="${startQ}"]`));
+        const groupCount = getListeningGroupedCheckCount(groupInputs);
+        return q >= startQ && q < startQ + groupCount;
       });
       const matches = directMatches.concat(checkboxMatches);
       for (const match of matches) {
@@ -652,8 +665,10 @@ function applyActiveListeningContent() {
       });
 
       groupedChecks.forEach((inputs, startQ) => {
+        const groupCount = getListeningGroupedCheckCount(inputs);
         const allowed = new Set(
-          [a[startQ], a[String(startQ)], a[startQ + 1], a[String(startQ + 1)]]
+          Array.from({ length: groupCount }, (_, offset) => [a[startQ + offset], a[String(startQ + offset)]])
+            .flat()
             .map((value) => String(value || "").trim())
             .filter(Boolean)
         );
@@ -674,15 +689,16 @@ function applyActiveListeningContent() {
       });
 
       groupedChecks.forEach((inputs) => {
+        const groupCount = getListeningGroupedCheckCount(inputs);
         inputs.forEach((input) => {
           if (input.dataset.limitBound === "1") return;
           input.dataset.limitBound = "1";
           input.addEventListener("change", () => {
             const checked = inputs.filter((el) => el.checked);
-            if (checked.length > 2) {
+            if (checked.length > groupCount) {
               input.checked = false;
               try {
-                showNotice("Please choose only TWO answers for this question.");
+                showNotice(`Please choose only ${groupCount} answers for this question.`);
               } catch (e) {}
               return;
             }

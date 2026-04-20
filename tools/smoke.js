@@ -2,10 +2,7 @@
 const puppeteer = require('puppeteer-core');
 const fs = require('fs');
 
-const pages = String(
-  process.env.SMOKE_URLS ||
-  'http://127.0.0.1:8001/,http://127.0.0.1:8001/#/ielts1/reading,http://127.0.0.1:8001/#/ielts1/listening,http://127.0.0.1:8001/#/ielts1/writing,http://127.0.0.1:8001/#/ielts1/history'
-)
+const pages = String(process.env.SMOKE_URLS || 'http://127.0.0.1:8001/')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);

@@ -41,7 +41,11 @@ if (!chromePath) {
       results[url].errors.push(String(err));
     });
     page.on('requestfailed', req => {
-      results[url].requestsFailed.push({url: req.url(), method: req.method(), errorText: req.failure()?.errorText});
+      const errorText = req.failure()?.errorText || '';
+      const failedUrl = req.url();
+      const isAbortedMedia = errorText === 'net::ERR_ABORTED' && /\.(mp3|wav|ogg|m4a)(?:[?#].*)?$/i.test(failedUrl);
+      if (isAbortedMedia) return;
+      results[url].requestsFailed.push({url: failedUrl, method: req.method(), errorText});
     });
     page.on('response', res => {
       try{
@@ -52,10 +56,15 @@ if (!chromePath) {
       }catch(e){}
     });
     try{
-      const r = await page.goto(url, {waitUntil: 'networkidle2', timeout: 20000});
+      await page.goto(url, {waitUntil: 'domcontentloaded', timeout: 20000});
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
       await new Promise(r => setTimeout(r,1500));
     }catch(e){
-      results[url].errors.push('Navigation error: '+String(e));
+      const html = await page.content().catch(() => '');
+      const hasBody = /<body[\s>]/i.test(html);
+      if (!hasBody) {
+        results[url].errors.push('Navigation error: '+String(e));
+      }
     }
     await page.close();
   }

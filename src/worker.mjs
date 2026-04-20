@@ -362,6 +362,22 @@ async function handleTestPasswordVerify(request, env) {
     return json(405, { ok: false, error: "Method not allowed." });
   }
 
+  const configuredPassword = String(env.TEST_ENTRY_PASSWORD || "").trim();
+  if (!configuredPassword) {
+    return json(503, { ok: false, error: "Test password is not configured yet." });
+  }
+
+  const payload = await request.json().catch(() => null);
+  const password = String(payload?.password || "").trim();
+
+  if (!password) {
+    return json(400, { ok: false, error: "Please enter the test password." });
+  }
+
+  if (password === configuredPassword) {
+    return json(200, { ok: true });
+  }
+
   const limitKey = `rate:test-password:${buildRateLimitScope(request, "", "test-password")}`;
   const rate = await consumeRateLimit(env, limitKey, {
     limit: 8,
@@ -375,24 +391,8 @@ async function handleTestPasswordVerify(request, env) {
     });
   }
 
-  const configuredPassword = String(env.TEST_ENTRY_PASSWORD || "").trim();
-  if (!configuredPassword) {
-    return json(503, { ok: false, error: "Test password is not configured yet." });
-  }
-
-  const payload = await request.json().catch(() => null);
-  const password = String(payload?.password || "").trim();
-
-  if (!password) {
-    return json(400, { ok: false, error: "Please enter the test password." });
-  }
-
-  if (password !== configuredPassword) {
-    await logSecurityEvent(env, request, "test_password_wrong", {});
-    return json(401, { ok: false, error: "Wrong password. Please try again." });
-  }
-
-  return json(200, { ok: true });
+  await logSecurityEvent(env, request, "test_password_wrong", {});
+  return json(401, { ok: false, error: "Wrong password. Please try again." });
 }
 
 async function handleContactApi(request, env) {

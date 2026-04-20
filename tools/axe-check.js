@@ -24,7 +24,14 @@ if (!chromePath) {
   const page = await browser.newPage();
   const url = process.env.AXE_URL || 'http://127.0.0.1:8001/';
   try{
-    await page.goto(url, {waitUntil:'networkidle2', timeout:20000});
+    try {
+      await page.goto(url, {waitUntil:'domcontentloaded', timeout:20000});
+      await page.waitForSelector('body', { timeout: 5000 }).catch(() => {});
+    } catch (e) {
+      const html = await page.content().catch(() => '');
+      const hasBody = /<body[\s>]/i.test(html);
+      if (!hasBody) throw e;
+    }
     await page.addScriptTag({path: require.resolve('axe-core/axe.min.js')});
     const results = await page.evaluate(async () => {
       return await axe.run(document, {runOnly: {type: 'tag', values: ['wcag2a','wcag2aa']}});

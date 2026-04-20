@@ -4368,12 +4368,12 @@ const test11 = {
       <div class="listen-inst">Choose <b>THREE</b> letters, A-F.</div>
       <div class="listen-card-title">What THREE items did Kirsty’s bag contain?</div>
 
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="A"> A) £17</label>
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="B"> B) $200</label>
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="C"> C) Her passport</label>
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="D"> D) A book</label>
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="E"> E) Pens</label>
-      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" value="F"> F) Her house keys</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="A"> A) £17</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="B"> B) $200</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="C"> C) Her passport</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="D"> D) A book</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="E"> E) Pens</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="6" data-lq-count="3" value="F"> F) Her house keys</label>
     </div>
 
     <div class="listen-card">

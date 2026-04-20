@@ -1146,6 +1146,14 @@
       return nullableBand(row?.speakingBand);
     }
 
+    function writingBandEditable(row) {
+      return (
+        nullableBand(row?.task1Band) === null &&
+        nullableBand(row?.task2Band) === null &&
+        nullableBand(row?.finalWritingBand) === null
+      );
+    }
+
     function effectiveOverallBand(row) {
       const nums = [
         nullableBand(row?.listeningBand),
@@ -1357,18 +1365,30 @@
         url.searchParams.set("t", String(Date.now()));
       }
 
-      const res = await fetch(url.toString(), {
-        method: "GET",
-        headers: await getAuthHeaders(),
-      });
-      const text = await res.text();
-      let data = null;
-      try { data = JSON.parse(text); } catch (e) {}
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      if (!data || data.ok !== true || !Array.isArray(data.results)) {
-        throw new Error((data && data.error) || "Could not load admin results.");
+      const headers = await getAuthHeaders();
+      let lastError = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const res = await fetch(url.toString(), {
+            method: "GET",
+            headers,
+          });
+          const text = await res.text();
+          let data = null;
+          try { data = JSON.parse(text); } catch (e) {}
+          if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+          if (!data || data.ok !== true || !Array.isArray(data.results)) {
+            throw new Error((data && data.error) || "Could not load admin results.");
+          }
+          return data.results;
+        } catch (error) {
+          lastError = error;
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 350 * (attempt + 1)));
+          }
+        }
       }
-      return data.results;
+      throw lastError || new Error("Could not load admin results.");
     }
 
     async function fetchAdminFullResultForRow(row) {
@@ -1636,6 +1656,35 @@
       }
 
       return response.data?.speakingBand ?? null;
+    }
+
+    async function saveAdminWritingBands(row, values = {}) {
+      const response = await fetch((R()?.buildAdminApiUrl?.({ action: "adminResultWritingScore" }) || "").toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(await getAuthHeaders()),
+        },
+        body: JSON.stringify({
+          submittedAt: row?.submittedAt || "",
+          studentFullName: row?.studentFullName || "",
+          examId: row?.examId || "",
+          reason: row?.reason || "",
+          task1Band: values.task1Band,
+          task2Band: values.task2Band,
+          finalWritingBand: values.finalWritingBand,
+        }),
+      }).then((res) => res.json().catch(() => null).then((data) => ({ ok: res.ok, data }))).catch(() => ({ ok: false, data: null }));
+
+      if (!response.ok || response.data?.ok !== true) {
+        throw new Error(response.data?.error || "Could not save writing bands.");
+      }
+
+      return {
+        task1Band: response.data?.task1Band ?? null,
+        task2Band: response.data?.task2Band ?? null,
+        finalWritingBand: response.data?.finalWritingBand ?? null,
+      };
     }
 
     function createSpeakingBandOptions(select, selectedValue) {
@@ -1939,6 +1988,79 @@
       appendLabeledLine(overallEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
       overallEl.appendChild(document.createElement("br"));
       appendTextBlock(overallEl, loadingDetail ? "Loading overall writing feedback..." : plainText(row.overallFeedback));
+
+      const writingEditor = $("adminDetailWritingEditor");
+      if (writingEditor) {
+        clearElement(writingEditor);
+        if (!loadingDetail && writingBandEditable(row)) {
+          const field = document.createElement("div");
+          field.className = "admin-speaking-editor";
+
+          const task1Label = document.createElement("label");
+          task1Label.className = "admin-field";
+          const task1Title = document.createElement("span");
+          task1Title.textContent = "Writing Task 1 band";
+          const task1Input = document.createElement("input");
+          task1Input.type = "number";
+          task1Input.min = "0";
+          task1Input.max = "9";
+          task1Input.step = "0.5";
+          task1Input.value = "";
+          task1Label.appendChild(task1Title);
+          task1Label.appendChild(task1Input);
+          field.appendChild(task1Label);
+
+          const task2Label = document.createElement("label");
+          task2Label.className = "admin-field";
+          const task2Title = document.createElement("span");
+          task2Title.textContent = "Writing Task 2 band";
+          const task2Input = document.createElement("input");
+          task2Input.type = "number";
+          task2Input.min = "0";
+          task2Input.max = "9";
+          task2Input.step = "0.5";
+          task2Input.value = "";
+          task2Label.appendChild(task2Title);
+          task2Label.appendChild(task2Input);
+          field.appendChild(task2Label);
+
+          const saveBtn = document.createElement("button");
+          saveBtn.className = "btn secondary";
+          saveBtn.type = "button";
+          saveBtn.textContent = "Save writing";
+          field.appendChild(saveBtn);
+
+          const hint = document.createElement("div");
+          hint.className = "small";
+          hint.textContent = "Only available when the result endpoint has no writing grades yet.";
+          field.appendChild(hint);
+
+          saveBtn.addEventListener("click", async () => {
+            const task1Value = task1Input.value.trim();
+            const task2Value = task2Input.value.trim();
+            try {
+              const saved = await saveAdminWritingBands(row, {
+                task1Band: task1Value === "" ? null : Number(task1Value),
+                task2Band: task2Value === "" ? null : Number(task2Value),
+              });
+              const updatedRow = {
+                ...row,
+                task1Band: saved.task1Band,
+                task2Band: saved.task2Band,
+                finalWritingBand: saved.finalWritingBand,
+              };
+              mergeAdminRowIntoState(updatedRow, adminState.mode);
+              renderAdminDetailFields(updatedRow, { loadingDetail: false, submissionRecord: options.submissionRecord });
+              applyAdminFilters();
+              hint.textContent = "Writing bands saved.";
+            } catch (error) {
+              hint.textContent = error?.message || "Could not save writing bands.";
+            }
+          });
+
+          writingEditor.appendChild(field);
+        }
+      }
 
       const speakingEditor = $("adminDetailSpeakingEditor");
       if (speakingEditor) {

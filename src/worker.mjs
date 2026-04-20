@@ -491,7 +491,17 @@ async function handleAdminApi(request, env) {
     const sortValue = oneLine(url.searchParams.get("sort") || "submittedAt_desc");
     const limitValue = Number(url.searchParams.get("limit") || 0);
 
-    const summaries = await getAdminResultsSummary(env, { forceRefresh });
+    let summaries;
+    try {
+      summaries = await getAdminResultsSummary(env, { forceRefresh });
+    } catch (error) {
+      const staleSummaries = getAnyCachedAdminResultsSummary("all");
+      if (staleSummaries?.length) {
+        summaries = staleSummaries;
+      } else {
+        return json(502, { ok: false, error: error?.message || "Could not load admin results summary." });
+      }
+    }
     let rows = summaries.filter((row) => !isPracticeExamId(row?.examId));
 
     if (search) {
@@ -558,14 +568,30 @@ async function handleAdminApi(request, env) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
 
+    const submissionLookup = {
+      submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+      studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+      examId: oneLine(url.searchParams.get("examId") || ""),
+      reason: oneLine(url.searchParams.get("reason") || ""),
+    };
+
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "studentResult");
-    backendUrl.searchParams.set("submittedAt", oneLine(url.searchParams.get("submittedAt") || ""));
-    backendUrl.searchParams.set("studentFullName", oneLine(url.searchParams.get("studentFullName") || ""));
-    backendUrl.searchParams.set("examId", oneLine(url.searchParams.get("examId") || ""));
-    backendUrl.searchParams.set("reason", oneLine(url.searchParams.get("reason") || ""));
+    backendUrl.searchParams.set("submittedAt", submissionLookup.submittedAt);
+    backendUrl.searchParams.set("studentFullName", submissionLookup.studentFullName);
+    backendUrl.searchParams.set("examId", submissionLookup.examId);
+    backendUrl.searchParams.set("reason", submissionLookup.reason);
     backendUrl.searchParams.set("t", String(Date.now()));
-    return proxy(request, backendUrl.toString(), env);
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
+      method: "GET",
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+      retries: 2,
+      timeoutMs: 12000,
+    });
+    const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
+    const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
+    return json(200, { ...data, result: mergedResult });
   }
 
   if (request.method === "GET" && action === "studentRegistry") {
@@ -805,6 +831,69 @@ async function handleAdminApi(request, env) {
     const meta = await writeSubmissionScoreMeta(env, { submittedAt, studentFullName, examId, reason }, { speakingBand });
     try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
     return json(200, { ok: true, speakingBand, meta });
+  }
+
+  if (request.method === "POST" && action === "adminResultWritingScore") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const payload = await request.json().catch(() => null);
+    const submittedAt = oneLine(payload?.submittedAt || "");
+    const studentFullName = oneLine(payload?.studentFullName || "");
+    const examId = oneLine(payload?.examId || "");
+    const reason = oneLine(payload?.reason || "");
+    if (!submittedAt || !studentFullName || !examId) {
+      return json(400, { ok: false, error: "Missing result lookup fields." });
+    }
+
+    const submissionLookup = { submittedAt, studentFullName, examId, reason };
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.searchParams.set("action", "studentResult");
+    backendUrl.searchParams.set("submittedAt", submittedAt);
+    backendUrl.searchParams.set("studentFullName", studentFullName);
+    backendUrl.searchParams.set("examId", examId);
+    backendUrl.searchParams.set("reason", reason);
+    backendUrl.searchParams.set("t", String(Date.now()));
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
+      method: "GET",
+      headers: await filteredProxyHeaders(request, env, signedBackendUrl),
+      retries: 1,
+      timeoutMs: 12000,
+    });
+    const existing = data?.result || {};
+    const backendHasWritingGrade =
+      toNullableBand(existing?.task1Band) !== null ||
+      toNullableBand(existing?.task2Band) !== null ||
+      toNullableBand(existing?.finalWritingBand) !== null;
+    if (backendHasWritingGrade) {
+      return json(409, {
+        ok: false,
+        error: "Writing grades already exist for this submission and cannot be edited here.",
+      });
+    }
+
+    const task1Band = toNullableBand(payload?.task1Band);
+    const task2Band = toNullableBand(payload?.task2Band);
+    const finalWritingBand =
+      toNullableBand(payload?.finalWritingBand) ??
+      toRoundedOverallBand([task1Band, task2Band]);
+    if (task1Band === null && task2Band === null && finalWritingBand === null) {
+      return json(400, { ok: false, error: "Enter at least one writing band." });
+    }
+
+    const meta = await writeSubmissionScoreMeta(env, submissionLookup, {
+      task1Band,
+      task2Band,
+      finalWritingBand,
+    });
+    try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
+    return json(200, {
+      ok: true,
+      task1Band,
+      task2Band,
+      finalWritingBand,
+      meta,
+    });
   }
 
   if (request.method === "GET" && action === "objectiveDetailAdmin") {
@@ -1380,15 +1469,27 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
 }
 
 function mergeSummaryWithScoreMeta(summary, scoreMeta) {
+  const task1Band = toNullableBand(scoreMeta?.task1Band ?? summary?.task1Band);
+  const task2Band = toNullableBand(scoreMeta?.task2Band ?? summary?.task2Band);
+  const finalWritingBand = toEffectiveWritingBand({
+    finalWritingBand: scoreMeta?.finalWritingBand ?? summary?.finalWritingBand,
+    task1Words: summary?.task1Words,
+    task2Words: summary?.task2Words,
+    task1Band,
+    task2Band,
+  });
   const speakingBand = toNullableBand(scoreMeta?.speakingBand ?? summary?.speakingBand);
   const overallBand = toRoundedOverallBand([
     summary?.listeningBand,
     summary?.readingBand,
-    summary?.finalWritingBand,
+    finalWritingBand,
     speakingBand,
   ]);
   return {
     ...summary,
+    task1Band,
+    task2Band,
+    finalWritingBand,
     speakingBand,
     overallBand,
   };
@@ -2209,6 +2310,56 @@ function setCachedAdminResultsSummary(key, value) {
   });
 }
 
+function getAnyCachedAdminResultsSummary(key) {
+  if (!key) return null;
+  const entry = ADMIN_RESULTS_SUMMARY_CACHE.get(key);
+  return entry && Array.isArray(entry.value) ? entry.value : null;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+async function fetchAppsScriptJsonWithRetry(url, options = {}) {
+  const method = String(options.method || "GET").toUpperCase();
+  const retries = Math.max(0, Number(options.retries ?? 2));
+  const timeoutMs = Math.max(1000, Number(options.timeoutMs ?? 12000));
+  const headers = options.headers || {};
+  const body = options.body;
+  let lastError = null;
+  let lastStatus = 0;
+  let lastData = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method,
+        headers,
+        body,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      const data = await response.json().catch(() => null);
+      if (response.ok && data && data.ok === true) {
+        return { response, data };
+      }
+      lastStatus = response.status;
+      lastData = data;
+      if (!(attempt < retries && (response.status >= 500 || !data))) break;
+    } catch (error) {
+      lastError = error;
+      if (attempt >= retries) break;
+    }
+    await sleep(250 * (attempt + 1));
+  }
+
+  throw new Error(
+    lastData?.error ||
+    (lastStatus ? `Apps Script request failed with HTTP ${lastStatus}.` : "") ||
+    lastError?.message ||
+    "Apps Script request failed."
+  );
+}
+
 async function getAdminResultsSummary(env, options = {}) {
   const cacheKey = "all";
   const forceRefresh = options?.forceRefresh === true;
@@ -2219,20 +2370,29 @@ async function getAdminResultsSummary(env, options = {}) {
   backendUrl.searchParams.set("action", "resultsSummary");
   backendUrl.searchParams.set("t", String(Date.now()));
 
-  const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
-  const response = await fetch(signedBackendUrl, { method: "GET" });
-  const data = await response.json().catch(() => null);
-  if (!response.ok || !data || data.ok !== true || !Array.isArray(data.results)) {
-    throw new Error(data?.error || "Could not load admin results summary.");
-  }
+  try {
+    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+    const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
+      method: "GET",
+      retries: forceRefresh ? 1 : 2,
+      timeoutMs: 12000,
+    });
+    if (!Array.isArray(data.results)) {
+      throw new Error("Could not load admin results summary.");
+    }
 
-  const summaries = await Promise.all(data.results.map(async (row) => {
-    const summary = summarizeAdminResultRow(row);
-    const scoreMeta = await readSubmissionScoreMeta(env, summary);
-    return mergeSummaryWithScoreMeta(summary, scoreMeta);
-  }));
-  setCachedAdminResultsSummary(cacheKey, summaries);
-  return summaries;
+    const summaries = await Promise.all(data.results.map(async (row) => {
+      const summary = summarizeAdminResultRow(row);
+      const scoreMeta = await readSubmissionScoreMeta(env, summary);
+      return mergeSummaryWithScoreMeta(summary, scoreMeta);
+    }));
+    setCachedAdminResultsSummary(cacheKey, summaries);
+    return summaries;
+  } catch (error) {
+    const stale = getAnyCachedAdminResultsSummary(cacheKey);
+    if (stale?.length) return stale;
+    throw error;
+  }
 }
 
 function summarizeAdminResultRow(row) {

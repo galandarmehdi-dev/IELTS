@@ -12,6 +12,8 @@ const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const unknownTenantResponse = rejectUnknownTenant(request, env);
+    if (unknownTenantResponse) return unknownTenantResponse;
 
     if (url.pathname === "/api/contact") {
       return handleContactApi(request, env);
@@ -127,14 +129,25 @@ function resolveTenantContext(request, env) {
       }
       : null);
 
-  const organizationId = normalizeOrganizationId(mapped?.organizationId || primaryOrganizationId);
+  const organizationId = normalizeOrganizationId(mapped?.organizationId || "");
   return {
     hostname,
     organizationId,
     name: oneLine(mapped?.name || "") || organizationId || "Tenant",
     logoUrl: oneLine(mapped?.logoUrl || ""),
+    isConfigured: !!organizationId,
     isPrimaryTenant: organizationId === primaryOrganizationId,
   };
+}
+
+function rejectUnknownTenant(request, env) {
+  const tenant = resolveTenantContext(request, env);
+  if (tenant.isConfigured) return null;
+  return json(404, {
+    ok: false,
+    error: "This tenant domain is not configured.",
+    hostname: tenant.hostname,
+  });
 }
 
 function getTenantAdminMap(env) {
@@ -291,6 +304,7 @@ async function handleSharedStudentLogin(request, env) {
     return json(405, { ok: false, error: "Method not allowed." });
   }
 
+  const tenant = resolveTenantContext(request, env);
   const payload = await request.json().catch(() => null);
   const email = oneLine(payload?.email).toLowerCase();
   const password = String(payload?.password || "");
@@ -329,12 +343,16 @@ async function handleSharedStudentLogin(request, env) {
 
   const displayName = oneLine(current?.fullName || deriveNameFromEmail(email));
   const setupCompleted = hasPersonalPassword && !!oneLine(current?.fullName || "");
-  const token = await issueSharedStudentToken(email, env, { mode: setupCompleted ? "student" : "setup" });
+  const token = await issueSharedStudentToken(email, env, {
+    mode: setupCompleted ? "student" : "setup",
+    organizationId: tenant.organizationId,
+  });
   const user = buildSharedStudentUser(email, {
     fullName: displayName,
     firstName: current?.firstName || "",
     lastName: current?.lastName || "",
     setupCompleted,
+    organizationId: tenant.organizationId,
   });
 
   await upsertStudentRegistry(env, {
@@ -344,6 +362,7 @@ async function handleSharedStudentLogin(request, env) {
     lastName: current?.lastName || "",
     provider: "shared-password",
     isSharedPassword: true,
+    organizationId: tenant.organizationId,
   });
 
   return json(200, { ok: true, token, user, setupCompleted, requiresSetup: !setupCompleted });
@@ -354,6 +373,7 @@ async function handleSharedStudentBypass(request, env) {
     return json(405, { ok: false, error: "Method not allowed." });
   }
 
+  const tenant = resolveTenantContext(request, env);
   const payload = await request.json().catch(() => null);
   const email = oneLine(payload?.email).toLowerCase();
   const bypassPassword = String(payload?.bypassPassword || "");
@@ -382,12 +402,17 @@ async function handleSharedStudentBypass(request, env) {
 
   const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
   const displayName = oneLine(current?.fullName || deriveNameFromEmail(email));
-  const token = await issueSharedStudentToken(email, env, { mode: "setup", bypass: true });
+  const token = await issueSharedStudentToken(email, env, {
+    mode: "setup",
+    bypass: true,
+    organizationId: tenant.organizationId,
+  });
   const user = buildSharedStudentUser(email, {
     fullName: displayName,
     firstName: current?.firstName || "",
     lastName: current?.lastName || "",
     setupCompleted: false,
+    organizationId: tenant.organizationId,
   });
 
   return json(200, {
@@ -434,6 +459,7 @@ async function handleSharedStudentSetup(request, env) {
   const next = {
     ...current,
     email,
+    organizationId: auth.organizationId || current.organizationId || getPrimaryOrganizationId(env),
     fullName,
     firstName,
     lastName,
@@ -449,12 +475,16 @@ async function handleSharedStudentSetup(request, env) {
 
   await writeJsonKv(env.STUDENT_REGISTRY, `student:${email}`, next);
 
-  const token = await issueSharedStudentToken(email, env, { mode: "student" });
+  const token = await issueSharedStudentToken(email, env, {
+    mode: "student",
+    organizationId: auth.organizationId,
+  });
   const user = buildSharedStudentUser(email, {
     fullName,
     firstName,
     lastName,
     setupCompleted: true,
+    organizationId: auth.organizationId,
   });
 
   return json(200, {
@@ -1400,19 +1430,30 @@ async function authenticateUser(request, env) {
     return { ok: false, status: 401, error: "Missing access token." };
   }
 
+  const tenant = resolveTenantContext(request, env);
   const token = String(authHeader.slice("Bearer ".length) || "").trim();
   if (token.startsWith("shared.")) {
     const payload = await verifySharedStudentToken(token, env);
     if (!payload?.email) {
       return { ok: false, status: 401, error: "Invalid shared sign-in token." };
     }
+    const tokenOrganizationId = normalizeOrganizationId(payload.organizationId || "");
+    if (tokenOrganizationId && tenant.organizationId && tokenOrganizationId !== tenant.organizationId) {
+      return { ok: false, status: 403, error: "This shared sign-in token is not valid for the current organization." };
+    }
     return {
       ok: true,
       status: 200,
       kind: "shared",
+      organizationId: tokenOrganizationId || tenant.organizationId,
+      tenant,
       user: {
         email: payload.email,
-        app_metadata: { provider: "shared-password", is_shared_student_login: true },
+        app_metadata: {
+          provider: "shared-password",
+          is_shared_student_login: true,
+          organization_id: tokenOrganizationId || tenant.organizationId,
+        },
         user_metadata: {
           name: deriveNameFromEmail(payload.email),
           preferred_name: deriveNameFromEmail(payload.email),
@@ -1437,7 +1478,7 @@ async function authenticateUser(request, env) {
     return { ok: false, status: 401, error: "Invalid access token." };
   }
 
-  return { ok: true, status: 200, kind: "supabase", user };
+  return { ok: true, status: 200, kind: "supabase", organizationId: tenant.organizationId, tenant, user };
 }
 
 function getActorOrganizationId(actor) {
@@ -1473,6 +1514,7 @@ async function issueSharedStudentToken(email, env, options = {}) {
     exp: Date.now() + (1000 * 60 * 60 * 24 * 30),
     mode: oneLine(options?.mode || "student") || "student",
     bypass: options?.bypass === true,
+    organizationId: normalizeOrganizationId(options?.organizationId || ""),
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
   const signature = await signSharedTokenPayload(encodedPayload, secret);
@@ -1508,6 +1550,7 @@ function buildSharedStudentUser(email, options = {}) {
       provider: "shared-password",
       is_shared_student_login: true,
       setup_completed: options?.setupCompleted === true,
+      organization_id: normalizeOrganizationId(options?.organizationId || ""),
     },
     user_metadata: {
       full_name: fullName,

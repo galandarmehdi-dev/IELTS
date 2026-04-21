@@ -332,6 +332,14 @@ async function handleSharedStudentLogin(request, env) {
   }
   const current = (await readJsonKv(env.STUDENT_REGISTRY, `student:${email}`)) || null;
   const hasPersonalPassword = !!(current?.passwordHash && current?.passwordSalt);
+  const linkedProfile = hasPersonalPassword
+    ? null
+    : await getStudentProfileByLinkedEmail(env, email, tenant.organizationId).catch(() => null);
+  const hasLinkedProfilePassword = !!(
+    linkedProfile &&
+    String(linkedProfile.personal_password_hash || "").trim() &&
+    String(linkedProfile.personal_password_salt || "").trim()
+  );
 
   if (!isValidEmail(email)) {
     await logSecurityEvent(env, request, "shared_login_invalid_email", { email });
@@ -344,13 +352,33 @@ async function handleSharedStudentLogin(request, env) {
       await logSecurityEvent(env, request, "shared_login_wrong_personal_password", { email });
       return json(401, { ok: false, error: "Wrong email or password." });
     }
+  } else if (hasLinkedProfilePassword) {
+    const matches = await verifyStudentProfilePassword(
+      linkedProfile,
+      oneLine(linkedProfile?.student_id_code || ""),
+      password,
+      email
+    );
+    if (!matches) {
+      await logSecurityEvent(env, request, "shared_login_wrong_linked_profile_password", { email });
+      return json(401, { ok: false, error: "Wrong email or password." });
+    }
   } else if (!password || password !== expectedPassword) {
     await logSecurityEvent(env, request, "shared_login_wrong_password", { email });
     return json(401, { ok: false, error: "Wrong shared password." });
   }
 
-  const displayName = oneLine(current?.fullName || deriveNameFromEmail(email));
-  const setupCompleted = hasPersonalPassword && !!oneLine(current?.fullName || "");
+  const linkedPublicProfile = linkedProfile ? publicStudentProfile(linkedProfile) : (current?.studentProfile || null);
+  const displayName = oneLine(
+    linkedPublicProfile?.fullName ||
+    current?.fullName ||
+    deriveNameFromEmail(email)
+  );
+  const setupCompleted = !!(
+    hasPersonalPassword ||
+    hasLinkedProfilePassword ||
+    (linkedPublicProfile && oneLine(linkedPublicProfile.fullName || ""))
+  );
   const token = await issueSharedStudentToken(email, env, {
     mode: setupCompleted ? "student" : "setup",
     organizationId: tenant.organizationId,
@@ -361,7 +389,7 @@ async function handleSharedStudentLogin(request, env) {
     lastName: current?.lastName || "",
     setupCompleted,
     organizationId: tenant.organizationId,
-    studentProfile: current?.studentProfile || null,
+    studentProfile: linkedPublicProfile || null,
   });
 
   await upsertStudentRegistry(env, {
@@ -372,6 +400,7 @@ async function handleSharedStudentLogin(request, env) {
     provider: "shared-password",
     isSharedPassword: true,
     organizationId: tenant.organizationId,
+    studentProfile: linkedPublicProfile || null,
   });
 
   return json(200, { ok: true, token, user, setupCompleted, requiresSetup: !setupCompleted });
@@ -2703,6 +2732,20 @@ async function getStudentProfileByAuth(env, identity, organizationId = "") {
   };
   if (identity.userId) query.linked_auth_user_id = `eq.${identity.userId}`;
   else query.linked_auth_identity = `eq.${identity.identity}`;
+  if (organizationId) query.organization_id = `eq.${normalizeOrganizationId(organizationId)}`;
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", { query });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function getStudentProfileByLinkedEmail(env, email, organizationId = "") {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  const query = {
+    select: "*,classroom:classrooms(id,name)",
+    linked_auth_email: `eq.${normalizedEmail}`,
+    limit: "1",
+  };
   if (organizationId) query.organization_id = `eq.${normalizeOrganizationId(organizationId)}`;
   const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", { query });
   if (!res.ok) return null;

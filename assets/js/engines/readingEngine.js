@@ -1807,6 +1807,10 @@ qnum.textContent = `${item.q}`;
 
       panel.appendChild(rows);
 
+      if (cfg.hideOptionsList === true) {
+        return panel;
+      }
+
       const box = document.createElement("div");
       box.className = "optionsBox";
       const grid = document.createElement("div");

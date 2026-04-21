@@ -786,6 +786,13 @@
       if (isAdminView() && nextRoute.view === "results" && document.body?.dataset?.activeView !== "adminResults") {
         openAdminResultsView();
       }
+      if (nextRoute.view === "vocabulary" && document.body?.dataset?.activeView !== "vocabulary") {
+        if (window.IELTS?.Auth?.isSignedIn?.()) {
+          window.IELTS?.Vocabulary?.open?.("dashboard");
+        } else {
+          window.IELTS?.Auth?.openLoginGate?.("Please log in to open Vocabulary.");
+        }
+      }
     }
 
     function isStudentExamRouteActive() {

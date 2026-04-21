@@ -352,7 +352,9 @@ function saveUser(user) {
     metadata.photo_url ||
     "";
   const fullName =
+    studentProfile?.fullName ||
     profile.preferredName ||
+    String(user?.name || "").trim() ||
     cachedByEmail.name ||
     metadata.full_name ||
     metadata.name ||
@@ -531,11 +533,12 @@ async function fetchLinkedStudentProfile() {
     saveUser({ ...current, name: profile.fullName, studentProfile: profile });
     syncAuthExport();
   }
-  if (!profile && data.required === true) {
+  const shouldRequireStudentId = !profile && window.IELTS?.Access?.isAdmin?.() !== true;
+  if (shouldRequireStudentId) {
     showProtectedApp(false);
     openLoginGate("Enter your teacher-given Student ID before continuing.");
     clearAuthFlowModes();
-    setSharedSetupMode(true, "Enter your Student ID and choose a personal password. Existing legacy accounts can be left ungated by keeping CLASSROOM_IDENTITY_REQUIRED=false.");
+    setSharedSetupMode(true, "Enter your Student ID and choose a personal password before continuing.");
   }
   return { ok: true, profile, required: data.required === true };
 }

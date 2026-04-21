@@ -431,13 +431,14 @@
 
   function renderProfile() {
     const user = getUser();
+    const academicIdentity = Auth()?.getAcademicIdentity?.(user) || null;
     const avatar = $("dashboardAvatar");
     const homeAvatar = $("homeAccountAvatar");
     const username = String(state.settings.username || "").trim().replace(/^@+/, "");
     const preferredName = String(state.settings.preferredName || "").trim();
     const headline = String(state.settings.headline || "").trim();
     const signedIn = !!(user && user.id);
-    const displayName = preferredName || user?.name || user?.email?.split("@")[0] || "Student";
+    const displayName = academicIdentity?.fullName || preferredName || user?.name || user?.email?.split("@")[0] || "Student";
     const focusSkill = String(state.settings.focusSkill || "").trim();
     const targetBand = String(state.settings.targetBand || "").trim();
     const provider = String(user?.provider || "email").trim();

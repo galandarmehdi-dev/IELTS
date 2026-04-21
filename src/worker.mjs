@@ -466,7 +466,7 @@ async function handleStudentLinkApi(request, env) {
   const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
   const password = String(payload?.password || "");
   if (!studentIdCode) return json(400, { ok: false, error: "Student ID is required." });
-  if (!password || password.length < 6) return json(400, { ok: false, error: "Choose a password with at least 6 characters." });
+  if (!password || password.length < 6) return json(400, { ok: false, error: "Enter your student password with at least 6 characters." });
 
   const organizationId = getActorOrganizationId(auth) || resolveTenantContext(request, env).organizationId;
   const profile = await getStudentProfileByCode(env, studentIdCode, organizationId);
@@ -474,15 +474,29 @@ async function handleStudentLinkApi(request, env) {
   if (profile.is_active === false) return json(403, { ok: false, error: "This Student ID is not active. Please contact your teacher/admin." });
 
   const identity = buildAuthLinkIdentity(auth);
-  if (profile.linked_auth_identity && profile.linked_auth_identity !== identity.identity) {
-    return json(409, { ok: false, error: "This Student ID is already linked to another account. Please contact your teacher/admin." });
+  const hasExistingStudentPassword =
+    String(profile.personal_password_hash || "").trim() &&
+    String(profile.personal_password_salt || "").trim();
+
+  if (hasExistingStudentPassword) {
+    const passwordOk = await verifyStudentProfilePassword(profile, studentIdCode, password, identity.email || "");
+    if (!passwordOk) {
+      return json(401, { ok: false, error: "Student ID or student password is incorrect." });
+    }
   }
-  if (profile.linked_auth_user_id && identity.userId && profile.linked_auth_user_id !== identity.userId) {
-    return json(409, { ok: false, error: "This Student ID is already linked to another account. Please contact your teacher/admin." });
+
+  const previouslyLinkedProfile = await getStudentProfileByAuth(env, identity, organizationId);
+  if (previouslyLinkedProfile?.id && previouslyLinkedProfile.id !== profile.id) {
+    await updateStudentProfileById(env, previouslyLinkedProfile.id, {
+      linked_auth_user_id: null,
+      linked_auth_identity: null,
+      linked_auth_email: null,
+      linked_at: null,
+    });
   }
 
   const salt = generateStudentPasswordSalt();
-  const passwordHash = await hashStudentPassword(identity.email || studentIdCode, password, salt);
+  const passwordHash = await hashStudentPassword(studentIdCode, password, salt);
   const updated = await updateStudentProfileById(env, profile.id, {
     personal_password_hash: passwordHash,
     personal_password_salt: salt,
@@ -503,7 +517,13 @@ async function handleStudentLinkApi(request, env) {
     passwordHash,
     passwordSalt: salt,
   });
-  return json(200, { ok: true, profile: publicProfile, message: "Student ID linked successfully." });
+  return json(200, {
+    ok: true,
+    profile: publicProfile,
+    message: hasExistingStudentPassword
+      ? "Student account verified and linked to this sign-in."
+      : "Student ID linked successfully.",
+  });
 }
 
 async function getLinkedPublicProfileForAuth(env, auth, organizationId = "") {
@@ -1817,8 +1837,12 @@ function generateStudentPasswordSalt() {
   return toBase64UrlFromBytes(bytes);
 }
 
-async function hashStudentPassword(email, password, salt) {
-  const raw = `${String(salt || "").trim()}::${normalizeEmail(email)}::${String(password || "")}`;
+function normalizePasswordSubject(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+async function hashStudentPassword(subject, password, salt) {
+  const raw = `${String(salt || "").trim()}::${normalizePasswordSubject(subject)}::${String(password || "")}`;
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
   return toBase64UrlFromBytes(new Uint8Array(digest));
 }
@@ -1829,6 +1853,22 @@ async function verifyStudentPassword(record, email, password) {
   if (!expected || !salt || !password) return false;
   const actual = await hashStudentPassword(email, password, salt);
   return actual === expected;
+}
+
+async function verifyStudentProfilePassword(profile, studentIdCode, password, currentEmail = "") {
+  const expected = String(profile?.personal_password_hash || "").trim();
+  const salt = String(profile?.personal_password_salt || "").trim();
+  if (!expected || !salt || !password) return false;
+  const subjects = [
+    studentIdCode,
+    profile?.linked_auth_email || "",
+    currentEmail,
+  ].map((value) => normalizePasswordSubject(value)).filter(Boolean);
+  for (const subject of new Set(subjects)) {
+    const actual = await hashStudentPassword(subject, password, salt);
+    if (actual === expected) return true;
+  }
+  return false;
 }
 
 async function signSharedTokenPayload(encodedPayload, secret) {

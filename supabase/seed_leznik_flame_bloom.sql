@@ -31,44 +31,44 @@ with flame_room as (
 ), seed_students (student_id_code, name, surname, classroom_id, official_email) as (
   values
     -- Flame
-    ('FLM001', 'Murad', 'Bayramli', (select id from flame), 'm.bayramli.bayram@leznik.edu.az'),
-    ('FLM002', 'Farida', 'Bakir', (select id from flame), 'farida.bakir@leznik.edu.az'),
-    ('FLM003', 'Jalal', 'Jahangirov', (select id from flame), 'jalal.jahangirov@leznik.edu.az'),
-    ('FLM004', 'Saidali', 'Jabrayilov', (select id from flame), 'jabrayilov.saidali@leznik.edu.az'),
-    ('FLM005', 'Ayla', 'Ahmadzada', (select id from flame), 'ayla.ahmadzada@leznik.edu.az'),
-    ('FLM006', 'Amin', 'Alisafazade', (select id from flame), 'amin.alisafazade@leznik.edu.az'),
-    ('FLM007', 'Huseyn', 'Aliyev', (select id from flame), 'huseyn.aliyev@leznik.edu.az'),
-    ('FLM008', 'Fidan', 'Asadli', (select id from flame), 'fidan.asadli@leznik.edu.az'),
-    ('FLM009', 'Zarin', 'Asgarova', (select id from flame), 'asgarova.zarin@leznik.edu.az'),
-    ('FLM010', 'Faraj', 'Farajzada', (select id from flame), 'faraj.farajzada@leznik.edu.az'),
-    ('FLM011', 'Ali', 'Hajiyev', (select id from flame), 'ali.hajiyev@leznik.edu.az'),
-    ('FLM012', 'Ayla', 'Mirzazada', (select id from flame), 'ayla.mirzazada@leznik.edu.az'),
-    ('FLM013', 'Namiq', 'Rustamov', (select id from flame), 'n.rustamov@leznik.edu.az'),
-    ('FLM014', 'Yasmin', 'Nurova', (select id from flame), 'yasmin.nurova@leznik.edu.az'),
-    ('FLM015', 'Javidan', 'Qambarov', (select id from flame), 'javidan.qambarov@leznik.edu.az'),
-    ('FLM016', 'Aylin', 'Quluzada', (select id from flame), 'aylin.quluzada@leznik.edu.az'),
-    ('FLM017', 'Turqut', 'Ismayilzada', (select id from flame), 'turqut.ismayilzada@leznik.edu.az'),
-    ('FLM018', 'Valeriya', 'Roshenko', (select id from flame), 'valeriya.roshenko@leznik.edu.az'),
-    ('FLM019', 'Aziza', 'Yolchuyeva', (select id from flame), 'aziza.yolchuyeva@leznik.edu.az'),
-    ('FLM020', 'Sara', 'Miray', (select id from flame), 'sara.miray@leznik.edu.az'),
-    ('FLM021', 'Layla', 'Muradi', (select id from flame), 'layla.muradi@leznik.edu.az'),
+    ('LZ-UY6KT8G2', 'Murad', 'Bayramli', (select id from flame), 'm.bayramli.bayram@leznik.edu.az'),
+    ('LZ-B35SRV8J', 'Farida', 'Bakir', (select id from flame), 'farida.bakir@leznik.edu.az'),
+    ('LZ-GWULCAG3', 'Jalal', 'Jahangirov', (select id from flame), 'jalal.jahangirov@leznik.edu.az'),
+    ('LZ-SLM6P7D8', 'Saidali', 'Jabrayilov', (select id from flame), 'jabrayilov.saidali@leznik.edu.az'),
+    ('LZ-PTH4HHKC', 'Ayla', 'Ahmadzada', (select id from flame), 'ayla.ahmadzada@leznik.edu.az'),
+    ('LZ-8NPGW438', 'Amin', 'Alisafazade', (select id from flame), 'amin.alisafazade@leznik.edu.az'),
+    ('LZ-HE3Z9Z3Q', 'Huseyn', 'Aliyev', (select id from flame), 'huseyn.aliyev@leznik.edu.az'),
+    ('LZ-7MA7SRFT', 'Fidan', 'Asadli', (select id from flame), 'fidan.asadli@leznik.edu.az'),
+    ('LZ-ND3LXDAH', 'Zarin', 'Asgarova', (select id from flame), 'asgarova.zarin@leznik.edu.az'),
+    ('LZ-7HZ8CJFH', 'Faraj', 'Farajzada', (select id from flame), 'faraj.farajzada@leznik.edu.az'),
+    ('LZ-TC6ZY72Q', 'Ali', 'Hajiyev', (select id from flame), 'ali.hajiyev@leznik.edu.az'),
+    ('LZ-JY4Y5R9T', 'Ayla', 'Mirzazada', (select id from flame), 'ayla.mirzazada@leznik.edu.az'),
+    ('LZ-65V8YJKP', 'Namiq', 'Rustamov', (select id from flame), 'n.rustamov@leznik.edu.az'),
+    ('LZ-ZZJJB5E7', 'Yasmin', 'Nurova', (select id from flame), 'yasmin.nurova@leznik.edu.az'),
+    ('LZ-B2PKS4SG', 'Javidan', 'Qambarov', (select id from flame), 'javidan.qambarov@leznik.edu.az'),
+    ('LZ-73VCWKV6', 'Aylin', 'Quluzada', (select id from flame), 'aylin.quluzada@leznik.edu.az'),
+    ('LZ-796DDKUT', 'Turqut', 'Ismayilzada', (select id from flame), 'turqut.ismayilzada@leznik.edu.az'),
+    ('LZ-5QXA3ZKU', 'Valeriya', 'Roshenko', (select id from flame), 'valeriya.roshenko@leznik.edu.az'),
+    ('LZ-TFTTGUKD', 'Aziza', 'Yolchuyeva', (select id from flame), 'aziza.yolchuyeva@leznik.edu.az'),
+    ('LZ-HPAXDRML', 'Sara', 'Miray', (select id from flame), 'sara.miray@leznik.edu.az'),
+    ('LZ-GG2T738R', 'Layla', 'Muradi', (select id from flame), 'layla.muradi@leznik.edu.az'),
 
     -- Bloom
-    ('BLM001', 'Yusif', 'Tahirli', (select id from bloom), 'yusif.tahirli@leznik.edu.az'),
-    ('BLM002', 'Adel', 'Danilova', (select id from bloom), 'adel.irina@leznik.edu.az'),
-    ('BLM003', 'Jamil', 'Rustamov', (select id from bloom), 'jamil.rustamov@leznik.edu.az'),
-    ('BLM004', 'Sevil', 'Afandiyeva', (select id from bloom), 'sevil.afandiyeva@leznik.edu.az'),
-    ('BLM005', 'Gozel', 'Alekberzade', (select id from bloom), 'gozel.alekberzade@leznik.edu.az'),
-    ('BLM006', 'Humay', 'Alizade', (select id from bloom), 'humay.elizade@leznik.edu.az'),
-    ('BLM007', 'Zeynab', 'Huseynova', (select id from bloom), 'zeynab.huseynova@leznik.edu.az'),
-    ('BLM008', 'Leyla', 'Mammadli', (select id from bloom), 'leyla.mammadli@leznik.edu.az'),
-    ('BLM009', 'Aylin', 'Mansurova', (select id from bloom), 'aylin.mansurova@leznik.edu.az'),
-    ('BLM010', 'Medina', 'Huseynzade', (select id from bloom), 'medina.huseynzade@leznik.edu.az'),
-    ('BLM011', 'Oguz', 'Hacili', (select id from bloom), 'oguz.hacili@leznik.edu.az'),
-    ('BLM012', 'Muhammed', 'Qarayev', (select id from bloom), 'muhammed.qarayev@leznik.edu.az'),
-    ('BLM013', 'Tahir', 'Jafarov', (select id from bloom), 'tahir.jafarov@leznik.edu.az'),
-    ('BLM014', 'Uzeyir', 'Hajiyev', (select id from bloom), 'uzeyir.hajiyev@leznik.edu.az'),
-    ('BLM015', 'Khayyam', 'Yusufzade', (select id from bloom), 'khayyam.yusufzade@leznik.edu.az')
+    ('LZ-K6EZD9BN', 'Yusif', 'Tahirli', (select id from bloom), 'yusif.tahirli@leznik.edu.az'),
+    ('LZ-ERJGLQWD', 'Adel', 'Danilova', (select id from bloom), 'adel.irina@leznik.edu.az'),
+    ('LZ-9V7EWD6F', 'Jamil', 'Rustamov', (select id from bloom), 'jamil.rustamov@leznik.edu.az'),
+    ('LZ-W3RYBWTH', 'Sevil', 'Afandiyeva', (select id from bloom), 'sevil.afandiyeva@leznik.edu.az'),
+    ('LZ-97EK2U9P', 'Gozel', 'Alekberzade', (select id from bloom), 'gozel.alekberzade@leznik.edu.az'),
+    ('LZ-H2XJTQM8', 'Humay', 'Alizade', (select id from bloom), 'humay.elizade@leznik.edu.az'),
+    ('LZ-U7D3XHFS', 'Zeynab', 'Huseynova', (select id from bloom), 'zeynab.huseynova@leznik.edu.az'),
+    ('LZ-VKTYET87', 'Leyla', 'Mammadli', (select id from bloom), 'leyla.mammadli@leznik.edu.az'),
+    ('LZ-DDBK7VMZ', 'Aylin', 'Mansurova', (select id from bloom), 'aylin.mansurova@leznik.edu.az'),
+    ('LZ-PSTHMR6X', 'Medina', 'Huseynzade', (select id from bloom), 'medina.huseynzade@leznik.edu.az'),
+    ('LZ-W5VH3H6C', 'Oguz', 'Hacili', (select id from bloom), 'oguz.hacili@leznik.edu.az'),
+    ('LZ-RLGXCD6H', 'Muhammed', 'Qarayev', (select id from bloom), 'muhammed.qarayev@leznik.edu.az'),
+    ('LZ-CW2Y6MUJ', 'Tahir', 'Jafarov', (select id from bloom), 'tahir.jafarov@leznik.edu.az'),
+    ('LZ-WBNV6SL3', 'Uzeyir', 'Hajiyev', (select id from bloom), 'uzeyir.hajiyev@leznik.edu.az'),
+    ('LZ-585UDNEN', 'Khayyam', 'Yusufzade', (select id from bloom), 'khayyam.yusufzade@leznik.edu.az')
 )
 insert into public.student_profiles (
   organization_id,
@@ -115,6 +115,5 @@ select
   sp.official_email
 from public.student_profiles sp
 left join public.classrooms c on c.id = sp.classroom_id
-where sp.student_id_code like 'FLM%'
-   or sp.student_id_code like 'BLM%'
+where sp.student_id_code like 'LZ-%'
 order by sp.student_id_code;

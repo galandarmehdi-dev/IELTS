@@ -633,7 +633,7 @@ function hasResumableStoredAttempt(activeTestId) {
 function sanitizeDesiredView(view, activeTestId) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
-  const allowedViews = new Set(["home", "dashboard", "history", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
+  const allowedViews = new Set(["home", "dashboard", "history", "vocabulary", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
   const launchContext = window.IELTS?.Registry?.getLaunchContext?.() || null;
 
   if (!allowedViews.has(normalized)) return "home";
@@ -686,6 +686,7 @@ function restoreViewAfterAuth() {
     writing: "writingSection",
     speaking: "speakingSection",
     adminResults: "adminResultsSection",
+    vocabulary: "vocabularySection",
     history: "historySection"
   };
 

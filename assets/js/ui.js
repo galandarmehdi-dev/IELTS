@@ -50,6 +50,7 @@
     const readingContainer = $("container");
     const writing = $("writingSection");
     const history = $("historySection");
+    const vocabulary = $("vocabularySection");
     const speaking = $("speakingSection");
     const adminResults = $("adminResultsSection");
 
@@ -60,6 +61,7 @@
     const isReading = view === "reading";
     const isWriting = view === "writing";
     const isHistory = view === "history";
+    const isVocabulary = view === "vocabulary";
     const isSpeaking = view === "speaking";
     const isAdminResults = view === "adminResults";
 
@@ -71,6 +73,7 @@
     if (readingContainer) readingContainer.classList.toggle("hidden", !isReading);
     if (writing) writing.classList.toggle("hidden", !isWriting);
     if (history) history.classList.toggle("hidden", !isHistory);
+    if (vocabulary) vocabulary.classList.toggle("hidden", !isVocabulary);
     if (speaking) speaking.classList.toggle("hidden", !isSpeaking);
     if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
 
@@ -191,7 +194,7 @@
   }
 
   function hideAllExamViews() {
-    ["homeSection","resourceHubSection","dashboardSection","listeningSection","readingControls","container","writingSection","examNav"].forEach((id) => $(id)?.classList.add("hidden"));
+    ["homeSection","resourceHubSection","dashboardSection","listeningSection","readingControls","container","writingSection","historySection","vocabularySection","examNav"].forEach((id) => $(id)?.classList.add("hidden"));
   }
 
   function showSubmittedOverlay(text) {

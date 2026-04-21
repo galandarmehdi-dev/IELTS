@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="assets/css/highlighting.css" />
 <link rel="stylesheet" href="assets/css/speaking.css" />
 <link rel="stylesheet" href="assets/css/exam-display.css" />
+<link rel="stylesheet" href="assets/css/vocabulary.css" />
 </head>
   
 <body translate="no">
@@ -218,6 +219,7 @@
             <button class="home-account-item" type="button" id="menuDashboardProfileBtn" role="menuitem">Profile overview</button>
             <button class="home-account-item" type="button" id="menuDashboardSettingsBtn" role="menuitem">Settings</button>
             <button class="home-account-item" type="button" id="menuHistoryBtn" role="menuitem">History</button>
+            <button class="home-account-item" type="button" id="menuVocabularyBtn" role="menuitem">Vocabulary</button>
             <button class="home-account-item" type="button" id="menuSpeakingBtn" role="menuitem">Speaking practice</button>
             <button class="home-account-item hidden" type="button" id="menuToggleAdminViewBtn" role="menuitem">Switch to admin view</button>
             <button class="home-account-item hidden" type="button" id="logoutBtn" role="menuitem">Log out</button>
@@ -442,6 +444,7 @@
           <div class="dashboard-quick-list">
             <button class="btn" type="button" id="dashboardStartPreferredBtn">Start preferred test</button>
             <button class="btn secondary" type="button" id="dashboardOpenHistoryBtn">Open full history</button>
+            <button class="btn secondary" type="button" id="dashboardOpenVocabularyBtn">Open vocabulary</button>
             <button class="btn secondary" type="button" id="dashboardOpenSpeakingBtn">Open speaking practice</button>
           </div>
           <div class="dashboard-recommendation" id="dashboardRecommendation">Recommendation: keep your profile updated and start a fresh mock when you are ready.</div>
@@ -1616,6 +1619,63 @@
     </div>
   </section>
 
+<section id="vocabularySection" class="vocab-screen hidden" aria-label="Vocabulary">
+  <div class="vocab-shell">
+    <header class="vocab-hero">
+      <div>
+        <div class="vocab-kicker">Vocabulary trainer</div>
+        <h1 class="vocab-title">Build IELTS vocabulary with focused review loops</h1>
+        <p class="vocab-copy">
+          Study deck-based IELTS vocabulary, review words when they are due, and keep a safe per-student progress trail without touching the exam submission flow.
+        </p>
+      </div>
+      <div class="vocab-actions">
+        <button class="vocab-btn secondary" type="button" id="vocabBackHomeBtn">Back home</button>
+        <button class="vocab-btn" type="button" id="vocabRefreshBtn">Refresh progress</button>
+      </div>
+    </header>
+
+    <nav class="vocab-tabs" aria-label="Vocabulary views">
+      <button class="vocab-tab is-active" type="button" data-vocab-view="dashboard">Dashboard</button>
+      <button class="vocab-tab" type="button" data-vocab-view="decks">Decks</button>
+      <button class="vocab-tab" type="button" data-vocab-view="study">Study</button>
+      <button class="vocab-tab" type="button" data-vocab-view="progress">Progress</button>
+    </nav>
+
+    <div class="vocab-status" id="vocabStatus" role="status">Vocabulary is ready.</div>
+
+    <section id="vocabDashboardView" class="vocab-view">
+      <div class="vocab-stats-grid" id="vocabDashboardStats"></div>
+      <div class="vocab-panel">
+        <h2 class="vocab-section-heading">Today</h2>
+        <p class="vocab-muted">Current streak: <strong id="vocabCurrentStreak">0 days</strong></p>
+        <button class="vocab-btn" type="button" id="vocabContinueBtn">Continue studying</button>
+      </div>
+      <h2 class="vocab-section-heading">Available decks</h2>
+      <div class="vocab-deck-grid" id="vocabDashboardDecks"></div>
+      <h2 class="vocab-section-heading">Recent activity</h2>
+      <div class="vocab-panel" id="vocabRecentActivity"></div>
+    </section>
+
+    <section id="vocabDecksView" class="vocab-view hidden">
+      <h2 class="vocab-section-heading">Deck list</h2>
+      <div class="vocab-deck-grid" id="vocabDeckList"></div>
+    </section>
+
+    <section id="vocabStudyView" class="vocab-view hidden">
+      <div id="vocabStudyBody" class="vocab-empty">Choose a deck to start a study session.</div>
+    </section>
+
+    <section id="vocabProgressView" class="vocab-view hidden">
+      <div class="vocab-stats-grid" id="vocabProgressStats"></div>
+      <h2 class="vocab-section-heading">Hard words</h2>
+      <div class="vocab-panel" id="vocabHardWords"></div>
+      <h2 class="vocab-section-heading">Per-deck progress</h2>
+      <div class="vocab-progress-grid" id="vocabPerDeckProgress"></div>
+    </section>
+  </div>
+</section>
+
   <!-- Modal (reused) -->
   <div class="modal hidden" id="modal">
     <div class="modal-card">
@@ -1647,7 +1707,7 @@
 <script src="assets/js/storage.js"></script>
 <script src="assets/js/tests/registry.js?v=20260405"></script>
 <script src="assets/js/access.js"></script>
-<script src="assets/js/ui.js"></script>
+<script src="assets/js/ui.js?v=20260421vocab"></script>
 <script src="assets/js/router.js"></script>
 <script src="assets/js/modal.js"></script>
 <script src="assets/js/highlighting.js"></script>
@@ -1656,11 +1716,13 @@
 <script src="assets/js/engines/readingEngine.js"></script>
 <script src="assets/js/engines/writingEngine.js"></script>
 
-<script type="module" src="assets/js/auth.js"></script>
+<script type="module" src="assets/js/auth.js?v=20260421vocab"></script>
 <script src="assets/js/dashboard.js?v=20260405"></script>
 <script src="assets/js/history.js"></script>
+<script src="assets/js/vocabulary/sample-data.js"></script>
+<script src="assets/js/vocabulary/vocabulary.js"></script>
 <script src="assets/js/engines/speakingEngine.js"></script>
-<script src="assets/js/app.js?v=20260401b"></script>
+<script src="assets/js/app.js?v=20260421vocab"></script>
 <script src="assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

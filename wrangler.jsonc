@@ -29,7 +29,9 @@
   "vars": {
     "ADMIN_BACKEND_URL": "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec",
     "SUPABASE_URL": "https://bgujwyknnszwborgbkxq.supabase.co",
-    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z"
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z",
+    "PRIMARY_TENANT_HOST": "ieltsmock.org",
+    "PRIMARY_ORGANIZATION_ID": "ieltsmock"
   },
   "compatibility_flags": [
     "nodejs_compat"

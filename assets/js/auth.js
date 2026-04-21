@@ -138,7 +138,7 @@ function setSharedSetupMode(active, text) {
   const box = getEl("sharedSetupBox");
   if (box) box.classList.toggle("hidden", !active);
   const help = getEl("sharedSetupHelp");
-  if (help) help.textContent = text || "Enter your Student ID and choose a personal password.";
+  if (help) help.textContent = text || "Enter your Student ID and your student password.";
 
   const sharedBtn = getEl("sharedPasswordLoginBtn");
   if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
@@ -536,9 +536,9 @@ async function fetchLinkedStudentProfile() {
   const shouldRequireStudentId = !profile && window.IELTS?.Access?.isAdmin?.() !== true;
   if (shouldRequireStudentId) {
     showProtectedApp(false);
-    openLoginGate("Enter your teacher-given Student ID before continuing.");
+    openLoginGate("Enter your teacher-given Student ID and student password before continuing.");
     clearAuthFlowModes();
-    setSharedSetupMode(true, "Enter your Student ID and choose a personal password before continuing.");
+    setSharedSetupMode(true, "Enter your Student ID and student password before continuing.");
   }
   return { ok: true, profile, required: data.required === true };
 }
@@ -993,14 +993,14 @@ async function refreshAuthUI({ forceHome = false } = {}) {
       openLoginGate(
         shared.recoveryMode === "bypass"
           ? "Bypass accepted. Set a new password before continuing."
-          : "Enter your Student ID and set a student password before continuing."
+          : "Enter your Student ID and student password before continuing."
       );
       clearAuthFlowModes();
       setSharedSetupMode(
         true,
         shared.recoveryMode === "bypass"
           ? "Reset this student's password and confirm the Student ID before entering the platform."
-          : "This is the student's first sign-in. Enter the Student ID and choose a personal password now."
+          : "Enter the Student ID and the student's password to continue. On first use, this becomes the student's saved password."
       );
       prefillSharedSetupFields(shared.user);
       notifyAuthChanged();
@@ -1297,7 +1297,7 @@ async function completeSharedStudentSetup() {
   }
 
   try {
-    setMessage("Linking Student ID...", { sticky: true });
+    setMessage("Verifying Student ID...", { sticky: true });
     const result = await upgradeSharedStudentPassword(password, { studentIdCode });
     if (getEl("sharedSetupPasswordInput")) getEl("sharedSetupPasswordInput").value = "";
     if (getEl("sharedSetupConfirmInput")) getEl("sharedSetupConfirmInput").value = "";

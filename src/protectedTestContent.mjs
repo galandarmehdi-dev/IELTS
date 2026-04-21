@@ -5979,6 +5979,572 @@ Onkalo may very well end up being the longest lasting trace of Western civilisat
   }
 };
 
+const test14 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Listening32.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Smartbank</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><span class="qnum">1</span> Cost of having an account with Smartbank: € <input data-lq="1" class="l-input tiny"> per month (after the first two months).</div>
+        <div class="note-row"><span class="qnum">2</span> Smartbank customers can choose to receive free cinema tickets or a <input data-lq="2" class="l-input">.</div>
+        <div class="note-row"><span class="qnum">3</span> Customers’ phone calls are answered promptly; otherwise the bank will phone back within <input data-lq="3" class="l-input">.</div>
+        <div class="note-row"><span class="qnum">4</span> Smartbank offers its customers discounts on <input data-lq="4" class="l-input">.</div>
+        <div class="note-row"><span class="qnum">5</span> Smartbank describes itself as being a very <input data-lq="5" class="l-input"> bank.</div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 6-10</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">SMARTBANK - NEW CUSTOMER INFORMATION FORM</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Customer name Lisa <span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
+        <div class="note-row">Address 20 Priceley Lane, Longstone</div>
+        <div class="note-row">Postcode <span class="qnum">7</span> <input data-lq="7" class="l-input"></div>
+        <div class="note-row">Phone number <span class="qnum">8</span> <input data-lq="8" class="l-input"></div>
+        <div class="note-row">Type of account wanted A <span class="qnum">9</span> <input data-lq="9" class="l-input"> account</div>
+        <div class="note-row">Purpose of account Paying in the money that the customer will get as <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-15</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">11</span> The speaker says it is surprising that before designing Porto Nuevo station, the architect had never</div>
+        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) visited Porto Nuevo city.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) worked on a large project.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) designed a railway station.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">12</span> The speaker says that the construction of the station</div>
+        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) cost more than it should have done.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) was finished quicker than expected.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) was controversial at the time.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">13</span> What aspect of the building does the speaker say is impressive?</div>
+        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) the size of the roof</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) its use of electricity</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) how the building is lit</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">14</span> After the station was built, it was criticised for being</div>
+        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) too small.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) in the wrong place.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) designed in an unfashionable style.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">15</span> What are the visitors advised to do in the station before catching their train?</div>
+        <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) take some photographs</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) hire an audio-guide</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) walk around the whole building</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 16-20</div>
+      <div class="listen-inst">Label the map below. Write the correct letter, <b>A-G</b>, next to each question.</div>
+
+      <div style="margin: 14px 0; display:flex; justify-content:center;">
+        <img
+          src="https://audio.ieltsmock.org/LISTENING%20TEST%2032%20PIC.png"
+          alt="Porto Nuevo station - great hall"
+          style="max-width:100%; width:520px; height:auto; border:1px solid #ccc; border-radius:8px;"
+        >
+      </div>
+
+      <div class="note-row"><span class="qnum">16</span> Tourist information desk
+        <select class="l-select" data-lq="16">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">17</span> Lost property office
+        <select class="l-select" data-lq="17">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">18</span> Toilets
+        <select class="l-select" data-lq="18">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">19</span> Food stalls
+        <select class="l-select" data-lq="19">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">20</span> Gift shop
+        <select class="l-select" data-lq="20">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-22</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">For which TWO reasons do Lorna and Max think a smartwatch is a suitable product for their project?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="A"> A) The topic relates well to their course.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="B"> B) They are both interested in smartwatches.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="C"> C) Smartwatches combine fashion and technology.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="D"> D) They know that the smartwatch sector is highly profitable.</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="E"> E) It is different from the products chosen by the other groups of students.</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 23-24</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO groups do Lorna and Max agree they should design their smartwatch for?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="23" data-lq-count="2" value="A"> A) school children</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="23" data-lq-count="2" value="B"> B) luxury customers</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="23" data-lq-count="2" value="C"> C) first time customers</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="23" data-lq-count="2" value="D"> D) extreme sports enthusiasts</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="23" data-lq-count="2" value="E"> E) customers who like the latest gadgets</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 25-26</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO things do Lorna and Max think will be challenging?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="25" data-lq-count="2" value="A"> A) meeting the project deadline</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="25" data-lq-count="2" value="B"> B) producing work that is original</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="25" data-lq-count="2" value="C"> C) choosing a name for their smartwatch</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="25" data-lq-count="2" value="D"> D) understanding how the project is marked</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="25" data-lq-count="2" value="E"> E) ensuring everyone in the group contributes equally</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 27-30</div>
+      <div class="listen-inst">What task will each of the following students do during the project? Write the appropriate letter, <b>A-F</b>, for each question.</div>
+
+      <div class="people-box">
+        <div><b>A</b> writing publicity materials</div>
+        <div><b>B</b> researching other available smartwatches</div>
+        <div><b>C</b> deciding what to spend money on</div>
+        <div><b>D</b> improving the design of the smartwatch</div>
+        <div><b>E</b> identifying which smartwatch features would be attractive to customers</div>
+        <div><b>F</b> ensuring that all group members are making progress</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">27</span> Lorna
+        <select class="l-select" data-lq="27">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">28</span> Max
+        <select class="l-select" data-lq="28">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">29</span> Jasmine
+        <select class="l-select" data-lq="29">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">30</span> Dave
+        <select class="l-select" data-lq="30">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Street furniture</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Definition</b></div>
+        <div class="note-row">Street furniture = outdoor items such as park benches, traffic lights &amp; EV charging points</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Purposes</b></div>
+        <div class="note-row bullet">● meet practical needs</div>
+        <div class="note-row bullet">● reflect character of a place, e.g. street lights in Dorset in the shape of <span class="qnum">31</span> <input data-lq="31" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Street furniture and water</b></div>
+        <div class="note-row">In the past, water supply was linked to <span class="qnum">32</span> <input data-lq="32" class="l-input">, especially in cities</div>
+        <div class="note-row">Liverpool had the earliest drinking fountains</div>
+        <div class="note-row">A drinking fountain built in 1859 in London has a <span class="qnum">33</span> <input data-lq="33" class="l-input"> on a chain</div>
+        <div class="note-row">Charities often paid for the supply of drinking water for <span class="qnum">34</span> <input data-lq="34" class="l-input"></div>
+        <div class="note-row">Many stone troughs now contain <span class="qnum">35</span> <input data-lq="35" class="l-input"> instead of water</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Street furniture and waste</b></div>
+        <div class="note-row">It’s widely believed that people are more likely to use bins that are <span class="qnum">36</span> <input data-lq="36" class="l-input"></div>
+        <div class="note-row">Making bins visible leads to more <span class="qnum">37</span> <input data-lq="37" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Changes to street furniture over time</b></div>
+        <div class="note-row">Older street furniture can easily be adapted for new uses:</div>
+        <div class="note-row bullet">● many redundant phone boxes have now been turned into <span class="qnum">38</span> <input data-lq="38" class="l-input"></div>
+        <div class="note-row bullet">● bus stops in Preston were once for people who travelled by <span class="qnum">39</span> <input data-lq="39" class="l-input"></div>
+        <div class="note-row bullet">● in Leicester, many bus stops are now covered in <span class="qnum">40</span> <input data-lq="40" class="l-input">, reflecting people’s changing values</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+    `
+  },
+
+  writing: {
+    task1Type: "Pie chart",
+    task2Type: "Problem and solution",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The two pie charts below show the marital status of the populations of Canada and Australia.<br>
+      Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/TEST14.png",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      Write about the following topic:<br><br>
+      Some species of animals are almost extinct; and many others seem to be fast approaching a similar risk. What are the reasons for this? What should be done to solve this problem?<br><br>
+      Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Sugar: The Sweetest Killer
+
+A
+Throughout the last century, numerous foods have hit the headlines as a threat to human health. In the 1920s, milk was supposedly full of dangerous bacteria; in the 80s, America was told that chemicals on apples caused cancer, and cholesterol has been hero and villain several times over. Reducing our fat intake has been the main message of health marketing in recent years, but many medical experts say this is trivial compared to the dangers posed by sugar. This sweet killer hides in almost all processed foods, is getting harder to avoid and may do more damage than we realise.
+
+B
+Humans naturally have a sweet tooth. In prehistoric times, before the rise of agriculture, plants and fruit containing high sugar levels were rare. For hunter-gatherers, finding the occasional wild strawberry was a welcome treat and a fantastic source of energy. It also increased our fat-storing ability, useful as winter approached. We evolved to seek out these energy-dense foods through tongue receptors that responded positively to the taste of fructose. This was beneficial when sweet snacks were seldom found in the wild, but today, with mass sugarcane plantations, and sugar-rich snacks available in every store, we still crave the rare treats that aren’t so rare anymore.
+
+C
+Another reason for our Western sugary obsession is our development as children. A UK study found nearly half of all mothers believed their children to be addicted to sugar, but the same study showed very few of those mothers were aware just how much everyday food, like fruit juice, or even fat-free yoghurt contained. Besides causing a number of health-related risks, constantly feeding it to children can make them dependent on it and change their perception of sweetness. Children who are used to sweet food won’t appreciate more subtle, delicate flavours; fizzy drinks and sweets may be ruining their palate.
+
+D
+To fully understand why sugar is so harmful, we need to consider the effects it has on our body. First among the risks associated with it is heart disease, the leading cause of preventable death worldwide. The American Heart Association warns that added sugar in our food can vastly increase the risk of cardiovascular illnesses, especially for those already overweight. The reason for this effect is still disputed, but some medical experts claim that sugary snacks raise blood pressure, putting more strain on the heart. It has also been shown that some types, such as fructose, cause the liver to produce fat, which clogs up arteries, causing heart complications.
+
+E
+One of the main health scares connected to sugar is diabetes. Many believe eating too much can lead to type-2 diabetes, where the body fails to produce enough insulin, a hormone which regulates blood-sugar levels. However, studies by the British Diabetes Foundation have found that, surprisingly, sugar does not directly cause diabetes. Instead, research points to obesity as its leading cause. However, this doesn’t mean sugar is completely blameless. Experts refer to it as ‘empty calories’, which is energy without valuable nutrients and causes people to gain weight without the balance of healthy nutrition. So while sugar may not cause diabetes, it is a serious factor in obesity.
+
+F
+Another serious concern is the damage it can wreak upon our teeth. Our mouths are filled with millions of good and bad microorganisms. Some of these bacteria feed on the sugars we eat and release acids which dissolve and erode our tooth enamel, resulting in cavities. Nevertheless, brushing your teeth regularly may not be the solution. Professor of dentistry at St Louis University, Glennon Engleman, warns regular brushers: “Many people think that if they indulge in their favourite sugary snacks, it won’t damage their teeth as long as they brush them straight after.” He even gives evidence that brushing may be causing more harm than good. “The bacteria’s acid weakens the enamel, so brushing will damage or remove the protective layers of your teeth.” So, what solution does Engleman propose? “Just cut out the sugar! It’s that simple.”
+
+G
+Despite the wealth of research into its harmful effects and numerous warnings from medical health professionals, it still seems the food industry and the public haven’t responded in the same way they have to pesticides, genetically modified products or fatty foods. Healthy eating campaigners say the sugar industry has only funded and promoted research that warns the public about fat and cholesterol to shift the blame from sugar. As recently as 1972, industry-funded scientists ridiculed and dismissed a study revealing the dangers of the sweet poison. Only now have governments started to take the threat seriously, introducing taxes on sugary drinks, and passing legislation on added sugar labelling.
+
+H
+So what can we do to reduce our sugar consumption? Healthy eating advocates say the first step is to be aware of the amounts in our food. For example, seemingly healthy orange juice could contain as much sugar as cola. Ingredient labels can be misleading, as it can have many names: sucrose, fructose and corn syrup are three of the main offenders. Once you’ve determined the sources of your consumption, try to replace them with sugar-free alternatives. Avoid ready-prepared meals - these often make up more than your recommended daily allowance. The good news is it gets easier: once you reduce your intake, your body’s dependence on the white stuff disappears and, soon, you will find you no longer crave that midnight chocolate bar.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 1 - 8",
+            instructions: [
+              "Reading Passage 1, Sugar: The Sweetest Killer has eight paragraphs, A - H.",
+              "Which paragraph contains the following information?",
+              "Write the appropriate letters, A - H, in answer boxes 1 - 8."
+            ],
+            endings: {
+              A: "A benefit of eating sugar.",
+              B: "Foods which many do not realise contain sugar.",
+              C: "Recommendations for fighting a physiological addiction caused by sugar consumption.",
+              D: "A slow reaction to the dangers of sugar.",
+              E: "A mistaken belief about the role sugar plays in the development of a disease.",
+              F: "A fatal condition which could be minimised if sugar were avoided.",
+              G: "A potential flaw of commonplace practices to counter sugar's harmful effects.",
+              H: "Changing historical attitudes towards certain foods."
+            },
+            items: [
+              { q: 1, text: "1" },
+              { q: 2, text: "2" },
+              { q: 3, text: "3" },
+              { q: 4, text: "4" },
+              { q: 5, text: "5" },
+              { q: 6, text: "6" },
+              { q: 7, text: "7" },
+              { q: 8, text: "8" }
+            ]
+          },
+          {
+            type: "shortAnswer",
+            title: "Questions 9 - 13",
+            instructions: [
+              "Answer the questions.",
+              "Use NO MORE THAN ONE WORD from Reading Passage 1, Sugar: The Sweetest Killer, for each answer.",
+              "Write them in answer boxes 9 - 13."
+            ],
+            questions: [
+              { q: 9, text: "What fruit was linked to a serious disease in the past?" },
+              { q: 10, text: "What type of sugar have humans evolved to seek out?" },
+              { q: 11, text: "What may be negatively affected by children consuming too much sugar?" },
+              { q: 12, text: "Other than acid-producing bacteria, what is suggested to have a negative effect on our teeth?" },
+              { q: 13, text: "What do some customers find confusing?" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `THE SEVEN BRIDGES OF KOENIGSBERG
+
+Arthur O’Brien takes a look at the seven bridges of Koenigsberg, the problem they posed for its inhabitants, and what we have learnt from it.
+
+Where the Pregolya river meets the Baltic sea, the Russian enclave of Kaliningrad looks out across the Vistula lagoon towards Gdansk in Poland. In past times these two cities formed part of a vast network of trading cities stretching from Estonia to England, flourishing through the later Medieval period thanks to a commercial and defensive confederation of merchant guilds. Reaching the height of its prosperity in the late sixteenth century, thanks to its export of wheat, timber, hemp and furs, Kaliningrad was originally called Koenigsberg and was visited by more than one hundred ships annually. The resulting wealth allowed the people of the city to construct seven bridges connecting the banks of the river and two large central islands together.
+
+As a result of this construction, the townsfolk were able to travel between these formerly distinct regions of the city more easily. According to local legend, this pastime of city centre strolling became so popular that curiosity began to emerge among the inhabitants about the different routes they could take. At some point, this evolved into a type of Sunday afternoon game, with the goal of devising a route by which all seven of the bridges would be crossed once and once only. However, despite all their efforts, it did not seem possible to complete the route following these rules. The puzzle remained unsolved for so long that the riddle was elevated up through the academic classes and ultimately to one of the greatest mathematical minds of the time, Leonhard Euler.
+
+Although Swiss, this prolific mathematician, physicist, astronomer, logician and engineer was at that time a resident of St Petersburg, further north along the Baltic coast in Russia. Euler was a tremendously industrious academic, publishing around 500 books and papers over the course of his life, so to many it seemed odd that his interest would be piqued by such a trivial logical problem. In fact, when the mayor of Gdansk originally contacted him to probe his mind for a solution to the problem in a letter of 1736, Euler’s response indicated his initial reluctance due to the problem “bearing little relationship to mathematics”, suggesting that the solution would be “based on reason alone” and that its discovery “does not depend on any mathematical principle.” However, it seems that Euler’s inclination towards certainty and understanding was too strong to resist, as a letter written soon after to a friend, Giovanni Marinoni, explains that in Euler’s view the Koenigsberg problem “...is so banal, but seemed to me worthy of attention in that neither geometry, nor algebra, nor even the art of counting was sufficient to solve it.”
+
+On August 26, 1736, the mathematician shared a paper presenting a systematic explanation of his thoughts and interpretation of the problem, and ending by concluding that the citizens of Koenigsberg were not mistaken, there was indeed no route that could achieve the desired goal. The analysis began by stating that the nature of this problem certainly concerns geometry, but not of the familiar kind involving measurements and calculations, before making the connection to a topic recently discussed by the German polymath, Gottfried Leibniz - that of an innovative field of study called ‘geometry of position’, but of which little record exists. Euler then explained the need for abstraction in order to solve the problem, taking us to the crucial and groundbreaking part of his analysis.
+
+It was clear to him that the barrier preventing the people of Koenigsberg from understanding the puzzle came about as a result of their unrefined perception of it. He thus started his analysis by removing all extraneous features of the map, leaving us with the ‘land masses’ (islands and river banks) and the bridges connecting them. This may seem extraordinarily simple to us – as we interact with abstracted diagrams and schematics everyday, in the form of transit maps and appliance manuals – but, at the time, equivalent documents were largely decorative and not created with efficient practicality in mind. Euler then described the land masses as dots and the bridges as lines and gave each of the former a letter A, B, C and D and the latter a number one through seven.
+
+Although a piece of paper, a pen and a keen mathematical mind would be needed to understand the following fifteen paragraphs of analysis, they are not necessary to understand the significance of his method. The method Euler employed could be adapted as a framework to solve any problem that involved networks and routes through the analysis of all permutations. This was crucial to the later development of logistical analysis, in which the goal is to find the most efficient path or paths in complex systems, and its application can be seen in activities as diverse as the arrangement of postal routes, electrical circuits, DNA sequencing and chemical compounds.
+
+Euler’s endurance thus paid off and the brain-teaser that had perplexed the citizens of Koenigsberg was no more. Sadly, though, the inhabitants of Kaliningrad can no longer enjoy the pursuit that first put Koenigsberg on the intellectual map. Although in 1875 a new bridge was constructed – meaning that the route was at last achievable – two of the original constructions fell to bombing in World War II, while a further two were demolished and replaced by a modern highway.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 14 - 17",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 2, The Seven Bridges of Koenigsberg?",
+              "In answer boxes 14 - 17, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 14, text: "Koenigsberg was a successful Medieval port." },
+              { q: 15, text: "Prior to the construction of the bridges, the people of Koenigsberg did not often visit other parts of the city." },
+              { q: 16, text: "Interest in the logic problem first arose at the city's university." },
+              { q: 17, text: "Leonhard Euler was immediately interested in the problem." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 18 - 22",
+            instructions: [
+              "Complete each sentence with the correct ending, A - G.",
+              "Write the appropriate letters, A - G, in answer boxes 18 - 22."
+            ],
+            endings: {
+              A: "... to solve the problem.",
+              B: "... to explain why the problem was interesting.",
+              C: "... to visualise the problem.",
+              D: "... to come to the correct conclusion.",
+              E: "... to make a connection to an area of study.",
+              F: "... to complete the original task.",
+              G: "... to seek help in solving the problem."
+            },
+            items: [
+              { q: 18, text: "Citizens of Koenigsberg were the first people ..." },
+              { q: 19, text: "Leonard Euler wrote to his friend ..." },
+              { q: 20, text: "Gottfried Leibniz helped Euler ..." },
+              { q: 21, text: "Leonard Euler felt people needed help ..." },
+              { q: 22, text: "The city's current geography means it is not possible for people ..." }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 23 - 27",
+            instructions: [
+              "Choose words from the list in the box to complete the summary.",
+              "Write the appropriate letters, A - J, in answer boxes 23 - 27."
+            ],
+            summaryTitle: "Euler's analysis",
+            summaryLines: [
+              { text: "In his published", blankQ: 23, tail: "of the problem," },
+              { text: "Euler simplified the map to an abstract", blankQ: 24, tail: "of the town: he depicted the bridges as lines and the land as dots." },
+              { text: "Although commonplace now, this", blankQ: 25, tail: "was revolutionary for the time." },
+              { text: "The", blankQ: 26, tail: "of his analysis is still felt today, as it laid the" },
+              { text: "", blankQ: 27, before: "", after: "for logistical route analysis." }
+            ],
+            optionsTitle: "A - J",
+            options: [
+              { letter: "A", word: "painting" },
+              { letter: "B", word: "groundwork" },
+              { letter: "C", word: "representation" },
+              { letter: "D", word: "proposal" },
+              { letter: "E", word: "approach" },
+              { letter: "F", word: "findings" },
+              { letter: "G", word: "influence" },
+              { letter: "H", word: "examination" },
+              { letter: "I", word: "result" },
+              { letter: "J", word: "style" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `THE ETHICS OF DRIVERLESS CARS
+
+A
+The ethics of autonomous vehicles – those that effectively drive themselves without human intervention – has become a growing concern recently as such cars start to appear on public roads. This has provoked an urgent need to address the contentious issues surrounding this developing technology before it becomes widespread. However, the issues raised are not easy to resolve, highlighting the frequent inadequacy of our own moral judgements and perhaps asking us to take responsibility for the pre-programmed morals of a machine.
+
+B
+The branch of knowledge which deals with moral principles is known as ethics. Ethical concerns about autonomous cars are explored within an interdisciplinary field called "robot ethics" which brings together experts in engineering, computing, law, philosophy, sociology and psychology as robot ethicists seek to understand the implications of autonomous robots in human society. The reliability of machines and the level of decision-making authority they may have are key concerns and autonomous cars are a clear case of the predicaments posed by this new technology.
+
+C
+The potential autonomous cars have to significantly increase road safety is not disputed. According to Bryant Walker Smith from the University of South Carolina, 90% of all traffic accidents are caused by human error at least in part, and removing the error component would dramatically reduce the number of those accidents. Another investigation, by the UK’s Department for Transport, backs this up with statistics showing human mistakes have a part to play in over 90% of road accidents in Britain too.
+
+D
+Beyond the general issue of reliability, there is another difficult ethical question: how should a driverless car behave when a collision is unavoidable? Human drivers instinctively react in such situations, but autonomous vehicles may need to be programmed in advance to make life-and-death decisions. If an accident cannot be prevented, should the car prioritise the safety of its passengers, pedestrians, or the greater number of people? This moral dilemma has moved from the realm of philosophy into practical law and engineering.
+
+E
+In September 2016, Germany was the first country to propose introducing a set of ethical principles for autonomous vehicles into traffic laws. The transport minister Alexander Dobrindt suggested three key rules for autonomous vehicles: firstly, when faced with imminent danger, autonomous vehicles must always choose to damage property rather than injure people. Secondly, the vehicles must never distinguish between humans in any way, and must consider all to merit the same level of protection. Lastly, at all times there must be a human overseeing the vehicle's driving. This must be guaranteed by rendering the car manufacturer liable for any accidents which take place if nobody is holding the steering-wheel.
+
+F
+Robot ethicists were quick to point to some flaws in this draft proposal. While it is easy to argue that a car should crash into things not people, what should it do if it has to choose between crashing into one group of people over another? This thought experiment is usually called 'The Trolley Problem', and was first proposed by Philippa Foot in 1967. It is traditionally presented thus: A runaway trolley is hurtling down a railway track towards five people who are tied to it. You are standing next to a lever which will divert the trolley onto a parallel track where only one person is tied up. Should you pull the lever?
+
+G
+Another criticism concerns legal responsibility. Some argue that in practice, the ethical decisions of autonomous vehicles will not be guided by moral philosophy but by the law. Instead of attempting to minimise injury, cars will inevitably be programmed to minimise legal liability for manufacturers. However this is done, it must be agreed across the car industry and nations as far as possible to make the extensive rolling out of the vehicles viable.
+
+H
+If the law is written in such a way that the manufacturer is held responsible for all injury and any damage caused by the autonomous car regardless of other considerations, car-makers will program the vehicles to eliminate situations of risk. Manufacturers such as Volvo and Google have already stated they will accept responsibility for accidents involving their vehicles. Their reasons for this stem from an attempt to earn the public’s trust in the technology, shifting some responsibility away from the customer in the case of an accident. However, they would only accept responsibility due to a flaw in the vehicle, not when the technology was used inappropriately, or if the collision was caused by a third party. If others follow their lead, some headway may be made in this legal minefield of responsibility, allowing for the undoubted spread of autonomous cars to continue its journey.`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 28 - 34",
+            instructions: [
+              "Reading Passage 3, The Ethics of Driverless Cars, has eight paragraphs, A - H.",
+              "From the list of headings, choose the most suitable one for each paragraph.",
+              "Write the appropriate numbers (i - x) in answer boxes 28 - 34.",
+              "NB There are more headings than paragraphs, so you will not use them all."
+            ],
+            listTitle: "List of Headings",
+            headings: [
+              { value: "i", label: "The likely solution" },
+              { value: "ii", label: "The culpability conundrum" },
+              { value: "iii", label: "Lessons from history" },
+              { value: "iv", label: "Gaining public confidence" },
+              { value: "v", label: "A new problem on our roads" },
+              { value: "vi", label: "The key benefit of driverless cars" },
+              { value: "vii", label: "The accident dilemma" },
+              { value: "viii", label: "An initial solution" },
+              { value: "ix", label: "An unethical problem" },
+              { value: "x", label: "A multi-faceted domain" }
+            ],
+            example: { paragraph: "Paragraph A", value: "v" },
+            questions: [
+              { q: 28, paragraph: "Paragraph B" },
+              { q: 29, paragraph: "Paragraph C" },
+              { q: 30, paragraph: "Paragraph D" },
+              { q: 31, paragraph: "Paragraph E" },
+              { q: 32, paragraph: "Paragraph F" },
+              { q: 33, paragraph: "Paragraph G" },
+              { q: 34, paragraph: "Paragraph H" }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 35 - 36",
+            instructions: [
+              "Complete the summary.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 3, The Ethics of Driverless Cars, for each answer.",
+              "Write them in answer boxes 35 - 36."
+            ],
+            items: [
+              { q: 35, text: "‘The Trolley Problem’ is a", tail: "in ethics, first introduced in 1967 by Philippa Foot." },
+              { q: 36, text: "To avoid hitting them, the trolley can be switched to a", tail: ", to which one person is bound." }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 37 - 40",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the appropriate letters, A - D, in answer boxes 37 - 40."
+            ],
+            items: [
+              {
+                q: 37,
+                text: "German transport minister Alexander Dobrindt was mainly concerned with ...",
+                choices: {
+                  A: "getting driverless cars on the road in Germany as soon as possible.",
+                  B: "making Germany's cars more autonomous than other countries.",
+                  C: "protecting human life.",
+                  D: "reducing the number of road accidents in Germany."
+                }
+              },
+              {
+                q: 38,
+                text: "Before driverless cars become widespread, ...",
+                choices: {
+                  A: "global consensus on legal issues must be reached.",
+                  B: "they need to be proven safe.",
+                  C: "car manufacturers must accept all liability for accidents.",
+                  D: "the public will have to have more faith in the software."
+                }
+              },
+              {
+                q: 39,
+                text: "Some automobile firms have already said they will accept liability for accidents involving their cars ...",
+                choices: {
+                  A: "providing there is nobody controlling the vehicle at the time.",
+                  B: "in the event the vehicle itself was at fault.",
+                  C: "to encourage other manufacturers to invest in the technology.",
+                  D: "to pre-empt lengthy legal disputes."
+                }
+              },
+              {
+                q: 40,
+                text: "Which of the following best summarises the text as a whole?",
+                choices: {
+                  A: "Experts disagree on where the responsibility for driverless cars lies.",
+                  B: "Driverless cars will create a safer world by eliminating driver error from our roads.",
+                  C: "Important issues need to be laid to rest before driverless cars can become commonplace.",
+                  D: "Robot ethicists will find the answers to the moral questions driverless cars raise."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -5993,6 +6559,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts11: test11,
   ielts12: test12,
   ielts13: test13,
+  ielts14: test14,
 };
 
 export function getProtectedTestContent(testId) {

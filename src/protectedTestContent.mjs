@@ -6285,24 +6285,25 @@ So what can we do to reduce our sugar consumption? Healthy eating advocates say 
               "Write the appropriate letters, A - H, in answer boxes 1 - 8."
             ],
             endings: {
-              A: "A benefit of eating sugar.",
-              B: "Foods which many do not realise contain sugar.",
-              C: "Recommendations for fighting a physiological addiction caused by sugar consumption.",
-              D: "A slow reaction to the dangers of sugar.",
-              E: "A mistaken belief about the role sugar plays in the development of a disease.",
-              F: "A fatal condition which could be minimised if sugar were avoided.",
-              G: "A potential flaw of commonplace practices to counter sugar's harmful effects.",
-              H: "Changing historical attitudes towards certain foods."
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F",
+              G: "Paragraph G",
+              H: "Paragraph H"
             },
+            hideOptionsList: true,
             items: [
-              { q: 1, text: "1" },
-              { q: 2, text: "2" },
-              { q: 3, text: "3" },
-              { q: 4, text: "4" },
-              { q: 5, text: "5" },
-              { q: 6, text: "6" },
-              { q: 7, text: "7" },
-              { q: 8, text: "8" }
+              { q: 1, text: "A benefit of eating sugar." },
+              { q: 2, text: "Foods which many do not realise contain sugar." },
+              { q: 3, text: "Recommendations for fighting a physiological addiction caused by sugar consumption." },
+              { q: 4, text: "A slow reaction to the dangers of sugar." },
+              { q: 5, text: "A mistaken belief about the role sugar plays in the development of a disease." },
+              { q: 6, text: "A fatal condition which could be minimised if sugar were avoided." },
+              { q: 7, text: "A potential flaw of commonplace practices to counter sugar's harmful effects." },
+              { q: 8, text: "Changing historical attitudes towards certain foods." }
             ]
           },
           {

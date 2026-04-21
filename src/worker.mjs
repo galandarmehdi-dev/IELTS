@@ -27,6 +27,14 @@ export default {
       return handleSharedStudentBypass(request, env);
     }
 
+    if (url.pathname === "/api/auth/student-profile") {
+      return handleStudentProfileApi(request, env);
+    }
+
+    if (url.pathname === "/api/auth/student-link") {
+      return handleStudentLinkApi(request, env);
+    }
+
     if (url.pathname === "/api/auth/shared-setup") {
       return handleSharedStudentSetup(request, env);
     }
@@ -353,6 +361,7 @@ async function handleSharedStudentLogin(request, env) {
     lastName: current?.lastName || "",
     setupCompleted,
     organizationId: tenant.organizationId,
+    studentProfile: current?.studentProfile || null,
   });
 
   await upsertStudentRegistry(env, {
@@ -413,6 +422,7 @@ async function handleSharedStudentBypass(request, env) {
     lastName: current?.lastName || "",
     setupCompleted: false,
     organizationId: tenant.organizationId,
+    studentProfile: current?.studentProfile || null,
   });
 
   return json(200, {
@@ -423,6 +433,108 @@ async function handleSharedStudentBypass(request, env) {
     requiresSetup: true,
     recoveryMode: "bypass",
   });
+}
+
+async function handleStudentProfileApi(request, env) {
+  if (request.method !== "GET") return json(405, { ok: false, error: "Method not allowed." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+  const url = new URL(request.url);
+  const studentIdCode = oneLine(url.searchParams.get("studentIdCode") || "");
+  const organizationId = getActorOrganizationId(auth) || resolveTenantContext(request, env).organizationId;
+  const identity = buildAuthLinkIdentity(auth);
+
+  if (studentIdCode) {
+    const profile = await getStudentProfileByCode(env, studentIdCode, organizationId);
+    if (!profile) return json(404, { ok: false, error: "Student ID not found." });
+    return json(200, { ok: true, profile: publicStudentProfile(profile) });
+  }
+
+  const profile = await getStudentProfileByAuth(env, identity, organizationId);
+  return json(200, {
+    ok: true,
+    profile: profile ? publicStudentProfile(profile) : null,
+    required: String(env.CLASSROOM_IDENTITY_REQUIRED || "").trim().toLowerCase() === "true",
+  });
+}
+
+async function handleStudentLinkApi(request, env) {
+  if (request.method !== "POST") return json(405, { ok: false, error: "Method not allowed." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+  const payload = await request.json().catch(() => null);
+  const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
+  const password = String(payload?.password || "");
+  if (!studentIdCode) return json(400, { ok: false, error: "Student ID is required." });
+  if (!password || password.length < 6) return json(400, { ok: false, error: "Choose a password with at least 6 characters." });
+
+  const organizationId = getActorOrganizationId(auth) || resolveTenantContext(request, env).organizationId;
+  const profile = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  if (!profile) return json(404, { ok: false, error: "Student ID not found. Please check it or contact your teacher." });
+  if (profile.is_active === false) return json(403, { ok: false, error: "This Student ID is not active. Please contact your teacher/admin." });
+
+  const identity = buildAuthLinkIdentity(auth);
+  if (profile.linked_auth_identity && profile.linked_auth_identity !== identity.identity) {
+    return json(409, { ok: false, error: "This Student ID is already linked to another account. Please contact your teacher/admin." });
+  }
+  if (profile.linked_auth_user_id && identity.userId && profile.linked_auth_user_id !== identity.userId) {
+    return json(409, { ok: false, error: "This Student ID is already linked to another account. Please contact your teacher/admin." });
+  }
+
+  const salt = generateStudentPasswordSalt();
+  const passwordHash = await hashStudentPassword(identity.email || studentIdCode, password, salt);
+  const updated = await updateStudentProfileById(env, profile.id, {
+    personal_password_hash: passwordHash,
+    personal_password_salt: salt,
+    linked_auth_user_id: identity.userId || null,
+    linked_auth_identity: identity.identity,
+    linked_auth_email: identity.email || null,
+    linked_at: new Date().toISOString(),
+  });
+  const publicProfile = publicStudentProfile(updated || profile);
+  await upsertStudentRegistry(env, {
+    email: identity.email,
+    fullName: publicProfile.fullName,
+    provider: auth.kind === "shared" ? "shared-password" : oneLine(auth?.user?.app_metadata?.provider || "email"),
+    isSharedPassword: auth.kind === "shared",
+    organizationId: publicProfile.organizationId || organizationId,
+    studentProfile: publicProfile,
+    setupCompleted: true,
+    passwordHash,
+    passwordSalt: salt,
+  });
+  return json(200, { ok: true, profile: publicProfile, message: "Student ID linked successfully." });
+}
+
+async function getLinkedPublicProfileForAuth(env, auth, organizationId = "") {
+  const profile = await getStudentProfileByAuth(env, buildAuthLinkIdentity(auth), organizationId || getActorOrganizationId(auth));
+  return profile ? publicStudentProfile(profile) : null;
+}
+
+async function applyStudentProfileToSubmissionPayload(env, auth, payload, organizationId = "") {
+  if (!payload || typeof payload !== "object") return payload;
+  const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
+  if (!profile) return payload;
+  const loginEmail = normalizeEmail(auth?.user?.email || payload.loginEmail || payload.studentEmail || "");
+  const fullName = profile.fullName || oneLine(payload.studentFullName || "");
+  payload.studentProfileId = profile.id || payload.studentProfileId || "";
+  payload.studentIdCode = profile.studentIdCode || payload.studentIdCode || "";
+  payload.classroomId = profile.classroomId || payload.classroomId || "";
+  payload.classroomName = profile.classroomName || payload.classroomName || "";
+  payload.officialEmail = profile.officialEmail || payload.officialEmail || "";
+  payload.loginEmail = loginEmail || payload.loginEmail || "";
+  payload.studentFullName = fullName || payload.studentFullName || "";
+  // Apps Script result emails use studentEmail. For linked classroom students, send to the teacher-preassigned official email.
+  payload.studentEmail = profile.officialEmail || normalizeEmail(payload.studentEmail || loginEmail);
+  if (payload.writing && typeof payload.writing === "object") {
+    payload.writing.studentFullName = payload.studentFullName;
+    payload.writing.studentProfileId = payload.studentProfileId;
+    payload.writing.studentIdCode = payload.studentIdCode;
+    payload.writing.classroomId = payload.classroomId;
+    payload.writing.classroomName = payload.classroomName;
+    payload.writing.officialEmail = payload.officialEmail;
+  }
+  return payload;
 }
 
 async function handleSharedStudentSetup(request, env) {
@@ -615,6 +727,30 @@ async function handleAdminApi(request, env) {
       ok: true,
       tenant,
     });
+  }
+
+  if (request.method === "GET" && action === "classroomStudents") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminClassroomStudents(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "saveClassroom") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminSaveClassroom(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "saveStudentProfile") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminSaveStudentProfile(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "resetStudentProfileLink") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminResetStudentProfileLink(request, env, auth);
   }
 
   if (request.method === "GET" && action === "results") {
@@ -1168,24 +1304,32 @@ async function handleAdminApi(request, env) {
     }
 
     const organizationId = normalizeOrganizationId(payload?.organizationId || tenant.organizationId);
+    const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
     const key = buildSubmissionMetaKeyWithOrganization({ submittedAt, studentFullName, examId, reason, organizationId });
     const record = {
       email,
+      loginEmail: normalizeEmail(payload?.loginEmail || auth.user?.email || email),
       provider,
-      studentFullName,
+      studentFullName: profile?.fullName || studentFullName,
       examId,
       submittedAt,
       reason,
       organizationId,
+      studentProfileId: profile?.id || oneLine(payload?.studentProfileId || ""),
+      studentIdCode: profile?.studentIdCode || oneLine(payload?.studentIdCode || ""),
+      classroomId: profile?.classroomId || oneLine(payload?.classroomId || ""),
+      classroomName: profile?.classroomName || oneLine(payload?.classroomName || ""),
+      officialEmail: profile?.officialEmail || normalizeEmail(payload?.officialEmail || ""),
       updatedAt: new Date().toISOString(),
     };
     await writeJsonKv(env.STUDENT_REGISTRY, `submission:${key}`, record);
     await upsertStudentRegistry(env, {
-      email,
-      fullName: studentFullName,
+      email: auth.user?.email || email,
+      fullName: record.studentFullName,
       provider,
       isSharedPassword: provider === "shared-password",
       organizationId,
+      studentProfile: profile || null,
     });
     return json(200, { ok: true, record });
   }
@@ -1448,6 +1592,7 @@ async function handleAdminApi(request, env) {
           parsed.organizationId = normalizeOrganizationId(parsed?.organizationId || tenant.organizationId);
           parsed.studentEmail = normalizeEmail(parsed?.studentEmail || auth?.user?.email || "");
           parsed.signInMethod = oneLine(parsed?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+          await applyStudentProfileToSubmissionPayload(env, auth, parsed, parsed.organizationId);
           parsedSubmissionPayload = parsed;
           params.set("payload", JSON.stringify(parsed));
           nextBodyText = params.toString();
@@ -1460,6 +1605,7 @@ async function handleAdminApi(request, env) {
           parsed.organizationId = normalizeOrganizationId(parsed?.organizationId || tenant.organizationId);
           parsed.studentEmail = normalizeEmail(parsed?.studentEmail || auth?.user?.email || "");
           parsed.signInMethod = oneLine(parsed?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+          await applyStudentProfileToSubmissionPayload(env, auth, parsed, parsed.organizationId);
           parsedSubmissionPayload = parsed;
           nextBodyText = JSON.stringify(parsed);
         }
@@ -1662,6 +1808,7 @@ function buildSharedStudentUser(email, options = {}) {
       first_name: firstName,
       last_name: lastName,
     },
+    studentProfile: options?.studentProfile || null,
   };
 }
 
@@ -1906,7 +2053,8 @@ function extractFinalPayloadSummary(finalPayload, auth, tenant) {
   );
   const examId = oneLine(finalPayload?.examId || writing?.examId || reading?.examId || listening?.examId || "");
   const reason = oneLine(finalPayload?.reason || writing?.reason || reading?.reason || listening?.reason || "");
-  const email = normalizeEmail(finalPayload?.studentEmail || finalPayload?.email || auth?.user?.email || "");
+  const loginEmail = normalizeEmail(finalPayload?.loginEmail || auth?.user?.email || finalPayload?.email || "");
+  const email = loginEmail || normalizeEmail(finalPayload?.studentEmail || finalPayload?.email || auth?.user?.email || "");
   const provider = oneLine(finalPayload?.signInMethod || auth?.user?.app_metadata?.provider || "email") || "email";
   return {
     organizationId,
@@ -1916,6 +2064,12 @@ function extractFinalPayloadSummary(finalPayload, auth, tenant) {
     reason,
     email,
     provider,
+    loginEmail,
+    studentProfileId: oneLine(finalPayload?.studentProfileId || ""),
+    studentIdCode: oneLine(finalPayload?.studentIdCode || ""),
+    classroomId: oneLine(finalPayload?.classroomId || ""),
+    classroomName: oneLine(finalPayload?.classroomName || ""),
+    officialEmail: normalizeEmail(finalPayload?.officialEmail || ""),
   };
 }
 
@@ -1946,6 +2100,7 @@ async function writeSubmissionBackup(env, request, auth, finalPayload, options =
     return { ok: false, status: 400, error: "Missing submission backup payload." };
   }
   const tenant = resolveTenantContext(request, env);
+  await applyStudentProfileToSubmissionPayload(env, auth, finalPayload, tenant.organizationId).catch(() => finalPayload);
   const built = buildSubmissionBackupRecord(finalPayload, auth, tenant, options);
   if (!built.ok) return built;
 
@@ -1987,11 +2142,20 @@ function toRoundedOverallBand(parts) {
 async function readSubmissionScoreMeta(env, row) {
   if (!env?.STUDENT_REGISTRY) return {};
   const keys = buildSubmissionLookupKeys(row).map((key) => `score:${key}`);
+  const submissionKeys = buildSubmissionLookupKeys(row).map((key) => `submission:${key}`);
+  let submissionRecord = {};
+  for (const key of submissionKeys) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, key);
+    if (record && typeof record === "object") {
+      submissionRecord = record;
+      break;
+    }
+  }
   for (const key of keys) {
     const record = await readJsonKv(env.STUDENT_REGISTRY, key);
-    if (record && typeof record === "object") return record;
+    if (record && typeof record === "object") return { ...submissionRecord, ...record };
   }
-  return {};
+  return submissionRecord;
 }
 
 async function writeSubmissionScoreMeta(env, row, patch = {}) {
@@ -2031,6 +2195,12 @@ function mergeSummaryWithScoreMeta(summary, scoreMeta) {
   return {
     ...summary,
     organizationId: normalizeOrganizationId(scoreMeta?.organizationId || summary?.organizationId || summary?.organization_id || ""),
+    studentProfileId: scoreMeta?.studentProfileId || summary?.studentProfileId || "",
+    studentIdCode: scoreMeta?.studentIdCode || summary?.studentIdCode || "",
+    classroomId: scoreMeta?.classroomId || summary?.classroomId || "",
+    classroomName: scoreMeta?.classroomName || summary?.classroomName || "",
+    officialEmail: scoreMeta?.officialEmail || summary?.officialEmail || "",
+    loginEmail: scoreMeta?.loginEmail || summary?.loginEmail || "",
     task1Band,
     task2Band,
     finalWritingBand,
@@ -2245,8 +2415,14 @@ async function upsertStudentRegistry(env, payload) {
     setupCompleted: payload?.setupCompleted === true || current.setupCompleted === true,
     passwordHash: current.passwordHash || "",
     passwordSalt: current.passwordSalt || "",
-    passwordChangedAt: current.passwordChangedAt || "",
+    passwordChangedAt: payload?.passwordHash ? now : (current.passwordChangedAt || ""),
+    studentProfile: payload?.studentProfile || current.studentProfile || null,
   };
+  if (payload?.passwordHash && payload?.passwordSalt) {
+    next.passwordHash = payload.passwordHash;
+    next.passwordSalt = payload.passwordSalt;
+    next.setupCompleted = true;
+  }
 
   await writeJsonKv(env.STUDENT_REGISTRY, key, next);
   return next;
@@ -2395,6 +2571,211 @@ async function studentOwnsSubmission(rowLike, email, env, organizationId = "") {
   if (!verifyRes?.ok) return false;
   const rows = await verifyRes.json().catch(() => []);
   return Array.isArray(rows) && rows.length > 0;
+}
+
+function getSupabaseServiceKey(env) {
+  return String(env?.SUPABASE_SERVICE_ROLE_KEY || env?.SUPABASE_SERVICE_KEY || "").trim();
+}
+
+async function supabaseServiceRequest(env, path, options = {}) {
+  const base = String(env?.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = getSupabaseServiceKey(env);
+  if (!base || !key) {
+    return { ok: false, status: 503, error: "Supabase service access is not configured.", data: null };
+  }
+  const url = new URL(`${base}${path}`);
+  Object.entries(options.query || {}).forEach(([name, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") url.searchParams.set(name, String(value));
+  });
+  const headers = {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    Accept: "application/json",
+    ...(options.headers || {}),
+  };
+  let body;
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    body = JSON.stringify(options.body);
+  }
+  const response = await fetch(url.toString(), {
+    method: options.method || "GET",
+    headers,
+    body,
+  }).catch((error) => ({ ok: false, status: 0, json: async () => ({ error: error?.message || "Network error" }) }));
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    return { ok: false, status: response.status || 500, error: data?.message || data?.error || `Supabase HTTP ${response.status}`, data };
+  }
+  return { ok: true, status: response.status, data };
+}
+
+function buildAuthLinkIdentity(auth) {
+  const email = normalizeEmail(auth?.user?.email || "");
+  const rawId = oneLine(auth?.user?.id || "");
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(rawId);
+  return {
+    userId: isUuid ? rawId : "",
+    identity: isUuid ? `supabase:${rawId}` : `shared:${email}`,
+    email,
+  };
+}
+
+function publicStudentProfile(row) {
+  if (!row) return null;
+  const classroom = row.classroom || null;
+  const name = oneLine(row.name || "");
+  const surname = oneLine(row.surname || "");
+  return {
+    id: oneLine(row.id || ""),
+    organizationId: normalizeOrganizationId(row.organization_id || ""),
+    studentIdCode: oneLine(row.student_id_code || ""),
+    name,
+    surname,
+    fullName: `${name} ${surname}`.replace(/\s+/g, " ").trim(),
+    classroomId: oneLine(row.classroom_id || classroom?.id || ""),
+    classroomName: oneLine(row.classroom_name || classroom?.name || ""),
+    officialEmail: normalizeEmail(row.official_email || ""),
+    linkedAuthUserId: oneLine(row.linked_auth_user_id || ""),
+    linkedAuthIdentity: oneLine(row.linked_auth_identity || ""),
+    linkedAuthEmail: normalizeEmail(row.linked_auth_email || ""),
+    isActive: row.is_active !== false,
+  };
+}
+
+async function getStudentProfileByCode(env, studentIdCode, organizationId = "") {
+  const query = {
+    select: "*,classroom:classrooms(id,name)",
+    student_id_code: `eq.${studentIdCode}`,
+    limit: "1",
+  };
+  if (organizationId) query.organization_id = `eq.${normalizeOrganizationId(organizationId)}`;
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", { query });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function getStudentProfileByAuth(env, identity, organizationId = "") {
+  if (!identity?.identity && !identity?.userId) return null;
+  const query = {
+    select: "*,classroom:classrooms(id,name)",
+    limit: "1",
+  };
+  if (identity.userId) query.linked_auth_user_id = `eq.${identity.userId}`;
+  else query.linked_auth_identity = `eq.${identity.identity}`;
+  if (organizationId) query.organization_id = `eq.${normalizeOrganizationId(organizationId)}`;
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", { query });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function updateStudentProfileById(env, id, patch) {
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+    method: "PATCH",
+    query: { id: `eq.${id}`, select: "*,classroom:classrooms(id,name)" },
+    headers: { Prefer: "return=representation" },
+    body: patch,
+  });
+  if (!res.ok) throw new Error(res.error || "Could not update student profile.");
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function handleAdminClassroomStudents(request, env, auth) {
+  const organizationId = getActorOrganizationId(auth);
+  const classroomQuery = { select: "*", order: "created_at.desc" };
+  const studentQuery = { select: "*,classroom:classrooms(id,name)", order: "created_at.desc" };
+  if (!auth.isSuperAdmin && organizationId) {
+    classroomQuery.organization_id = `eq.${organizationId}`;
+    studentQuery.organization_id = `eq.${organizationId}`;
+  }
+  const [classroomsRes, studentsRes] = await Promise.all([
+    supabaseServiceRequest(env, "/rest/v1/classrooms", { query: classroomQuery }),
+    supabaseServiceRequest(env, "/rest/v1/student_profiles", { query: studentQuery }),
+  ]);
+  if (!classroomsRes.ok) return json(classroomsRes.status, { ok: false, error: classroomsRes.error });
+  if (!studentsRes.ok) return json(studentsRes.status, { ok: false, error: studentsRes.error });
+  return json(200, {
+    ok: true,
+    classrooms: Array.isArray(classroomsRes.data) ? classroomsRes.data : [],
+    students: (Array.isArray(studentsRes.data) ? studentsRes.data : []).map(publicStudentProfile),
+  });
+}
+
+async function handleAdminSaveClassroom(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const name = oneLine(payload?.name || "");
+  if (!name) return json(400, { ok: false, error: "Classroom name is required." });
+  const organizationId = auth.isSuperAdmin
+    ? normalizeOrganizationId(payload?.organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env))
+    : getActorOrganizationId(auth);
+  const body = {
+    organization_id: organizationId,
+    name,
+    teacher_name: oneLine(payload?.teacherName || ""),
+    teacher_email: normalizeEmail(payload?.teacherEmail || "") || null,
+  };
+  const res = await supabaseServiceRequest(env, "/rest/v1/classrooms", {
+    method: "POST",
+    query: { select: "*" },
+    headers: { Prefer: "return=representation" },
+    body,
+  });
+  if (!res.ok) return json(res.status, { ok: false, error: res.error });
+  return json(200, { ok: true, classroom: Array.isArray(res.data) ? res.data[0] || null : null });
+}
+
+async function handleAdminSaveStudentProfile(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
+  const name = oneLine(payload?.name || "");
+  if (!studentIdCode || !name) return json(400, { ok: false, error: "Student ID and name are required." });
+  const organizationId = auth.isSuperAdmin
+    ? normalizeOrganizationId(payload?.organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env))
+    : getActorOrganizationId(auth);
+  const existing = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  const body = {
+    organization_id: organizationId,
+    student_id_code: studentIdCode,
+    name,
+    surname: oneLine(payload?.surname || ""),
+    classroom_id: oneLine(payload?.classroomId || payload?.classroom_id || "") || null,
+    official_email: normalizeEmail(payload?.officialEmail || payload?.official_email || "") || null,
+    is_active: payload?.isActive !== false,
+  };
+  const res = existing?.id
+    ? await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+        method: "PATCH",
+        query: { id: `eq.${existing.id}`, select: "*,classroom:classrooms(id,name)" },
+        headers: { Prefer: "return=representation" },
+        body,
+      })
+    : await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+        method: "POST",
+        query: { select: "*,classroom:classrooms(id,name)" },
+        headers: { Prefer: "return=representation" },
+        body,
+      });
+  if (!res.ok) return json(res.status, { ok: false, error: res.error });
+  const row = Array.isArray(res.data) ? res.data[0] || null : null;
+  return json(200, { ok: true, student: publicStudentProfile(row) });
+}
+
+async function handleAdminResetStudentProfileLink(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const studentIdCode = oneLine(payload?.studentIdCode || "");
+  if (!studentIdCode) return json(400, { ok: false, error: "Student ID is required." });
+  const organizationId = auth.isSuperAdmin
+    ? normalizeOrganizationId(payload?.organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env))
+    : getActorOrganizationId(auth);
+  const profile = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  if (!profile) return json(404, { ok: false, error: "Student not found." });
+  const updated = await updateStudentProfileById(env, profile.id, {
+    linked_auth_user_id: null,
+    linked_auth_identity: null,
+    linked_auth_email: null,
+    linked_at: null,
+  });
+  return json(200, { ok: true, student: publicStudentProfile(updated || profile) });
 }
 
 async function inferSubmissionOrganizationId(env, rowLike, preferredOrganizationId = "") {
@@ -2605,6 +2986,11 @@ function buildPracticeFinalPayload(record) {
     submittedAt: record?.submittedAt || "",
     studentFullName: record?.studentFullName || "",
     reason: record?.reason || "",
+    studentProfileId: record?.studentProfileId || "",
+    studentIdCode: record?.studentIdCode || "",
+    classroomId: record?.classroomId || "",
+    classroomName: record?.classroomName || "",
+    officialEmail: record?.officialEmail || "",
     listening: section === "listening"
       ? {
           saved: true,
@@ -2641,7 +3027,13 @@ function summarizePracticeResultRecord(record) {
     practiceSection: section,
     practiceLabel: record?.practiceLabel || inferPracticeLabel(record?.examId || ""),
     studentEmail: normalizeEmail(record?.email || ""),
+    loginEmail: normalizeEmail(record?.loginEmail || record?.email || ""),
     organizationId: normalizeOrganizationId(record?.organizationId || ""),
+    studentProfileId: oneLine(record?.studentProfileId || ""),
+    studentIdCode: oneLine(record?.studentIdCode || ""),
+    classroomId: oneLine(record?.classroomId || ""),
+    classroomName: oneLine(record?.classroomName || ""),
+    officialEmail: normalizeEmail(record?.officialEmail || ""),
     signInMethod: oneLine(record?.signInMethod || "email") || "email",
     submittedAt: record?.submittedAt || "",
     studentFullName: record?.studentFullName || "",
@@ -2684,6 +3076,10 @@ function buildPracticeHistoryRow(record) {
     user_email: normalizeEmail(record?.email || ""),
     organization_id: summary.organizationId || null,
     student_full_name: summary.studentFullName || "",
+    student_profile_id: summary.studentProfileId || null,
+    student_id_code: summary.studentIdCode || null,
+    classroom_id: summary.classroomId || null,
+    official_email: summary.officialEmail || null,
     exam_id: summary.examId || "",
     active_test_id: record?.activeTestId || summary.examId || "",
     submitted_at: summary.submittedAt || "",
@@ -2738,6 +3134,9 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
   const answers = payload?.answers && typeof payload.answers === "object" ? payload.answers : {};
   const tenant = resolveTenantContext(request, env);
   const organizationId = tenant.organizationId;
+  const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
+  const academicName = profile?.fullName || studentFullName;
+  const officialEmail = profile?.officialEmail || "";
 
   if (!email || !["listening", "reading"].includes(section) || !activeTestId || !examId || !studentFullName) {
     return { ok: false, status: 400, error: "Missing practice submission inputs." };
@@ -2780,8 +3179,14 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
     practiceSection: section,
     practiceLabel: oneLine(payload?.practiceLabel || inferPracticeLabel(examId)),
     submittedAt,
-    studentFullName,
+    studentFullName: academicName,
     email,
+    loginEmail: email,
+    studentProfileId: profile?.id || oneLine(payload?.studentProfileId || ""),
+    studentIdCode: profile?.studentIdCode || oneLine(payload?.studentIdCode || ""),
+    classroomId: profile?.classroomId || oneLine(payload?.classroomId || ""),
+    classroomName: profile?.classroomName || oneLine(payload?.classroomName || ""),
+    officialEmail,
     organizationId,
     signInMethod,
     examId,

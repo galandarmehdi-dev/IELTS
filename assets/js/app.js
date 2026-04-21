@@ -77,6 +77,15 @@
     return window.IELTS?.Auth?.getSavedUser?.() || window.IELTS?.Auth?.getSharedSession?.()?.user || null;
   }
 
+  function getAcademicIdentity() {
+    const user = getCurrentAuthUser();
+    return window.IELTS?.Auth?.getAcademicIdentity?.(user) || {
+      fullName: String(user?.name || "Student").trim() || "Student",
+      resultEmail: String(user?.email || "").trim().toLowerCase(),
+      loginEmail: String(user?.email || "").trim().toLowerCase(),
+    };
+  }
+
   function derivePracticeExamId(section, activeTestId, scopeValue) {
     const testDigits = String(activeTestId || "ielts1").match(/(\d+)/);
     const testNumber = String(testDigits?.[1] || "1").padStart(3, "0");
@@ -120,8 +129,10 @@
     const examId = derivePracticeExamId(section, activeTestId, scopeValue);
     const practiceLabel = derivePracticeLabel(section, activeTestId, scopeValue);
     const submittedAt = String(options.submittedAt || new Date().toISOString());
+    const identity = getAcademicIdentity();
     const studentFullName = String(
       options.studentFullName ||
+      identity.fullName ||
       user?.name ||
       user?.user_metadata?.name ||
       user?.user_metadata?.preferred_name ||
@@ -135,7 +146,13 @@
       examId,
       submittedAt,
       studentFullName,
-      studentEmail: String(user?.email || "").trim().toLowerCase(),
+      studentProfileId: identity.studentProfileId || "",
+      studentIdCode: identity.studentIdCode || "",
+      classroomId: identity.classroomId || "",
+      classroomName: identity.classroomName || "",
+      officialEmail: identity.officialEmail || "",
+      loginEmail: String(user?.email || "").trim().toLowerCase(),
+      studentEmail: String(identity.resultEmail || user?.email || "").trim().toLowerCase(),
       signInMethod: String(user?.provider || user?.app_metadata?.provider || "email").trim().toLowerCase() || "email",
       reason: String(options.reason || `${section} section finished.`).trim(),
       [section]: {
@@ -163,6 +180,12 @@
         practiceLabel,
         submittedAt,
         studentFullName,
+        studentProfileId: identity.studentProfileId || "",
+        studentIdCode: identity.studentIdCode || "",
+        classroomId: identity.classroomId || "",
+        classroomName: identity.classroomName || "",
+        officialEmail: identity.officialEmail || "",
+        loginEmail: String(user?.email || "").trim().toLowerCase(),
         email: String(user?.email || "").trim().toLowerCase(),
         reason: finalPayload.reason,
         answers: options.answers || {},
@@ -2243,7 +2266,7 @@
 
     function exportAdminRowsCsv() {
       if (!isAdminView() || !adminState.filtered.length) return;
-      const headers = ["organizationId","submittedAt","studentFullName","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","speakingBand","overallBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
+      const headers = ["organizationId","submittedAt","studentFullName","studentIdCode","classroomName","officialEmail","studentProfileId","classroomId","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","speakingBand","overallBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
       const lines = [headers.join(",")].concat(
         adminState.filtered.map((row) =>
           headers
@@ -2338,6 +2361,13 @@
     const menuToggleAdminViewBtn = $("menuToggleAdminViewBtn");
     const adminResultsBtn = $("homeAdminResultsBtn");
     const adminResultsHomeBtn = $("adminResultsHomeBtn");
+    const adminClassroomsToggleBtn = $("adminClassroomsToggleBtn");
+    const adminClassroomsPanel = $("adminClassroomsPanel");
+    const adminClassroomsRefreshBtn = $("adminClassroomsRefreshBtn");
+    const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
+    const adminSaveStudentBtn = $("adminSaveStudentBtn");
+    const adminResetStudentLinkBtn = $("adminResetStudentLinkBtn");
+    const adminStudentSearchInput = $("adminStudentSearchInput");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
     const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
     const navResultsBtn = $("navToResultsBtn");
@@ -2437,6 +2467,149 @@
         return;
       } catch (e) {}
       $("openSpeakingExamBtn")?.click?.();
+    }
+
+    const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "" };
+
+    function setClassroomStatus(message, tone = "") {
+      const el = $("adminClassroomsStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = tone === "error" ? "#991b1b" : tone === "success" ? "#166534" : "";
+    }
+
+    function fillClassroomSelect() {
+      const select = $("adminStudentClassroomSelect");
+      if (!select) return;
+      const current = select.value;
+      select.innerHTML = `<option value="">No classroom</option>` + classroomAdminState.classrooms
+        .map((room) => `<option value="${String(room.id || "").replace(/"/g, "&quot;")}">${String(room.name || "Classroom")}</option>`)
+        .join("");
+      if (current) select.value = current;
+    }
+
+    function renderClassroomStudents() {
+      const tbody = $("adminStudentsTbody");
+      if (!tbody) return;
+      const query = String($("adminStudentSearchInput")?.value || "").trim().toLowerCase();
+      const rows = classroomAdminState.students.filter((student) => {
+        const hay = [student.studentIdCode, student.fullName, student.classroomName, student.officialEmail]
+          .map((value) => String(value || "").toLowerCase())
+          .join(" ");
+        return !query || hay.includes(query);
+      });
+      tbody.innerHTML = rows.map((student) => `
+        <tr>
+          <td>${escapeHtml(student.studentIdCode || "—")}</td>
+          <td>${escapeHtml(student.fullName || "—")}</td>
+          <td>${escapeHtml(student.classroomName || "—")}</td>
+          <td>${escapeHtml(student.officialEmail || "—")}</td>
+          <td>${student.linkedAuthIdentity || student.linkedAuthUserId ? "Linked" : "Unlinked"}</td>
+          <td><button class="btn secondary" type="button" data-admin-edit-student="${escapeHtml(student.studentIdCode || "")}">Edit</button></td>
+        </tr>
+      `).join("") || `<tr><td colspan="6">No students found.</td></tr>`;
+      Array.from(tbody.querySelectorAll("[data-admin-edit-student]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          const code = button.getAttribute("data-admin-edit-student") || "";
+          const student = classroomAdminState.students.find((item) => item.studentIdCode === code);
+          if (!student) return;
+          classroomAdminState.selectedStudentId = student.studentIdCode || "";
+          $("adminStudentIdInput").value = student.studentIdCode || "";
+          $("adminStudentNameInput").value = student.name || "";
+          $("adminStudentSurnameInput").value = student.surname || "";
+          $("adminStudentOfficialEmailInput").value = student.officialEmail || "";
+          $("adminStudentClassroomSelect").value = student.classroomId || "";
+          setClassroomStatus(`Editing ${student.fullName || student.studentIdCode}.`);
+        });
+      });
+    }
+
+    async function loadClassroomAdminData() {
+      if (!isAdminView()) return;
+      setClassroomStatus("Loading classroom data...");
+      const url = R()?.buildAdminApiUrl?.({ action: "classroomStudents" });
+      if (!url) return;
+      const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomStatus(data?.error || "Could not load classrooms.", "error");
+        return;
+      }
+      classroomAdminState.classrooms = Array.isArray(data.classrooms) ? data.classrooms : [];
+      classroomAdminState.students = Array.isArray(data.students) ? data.students : [];
+      fillClassroomSelect();
+      renderClassroomStudents();
+      setClassroomStatus(`Loaded ${classroomAdminState.classrooms.length} classrooms and ${classroomAdminState.students.length} students.`, "success");
+    }
+
+    async function createClassroomFromAdmin() {
+      const url = R()?.buildAdminApiUrl?.({ action: "saveClassroom" });
+      if (!url) return;
+      const payload = {
+        name: $("adminClassroomNameInput")?.value || "",
+        teacherName: $("adminClassroomTeacherNameInput")?.value || "",
+        teacherEmail: $("adminClassroomTeacherEmailInput")?.value || "",
+      };
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomStatus(data?.error || "Could not create classroom.", "error");
+        return;
+      }
+      $("adminClassroomNameInput").value = "";
+      $("adminClassroomTeacherNameInput").value = "";
+      $("adminClassroomTeacherEmailInput").value = "";
+      await loadClassroomAdminData();
+    }
+
+    async function saveStudentFromAdmin() {
+      const url = R()?.buildAdminApiUrl?.({ action: "saveStudentProfile" });
+      if (!url) return;
+      const payload = {
+        studentIdCode: $("adminStudentIdInput")?.value || "",
+        name: $("adminStudentNameInput")?.value || "",
+        surname: $("adminStudentSurnameInput")?.value || "",
+        officialEmail: $("adminStudentOfficialEmailInput")?.value || "",
+        classroomId: $("adminStudentClassroomSelect")?.value || "",
+      };
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomStatus(data?.error || "Could not save student.", "error");
+        return;
+      }
+      setClassroomStatus("Student saved.", "success");
+      await loadClassroomAdminData();
+    }
+
+    async function resetSelectedStudentLink() {
+      const studentIdCode = String($("adminStudentIdInput")?.value || classroomAdminState.selectedStudentId || "").trim();
+      if (!studentIdCode) {
+        setClassroomStatus("Select or enter a Student ID first.", "error");
+        return;
+      }
+      const url = R()?.buildAdminApiUrl?.({ action: "resetStudentProfileLink" });
+      if (!url) return;
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ studentIdCode }),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomStatus(data?.error || "Could not reset link.", "error");
+        return;
+      }
+      setClassroomStatus("Linked account reset. History was not deleted.", "success");
+      await loadClassroomAdminData();
     }
 
     function syncAdminToggleMenu() {
@@ -4087,6 +4260,15 @@ function startFreshExam() {
     if (menuSpeakingBtn) menuSpeakingBtn.onclick = () => openSpeakingFromMenu();
     if (menuToggleAdminViewBtn) menuToggleAdminViewBtn.onclick = () => toggleAdminViewFromMenu();
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView(false, "full");
+    if (adminClassroomsToggleBtn) adminClassroomsToggleBtn.onclick = () => {
+      adminClassroomsPanel?.classList.toggle("hidden");
+      if (adminClassroomsPanel && !adminClassroomsPanel.classList.contains("hidden")) loadClassroomAdminData().catch(() => null);
+    };
+    if (adminClassroomsRefreshBtn) adminClassroomsRefreshBtn.onclick = () => loadClassroomAdminData().catch(() => null);
+    if (adminCreateClassroomBtn) adminCreateClassroomBtn.onclick = () => createClassroomFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not create classroom.", "error"));
+    if (adminSaveStudentBtn) adminSaveStudentBtn.onclick = () => saveStudentFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not save student.", "error"));
+    if (adminResetStudentLinkBtn) adminResetStudentLinkBtn.onclick = () => resetSelectedStudentLink().catch((e) => setClassroomStatus(e?.message || "Could not reset linked account.", "error"));
+    if (adminStudentSearchInput) adminStudentSearchInput.addEventListener("input", renderClassroomStudents);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");
       try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}

@@ -439,6 +439,35 @@
       }
     }
 
+    async function recordSubmissionBackup(finalPayload) {
+      try {
+        const url = R().buildAdminApiUrl?.({ action: "recordSubmissionBackup" });
+        if (!url) return { ok: false, skipped: true };
+        const token = await getSubmissionAccessToken();
+        if (!token) return { ok: false, skipped: true };
+
+        const res = await fetch(url.toString(), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            source: "writing-submit-before-sheets",
+            finalPayload,
+          }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data || data.ok !== true) {
+          return { ok: false, error: data?.error || `HTTP ${res.status}` };
+        }
+        return { ok: true, backup: data.backup || null };
+      } catch (err) {
+        console.error("Submission backup save failed:", err);
+        return { ok: false, error: err };
+      }
+    }
+
     async function saveAttemptToSupabase(finalPayload) {
       try {
         const supabase = window.IELTS?.Auth?.supabase;
@@ -641,6 +670,10 @@
 
         const hasWritingText = hasAnyWritingText(writingPayload);
         const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
+        const backupResult = await recordSubmissionBackup(finalPayload);
+        if (!backupResult.ok) {
+          console.error("Submission backup was not confirmed before sheet submit:", backupResult.error || backupResult);
+        }
         await recordSubmissionMeta(finalPayload);
 
         // Save history immediately so a flaky backend response does not erase the student's record.

@@ -1190,6 +1190,84 @@ async function handleAdminApi(request, env) {
     return json(200, { ok: true, record });
   }
 
+  if (request.method === "POST" && action === "recordSubmissionBackup") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+    const payload = await request.json().catch(() => null);
+    const finalPayload = payload?.finalPayload || payload?.payload || payload;
+    const saved = await writeSubmissionBackup(env, request, auth, finalPayload, {
+      source: oneLine(payload?.source || "pre-sheets-backup"),
+    });
+    if (!saved.ok) return json(saved.status || 400, { ok: false, error: saved.error || "Could not save submission backup." });
+    return json(200, { ok: true, backup: saved.record });
+  }
+
+  if (request.method === "GET" && action === "submissionBackups") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!env.STUDENT_REGISTRY) return json(200, { ok: true, backups: [] });
+
+    const actorOrganizationId = getActorOrganizationId(auth);
+    const prefix = auth.isSuperAdmin ? "submission-backup:" : `submission-backup:${actorOrganizationId}::`;
+    const listed = await env.STUDENT_REGISTRY.list({ prefix, limit: 1000 });
+    const backups = [];
+    for (const key of listed.keys || []) {
+      const record = await readJsonKv(env.STUDENT_REGISTRY, key.name);
+      if (!record) continue;
+      const organizationId = normalizeOrganizationId(record?.organizationId || "");
+      if (!canActorAccessOrganization(auth, organizationId)) continue;
+      backups.push({
+        key: key.name,
+        email: normalizeEmail(record?.email || ""),
+        provider: oneLine(record?.provider || ""),
+        studentFullName: oneLine(record?.studentFullName || ""),
+        examId: oneLine(record?.examId || ""),
+        submittedAt: oneLine(record?.submittedAt || ""),
+        reason: oneLine(record?.reason || ""),
+        organizationId,
+        backupSource: oneLine(record?.backupSource || ""),
+        backedUpAt: oneLine(record?.backedUpAt || ""),
+        payloadBytes: Number(record?.payloadBytes || 0),
+      });
+    }
+    backups.sort((a, b) => Date.parse(b.backedUpAt || b.submittedAt || "") - Date.parse(a.backedUpAt || a.submittedAt || ""));
+    return json(200, { ok: true, backups });
+  }
+
+  if (request.method === "GET" && action === "submissionBackup") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!env.STUDENT_REGISTRY) return json(503, { ok: false, error: "Student registry is not configured." });
+
+    const requestedKey = oneLine(url.searchParams.get("key") || "");
+    let keys = [];
+    if (requestedKey) {
+      keys = [requestedKey];
+    } else {
+      const lookup = {
+        submittedAt: oneLine(url.searchParams.get("submittedAt") || ""),
+        studentFullName: oneLine(url.searchParams.get("studentFullName") || ""),
+        examId: oneLine(url.searchParams.get("examId") || ""),
+        reason: oneLine(url.searchParams.get("reason") || ""),
+        organizationId: normalizeOrganizationId(url.searchParams.get("organizationId") || getActorOrganizationId(auth)),
+      };
+      keys = buildSubmissionLookupKeys(lookup, lookup.organizationId).map((key) => `submission-backup:${key}`);
+    }
+
+    for (const key of keys) {
+      const record = await readJsonKv(env.STUDENT_REGISTRY, key);
+      if (!record) continue;
+      const organizationId = normalizeOrganizationId(record?.organizationId || "");
+      if (!canActorAccessOrganization(auth, organizationId)) {
+        return json(403, { ok: false, error: "This backup does not belong to the current tenant." });
+      }
+      return json(200, { ok: true, key, backup: record });
+    }
+
+    return json(404, { ok: false, error: "Submission backup not found." });
+  }
+
   if (request.method === "GET" && action === "studentObjectiveDetail") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -1360,6 +1438,7 @@ async function handleAdminApi(request, env) {
     const bodyText = await request.clone().text().catch(() => "");
     const contentType = String(request.headers.get("Content-Type") || "").toLowerCase();
     let nextBodyText = bodyText;
+    let parsedSubmissionPayload = null;
     if (contentType.includes("application/x-www-form-urlencoded")) {
       const params = new URLSearchParams(bodyText);
       const payloadText = params.get("payload");
@@ -1369,9 +1448,33 @@ async function handleAdminApi(request, env) {
           parsed.organizationId = normalizeOrganizationId(parsed?.organizationId || tenant.organizationId);
           parsed.studentEmail = normalizeEmail(parsed?.studentEmail || auth?.user?.email || "");
           parsed.signInMethod = oneLine(parsed?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+          parsedSubmissionPayload = parsed;
           params.set("payload", JSON.stringify(parsed));
           nextBodyText = params.toString();
         } catch (e) {}
+      }
+    } else if (contentType.includes("application/json")) {
+      try {
+        const parsed = JSON.parse(bodyText);
+        if (parsed && typeof parsed === "object") {
+          parsed.organizationId = normalizeOrganizationId(parsed?.organizationId || tenant.organizationId);
+          parsed.studentEmail = normalizeEmail(parsed?.studentEmail || auth?.user?.email || "");
+          parsed.signInMethod = oneLine(parsed?.signInMethod || auth?.user?.app_metadata?.provider || "email");
+          parsedSubmissionPayload = parsed;
+          nextBodyText = JSON.stringify(parsed);
+        }
+      } catch (e) {}
+    }
+    if (parsedSubmissionPayload) {
+      const savedBackup = await writeSubmissionBackup(env, request, auth, parsedSubmissionPayload, {
+        source: `apps-script-proxy:${action || "post"}`,
+      });
+      if (!savedBackup.ok) {
+        await logSecurityEvent(env, request, "submission_backup_failed_before_proxy", {
+          error: savedBackup.error || "",
+          examId: parsedSubmissionPayload?.examId || "",
+          organizationId: parsedSubmissionPayload?.organizationId || "",
+        });
       }
     }
     const backendUrl = String(env.ADMIN_BACKEND_URL || "");
@@ -1786,6 +1889,90 @@ function buildSubmissionLookupKeys(row, preferredOrganizationId = "") {
 function buildSubmissionScoreKey(row) {
   const key = buildSubmissionMetaKeyWithOrganization(row);
   return key ? `score:${key}` : "";
+}
+
+function extractFinalPayloadSummary(finalPayload, auth, tenant) {
+  const writing = finalPayload?.writing || {};
+  const listening = finalPayload?.listening || {};
+  const reading = finalPayload?.reading || {};
+  const organizationId = normalizeOrganizationId(finalPayload?.organizationId || tenant?.organizationId || "");
+  const submittedAt = oneLine(finalPayload?.submittedAt || writing?.submittedAt || reading?.submittedAt || listening?.submittedAt || "");
+  const studentFullName = oneLine(
+    finalPayload?.studentFullName ||
+    writing?.studentFullName ||
+    auth?.user?.user_metadata?.name ||
+    auth?.user?.user_metadata?.preferred_name ||
+    deriveNameFromEmail(auth?.user?.email || "")
+  );
+  const examId = oneLine(finalPayload?.examId || writing?.examId || reading?.examId || listening?.examId || "");
+  const reason = oneLine(finalPayload?.reason || writing?.reason || reading?.reason || listening?.reason || "");
+  const email = normalizeEmail(finalPayload?.studentEmail || finalPayload?.email || auth?.user?.email || "");
+  const provider = oneLine(finalPayload?.signInMethod || auth?.user?.app_metadata?.provider || "email") || "email";
+  return {
+    organizationId,
+    submittedAt,
+    studentFullName,
+    examId,
+    reason,
+    email,
+    provider,
+  };
+}
+
+function buildSubmissionBackupRecord(finalPayload, auth, tenant, options = {}) {
+  const summary = extractFinalPayloadSummary(finalPayload, auth, tenant);
+  if (!summary.organizationId || !summary.submittedAt || !summary.studentFullName || !summary.examId || !summary.email) {
+    return { ok: false, status: 400, error: "Missing submission backup fields." };
+  }
+  const payloadJson = stableStringify(finalPayload || {});
+  return {
+    ok: true,
+    key: buildSubmissionMetaKeyWithOrganization(summary),
+    record: {
+      ...summary,
+      backupSource: oneLine(options?.source || "submission-backup"),
+      backedUpAt: new Date().toISOString(),
+      payloadBytes: new TextEncoder().encode(payloadJson).length,
+      finalPayload,
+    },
+  };
+}
+
+async function writeSubmissionBackup(env, request, auth, finalPayload, options = {}) {
+  if (!env?.STUDENT_REGISTRY) {
+    return { ok: false, status: 503, error: "Student registry is not configured." };
+  }
+  if (!finalPayload || typeof finalPayload !== "object") {
+    return { ok: false, status: 400, error: "Missing submission backup payload." };
+  }
+  const tenant = resolveTenantContext(request, env);
+  const built = buildSubmissionBackupRecord(finalPayload, auth, tenant, options);
+  if (!built.ok) return built;
+
+  await writeJsonKv(env.STUDENT_REGISTRY, `submission-backup:${built.key}`, built.record);
+  await upsertStudentRegistry(env, {
+    email: built.record.email,
+    fullName: built.record.studentFullName,
+    provider: built.record.provider,
+    isSharedPassword: built.record.provider === "shared-password",
+    organizationId: built.record.organizationId,
+  });
+
+  const metaRecord = {
+    email: built.record.email,
+    provider: built.record.provider,
+    studentFullName: built.record.studentFullName,
+    examId: built.record.examId,
+    submittedAt: built.record.submittedAt,
+    reason: built.record.reason,
+    organizationId: built.record.organizationId,
+    updatedAt: built.record.backedUpAt,
+    backupAvailable: true,
+  };
+  await writeJsonKv(env.STUDENT_REGISTRY, `submission:${built.key}`, metaRecord);
+
+  const { finalPayload: _omitted, ...publicRecord } = built.record;
+  return { ok: true, key: built.key, record: publicRecord };
 }
 
 function toRoundedOverallBand(parts) {

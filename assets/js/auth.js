@@ -138,7 +138,7 @@ function setSharedSetupMode(active, text) {
   const box = getEl("sharedSetupBox");
   if (box) box.classList.toggle("hidden", !active);
   const help = getEl("sharedSetupHelp");
-  if (help) help.textContent = text || "Complete the student name and choose a personal password.";
+  if (help) help.textContent = text || "Enter your Student ID and choose a personal password.";
 
   const sharedBtn = getEl("sharedPasswordLoginBtn");
   if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
@@ -214,6 +214,50 @@ function prefillSharedSetupFields(userLike) {
   const last = getEl("sharedSetupLastName");
   if (first && !first.value.trim()) first.value = parts.firstName;
   if (last && !last.value.trim()) last.value = parts.lastName;
+}
+
+function normalizeStudentProfile(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const name = String(raw.name || "").trim();
+  const surname = String(raw.surname || "").trim();
+  const classroom = raw.classroom && typeof raw.classroom === "object" ? raw.classroom : null;
+  return {
+    id: String(raw.id || raw.student_profile_id || "").trim(),
+    studentIdCode: String(raw.student_id_code || raw.studentIdCode || "").trim(),
+    name,
+    surname,
+    fullName: `${name} ${surname}`.replace(/\s+/g, " ").trim(),
+    classroomId: String(raw.classroom_id || raw.classroomId || classroom?.id || "").trim(),
+    classroomName: String(raw.classroom_name || raw.classroomName || classroom?.name || "").trim(),
+    officialEmail: normalizeEmail(raw.official_email || raw.officialEmail || ""),
+    organizationId: String(raw.organization_id || raw.organizationId || "").trim(),
+    linkedAuthUserId: String(raw.linked_auth_user_id || raw.linkedAuthUserId || "").trim(),
+    linkedAuthIdentity: String(raw.linked_auth_identity || raw.linkedAuthIdentity || "").trim(),
+    linkedAuthEmail: normalizeEmail(raw.linked_auth_email || raw.linkedAuthEmail || ""),
+  };
+}
+
+function getSavedStudentProfile() {
+  return normalizeStudentProfile(getSavedUser()?.studentProfile || null);
+}
+
+function buildAcademicIdentity(userLike = getSavedUser()) {
+  const profile = normalizeStudentProfile(userLike?.studentProfile || getSavedStudentProfile());
+  const fallbackName = String(userLike?.name || "").trim();
+  const fallbackEmail = normalizeEmail(userLike?.email || "");
+  return {
+    studentProfile: profile,
+    studentProfileId: profile?.id || "",
+    studentIdCode: profile?.studentIdCode || "",
+    classroomId: profile?.classroomId || "",
+    classroomName: profile?.classroomName || "",
+    officialEmail: profile?.officialEmail || "",
+    fullName: profile?.fullName || fallbackName || "Student",
+    name: profile?.name || fallbackName.split(/\s+/)[0] || "",
+    surname: profile?.surname || fallbackName.split(/\s+/).slice(1).join(" ") || "",
+    resultEmail: profile?.officialEmail || fallbackEmail,
+    loginEmail: fallbackEmail,
+  };
 }
 
 function getIdentityKeyFromUserLike(user) {
@@ -299,6 +343,7 @@ function saveUser(user) {
   const emailScoped = readEmailScopedDashboardSettings(user?.email) || {};
   const cachedByEmail = getProfileCacheByEmail()[normalizeEmail(user?.email)] || {};
   const profile = { ...buildProfileFromMetadata(metadata), ...(cachedByEmail.profile || {}), ...emailScoped };
+  const studentProfile = normalizeStudentProfile(user?.studentProfile || metadata.student_profile || cachedByEmail.studentProfile || null);
   const avatar =
     profile.avatarUrl ||
     cachedByEmail.avatarUrl ||
@@ -324,6 +369,7 @@ function saveUser(user) {
           provider,
           createdAt: user?.created_at || cachedByEmail.createdAt || "",
           lastSignInAt: user?.last_sign_in_at || cachedByEmail.lastSignInAt || "",
+          studentProfile,
           profile,
         },
       });
@@ -337,6 +383,7 @@ function saveUser(user) {
       provider,
       createdAt: user?.created_at || "",
       lastSignInAt: user?.last_sign_in_at || "",
+      studentProfile,
       profile
     });
   } catch (e) {}
@@ -359,11 +406,15 @@ function syncAuthExport() {
   window.IELTS.Auth = {
     supabase,
     getSavedUser,
+    getSavedStudentProfile,
+    getAcademicIdentity: buildAcademicIdentity,
     getSharedSession,
     getIdentityKey,
     isSignedIn,
     isSharedPasswordUser,
     getAccessToken,
+    fetchLinkedStudentProfile,
+    linkStudentProfileWithStudentId,
     updateProfileMetadata,
     sendPasswordResetEmail,
     upgradeSharedStudentPassword,
@@ -461,6 +512,88 @@ async function pingStudentSession(userLike) {
       }),
     });
   } catch (e) {}
+}
+
+async function fetchLinkedStudentProfile() {
+  const token = await getAccessToken().catch(() => null);
+  if (!token) return { ok: false, profile: null, skipped: true };
+  const res = await fetch("/api/auth/student-profile", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true) {
+    return { ok: false, profile: null, error: data?.error || "Could not load student profile." };
+  }
+  const profile = normalizeStudentProfile(data.profile || null);
+  if (profile) {
+    const current = getSavedUser() || {};
+    saveUser({ ...current, name: profile.fullName, studentProfile: profile });
+    syncAuthExport();
+  }
+  if (!profile && data.required === true) {
+    showProtectedApp(false);
+    openLoginGate("Enter your teacher-given Student ID before continuing.");
+    clearAuthFlowModes();
+    setSharedSetupMode(true, "Enter your Student ID and choose a personal password. Existing legacy accounts can be left ungated by keeping CLASSROOM_IDENTITY_REQUIRED=false.");
+  }
+  return { ok: true, profile, required: data.required === true };
+}
+
+async function linkStudentProfileWithStudentId(studentIdCode, password) {
+  const token = await getAccessToken().catch(() => null);
+  if (!token) throw new Error("Your session expired. Please sign in again.");
+  const res = await fetch("/api/auth/student-link", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ studentIdCode, password }),
+  }).catch(() => null);
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true || !data.profile) {
+    throw new Error(data?.error || "Could not link this Student ID.");
+  }
+  const profile = normalizeStudentProfile(data.profile);
+  const current = getSavedUser() || {};
+  saveUser({ ...current, name: profile.fullName, studentProfile: profile });
+  const shared = getSharedSession();
+  if (shared?.token && shared?.user) {
+    saveSharedSession({
+      ...shared,
+      user: { ...shared.user, name: profile.fullName, studentProfile: profile },
+      requiresPasswordSetup: false,
+      recoveryMode: "",
+    });
+  }
+  syncAuthExport();
+  return { profile, message: data.message || "Student ID linked." };
+}
+
+async function previewStudentIdProfile() {
+  const studentIdCode = getEl("sharedSetupStudentId")?.value.trim() || "";
+  const preview = getEl("sharedSetupIdentityPreview");
+  const text = getEl("sharedSetupIdentityText");
+  if (!preview || !text) return;
+  if (!studentIdCode) {
+    preview.classList.add("hidden");
+    text.textContent = "Enter a Student ID to load the official profile.";
+    return;
+  }
+  const token = await getAccessToken().catch(() => null);
+  if (!token) return;
+  const url = new URL("/api/auth/student-profile", window.location.origin);
+  url.searchParams.set("studentIdCode", studentIdCode);
+  const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+  const data = res ? await res.json().catch(() => null) : null;
+  preview.classList.remove("hidden");
+  if (!res || !res.ok || !data || data.ok !== true || !data.profile) {
+    text.textContent = data?.error || "Student ID not found.";
+    return;
+  }
+  const profile = normalizeStudentProfile(data.profile);
+  text.textContent = `Name: ${profile.fullName || "—"} · Classroom: ${profile.classroomName || "—"}`;
 }
 
 function hideBlockingModals() {
@@ -824,6 +957,7 @@ async function refreshAuthUI({ forceHome = false } = {}) {
     setMessage("");
     authReady = true;
     pingStudentSession(user).catch(() => null);
+    fetchLinkedStudentProfile().catch(() => null);
 
     if (forceHome) {
       routeHomeAfterLogin();
@@ -856,20 +990,21 @@ async function refreshAuthUI({ forceHome = false } = {}) {
       openLoginGate(
         shared.recoveryMode === "bypass"
           ? "Bypass accepted. Set a new password before continuing."
-          : "Complete your name and student password before continuing."
+          : "Enter your Student ID and set a student password before continuing."
       );
       clearAuthFlowModes();
       setSharedSetupMode(
         true,
         shared.recoveryMode === "bypass"
-          ? "Reset this student's password and confirm the name before entering the platform."
-          : "This is the student's first sign-in. Save the name and choose a personal password now."
+          ? "Reset this student's password and confirm the Student ID before entering the platform."
+          : "This is the student's first sign-in. Enter the Student ID and choose a personal password now."
       );
       prefillSharedSetupFields(shared.user);
       notifyAuthChanged();
       return true;
     }
     showProtectedApp(true);
+    fetchLinkedStudentProfile().catch(() => null);
     if (forceHome) {
       routeHomeAfterLogin();
     } else {
@@ -1087,12 +1222,22 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   if (!nextPassword || nextPassword.length < 6) {
     throw new Error("Choose a password with at least 6 characters.");
   }
+  const studentIdCode = String(profile?.studentIdCode || "").trim();
+  if (studentIdCode) {
+    const linked = await linkStudentProfileWithStudentId(studentIdCode, nextPassword);
+    markPersonalPasswordEnabled(email);
+    clearAuthFlowModes();
+    await refreshAuthUI({ forceHome: true });
+    return {
+      needsEmailConfirmation: false,
+      message: linked?.message || "Student ID linked.",
+    };
+  }
+
   const currentName = parseNameParts(getSavedUser()?.name || "");
   const firstName = String(profile?.firstName || currentName.firstName || "").trim();
   const lastName = String(profile?.lastName || currentName.lastName || "").trim();
-  if (!firstName || !lastName) {
-    throw new Error("First name and surname are required.");
-  }
+  if (!firstName || !lastName) throw new Error("First name and surname are required.");
 
   const token = await getAccessToken().catch(() => null);
   if (!token) throw new Error("Your session expired. Please sign in again.");
@@ -1131,13 +1276,12 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
 }
 
 async function completeSharedStudentSetup() {
-  const firstName = getEl("sharedSetupFirstName")?.value.trim() || "";
-  const lastName = getEl("sharedSetupLastName")?.value.trim() || "";
+  const studentIdCode = getEl("sharedSetupStudentId")?.value.trim() || "";
   const password = getEl("sharedSetupPasswordInput")?.value || "";
   const confirm = getEl("sharedSetupConfirmInput")?.value || "";
 
-  if (!firstName || !lastName) {
-    setMessage("Please enter the student's first name and surname.", { tone: "error" });
+  if (!studentIdCode) {
+    setMessage("Please enter your Student ID.", { tone: "error" });
     return;
   }
   if (!password || password.length < 6) {
@@ -1150,8 +1294,8 @@ async function completeSharedStudentSetup() {
   }
 
   try {
-    setMessage("Saving student setup...", { sticky: true });
-    const result = await upgradeSharedStudentPassword(password, { firstName, lastName });
+    setMessage("Linking Student ID...", { sticky: true });
+    const result = await upgradeSharedStudentPassword(password, { studentIdCode });
     if (getEl("sharedSetupPasswordInput")) getEl("sharedSetupPasswordInput").value = "";
     if (getEl("sharedSetupConfirmInput")) getEl("sharedSetupConfirmInput").value = "";
     setMessage(result?.message || "Student setup complete.", { tone: "success", sticky: true });
@@ -1264,6 +1408,7 @@ getEl("sendOtpBtn")?.addEventListener("click", sendOtpOrMagicLink);
 getEl("verifyOtpBtn")?.addEventListener("click", verifyOtpCode);
 getEl("finishPasswordResetBtn")?.addEventListener("click", finishPasswordReset);
 getEl("finishSharedSetupBtn")?.addEventListener("click", completeSharedStudentSetup);
+getEl("sharedSetupStudentId")?.addEventListener("blur", () => previewStudentIdProfile().catch(() => null));
 getEl("closeAuthGateBtn")?.addEventListener("click", closeLoginGate);
 authGate?.addEventListener("click", (e) => {
   if (e.target === authGate) closeLoginGate();
@@ -1291,6 +1436,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     clearAuthFlowModes();
     setPasswordResetMode(false, "");
     authReady = true;
+    fetchLinkedStudentProfile().catch(() => null);
     notifyAuthChanged();
 
     const shouldForceHome = hasOAuthCallbackParams() && !hasHandledInitialLoginRedirect;
@@ -1311,6 +1457,7 @@ supabase.auth.onAuthStateChange((event, session) => {
     clearAuthFlowModes();
     setPasswordResetMode(false, "");
     authReady = true;
+    fetchLinkedStudentProfile().catch(() => null);
     notifyAuthChanged();
     return;
   }

@@ -21,6 +21,14 @@
     return authUser || sharedUser || null;
   }
 
+  function getAcademicIdentity() {
+    return window.IELTS?.Auth?.getAcademicIdentity?.(getCurrentAuthUser()) || {
+      fullName: getStudentFullName(),
+      resultEmail: String(getCurrentAuthUser()?.email || "").trim().toLowerCase(),
+      loginEmail: String(getCurrentAuthUser()?.email || "").trim().toLowerCase(),
+    };
+  }
+
     function getCurrentOrganizationId() {
       return String(Access()?.getOrganizationId?.() || "").trim().toLowerCase();
     }
@@ -271,7 +279,8 @@
     }
 
     function primeStudentFullNameFromAuth() {
-      const fullName = getStudentFullName();
+      const identity = getAcademicIdentity();
+      const fullName = identity.fullName || getStudentFullName();
       if (UI().isValidFullName(fullName)) return fullName;
 
       const authUser = getCurrentAuthUser();
@@ -322,6 +331,11 @@
         submittedAt: new Date().toISOString(),
         reason,
         studentFullName: fullName,
+        studentProfileId: identity.studentProfileId || "",
+        studentIdCode: identity.studentIdCode || "",
+        classroomId: identity.classroomId || "",
+        classroomName: identity.classroomName || "",
+        officialEmail: identity.officialEmail || "",
         durationMinutes: W.DURATION_MINUTES,
         remainingSeconds,
         prompts: {
@@ -382,6 +396,11 @@
         examId: finalPayload?.examId || null,
         submittedAt: finalPayload?.submittedAt || null,
         studentFullName: finalPayload?.studentFullName || null,
+        studentProfileId: finalPayload?.studentProfileId || null,
+        studentIdCode: finalPayload?.studentIdCode || null,
+        classroomId: finalPayload?.classroomId || null,
+        classroomName: finalPayload?.classroomName || null,
+        officialEmail: finalPayload?.officialEmail || null,
         reason: finalPayload?.reason || null,
         listening: listening ? {
           saved: true,
@@ -418,6 +437,12 @@
           organizationId: finalPayload?.organizationId || getCurrentOrganizationId() || "",
           email: String(user?.email || "").trim().toLowerCase(),
           provider: String(user?.provider || "").trim().toLowerCase() || "email",
+          studentProfileId: finalPayload?.studentProfileId || "",
+          studentIdCode: finalPayload?.studentIdCode || "",
+          classroomId: finalPayload?.classroomId || "",
+          classroomName: finalPayload?.classroomName || "",
+          officialEmail: finalPayload?.officialEmail || "",
+          loginEmail: finalPayload?.loginEmail || String(user?.email || "").trim().toLowerCase(),
         };
 
         const res = await fetch(url.toString(), {
@@ -487,6 +512,10 @@
           user_email: String(authUser.email || "").trim().toLowerCase() || null,
           organization_id: finalPayload?.organizationId || getCurrentOrganizationId() || null,
           student_full_name: finalPayload?.studentFullName || authUser.name || null,
+          student_profile_id: finalPayload?.studentProfileId || null,
+          student_id_code: finalPayload?.studentIdCode || null,
+          classroom_id: finalPayload?.classroomId || null,
+          official_email: finalPayload?.officialEmail || null,
           exam_id: finalPayload?.examId || null,
           active_test_id: listening?.activeTestId || reading?.activeTestId || finalPayload?.examId || null,
           submitted_at: finalPayload?.submittedAt || new Date().toISOString(),
@@ -605,7 +634,11 @@
       if (hasSubmitted) return;
 
       try {
-        let fullName = getStudentFullName();
+        const identity = getAcademicIdentity();
+        let fullName = identity.fullName || getStudentFullName();
+        if (identity.studentProfileId && fullName) {
+          S().set(W.keys.studentName, fullName);
+        }
 
         if (!UI().isValidFullName(fullName)) {
           openFinalSubmitModal(reason, {
@@ -644,7 +677,8 @@
           ? (window.IELTS?.Practice?.buildPracticeExamId?.("writing", activeTestId, practiceScope) || `ielts-practice-writing-${testNumber.padStart(3, "0")}`)
           : `ielts-full-${testNumber.padStart(3, "0")}`;
         const authUser = getCurrentAuthUser();
-        const studentEmail = String(authUser?.email || "").trim().toLowerCase();
+        const loginEmail = String(authUser?.email || "").trim().toLowerCase();
+        const studentEmail = String(identity.resultEmail || loginEmail || "").trim().toLowerCase();
         const signInMethod = String(authUser?.provider || "email").trim().toLowerCase() || "email";
 
         const finalPayload = {
@@ -655,6 +689,12 @@
           examId,
           submittedAt,
           studentFullName: fullName,
+          studentProfileId: identity.studentProfileId || "",
+          studentIdCode: identity.studentIdCode || "",
+          classroomId: identity.classroomId || "",
+          classroomName: identity.classroomName || "",
+          officialEmail: identity.officialEmail || "",
+          loginEmail,
           studentEmail,
           signInMethod,
           reason: submitReason,

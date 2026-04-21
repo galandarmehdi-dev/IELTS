@@ -153,12 +153,12 @@
 
       <div id="sharedSetupBox" class="hidden">
         <div class="auth-field-group">
-          <label class="auth-label" for="sharedSetupFirstName">Name</label>
-          <input id="sharedSetupFirstName" type="text" placeholder="Enter the student's first name" autocomplete="given-name">
+          <label class="auth-label" for="sharedSetupStudentId">Student ID</label>
+          <input id="sharedSetupStudentId" type="text" placeholder="Enter the teacher-given Student ID" autocomplete="off">
         </div>
-        <div class="auth-field-group">
-          <label class="auth-label" for="sharedSetupLastName">Surname</label>
-          <input id="sharedSetupLastName" type="text" placeholder="Enter the student's surname" autocomplete="family-name">
+        <div class="auth-field-group hidden" id="sharedSetupIdentityPreview">
+          <label class="auth-label">Assigned student profile</label>
+          <div class="small auth-inline-help" id="sharedSetupIdentityText">Enter a Student ID to load the official profile.</div>
         </div>
         <div class="auth-field-group">
           <label class="auth-label" for="sharedSetupPasswordInput">New personal password</label>
@@ -169,7 +169,7 @@
           <input id="sharedSetupConfirmInput" type="password" placeholder="Confirm the personal password" autocomplete="new-password">
         </div>
         <button id="finishSharedSetupBtn" class="btn auth-full-btn" type="button">Save student setup</button>
-        <p id="sharedSetupHelp" class="small auth-inline-help">Complete the student name and choose a personal password.</p>
+        <p id="sharedSetupHelp" class="small auth-inline-help">Enter your Student ID and choose a personal password. Your name and class come from the teacher-created profile.</p>
       </div>
 
       <div id="passwordResetBox" class="hidden">
@@ -914,6 +914,7 @@
       </div>
       <div class="admin-results-actions">
         <button class="btn secondary" type="button" id="adminResultsHomeBtn">Home</button>
+        <button class="btn secondary" type="button" id="adminClassroomsToggleBtn">Classrooms</button>
         <button class="btn secondary" type="button" id="adminResultsRefreshBtn">Refresh</button>
         <button class="btn secondary" type="button" id="adminResultsExportBtn">Export CSV</button>
       </div>
@@ -929,6 +930,54 @@
         <span class="workspace-banner-kicker">Cohort view</span>
         <strong>Inspect performance trends, submission activity, and writing outcomes without losing context.</strong>
         <p>This panel is designed to feel like an active review desk for tutors and admins, not just a static export table.</p>
+      </div>
+    </div>
+
+    <div class="admin-result-detail hidden" id="adminClassroomsPanel">
+      <div class="admin-result-detail-top">
+        <h2>Classrooms and Student IDs</h2>
+        <button class="btn secondary" type="button" id="adminClassroomsRefreshBtn">Refresh classrooms</button>
+      </div>
+      <div class="admin-detail-grid">
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Create classroom</div>
+          <label class="admin-field"><span>Classroom name</span><input id="adminClassroomNameInput" type="text" placeholder="e.g. IELTS 11A"></label>
+          <label class="admin-field"><span>Teacher name</span><input id="adminClassroomTeacherNameInput" type="text" placeholder="Teacher name"></label>
+          <label class="admin-field"><span>Teacher email</span><input id="adminClassroomTeacherEmailInput" type="email" placeholder="teacher@example.com"></label>
+          <button class="btn" type="button" id="adminCreateClassroomBtn">Create classroom</button>
+        </div>
+        <div class="admin-detail-card">
+          <div class="admin-detail-label">Add / edit student</div>
+          <label class="admin-field"><span>Student ID</span><input id="adminStudentIdInput" type="text" placeholder="e.g. LZ-0001"></label>
+          <label class="admin-field"><span>Name</span><input id="adminStudentNameInput" type="text" placeholder="Name"></label>
+          <label class="admin-field"><span>Surname</span><input id="adminStudentSurnameInput" type="text" placeholder="Surname"></label>
+          <label class="admin-field"><span>Official results email</span><input id="adminStudentOfficialEmailInput" type="email" placeholder="student.official@example.com"></label>
+          <label class="admin-field"><span>Classroom</span><select id="adminStudentClassroomSelect"><option value="">No classroom</option></select></label>
+          <button class="btn" type="button" id="adminSaveStudentBtn">Save student</button>
+          <button class="btn secondary" type="button" id="adminResetStudentLinkBtn">Reset linked account</button>
+          <p class="small" id="adminClassroomsStatus"></p>
+        </div>
+      </div>
+      <div class="admin-results-toolbar">
+        <label class="admin-field">
+          <span>Search students</span>
+          <input type="text" id="adminStudentSearchInput" placeholder="Student ID, name, email, classroom">
+        </label>
+      </div>
+      <div class="admin-results-table-wrap">
+        <table class="admin-results-table">
+          <thead>
+            <tr>
+              <th>Student ID</th>
+              <th>Name</th>
+              <th>Classroom</th>
+              <th>Official email</th>
+              <th>Linked</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminStudentsTbody"></tbody>
+        </table>
       </div>
     </div>
 

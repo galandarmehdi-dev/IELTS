@@ -308,6 +308,8 @@
     }
 
     function collectWritingPayload(reason) {
+      const identity = getAcademicIdentity();
+      const liveRemainingSeconds = Math.max(0, Number(remainingSeconds) || 0);
       const fullName = getStudentFullName();
       const answers =
         S().getJSON(W.keys.answers, { task1: wt1?.value || "", task2: wt2?.value || "" }) || {
@@ -337,7 +339,7 @@
         classroomName: identity.classroomName || "",
         officialEmail: identity.officialEmail || "",
         durationMinutes: W.DURATION_MINUTES,
-        remainingSeconds,
+        remainingSeconds: liveRemainingSeconds,
         prompts: {
           task1Html: writingContent.task1Html || "",
           task1Text: stripHtml(writingContent.task1Html || ""),
@@ -807,6 +809,13 @@
         );
       } catch (err) {
         console.error("submitFinalExam crashed:", err);
+        hasSubmitted = false;
+        S().set(W.keys.submitted, "false");
+        try {
+          if (!S().get(WRITING_DEADLINE_KEY, null)) {
+            S().set(WRITING_DEADLINE_KEY, String(deadlineAt || (Date.now() + Math.max(0, Number(remainingSeconds) || 0) * 1000)));
+          }
+        } catch (e) {}
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
         Modal().showModal(
           "Submission error",

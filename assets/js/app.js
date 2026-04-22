@@ -2493,7 +2493,7 @@
       if (!tbody) return;
       const query = String($("adminStudentSearchInput")?.value || "").trim().toLowerCase();
       const rows = classroomAdminState.students.filter((student) => {
-        const hay = [student.studentIdCode, student.fullName, student.classroomName, student.officialEmail]
+        const hay = [student.studentIdCode, student.fullName, student.classroomName, student.officialEmail, student.linkedAuthEmail]
           .map((value) => String(value || "").toLowerCase())
           .join(" ");
         return !query || hay.includes(query);
@@ -2503,11 +2503,12 @@
           <td>${escapeHtml(student.studentIdCode || "—")}</td>
           <td>${escapeHtml(student.fullName || "—")}</td>
           <td>${escapeHtml(student.classroomName || "—")}</td>
+          <td>${escapeHtml(student.linkedAuthEmail || "—")}</td>
           <td>${escapeHtml(student.officialEmail || "—")}</td>
           <td>${student.linkedAuthIdentity || student.linkedAuthUserId ? "Linked" : "Unlinked"}</td>
           <td><button class="btn secondary" type="button" data-admin-edit-student="${escapeHtml(student.studentIdCode || "")}">Edit</button></td>
         </tr>
-      `).join("") || `<tr><td colspan="6">No students found.</td></tr>`;
+      `).join("") || `<tr><td colspan="7">No students found.</td></tr>`;
       Array.from(tbody.querySelectorAll("[data-admin-edit-student]")).forEach((button) => {
         button.addEventListener("click", () => {
           const code = button.getAttribute("data-admin-edit-student") || "";
@@ -2517,6 +2518,7 @@
           $("adminStudentIdInput").value = student.studentIdCode || "";
           $("adminStudentNameInput").value = student.name || "";
           $("adminStudentSurnameInput").value = student.surname || "";
+          $("adminStudentLinkedEmailInput").value = student.linkedAuthEmail || "";
           $("adminStudentOfficialEmailInput").value = student.officialEmail || "";
           $("adminStudentClassroomSelect").value = student.classroomId || "";
           setClassroomStatus(`Editing ${student.fullName || student.studentIdCode}.`);
@@ -2573,6 +2575,7 @@
         studentIdCode: $("adminStudentIdInput")?.value || "",
         name: $("adminStudentNameInput")?.value || "",
         surname: $("adminStudentSurnameInput")?.value || "",
+        linkedAuthEmail: $("adminStudentLinkedEmailInput")?.value || "",
         officialEmail: $("adminStudentOfficialEmailInput")?.value || "",
         classroomId: $("adminStudentClassroomSelect")?.value || "",
       };

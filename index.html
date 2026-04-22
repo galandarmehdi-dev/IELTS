@@ -160,6 +160,16 @@
           <label class="auth-label">Assigned student profile</label>
           <div class="small auth-inline-help" id="sharedSetupIdentityText">Enter a Student ID to load the official profile.</div>
         </div>
+        <div id="sharedSetupManualIdentity" class="hidden">
+          <div class="auth-field-group">
+            <label class="auth-label" for="sharedSetupFirstName">Name</label>
+            <input id="sharedSetupFirstName" type="text" placeholder="Enter your name" autocomplete="given-name">
+          </div>
+          <div class="auth-field-group">
+            <label class="auth-label" for="sharedSetupLastName">Surname</label>
+            <input id="sharedSetupLastName" type="text" placeholder="Enter your surname" autocomplete="family-name">
+          </div>
+        </div>
         <div class="auth-field-group">
           <label class="auth-label" for="sharedSetupPasswordInput">Student password</label>
           <input id="sharedSetupPasswordInput" type="password" placeholder="Enter the student's password" autocomplete="current-password">

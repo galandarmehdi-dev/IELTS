@@ -14,7 +14,7 @@ const DEFAULT_PRIMARY_ORGANIZATION_ID = "ieltsmock";
 const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const unknownTenantResponse = rejectUnknownTenant(request, env);
     if (unknownTenantResponse) return unknownTenantResponse;
@@ -60,7 +60,7 @@ export default {
     }
 
     if (url.pathname === "/api/admin") {
-      return handleAdminApi(request, env);
+      return handleAdminApi(request, env, ctx);
     }
 
     const response = await env.ASSETS.fetch(request);
@@ -843,7 +843,7 @@ async function handleContactApi(request, env) {
   return json(200, { ok: true, message: "Your message has been sent to IELTS Mock support." });
 }
 
-async function handleAdminApi(request, env) {
+async function handleAdminApi(request, env, ctx) {
   const url = new URL(request.url);
   const action = String(url.searchParams.get("action") || "").trim();
 
@@ -872,19 +872,19 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "classroomStudents") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    return handleAdminClassroomStudents(request, env, auth);
+    return handleAdminClassroomStudents(request, env, auth, ctx);
   }
 
   if (request.method === "GET" && action === "classroomProgress") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    return handleAdminClassroomProgress(request, env, auth);
+    return handleAdminClassroomProgress(request, env, auth, ctx);
   }
 
   if (request.method === "GET" && action === "classroomStudentProgress") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    return handleAdminClassroomStudentProgress(request, env, auth);
+    return handleAdminClassroomStudentProgress(request, env, auth, ctx);
   }
 
   if (request.method === "POST" && action === "backfillStudentHistory") {
@@ -3606,7 +3606,8 @@ async function loadScopedClassroomData(env, auth) {
   };
 }
 
-async function handleAdminClassroomStudents(request, env, auth) {
+async function handleAdminClassroomStudents(request, env, auth, ctx) {
+  queueAutoBackfillHistoricalStudentProfiles(env, auth, ctx);
   const loaded = await loadScopedClassroomData(env, auth);
   if (!loaded.ok) return json(loaded.status, { ok: false, error: loaded.error });
   return json(200, {
@@ -3886,6 +3887,15 @@ async function maybeAutoBackfillHistoricalStudentProfiles(env, auth, options = {
   return promise;
 }
 
+function queueAutoBackfillHistoricalStudentProfiles(env, auth, ctx, options = {}) {
+  if (!auth || !ctx || typeof ctx.waitUntil !== "function") return;
+  try {
+    ctx.waitUntil(
+      maybeAutoBackfillHistoricalStudentProfiles(env, auth, options).catch(() => null)
+    );
+  } catch (error) {}
+}
+
 function averageNullable(values) {
   const nums = (Array.isArray(values) ? values : []).map((value) => toNullableNumber(value)).filter((value) => value !== null);
   if (!nums.length) return null;
@@ -4090,7 +4100,8 @@ async function handleAdminBackfillStudentHistory(request, env, auth) {
   }
 }
 
-async function handleAdminClassroomProgress(request, env, auth) {
+async function handleAdminClassroomProgress(request, env, auth, ctx) {
+  queueAutoBackfillHistoricalStudentProfiles(env, auth, ctx);
   try {
     const payload = await buildClassroomProgressPayload(env, auth);
     return json(200, {
@@ -4103,7 +4114,8 @@ async function handleAdminClassroomProgress(request, env, auth) {
   }
 }
 
-async function handleAdminClassroomStudentProgress(request, env, auth) {
+async function handleAdminClassroomStudentProgress(request, env, auth, ctx) {
+  queueAutoBackfillHistoricalStudentProfiles(env, auth, ctx);
   const url = new URL(request.url);
   const studentIdCode = oneLine(url.searchParams.get("studentIdCode") || "");
   if (!studentIdCode) return json(400, { ok: false, error: "Student ID is required." });
@@ -5033,9 +5045,6 @@ async function fetchAppsScriptJsonWithRetry(url, options = {}) {
 
 async function getAdminResultsSummary(env, options = {}) {
   const actor = options?.actor || null;
-  if (actor) {
-    await maybeAutoBackfillHistoricalStudentProfiles(env, actor, { force: options?.forceRefresh === true }).catch(() => null);
-  }
   const cacheKey = actor?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(actor) || "public"}`;
   const forceRefresh = options?.forceRefresh === true;
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);

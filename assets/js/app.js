@@ -1519,6 +1519,21 @@
         });
     }
 
+    function scheduleAdminDetailWarmup(rows, mode = adminState.mode) {
+      const safeRows = Array.isArray(rows) ? rows.slice() : [];
+      if (!safeRows.length) return;
+      const warmup = () => {
+        if (document.body?.dataset?.activeView !== "adminResults") return;
+        prefetchAdminFullResults(safeRows, 3, mode);
+        prefetchAdminObjectiveDetails(safeRows, 2);
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => warmup(), { timeout: 2500 });
+        return;
+      }
+      window.setTimeout(warmup, 1200);
+    }
+
     function prefetchAdminFullResults(rows, limit, mode = adminState.mode) {
       (rows || [])
         .slice(0, Math.max(0, Number(limit) || 0))
@@ -2336,8 +2351,7 @@
             fillExamFilter(rows);
             fillMonthYearFilters(rows);
             applyAdminFilters();
-            prefetchAdminFullResults(rows, 12, adminState.mode);
-            prefetchAdminObjectiveDetails(rows, 4);
+            scheduleAdminDetailWarmup(rows, adminState.mode);
             return rows;
           });
         if (!usedCachedRows) {
@@ -4687,18 +4701,16 @@ function startFreshExam() {
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
     window.addEventListener("ielts:viewmodechange", (event) => {
       syncAdminToggleMenu();
-      if (event?.detail?.isAdmin) {
+      if (event?.detail?.isAdmin && document.body?.dataset?.activeView === "adminResults") {
         prefetchAdminResults().catch(() => {});
       }
       setTimeout(reconcileStartupRoute, 0);
     });
     window.addEventListener("ielts:authchanged", () => {
       syncAdminToggleMenu();
-      if (isAdminView()) prefetchAdminResults().catch(() => {});
       setTimeout(reconcileStartupRoute, 0);
     });
     syncAdminToggleMenu();
-    if (isAdminView()) prefetchAdminResults().catch(() => {});
 
     window.addEventListener("focus", () => {
       renderHomeResumeAction();

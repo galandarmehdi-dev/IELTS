@@ -914,7 +914,7 @@ function applyActiveListeningContent() {
         R() && (
           isPracticeListening
             ? R().TEMP_STUDENT_AUDIO_SCRUB_PRACTICE === true
-            : R().TEMP_STUDENT_AUDIO_SCRUB_FULL === true
+            : R().TEMP_STUDENT_AUDIO_SCRUB_FULL === false
         )
       );
       const allowControls = isAdmin || allowStudentScrub;

@@ -2865,6 +2865,86 @@ async function getStudentProfileByOfficialEmail(env, email, organizationId = "")
   return Array.isArray(res.data) ? res.data[0] || null : null;
 }
 
+function buildStudentProfileMetaPatch(profile) {
+  const publicProfile = publicStudentProfile(profile);
+  return {
+    organizationId: publicProfile.organizationId || "",
+    studentProfileId: publicProfile.id || "",
+    studentIdCode: publicProfile.studentIdCode || "",
+    classroomId: publicProfile.classroomId || "",
+    classroomName: publicProfile.classroomName || "",
+    officialEmail: publicProfile.officialEmail || "",
+  };
+}
+
+async function attachStudentProfileToStoredHistory(env, organizationId, email, profile) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!env?.STUDENT_REGISTRY || !normalizedEmail || !profile) return;
+  const patch = buildStudentProfileMetaPatch(profile);
+  const registryRecord = (await readJsonKv(env.STUDENT_REGISTRY, `student:${normalizedEmail}`)) || {};
+  await writeJsonKv(env.STUDENT_REGISTRY, `student:${normalizedEmail}`, {
+    ...registryRecord,
+    email: normalizedEmail,
+    organizationId: patch.organizationId || registryRecord.organizationId || "",
+    fullName: profile.fullName || registryRecord.fullName || deriveNameFromEmail(normalizedEmail),
+    firstName: profile.name || registryRecord.firstName || "",
+    lastName: profile.surname || registryRecord.lastName || "",
+    studentProfile: publicStudentProfile(profile),
+    updatedAt: new Date().toISOString(),
+  });
+
+  const submissions = await listJsonByPrefix(env.STUDENT_REGISTRY, "submission:", 1000);
+  for (const record of submissions) {
+    const recordOrg = normalizeOrganizationId(record?.organizationId || "");
+    const recordEmail = normalizeEmail(record?.email || record?.loginEmail || "");
+    if (recordEmail !== normalizedEmail) continue;
+    if (organizationId && recordOrg && recordOrg !== normalizeOrganizationId(organizationId)) continue;
+    const nextRecord = {
+      ...record,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    const key = buildSubmissionMetaKeyWithOrganization(nextRecord);
+    if (!key) continue;
+    await writeJsonKv(env.STUDENT_REGISTRY, `submission:${key}`, nextRecord);
+    const currentScore = (await readJsonKv(env.STUDENT_REGISTRY, `score:${key}`)) || {};
+    await writeJsonKv(env.STUDENT_REGISTRY, `score:${key}`, {
+      ...currentScore,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  const backups = await listJsonByPrefix(env.STUDENT_REGISTRY, "submission-backup:", 1000);
+  for (const record of backups) {
+    const recordOrg = normalizeOrganizationId(record?.organizationId || "");
+    const recordEmail = normalizeEmail(record?.email || record?.loginEmail || "");
+    if (recordEmail !== normalizedEmail) continue;
+    if (organizationId && recordOrg && recordOrg !== normalizeOrganizationId(organizationId)) continue;
+    const nextRecord = {
+      ...record,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    const key = buildSubmissionMetaKeyWithOrganization(nextRecord);
+    if (!key) continue;
+    await writeJsonKv(env.STUDENT_REGISTRY, `submission-backup:${key}`, nextRecord);
+  }
+
+  const practiceRows = await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${normalizedEmail}:`, 1000);
+  for (const record of practiceRows) {
+    const nextRecord = {
+      ...record,
+      ...patch,
+      updatedAt: new Date().toISOString(),
+    };
+    const practiceId = oneLine(record?.id || "");
+    if (!practiceId) continue;
+    await writeJsonKv(env.STUDENT_REGISTRY, `practice-user:${normalizedEmail}:${practiceId}`, nextRecord);
+    await writeJsonKv(env.STUDENT_REGISTRY, `practice-result:${practiceId}`, nextRecord);
+  }
+}
+
 async function updateStudentProfileById(env, id, patch) {
   const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
     method: "PATCH",
@@ -2986,21 +3066,46 @@ async function handleAdminAssignStudentCodeFromResult(request, env, auth) {
   if (linkedAuthEmail) existing = await getStudentProfileByLinkedEmail(env, linkedAuthEmail, organizationId);
   if (!existing && officialEmail) existing = await getStudentProfileByOfficialEmail(env, officialEmail, organizationId);
 
-  if (existing?.student_id_code) {
-    const updatedExisting = await updateStudentProfileById(env, existing.id, {
-      name: existing.name || splitName.name,
-      surname: existing.surname || splitName.surname || "",
-      linked_auth_email: existing.linked_auth_email || linkedAuthEmail,
-      official_email: existing.official_email || officialEmail,
-      is_active: true,
-    }).catch(() => existing);
-    return json(200, { ok: true, student: publicStudentProfile(updatedExisting || existing), reused: true });
+  let targetProfile = existing || null;
+  const sameCodeProfile = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  if (sameCodeProfile?.id) {
+    targetProfile = sameCodeProfile;
   }
 
-  const sameCodeProfile = await getStudentProfileByCode(env, studentIdCode, organizationId);
-  if (sameCodeProfile && sameCodeProfile.id !== existing?.id) {
-    return json(409, { ok: false, error: "This sign-in code is already assigned to another student." });
+  if (targetProfile?.student_id_code) {
+    const nextLinkedEmail = normalizeEmail(targetProfile.linked_auth_email || linkedAuthEmail || "") || null;
+    const nextOfficialEmail = normalizeEmail(targetProfile.official_email || officialEmail || "") || null;
+    const updatedExisting = await updateStudentProfileById(env, targetProfile.id, {
+      name: targetProfile.name || splitName.name,
+      surname: targetProfile.surname || splitName.surname || "",
+      linked_auth_email: nextLinkedEmail,
+      official_email: nextOfficialEmail,
+      is_active: true,
+    }).catch(() => targetProfile);
+    if (linkedAuthEmail) {
+      await attachStudentProfileToStoredHistory(
+        env,
+        organizationId,
+        linkedAuthEmail,
+        updatedExisting || targetProfile
+      ).catch(() => null);
+    }
+    if (officialEmail && officialEmail !== linkedAuthEmail) {
+      await attachStudentProfileToStoredHistory(
+        env,
+        organizationId,
+        officialEmail,
+        updatedExisting || targetProfile
+      ).catch(() => null);
+    }
+    return json(200, {
+      ok: true,
+      student: publicStudentProfile(updatedExisting || targetProfile),
+      reused: true,
+      attachedExistingAttempts: true,
+    });
   }
+
   const body = {
     organization_id: organizationId,
     student_id_code: studentIdCode,
@@ -3026,7 +3131,13 @@ async function handleAdminAssignStudentCodeFromResult(request, env, auth) {
       });
   if (!res.ok) return json(res.status, { ok: false, error: res.error || "Could not assign Student ID." });
   const row = Array.isArray(res.data) ? res.data[0] || null : null;
-  return json(200, { ok: true, student: publicStudentProfile(row), reused: false });
+  if (linkedAuthEmail) {
+    await attachStudentProfileToStoredHistory(env, organizationId, linkedAuthEmail, row).catch(() => null);
+  }
+  if (officialEmail && officialEmail !== linkedAuthEmail) {
+    await attachStudentProfileToStoredHistory(env, organizationId, officialEmail, row).catch(() => null);
+  }
+  return json(200, { ok: true, student: publicStudentProfile(row), reused: false, attachedExistingAttempts: true });
 }
 
 async function handleAdminResetStudentProfileLink(request, env, auth) {

@@ -1418,6 +1418,15 @@
           }
         }
       }
+      const cachedRows = getAdminRows(mode);
+      if (cachedRows.length) {
+        return cachedRows.slice();
+      }
+      const persistedRows = loadAdminResultsCache(mode);
+      if (persistedRows.length) {
+        setAdminRows(mode, persistedRows);
+        return persistedRows.slice();
+      }
       throw lastError || new Error("Could not load admin results.");
     }
 

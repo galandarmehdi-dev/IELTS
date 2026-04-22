@@ -6,6 +6,8 @@ const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
 const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
+const ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS = 30 * 1000;
+const ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS = 20 * 1000;
 const DEFAULT_PRIMARY_ORGANIZATION_ID = "ieltsmock";
 const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
@@ -934,9 +936,9 @@ async function handleAdminApi(request, env) {
     const cacheUrl = buildAdminResultsSummaryCacheUrl(url, auth);
     const cache = caches.default;
     const cacheRequest = new Request(cacheUrl.toString(), { method: "GET" });
-    const cachedResponse = forceRefresh ? null : await cache.match(cacheRequest);
+    const cachedResponse = await cache.match(cacheRequest);
     if (cachedResponse) {
-      return cachedResponse;
+      if (!forceRefresh) return cachedResponse;
     }
 
     const search = normalizeMatchString(url.searchParams.get("q") || "");
@@ -956,6 +958,8 @@ async function handleAdminApi(request, env) {
       const staleSummaries = getAnyCachedAdminResultsSummary(auth?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(auth) || "public"}`);
       if (staleSummaries?.length) {
         summaries = staleSummaries;
+      } else if (cachedResponse) {
+        return cachedResponse;
       } else {
         return json(502, { ok: false, error: error?.message || "Could not load admin results summary." });
       }
@@ -1003,7 +1007,7 @@ async function handleAdminApi(request, env) {
     }, {
       "Cache-Control": `private, max-age=${Math.floor(ADMIN_RESULTS_SUMMARY_TTL_MS / 1000)}`
     });
-    await cache.put(cacheRequest, response.clone());
+    await cache.put(cacheRequest, response.clone()).catch(() => null);
     return response;
   }
 
@@ -1049,7 +1053,7 @@ async function handleAdminApi(request, env) {
       method: "GET",
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
       retries: 2,
-      timeoutMs: 12000,
+      timeoutMs: ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS,
     });
     const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
@@ -1353,7 +1357,7 @@ async function handleAdminApi(request, env) {
       method: "GET",
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
       retries: 1,
-      timeoutMs: 12000,
+      timeoutMs: ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS,
     });
     const existing = data?.result || {};
     const backendHasWritingGrade =
@@ -4314,6 +4318,9 @@ async function fetchAppsScriptJsonWithRetry(url, options = {}) {
   throw new Error(
     lastData?.error ||
     (lastStatus ? `Apps Script request failed with HTTP ${lastStatus}.` : "") ||
+    (String(lastError?.name || "") === "TimeoutError" || String(lastError?.name || "") === "AbortError"
+      ? `The upstream results service took too long to respond (${Math.round(timeoutMs / 1000)}s timeout).`
+      : "") ||
     lastError?.message ||
     "Apps Script request failed."
   );
@@ -4335,7 +4342,7 @@ async function getAdminResultsSummary(env, options = {}) {
     const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
       method: "GET",
       retries: forceRefresh ? 1 : 2,
-      timeoutMs: 12000,
+      timeoutMs: ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS,
     });
     if (!Array.isArray(data.results)) {
       throw new Error("Could not load admin results summary.");

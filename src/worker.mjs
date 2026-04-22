@@ -875,6 +875,12 @@ async function handleAdminApi(request, env) {
     return handleAdminSaveStudentProfile(request, env, auth);
   }
 
+  if (request.method === "POST" && action === "assignStudentCodeFromResult") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminAssignStudentCodeFromResult(request, env, auth);
+  }
+
   if (request.method === "POST" && action === "resetStudentProfileLink") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -2845,6 +2851,20 @@ async function getStudentProfileByLinkedEmail(env, email, organizationId = "") {
   return Array.isArray(res.data) ? res.data[0] || null : null;
 }
 
+async function getStudentProfileByOfficialEmail(env, email, organizationId = "") {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+  const query = {
+    select: "*,classroom:classrooms(id,name)",
+    official_email: `eq.${normalizedEmail}`,
+    limit: "1",
+  };
+  if (organizationId) query.organization_id = `eq.${normalizeOrganizationId(organizationId)}`;
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", { query });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
 async function updateStudentProfileById(env, id, patch) {
   const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
     method: "PATCH",
@@ -2935,6 +2955,92 @@ async function handleAdminSaveStudentProfile(request, env, auth) {
   if (!res.ok) return json(res.status, { ok: false, error: res.error });
   const row = Array.isArray(res.data) ? res.data[0] || null : null;
   return json(200, { ok: true, student: publicStudentProfile(row) });
+}
+
+function splitStudentFullName(fullName) {
+  const cleaned = String(fullName || "").replace(/\s+/g, " ").trim();
+  if (!cleaned) return { name: "", surname: "" };
+  const parts = cleaned.split(" ");
+  if (parts.length === 1) return { name: parts[0], surname: "" };
+  return {
+    name: parts.slice(0, -1).join(" ").trim(),
+    surname: parts.slice(-1).join(" ").trim(),
+  };
+}
+
+function generateStudentIdCandidate() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  let out = "SID-";
+  for (let i = 0; i < bytes.length; i += 1) {
+    out += alphabet[bytes[i] % alphabet.length];
+  }
+  return out;
+}
+
+async function generateUniqueStudentIdCode(env, organizationId) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const candidate = generateStudentIdCandidate();
+    const existing = await getStudentProfileByCode(env, candidate, organizationId);
+    if (!existing) return candidate;
+  }
+  throw new Error("Could not generate a unique Student ID right now.");
+}
+
+async function handleAdminAssignStudentCodeFromResult(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const organizationId = auth.isSuperAdmin
+    ? normalizeOrganizationId(payload?.organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env))
+    : getActorOrganizationId(auth);
+  const fullName = oneLine(payload?.studentFullName || "");
+  if (!fullName) return json(400, { ok: false, error: "Student name is required." });
+  const linkedAuthEmail = normalizeEmail(payload?.studentEmail || "") || null;
+  const officialEmail = normalizeEmail(payload?.officialEmail || payload?.studentEmail || "") || null;
+  const splitName = splitStudentFullName(fullName);
+  if (!splitName.name) return json(400, { ok: false, error: "Could not determine the student name." });
+
+  let existing = null;
+  if (linkedAuthEmail) existing = await getStudentProfileByLinkedEmail(env, linkedAuthEmail, organizationId);
+  if (!existing && officialEmail) existing = await getStudentProfileByOfficialEmail(env, officialEmail, organizationId);
+
+  if (existing?.student_id_code) {
+    const updatedExisting = await updateStudentProfileById(env, existing.id, {
+      name: existing.name || splitName.name,
+      surname: existing.surname || splitName.surname || "",
+      linked_auth_email: existing.linked_auth_email || linkedAuthEmail,
+      official_email: existing.official_email || officialEmail,
+      is_active: true,
+    }).catch(() => existing);
+    return json(200, { ok: true, student: publicStudentProfile(updatedExisting || existing), reused: true });
+  }
+
+  const studentIdCode = await generateUniqueStudentIdCode(env, organizationId);
+  const body = {
+    organization_id: organizationId,
+    student_id_code: studentIdCode,
+    name: existing?.name || splitName.name,
+    surname: existing?.surname || splitName.surname || "",
+    classroom_id: oneLine(existing?.classroom_id || "") || null,
+    linked_auth_email: linkedAuthEmail,
+    official_email: officialEmail,
+    is_active: true,
+  };
+  const res = existing?.id
+    ? await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+        method: "PATCH",
+        query: { id: `eq.${existing.id}`, select: "*,classroom:classrooms(id,name)" },
+        headers: { Prefer: "return=representation" },
+        body,
+      })
+    : await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+        method: "POST",
+        query: { select: "*,classroom:classrooms(id,name)" },
+        headers: { Prefer: "return=representation" },
+        body,
+      });
+  if (!res.ok) return json(res.status, { ok: false, error: res.error || "Could not assign Student ID." });
+  const row = Array.isArray(res.data) ? res.data[0] || null : null;
+  return json(200, { ok: true, student: publicStudentProfile(row), reused: false });
 }
 
 async function handleAdminResetStudentProfileLink(request, env, auth) {

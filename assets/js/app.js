@@ -1984,6 +1984,7 @@
         appendLabeledLine(metaEl, "Email", row.studentEmail || "—");
         appendLabeledLine(metaEl, "Sign-in method", String(row.signInMethod || "email").replace(/-/g, " "));
       }
+      appendLabeledLine(metaEl, "Student ID", row.studentIdCode || "—");
 
       const scoresEl = $("adminDetailScores");
       clearElement(scoresEl);
@@ -1993,6 +1994,49 @@
       appendLabeledLine(scoresEl, "Speaking", `Band ${bandText(speakingBand(row))}`);
       appendLabeledLine(scoresEl, "Overall score", `Band ${bandText(effectiveOverallBand(row))}`);
       appendLabeledLine(scoresEl, "Writing words", `${writingWordText(row.task1Words)} / ${writingWordText(row.task2Words)}`);
+
+      const studentCodeEditor = $("adminDetailStudentCodeEditor");
+      if (studentCodeEditor) {
+        clearElement(studentCodeEditor);
+        const field = document.createElement("div");
+        field.className = "admin-speaking-editor";
+        const title = document.createElement("div");
+        title.className = "admin-detail-label";
+        title.textContent = "Student sign-in code";
+        field.appendChild(title);
+        const hint = document.createElement("div");
+        hint.className = "small";
+        if (row.studentIdCode) {
+          hint.textContent = `Assigned code: ${row.studentIdCode}`;
+        } else {
+          hint.textContent = "No Student ID is assigned to this result yet. Generate one here to attach a sign-in code to this student.";
+          const saveBtn = document.createElement("button");
+          saveBtn.className = "btn secondary";
+          saveBtn.type = "button";
+          saveBtn.textContent = "Assign sign-in code";
+          saveBtn.addEventListener("click", async () => {
+            try {
+              const saved = await assignStudentCodeFromAdminResult(row, options.submissionRecord || null);
+              const updatedRow = {
+                ...row,
+                studentIdCode: saved.studentIdCode || row.studentIdCode || "",
+                studentProfileId: saved.id || row.studentProfileId || "",
+                classroomId: saved.classroomId || row.classroomId || "",
+                classroomName: saved.classroomName || row.classroomName || "",
+                officialEmail: saved.officialEmail || row.officialEmail || "",
+              };
+              mergeAdminRowIntoState(updatedRow, adminState.mode);
+              renderAdminDetailFields(updatedRow, { ...options, loadingDetail: false });
+              applyAdminFilters();
+            } catch (error) {
+              hint.textContent = error?.message || "Could not assign a sign-in code.";
+            }
+          });
+          field.appendChild(saveBtn);
+        }
+        field.appendChild(hint);
+        studentCodeEditor.appendChild(field);
+      }
 
       const task1ScoreEl = $("adminDetailTask1Score");
       clearElement(task1ScoreEl);
@@ -2652,6 +2696,30 @@
       }
       setClassroomStatus("Student saved.", "success");
       await loadClassroomAdminData();
+    }
+
+    async function assignStudentCodeFromAdminResult(row, submissionRecord = null) {
+      const url = R()?.buildAdminApiUrl?.({ action: "assignStudentCodeFromResult" });
+      if (!url) throw new Error("Admin endpoint is not available.");
+      const payload = {
+        submittedAt: row?.submittedAt || "",
+        studentFullName: row?.studentFullName || "",
+        examId: row?.examId || "",
+        reason: row?.reason || "",
+        studentEmail: submissionRecord?.email || row?.studentEmail || "",
+        signInMethod: submissionRecord?.provider || row?.signInMethod || "",
+        officialEmail: row?.officialEmail || submissionRecord?.email || row?.studentEmail || "",
+      };
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true || !data.student) {
+        throw new Error(data?.error || "Could not assign a sign-in code.");
+      }
+      return data.student;
     }
 
     async function resetSelectedStudentLink() {

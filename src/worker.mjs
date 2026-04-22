@@ -27,6 +27,10 @@ export default {
       return handleSharedStudentBypass(request, env);
     }
 
+    if (url.pathname === "/api/auth/student-id-login") {
+      return handleStudentIdLogin(request, env);
+    }
+
     if (url.pathname === "/api/auth/student-profile") {
       return handleStudentProfileApi(request, env);
     }
@@ -464,6 +468,76 @@ async function handleSharedStudentBypass(request, env) {
   });
 }
 
+async function handleStudentIdLogin(request, env) {
+  if (request.method !== "POST") {
+    return json(405, { ok: false, error: "Method not allowed." });
+  }
+
+  const tenant = resolveTenantContext(request, env);
+  const payload = await request.json().catch(() => null);
+  const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
+  const password = String(payload?.password || "");
+  const rate = await consumeRateLimit(
+    env,
+    `rate:student-id-login:${buildRateLimitScope(request, studentIdCode)}`,
+    { limit: 8, windowMs: 10 * 60 * 1000 }
+  );
+  if (!rate.allowed) {
+    await logSecurityEvent(env, request, "student_id_login_rate_limited", { studentIdCode });
+    return json(429, { ok: false, error: "Too many sign-in attempts. Please wait and try again." });
+  }
+  if (!studentIdCode) {
+    return json(400, { ok: false, error: "Please enter the Student ID." });
+  }
+  if (!password) {
+    return json(400, { ok: false, error: "Please enter the student password." });
+  }
+
+  const profile = await getStudentProfileByCode(env, studentIdCode, tenant.organizationId);
+  if (!profile) {
+    await logSecurityEvent(env, request, "student_id_login_missing_profile", { studentIdCode });
+    return json(404, { ok: false, error: "Student ID not found. Please check it or contact your teacher." });
+  }
+  if (profile.is_active === false) {
+    return json(403, { ok: false, error: "This Student ID is not active. Please contact your teacher/admin." });
+  }
+  const passwordOk = await verifyStudentProfilePassword(profile, studentIdCode, password);
+  if (!passwordOk) {
+    await logSecurityEvent(env, request, "student_id_login_wrong_password", { studentIdCode });
+    return json(401, { ok: false, error: "Student ID or student password is incorrect." });
+  }
+
+  const publicProfile = publicStudentProfile(profile);
+  const loginEmail = buildStudentProfileLoginEmail(publicProfile);
+  const token = await issueSharedStudentToken(loginEmail, env, {
+    mode: "student",
+    organizationId: tenant.organizationId,
+    studentIdCode: publicProfile.studentIdCode,
+  });
+  const user = buildSharedStudentUser(loginEmail, {
+    fullName: publicProfile.fullName,
+    firstName: publicProfile.name,
+    lastName: publicProfile.surname,
+    setupCompleted: true,
+    organizationId: tenant.organizationId,
+    studentProfile: publicProfile,
+  });
+
+  await upsertStudentRegistry(env, {
+    email: loginEmail,
+    fullName: publicProfile.fullName,
+    firstName: publicProfile.name,
+    lastName: publicProfile.surname,
+    provider: "student-id",
+    isSharedPassword: true,
+    organizationId: publicProfile.organizationId || tenant.organizationId,
+    studentProfile: publicProfile,
+    setupCompleted: true,
+  });
+
+  return json(200, { ok: true, token, user, setupCompleted: true, requiresSetup: false });
+}
+
 async function handleStudentProfileApi(request, env) {
   if (request.method !== "GET") return json(405, { ok: false, error: "Method not allowed." });
   const auth = await authenticateUser(request, env);
@@ -490,6 +564,9 @@ async function handleStudentProfileApi(request, env) {
         linked_at: profile.linked_at || new Date().toISOString(),
       }).catch(() => profile);
     }
+  }
+  if (!profile && auth.kind === "shared" && auth.user?.student_id_code) {
+    profile = await getStudentProfileByCode(env, auth.user.student_id_code, organizationId);
   }
   return json(200, {
     ok: true,
@@ -1756,12 +1833,13 @@ async function authenticateUser(request, env) {
       kind: "shared",
       organizationId: tokenOrganizationId || tenant.organizationId,
       tenant,
-      user: {
+    user: {
         email: payload.email,
         app_metadata: {
           provider: "shared-password",
           is_shared_student_login: true,
           organization_id: tokenOrganizationId || tenant.organizationId,
+          student_id_code: oneLine(payload.studentIdCode || ""),
         },
         user_metadata: {
           name: deriveNameFromEmail(payload.email),
@@ -1769,6 +1847,7 @@ async function authenticateUser(request, env) {
         },
         shared_mode: payload.mode || "student",
         shared_bypass: payload.bypass === true,
+        student_id_code: oneLine(payload.studentIdCode || ""),
       },
     };
   }
@@ -1824,6 +1903,7 @@ async function issueSharedStudentToken(email, env, options = {}) {
     mode: oneLine(options?.mode || "student") || "student",
     bypass: options?.bypass === true,
     organizationId: normalizeOrganizationId(options?.organizationId || ""),
+    studentIdCode: oneLine(options?.studentIdCode || ""),
   };
   const encodedPayload = toBase64Url(JSON.stringify(payload));
   const signature = await signSharedTokenPayload(encodedPayload, secret);
@@ -1850,6 +1930,7 @@ function buildSharedStudentUser(email, options = {}) {
   const fullName = oneLine(options?.fullName || deriveNameFromEmail(email));
   const firstName = oneLine(options?.firstName || "");
   const lastName = oneLine(options?.lastName || "");
+  const studentProfile = options?.studentProfile || null;
   return {
     id: `shared:${email}`,
     email,
@@ -1860,6 +1941,7 @@ function buildSharedStudentUser(email, options = {}) {
       is_shared_student_login: true,
       setup_completed: options?.setupCompleted === true,
       organization_id: normalizeOrganizationId(options?.organizationId || ""),
+      student_id_code: oneLine(studentProfile?.studentIdCode || ""),
     },
     user_metadata: {
       full_name: fullName,
@@ -1868,7 +1950,7 @@ function buildSharedStudentUser(email, options = {}) {
       first_name: firstName,
       last_name: lastName,
     },
-    studentProfile: options?.studentProfile || null,
+    studentProfile,
   };
 }
 
@@ -2721,6 +2803,15 @@ function publicStudentProfile(row) {
     linkedAuthEmail: normalizeEmail(row.linked_auth_email || ""),
     isActive: row.is_active !== false,
   };
+}
+
+function buildStudentProfileLoginEmail(profile) {
+  const linkedEmail = normalizeEmail(profile?.linkedAuthEmail || "");
+  if (linkedEmail) return linkedEmail;
+  const officialEmail = normalizeEmail(profile?.officialEmail || "");
+  if (officialEmail) return officialEmail;
+  const studentIdCode = oneLine(profile?.studentIdCode || "").toLowerCase();
+  return studentIdCode ? `${studentIdCode}@student-id.local` : "student@student-id.local";
 }
 
 async function getStudentProfileByCode(env, studentIdCode, organizationId = "") {

@@ -80,15 +80,27 @@
     if (t) t.textContent = title || "";
     if (p) p.textContent = text || "";
 
-    // name required only in "final"
     const isFinal = MODAL_MODE === "final";
     const isPassword = MODAL_MODE === "password";
     const isText = MODAL_MODE === "text";
-    if (nameWrap) nameWrap.classList.toggle("hidden", !isFinal);
+    if (nameWrap) nameWrap.classList.add("hidden");
     if (passWrap) passWrap.classList.toggle("hidden", !isPassword);
     if (textWrap) textWrap.classList.toggle("hidden", !isText);
     if (passError) { passError.textContent = ""; passError.classList.add("hidden"); }
-    if (passInput && isPassword) { passInput.value = ""; }
+    if (passInput && isPassword) {
+      passInput.value = "";
+      passInput.setAttribute("autocomplete", "new-password");
+      passInput.setAttribute("autocapitalize", "off");
+      passInput.setAttribute("autocorrect", "off");
+      passInput.setAttribute("spellcheck", "false");
+      passInput.setAttribute("data-lpignore", "true");
+      passInput.setAttribute("data-1p-ignore", "true");
+      passInput.setAttribute("data-form-type", "other");
+      passInput.readOnly = true;
+      setTimeout(() => {
+        try { passInput.readOnly = false; } catch (e) {}
+      }, 0);
+    }
     setTextAreaError("");
     if (textLabel && isText) textLabel.textContent = opts.inputLabel || "Input";
     if (textArea && isText) {
@@ -112,17 +124,10 @@
       submit.disabled = false;
     }
 
-    if (nameInput && isFinal) {
-      // preload saved name from the active writing namespace, including section-only scoped launches
-      const writingKeys = getActiveWritingKeys();
-      const saved = (S().get(writingKeys.studentName, "") || "").trim();
-      if (saved) nameInput.value = saved;
-    }
-
     if (modal) modal.classList.remove("hidden");
 
     if (isFinal) {
-      setTimeout(() => nameInput?.focus?.(), 0);
+      setTimeout(() => submit?.focus?.(), 0);
     } else if (isPassword) {
       setTimeout(() => passInput?.focus?.(), 0);
     } else if (isText) {
@@ -207,27 +212,7 @@
           return;
         }
 
-        // FINAL MODE (name required)
-        const nameInput = $("modalFullName");
-    const passWrap = $("modalPassWrap");
-    const passInput = $("modalPasscode");
-    const passError = $("modalPassError");
-        const fullName = (nameInput?.value || "").trim().replace(/\s+/g, " ");
-
-        if (!UI().isValidFullName(fullName)) {
-          showModal("Name required", "Please type your Name and Surname to submit the exam.", {
-            mode: "final",
-          });
-          setTimeout(() => nameInput?.focus?.(), 0);
-          return;
-        }
-
-        const writingKeys = getActiveWritingKeys();
-
-        if (writingKeys.studentName) {
-          S().set(writingKeys.studentName, fullName);
-        }
-
+        // FINAL MODE (plain confirmation)
         if (typeof window.__IELTS_SUBMIT_FINAL__ === "function") {
           submit.disabled = true;
           submit.textContent = "Submitting...";

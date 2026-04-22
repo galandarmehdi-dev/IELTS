@@ -551,7 +551,10 @@ async function fetchLinkedStudentProfile() {
     saveUser({ ...current, name: profile.fullName, studentProfile: profile });
     syncAuthExport();
   }
-  const shouldRequireStudentId = !profile && window.IELTS?.Access?.isAdmin?.() !== true;
+  const shouldRequireStudentId =
+    data.required === true &&
+    !profile &&
+    window.IELTS?.Access?.isAdmin?.() !== true;
   if (shouldRequireStudentId) {
     showProtectedApp(false);
     openLoginGate("Enter your teacher-given Student ID and student password before continuing.");
@@ -1197,6 +1200,45 @@ async function signInWithSharedPassword() {
   await refreshAuthUI({ forceHome: data.requiresSetup !== true });
 }
 
+async function signInWithStudentId() {
+  const studentIdCode = getEl("studentIdLoginInput")?.value.trim() || "";
+  const password = getEl("studentIdPasswordInput")?.value || "";
+
+  if (!studentIdCode) {
+    setMessage("Please enter the Student ID.", { tone: "error" });
+    return;
+  }
+  if (!password) {
+    setMessage("Please enter the student password.", { tone: "error" });
+    return;
+  }
+
+  setMessage("Signing you in with Student ID...", { sticky: true });
+  const res = await fetch("/api/auth/student-id-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentIdCode, password }),
+  }).catch(() => null);
+
+  const data = res ? await res.json().catch(() => null) : null;
+  if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
+    setMessage(data?.error || "Student ID sign-in failed.", { tone: "error", sticky: true });
+    return;
+  }
+
+  clearSharedSession();
+  saveSharedSession({
+    token: data.token,
+    user: data.user,
+    requiresPasswordSetup: false,
+    recoveryMode: "",
+  });
+  saveUser(data.user);
+  syncAuthExport();
+  pingStudentSession(data.user).catch(() => null);
+  await refreshAuthUI({ forceHome: true });
+}
+
 async function sendPasswordResetEmail() {
   const email = getEl("otpEmail")?.value.trim() || "";
   if (!email) {
@@ -1436,6 +1478,7 @@ async function logout() {
 getEl("googleLoginBtn")?.addEventListener("click", signInWithGoogle);
 getEl("microsoftLoginBtn")?.addEventListener("click", signInWithMicrosoft);
 getEl("sharedPasswordLoginBtn")?.addEventListener("click", signInWithSharedPassword);
+getEl("studentIdLoginBtn")?.addEventListener("click", signInWithStudentId);
 getEl("forgotPasswordBtn")?.addEventListener("click", showRecoveryOptions);
 getEl("emailRecoveryBtn")?.addEventListener("click", sendPasswordResetEmail);
 getEl("showBypassRecoveryBtn")?.addEventListener("click", () => {

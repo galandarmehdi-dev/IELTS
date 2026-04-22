@@ -1296,6 +1296,30 @@ async function handleAdminApi(request, env) {
       record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
       if (record) break;
     }
+    if (!record) {
+      for (const key of keys) {
+        const recovery = await getSubmissionRecoveryRow(env, key);
+        if (!recovery) continue;
+        record = {
+          email: normalizeEmail(recovery.user_email || recovery.login_email || ""),
+          loginEmail: normalizeEmail(recovery.login_email || recovery.user_email || ""),
+          provider: oneLine(recovery.sign_in_method || "email"),
+          studentFullName: oneLine(recovery.student_full_name || ""),
+          examId: oneLine(recovery.exam_id || ""),
+          submittedAt: oneLine(recovery.submitted_at || ""),
+          reason: oneLine(recovery.reason || ""),
+          organizationId: normalizeOrganizationId(recovery.organization_id || ""),
+          studentProfileId: oneLine(recovery.student_profile_id || ""),
+          studentIdCode: oneLine(recovery.student_id_code || ""),
+          classroomId: oneLine(recovery.classroom_id || ""),
+          classroomName: oneLine(recovery.classroom_name || ""),
+          officialEmail: normalizeEmail(recovery.official_email || ""),
+          updatedAt: oneLine(recovery.updated_at || recovery.created_at || ""),
+          backupAvailable: !!recovery.final_payload,
+        };
+        break;
+      }
+    }
     const submissionOrganizationId = normalizeOrganizationId(record?.organizationId || getActorOrganizationId(auth));
     if (record && !canActorAccessOrganization(auth, submissionOrganizationId)) {
       return json(403, { ok: false, error: "This result does not belong to the current tenant." });
@@ -1487,7 +1511,34 @@ async function handleAdminApi(request, env) {
       officialEmail: profile?.officialEmail || normalizeEmail(payload?.officialEmail || ""),
       updatedAt: new Date().toISOString(),
     };
-    await writeJsonKv(env.STUDENT_REGISTRY, `submission:${key}`, record);
+    await upsertSubmissionRecoveryRow(env, {
+      submission_key: key,
+      organization_id: organizationId,
+      attempt_kind: "full",
+      source: "submission-meta",
+      submitted_at: submittedAt,
+      exam_id: examId,
+      student_full_name: record.studentFullName,
+      login_email: record.loginEmail,
+      student_email: email,
+      user_email: email,
+      sign_in_method: provider,
+      reason,
+      student_profile_id: record.studentProfileId || null,
+      student_id_code: record.studentIdCode || null,
+      classroom_id: record.classroomId || null,
+      classroom_name: record.classroomName || "",
+      official_email: record.officialEmail || null,
+      sheet_sync_status: "pending",
+      summary: {
+        backupAvailable: true,
+      },
+      final_payload: null,
+    }).catch((error) => {
+      console.warn("[IELTS] submission meta recovery upsert failed:", error?.message || error);
+      return null;
+    });
+    await bestEffortKvWrite(env.STUDENT_REGISTRY, `submission:${key}`, record, "submission-meta");
     await upsertStudentRegistry(env, {
       email: auth.user?.email || email,
       fullName: record.studentFullName,
@@ -1515,30 +1566,60 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "submissionBackups") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    if (!env.STUDENT_REGISTRY) return json(200, { ok: true, backups: [] });
-
     const actorOrganizationId = getActorOrganizationId(auth);
-    const prefix = auth.isSuperAdmin ? "submission-backup:" : `submission-backup:${actorOrganizationId}::`;
-    const listed = await env.STUDENT_REGISTRY.list({ prefix, limit: 1000 });
     const backups = [];
-    for (const key of listed.keys || []) {
-      const record = await readJsonKv(env.STUDENT_REGISTRY, key.name);
-      if (!record) continue;
-      const organizationId = normalizeOrganizationId(record?.organizationId || "");
-      if (!canActorAccessOrganization(auth, organizationId)) continue;
-      backups.push({
-        key: key.name,
-        email: normalizeEmail(record?.email || ""),
-        provider: oneLine(record?.provider || ""),
-        studentFullName: oneLine(record?.studentFullName || ""),
-        examId: oneLine(record?.examId || ""),
-        submittedAt: oneLine(record?.submittedAt || ""),
-        reason: oneLine(record?.reason || ""),
-        organizationId,
-        backupSource: oneLine(record?.backupSource || ""),
-        backedUpAt: oneLine(record?.backedUpAt || ""),
-        payloadBytes: Number(record?.payloadBytes || 0),
-      });
+    const recoveryRes = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+      query: {
+        select: "*",
+        order: "submitted_at.desc",
+        limit: "1000",
+        ...(auth.isSuperAdmin ? {} : { organization_id: `eq.${actorOrganizationId}` }),
+      },
+    });
+    if (recoveryRes.ok && Array.isArray(recoveryRes.data)) {
+      recoveryRes.data
+        .filter((row) => row?.final_payload)
+        .filter((row) => canActorAccessOrganization(auth, row?.organization_id || ""))
+        .forEach((row) => {
+          backups.push({
+            key: `submission-backup:${row.submission_key}`,
+            submissionKey: oneLine(row.submission_key || ""),
+            email: normalizeEmail(row.user_email || row.login_email || ""),
+            provider: oneLine(row.sign_in_method || ""),
+            studentFullName: oneLine(row.student_full_name || ""),
+            examId: oneLine(row.exam_id || ""),
+            submittedAt: oneLine(row.submitted_at || ""),
+            reason: oneLine(row.reason || ""),
+            organizationId: normalizeOrganizationId(row.organization_id || ""),
+            backupSource: oneLine(row.source || ""),
+            backedUpAt: oneLine(row.updated_at || row.created_at || ""),
+            payloadBytes: new TextEncoder().encode(stableStringify(row.final_payload || {})).length,
+            sheetSyncStatus: oneLine(row.sheet_sync_status || ""),
+            sheetLastError: oneLine(row.sheet_last_error || ""),
+          });
+        });
+    } else if (env.STUDENT_REGISTRY) {
+      const prefix = auth.isSuperAdmin ? "submission-backup:" : `submission-backup:${actorOrganizationId}::`;
+      const listed = await env.STUDENT_REGISTRY.list({ prefix, limit: 1000 });
+      for (const key of listed.keys || []) {
+        const record = await readJsonKv(env.STUDENT_REGISTRY, key.name);
+        if (!record) continue;
+        const organizationId = normalizeOrganizationId(record?.organizationId || "");
+        if (!canActorAccessOrganization(auth, organizationId)) continue;
+        backups.push({
+          key: key.name,
+          email: normalizeEmail(record?.email || ""),
+          provider: oneLine(record?.provider || ""),
+          studentFullName: oneLine(record?.studentFullName || ""),
+          examId: oneLine(record?.examId || ""),
+          submittedAt: oneLine(record?.submittedAt || ""),
+          reason: oneLine(record?.reason || ""),
+          organizationId,
+          backupSource: oneLine(record?.backupSource || ""),
+          backedUpAt: oneLine(record?.backedUpAt || ""),
+          payloadBytes: Number(record?.payloadBytes || 0),
+        });
+      }
     }
     backups.sort((a, b) => Date.parse(b.backedUpAt || b.submittedAt || "") - Date.parse(a.backedUpAt || a.submittedAt || ""));
     return json(200, { ok: true, backups });
@@ -1547,7 +1628,6 @@ async function handleAdminApi(request, env) {
   if (request.method === "GET" && action === "submissionBackup") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    if (!env.STUDENT_REGISTRY) return json(503, { ok: false, error: "Student registry is not configured." });
 
     const requestedKey = oneLine(url.searchParams.get("key") || "");
     let keys = [];
@@ -1565,7 +1645,37 @@ async function handleAdminApi(request, env) {
     }
 
     for (const key of keys) {
-      const record = await readJsonKv(env.STUDENT_REGISTRY, key);
+      const lookupKey = key.replace(/^submission-backup:/, "");
+      const recovery = await getSubmissionRecoveryRow(env, lookupKey);
+      if (recovery?.final_payload) {
+        const organizationId = normalizeOrganizationId(recovery.organization_id || "");
+        if (!canActorAccessOrganization(auth, organizationId)) {
+          return json(403, { ok: false, error: "This backup does not belong to the current tenant." });
+        }
+        return json(200, {
+          ok: true,
+          key: `submission-backup:${lookupKey}`,
+          backup: {
+            email: normalizeEmail(recovery.user_email || recovery.login_email || ""),
+            loginEmail: normalizeEmail(recovery.login_email || recovery.user_email || ""),
+            provider: oneLine(recovery.sign_in_method || ""),
+            studentFullName: oneLine(recovery.student_full_name || ""),
+            examId: oneLine(recovery.exam_id || ""),
+            submittedAt: oneLine(recovery.submitted_at || ""),
+            reason: oneLine(recovery.reason || ""),
+            organizationId,
+            studentProfileId: oneLine(recovery.student_profile_id || ""),
+            studentIdCode: oneLine(recovery.student_id_code || ""),
+            classroomId: oneLine(recovery.classroom_id || ""),
+            classroomName: oneLine(recovery.classroom_name || ""),
+            officialEmail: normalizeEmail(recovery.official_email || ""),
+            backupSource: oneLine(recovery.source || ""),
+            backedUpAt: oneLine(recovery.updated_at || recovery.created_at || ""),
+            finalPayload: recovery.final_payload,
+          },
+        });
+      }
+      const record = env.STUDENT_REGISTRY ? await readJsonKv(env.STUDENT_REGISTRY, key) : null;
       if (!record) continue;
       const organizationId = normalizeOrganizationId(record?.organizationId || "");
       if (!canActorAccessOrganization(auth, organizationId)) {
@@ -1790,11 +1900,36 @@ async function handleAdminApi(request, env) {
     }
     const backendUrl = String(env.ADMIN_BACKEND_URL || "");
     const signedUrl = await buildSignedAppsScriptUrl(backendUrl, request.method, nextBodyText, env);
-    return fetch(signedUrl, {
+    const upstream = await fetch(signedUrl, {
       method: request.method,
       headers: await buildAppsScriptHeaders(request, env, signedUrl, nextBodyText),
       body: nextBodyText,
     });
+    if (parsedSubmissionPayload) {
+      const cloned = upstream.clone();
+      const bodyTextResponse = await cloned.text().catch(() => "");
+      let data = null;
+      try { data = JSON.parse(bodyTextResponse); } catch (e) {}
+      const okResponse = upstream.ok && (
+        /^OK\b/i.test(String(bodyTextResponse || "").trim()) ||
+        (data && data.ok === true)
+      );
+      const summary = extractFinalPayloadSummary(parsedSubmissionPayload, auth, tenant);
+      const submissionKey = buildSubmissionMetaKeyWithOrganization(summary);
+      if (submissionKey) {
+        await updateSubmissionRecoveryRow(env, submissionKey, okResponse
+          ? {
+              sheet_sync_status: "synced",
+              sheet_synced_at: new Date().toISOString(),
+              sheet_last_error: "",
+            }
+          : {
+              sheet_sync_status: "failed",
+              sheet_last_error: oneLine(data?.error || bodyTextResponse || `HTTP ${upstream.status}`),
+            }).catch(() => null);
+      }
+    }
+    return upstream;
   }
 
   return json(405, { ok: false, error: "Method not allowed." });
@@ -2283,9 +2418,6 @@ function buildSubmissionBackupRecord(finalPayload, auth, tenant, options = {}) {
 }
 
 async function writeSubmissionBackup(env, request, auth, finalPayload, options = {}) {
-  if (!env?.STUDENT_REGISTRY) {
-    return { ok: false, status: 503, error: "Student registry is not configured." };
-  }
   if (!finalPayload || typeof finalPayload !== "object") {
     return { ok: false, status: 400, error: "Missing submission backup payload." };
   }
@@ -2294,7 +2426,30 @@ async function writeSubmissionBackup(env, request, auth, finalPayload, options =
   const built = buildSubmissionBackupRecord(finalPayload, auth, tenant, options);
   if (!built.ok) return built;
 
-  await writeJsonKv(env.STUDENT_REGISTRY, `submission-backup:${built.key}`, built.record);
+  const recoveryRow = buildSubmissionRecoveryRow(built.record, finalPayload, {
+    source: oneLine(options?.source || "submission-backup"),
+    attemptKind: oneLine(finalPayload?.attemptKind || "full"),
+    practiceSection: oneLine(finalPayload?.practiceSection || ""),
+    practiceLabel: oneLine(finalPayload?.practiceLabel || ""),
+    sheetSyncStatus: "pending",
+    summary: {
+      payloadBytes: Number(built.record.payloadBytes || 0),
+      backupSource: oneLine(built.record.backupSource || ""),
+    },
+  });
+  if (!recoveryRow.ok) return recoveryRow;
+  const recoverySaved = await upsertSubmissionRecoveryRow(env, recoveryRow.row).catch((error) => ({
+    ok: false,
+    status: 500,
+    error: error?.message || "Could not save submission recovery row.",
+  }));
+  let kvBackedUp = false;
+  if (env.STUDENT_REGISTRY) {
+    kvBackedUp = await bestEffortKvWrite(env.STUDENT_REGISTRY, `submission-backup:${built.key}`, built.record, "submission-backup");
+  }
+  if (!recoverySaved.ok && !kvBackedUp) {
+    return { ok: false, status: recoverySaved.status || 503, error: recoverySaved.error || "Could not save submission recovery row." };
+  }
   await upsertStudentRegistry(env, {
     email: built.record.email,
     fullName: built.record.studentFullName,
@@ -2314,7 +2469,9 @@ async function writeSubmissionBackup(env, request, auth, finalPayload, options =
     updatedAt: built.record.backedUpAt,
     backupAvailable: true,
   };
-  await writeJsonKv(env.STUDENT_REGISTRY, `submission:${built.key}`, metaRecord);
+  if (env.STUDENT_REGISTRY) {
+    await bestEffortKvWrite(env.STUDENT_REGISTRY, `submission:${built.key}`, metaRecord, "submission-meta-from-backup");
+  }
 
   const { finalPayload: _omitted, ...publicRecord } = built.record;
   return { ok: true, key: built.key, record: publicRecord };
@@ -2619,6 +2776,32 @@ async function upsertStudentRegistry(env, payload) {
     next.setupCompleted = true;
   }
 
+  const currentProfileId = oneLine(current?.studentProfile?.id || current?.studentProfileId || "");
+  const nextProfileId = oneLine(next?.studentProfile?.id || payload?.studentProfile?.id || "");
+  const methodsChanged = JSON.stringify(current.methods || {}) !== JSON.stringify(next.methods || {});
+  const organizationChanged = normalizeOrganizationId(current.organizationId || "") !== normalizeOrganizationId(next.organizationId || "");
+  const profileChanged = currentProfileId !== nextProfileId;
+  const namesChanged =
+    oneLine(current.fullName || "") !== oneLine(next.fullName || "") ||
+    oneLine(current.firstName || "") !== oneLine(next.firstName || "") ||
+    oneLine(current.lastName || "") !== oneLine(next.lastName || "");
+  const setupChanged = Boolean(current.setupCompleted) !== Boolean(next.setupCompleted);
+  const passwordChanged = !!(payload?.passwordHash && payload?.passwordSalt);
+  const lastSeenMs = Date.parse(String(current.lastSeenAt || ""));
+  const canSkipWrite =
+    !methodsChanged &&
+    !organizationChanged &&
+    !profileChanged &&
+    !namesChanged &&
+    !setupChanged &&
+    !passwordChanged &&
+    Number.isFinite(lastSeenMs) &&
+    (Date.now() - lastSeenMs) < (1000 * 60 * 60 * 6);
+
+  if (canSkipWrite) {
+    return { ...current, lastSeenAt: now };
+  }
+
   try {
     await writeJsonKv(env.STUDENT_REGISTRY, key, next);
   } catch (error) {
@@ -2639,9 +2822,6 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
     await logSecurityEvent(env, request, "student_submission_missing_email", {});
     return { ok: false, status: 401, error: "Missing student email." };
   }
-  if (!env.STUDENT_REGISTRY) {
-    return { ok: false, status: 503, error: "Student registry is not configured." };
-  }
 
   const tenant = resolveTenantContext(request, env);
   const organizationId = normalizeOrganizationId(
@@ -2658,9 +2838,33 @@ async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {
   }
 
   let record = null;
-  for (const key of keys) {
-    record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
-    if (record) break;
+  if (env.STUDENT_REGISTRY) {
+    for (const key of keys) {
+      record = await readJsonKv(env.STUDENT_REGISTRY, `submission:${key}`);
+      if (record) break;
+    }
+  }
+  if (!record) {
+    for (const key of keys) {
+      const recovery = await getSubmissionRecoveryRow(env, key);
+      if (!recovery) continue;
+      record = {
+        email: normalizeEmail(recovery.user_email || recovery.login_email || ""),
+        loginEmail: normalizeEmail(recovery.login_email || recovery.user_email || ""),
+        provider: oneLine(recovery.sign_in_method || "email"),
+        studentFullName: oneLine(recovery.student_full_name || ""),
+        examId: oneLine(recovery.exam_id || ""),
+        submittedAt: oneLine(recovery.submitted_at || ""),
+        reason: oneLine(recovery.reason || ""),
+        organizationId: normalizeOrganizationId(recovery.organization_id || ""),
+        studentProfileId: oneLine(recovery.student_profile_id || ""),
+        studentIdCode: oneLine(recovery.student_id_code || ""),
+        classroomId: oneLine(recovery.classroom_id || ""),
+        classroomName: oneLine(recovery.classroom_name || ""),
+        officialEmail: normalizeEmail(recovery.official_email || ""),
+      };
+      break;
+    }
   }
   const linkedProfile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
   if (record?.email) {
@@ -2802,6 +3006,10 @@ function getSupabaseServiceKey(env) {
   return String(env?.SUPABASE_SERVICE_ROLE_KEY || env?.SUPABASE_SERVICE_KEY || "").trim();
 }
 
+function getSubmissionRecoveryTableName() {
+  return "submission_recovery";
+}
+
 async function supabaseServiceRequest(env, path, options = {}) {
   const base = String(env?.SUPABASE_URL || "").replace(/\/$/, "");
   const key = getSupabaseServiceKey(env);
@@ -2833,6 +3041,101 @@ async function supabaseServiceRequest(env, path, options = {}) {
     return { ok: false, status: response.status || 500, error: data?.message || data?.error || `Supabase HTTP ${response.status}`, data };
   }
   return { ok: true, status: response.status, data };
+}
+
+async function upsertSubmissionRecoveryRow(env, row) {
+  if (!row || typeof row !== "object") {
+    return { ok: false, status: 400, error: "Missing submission recovery row." };
+  }
+  const table = getSubmissionRecoveryTableName();
+  return supabaseServiceRequest(env, `/rest/v1/${table}`, {
+    method: "POST",
+    query: { on_conflict: "submission_key", select: "*" },
+    headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+    body: row,
+  });
+}
+
+async function getSubmissionRecoveryRow(env, submissionKey) {
+  const key = oneLine(submissionKey || "");
+  if (!key) return null;
+  const table = getSubmissionRecoveryTableName();
+  const res = await supabaseServiceRequest(env, `/rest/v1/${table}`, {
+    query: {
+      select: "*",
+      submission_key: `eq.${key}`,
+      limit: "1",
+    },
+  });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function updateSubmissionRecoveryRow(env, submissionKey, patch = {}) {
+  const key = oneLine(submissionKey || "");
+  if (!key) return { ok: false, status: 400, error: "Missing submission key." };
+  const table = getSubmissionRecoveryTableName();
+  return supabaseServiceRequest(env, `/rest/v1/${table}`, {
+    method: "PATCH",
+    query: {
+      submission_key: `eq.${key}`,
+      select: "*",
+    },
+    headers: { Prefer: "return=representation" },
+    body: patch,
+  });
+}
+
+function buildSubmissionRecoveryRow(summary, finalPayload, options = {}) {
+  const submissionKey = buildSubmissionMetaKeyWithOrganization(summary);
+  if (!submissionKey) {
+    return { ok: false, status: 400, error: "Missing submission recovery key fields." };
+  }
+  const attemptKind = oneLine(options?.attemptKind || finalPayload?.attemptKind || "full").toLowerCase() || "full";
+  return {
+    ok: true,
+    submissionKey,
+    row: {
+      submission_key: submissionKey,
+      organization_id: normalizeOrganizationId(summary.organizationId || ""),
+      attempt_kind: attemptKind,
+      source: oneLine(options?.source || "submission-backup") || "submission-backup",
+      submitted_at: oneLine(summary.submittedAt || ""),
+      exam_id: oneLine(summary.examId || ""),
+      active_test_id: oneLine(options?.activeTestId || finalPayload?.activeTestId || finalPayload?.listening?.activeTestId || finalPayload?.reading?.activeTestId || ""),
+      practice_section: oneLine(options?.practiceSection || finalPayload?.practiceSection || ""),
+      practice_label: oneLine(options?.practiceLabel || finalPayload?.practiceLabel || ""),
+      student_full_name: oneLine(summary.studentFullName || ""),
+      login_email: normalizeEmail(summary.loginEmail || summary.email || finalPayload?.loginEmail || ""),
+      student_email: normalizeEmail(finalPayload?.studentEmail || summary.email || ""),
+      user_email: normalizeEmail(summary.email || finalPayload?.loginEmail || ""),
+      sign_in_method: oneLine(summary.provider || finalPayload?.signInMethod || ""),
+      reason: oneLine(summary.reason || ""),
+      student_profile_id: oneLine(summary.studentProfileId || finalPayload?.studentProfileId || "") || null,
+      student_id_code: oneLine(summary.studentIdCode || finalPayload?.studentIdCode || "") || null,
+      classroom_id: oneLine(summary.classroomId || finalPayload?.classroomId || "") || null,
+      classroom_name: oneLine(summary.classroomName || finalPayload?.classroomName || ""),
+      official_email: normalizeEmail(summary.officialEmail || finalPayload?.officialEmail || ""),
+      sheet_sync_status: oneLine(options?.sheetSyncStatus || "pending") || "pending",
+      sheet_synced_at: options?.sheetSyncedAt || null,
+      sheet_last_error: oneLine(options?.sheetLastError || ""),
+      summary: options?.summary && typeof options.summary === "object" ? options.summary : {},
+      final_payload: finalPayload && typeof finalPayload === "object" ? finalPayload : null,
+    },
+  };
+}
+
+function bestEffortKvWrite(binding, key, value, label = "kv-write") {
+  if (!binding || !key) return Promise.resolve(false);
+  return writeJsonKv(binding, key, value)
+    .then(() => true)
+    .catch((error) => {
+    if (isKvQuotaExceededError(error)) {
+      console.warn(`[IELTS] ${label} skipped because KV is over quota:`, error?.message || error);
+      return false;
+    }
+    throw error;
+  });
 }
 
 function buildAuthLinkIdentity(auth) {
@@ -3038,20 +3341,38 @@ function buildStudentProfileMetaPatch(profile) {
 
 async function attachStudentProfileToStoredHistory(env, organizationId, email, profile) {
   const normalizedEmail = normalizeEmail(email);
-  if (!env?.STUDENT_REGISTRY || !normalizedEmail || !profile) return;
+  if (!normalizedEmail || !profile) return;
   const patch = buildStudentProfileMetaPatch(profile);
-  const registryRecord = (await readJsonKv(env.STUDENT_REGISTRY, `student:${normalizedEmail}`)) || {};
-  await writeJsonKv(env.STUDENT_REGISTRY, `student:${normalizedEmail}`, {
-    ...registryRecord,
-    email: normalizedEmail,
-    organizationId: patch.organizationId || registryRecord.organizationId || "",
-    fullName: profile.fullName || registryRecord.fullName || deriveNameFromEmail(normalizedEmail),
-    firstName: profile.name || registryRecord.firstName || "",
-    lastName: profile.surname || registryRecord.lastName || "",
-    studentProfile: publicStudentProfile(profile),
-    updatedAt: new Date().toISOString(),
-  });
+  if (env?.STUDENT_REGISTRY) {
+    const registryRecord = (await readJsonKv(env.STUDENT_REGISTRY, `student:${normalizedEmail}`)) || {};
+    await bestEffortKvWrite(env.STUDENT_REGISTRY, `student:${normalizedEmail}`, {
+      ...registryRecord,
+      email: normalizedEmail,
+      organizationId: patch.organizationId || registryRecord.organizationId || "",
+      fullName: profile.fullName || registryRecord.fullName || deriveNameFromEmail(normalizedEmail),
+      firstName: profile.name || registryRecord.firstName || "",
+      lastName: profile.surname || registryRecord.lastName || "",
+      studentProfile: publicStudentProfile(profile),
+      updatedAt: new Date().toISOString(),
+    }, "student-registry-attach");
+  }
 
+  await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    method: "PATCH",
+    query: {
+      login_email: `eq.${normalizedEmail}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+    body: {
+      student_profile_id: patch.studentProfileId || null,
+      student_id_code: patch.studentIdCode || null,
+      classroom_id: patch.classroomId || null,
+      classroom_name: patch.classroomName || "",
+      official_email: patch.officialEmail || null,
+    },
+  }).catch(() => null);
+
+  if (!env?.STUDENT_REGISTRY) return;
   const submissions = await listJsonByPrefix(env.STUDENT_REGISTRY, "submission:", 1000);
   for (const record of submissions) {
     const recordOrg = normalizeOrganizationId(record?.organizationId || "");
@@ -4043,10 +4364,6 @@ function buildPracticeHistoryRow(record) {
 }
 
 async function savePracticeObjectiveResult(payload, auth, request, env) {
-  if (!env?.STUDENT_REGISTRY) {
-    return { ok: false, status: 503, error: "Student registry is not configured." };
-  }
-
   const section = oneLine(payload?.section || payload?.skill || "").toLowerCase();
   const activeTestId = oneLine(payload?.activeTestId || payload?.testId || "").toLowerCase();
   const examId = oneLine(payload?.examId || "");
@@ -4131,9 +4448,45 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
     review,
     updatedAt: new Date().toISOString(),
   };
-
-  await writeJsonKv(env.STUDENT_REGISTRY, `practice-result:${id}`, record);
-  await writeJsonKv(env.STUDENT_REGISTRY, `practice-user:${email}:${id}`, record);
+  const recovery = buildSubmissionRecoveryRow({
+    submittedAt,
+    studentFullName: academicName,
+    examId,
+    reason,
+    email,
+    loginEmail: email,
+    provider: signInMethod,
+    organizationId,
+    studentProfileId: profile?.id || oneLine(payload?.studentProfileId || ""),
+    studentIdCode: profile?.studentIdCode || oneLine(payload?.studentIdCode || ""),
+    classroomId: profile?.classroomId || oneLine(payload?.classroomId || ""),
+    classroomName: profile?.classroomName || oneLine(payload?.classroomName || ""),
+    officialEmail,
+  }, record, {
+    source: "practice-objective",
+    attemptKind: "practice",
+    practiceSection: section,
+    practiceLabel: oneLine(payload?.practiceLabel || inferPracticeLabel(examId)),
+    sheetSyncStatus: "synced",
+    sheetSyncedAt: new Date().toISOString(),
+    summary: {
+      totalQuestions,
+      totalCorrect,
+      review,
+    },
+  });
+  if (!recovery.ok) return recovery;
+  const savedRecovery = await upsertSubmissionRecoveryRow(env, recovery.row);
+  if (!savedRecovery.ok) {
+    if (!env?.STUDENT_REGISTRY) {
+      return { ok: false, status: savedRecovery.status || 503, error: savedRecovery.error || "Could not save practice recovery row." };
+    }
+    const savedByUser = await bestEffortKvWrite(env.STUDENT_REGISTRY, `practice-user:${email}:${id}`, record, "practice-user");
+    const savedByResult = await bestEffortKvWrite(env.STUDENT_REGISTRY, `practice-result:${id}`, record, "practice-result");
+    if (!savedByUser && !savedByResult) {
+      return { ok: false, status: savedRecovery.status || 503, error: savedRecovery.error || "Could not save practice recovery row." };
+    }
+  }
 
   return {
     ok: true,
@@ -4154,8 +4507,45 @@ async function listJsonByPrefix(namespace, prefix, limit = 1000) {
 }
 
 async function getStudentPracticeRows(env, email, organizationId = "") {
-  if (!env?.STUDENT_REGISTRY || !email) return [];
-  const records = await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${email}:`, 500);
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return [];
+
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    query: {
+      select: "*",
+      attempt_kind: "eq.practice",
+      login_email: `eq.${normalizedEmail}`,
+      order: "submitted_at.desc",
+      limit: "500",
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+  });
+  const records = res.ok && Array.isArray(res.data)
+    ? res.data.map((row) => ({
+        id: row.submission_key || row.id,
+        source: row.source || "practice-objective",
+        practiceSection: row.practice_section || "",
+        practiceLabel: row.practice_label || "",
+        submittedAt: row.submitted_at || "",
+        studentFullName: row.student_full_name || "",
+        email: row.user_email || row.login_email || "",
+        loginEmail: row.login_email || row.user_email || "",
+        studentProfileId: row.student_profile_id || "",
+        studentIdCode: row.student_id_code || "",
+        classroomId: row.classroom_id || "",
+        classroomName: row.classroom_name || "",
+        officialEmail: row.official_email || "",
+        organizationId: row.organization_id || "",
+        signInMethod: row.sign_in_method || "email",
+        examId: row.exam_id || "",
+        activeTestId: row.active_test_id || "",
+        reason: row.reason || "",
+        totalQuestions: Number(row.summary?.totalQuestions || 0),
+        totalCorrect: Number(row.summary?.totalCorrect || 0),
+        review: Array.isArray(row.summary?.review) ? row.summary.review : [],
+      }))
+    : (env?.STUDENT_REGISTRY ? await listJsonByPrefix(env.STUDENT_REGISTRY, `practice-user:${normalizedEmail}:`, 500) : []);
+
   const rows = await Promise.all(records.map(async (record) => {
     const recordOrganizationId = normalizeOrganizationId(record?.organizationId || "");
     if (organizationId && recordOrganizationId !== normalizeOrganizationId(organizationId)) {
@@ -4179,8 +4569,39 @@ async function getStudentPracticeRows(env, email, organizationId = "") {
 
 async function getPracticeResultsSummary(env, options = {}) {
   const actor = options?.actor || null;
-  const objectiveRows = (await listJsonByPrefix(env?.STUDENT_REGISTRY, "practice-result:", 1000))
-    .map(summarizePracticeResultRecord);
+  const recoveryRes = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    query: {
+      select: "*",
+      attempt_kind: "eq.practice",
+      order: "submitted_at.desc",
+      limit: "1000",
+    },
+  });
+  const objectiveRows = (recoveryRes.ok && Array.isArray(recoveryRes.data)
+    ? recoveryRes.data.map((row) => summarizePracticeResultRecord({
+        id: row.submission_key || row.id,
+        source: row.source || "practice-objective",
+        practiceSection: row.practice_section || "",
+        practiceLabel: row.practice_label || "",
+        submittedAt: row.submitted_at || "",
+        studentFullName: row.student_full_name || "",
+        email: row.user_email || row.login_email || "",
+        loginEmail: row.login_email || row.user_email || "",
+        studentProfileId: row.student_profile_id || "",
+        studentIdCode: row.student_id_code || "",
+        classroomId: row.classroom_id || "",
+        classroomName: row.classroom_name || "",
+        officialEmail: row.official_email || "",
+        organizationId: row.organization_id || "",
+        signInMethod: row.sign_in_method || "email",
+        examId: row.exam_id || "",
+        activeTestId: row.active_test_id || "",
+        reason: row.reason || "",
+        totalQuestions: Number(row.summary?.totalQuestions || 0),
+        totalCorrect: Number(row.summary?.totalCorrect || 0),
+        review: Array.isArray(row.summary?.review) ? row.summary.review : [],
+      }))
+    : (await listJsonByPrefix(env?.STUDENT_REGISTRY, "practice-result:", 1000)).map(summarizePracticeResultRecord));
 
   let backendRows = [];
   try {

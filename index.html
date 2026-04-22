@@ -943,7 +943,12 @@
       <button class="btn secondary" type="button" id="adminResultsModePracticeBtn" aria-pressed="false">Practice</button>
     </div>
 
-    <div class="workspace-banner admin-banner">
+    <div class="home-segmented admin-page-nav" id="adminPageNav" style="margin-bottom:16px;">
+      <button class="btn" type="button" id="adminPageResultsBtn" aria-pressed="true">Results</button>
+      <button class="btn secondary" type="button" id="adminPageClassroomsBtn" aria-pressed="false">Classrooms</button>
+    </div>
+
+    <div class="workspace-banner admin-banner" id="adminResultsBanner">
       <div class="workspace-banner-copy">
         <span class="workspace-banner-kicker">Cohort view</span>
         <strong>Inspect performance trends, submission activity, and writing outcomes without losing context.</strong>
@@ -951,106 +956,208 @@
       </div>
     </div>
 
-    <div class="admin-result-detail hidden" id="adminClassroomsPanel">
+    <div class="hidden" id="adminClassroomsPage">
+    <div class="workspace-banner admin-banner">
+      <div class="workspace-banner-copy">
+        <span class="workspace-banner-kicker">Class analytics</span>
+        <strong>Choose one class, review its monthly movement, and open any student’s full attempt trail.</strong>
+        <p>This workspace keeps class performance and individual progress together without crowding the results table.</p>
+      </div>
+    </div>
+
+    <div class="admin-result-detail" id="adminClassroomProgressPanel">
       <div class="admin-result-detail-top">
-        <h2>Classrooms and Student IDs</h2>
-        <button class="btn secondary" type="button" id="adminClassroomsRefreshBtn">Refresh classrooms</button>
-      </div>
-      <div class="admin-detail-grid">
-        <div class="admin-detail-card">
-          <div class="admin-detail-label">Create classroom</div>
-          <label class="admin-field"><span>Classroom name</span><input id="adminClassroomNameInput" type="text" placeholder="e.g. IELTS 11A"></label>
-          <label class="admin-field"><span>Teacher name</span><input id="adminClassroomTeacherNameInput" type="text" placeholder="Teacher name"></label>
-          <label class="admin-field"><span>Teacher email</span><input id="adminClassroomTeacherEmailInput" type="email" placeholder="teacher@example.com"></label>
-          <button class="btn" type="button" id="adminCreateClassroomBtn">Create classroom</button>
-        </div>
-        <div class="admin-detail-card">
-          <div class="admin-detail-label">Add / edit student</div>
-          <label class="admin-field"><span>Student ID</span><input id="adminStudentIdInput" type="text" placeholder="e.g. LZ-0001"></label>
-          <label class="admin-field"><span>Name</span><input id="adminStudentNameInput" type="text" placeholder="Name"></label>
-          <label class="admin-field"><span>Surname</span><input id="adminStudentSurnameInput" type="text" placeholder="Surname"></label>
-          <label class="admin-field"><span>Find previous account</span><input id="adminExistingAccountSearch" type="text" placeholder="Search past student name or email"></label>
-          <div class="admin-results-table-wrap hidden" id="adminExistingAccountResultsWrap">
-            <table class="admin-results-table">
-              <tbody id="adminExistingAccountResults"></tbody>
-            </table>
-          </div>
-          <label class="admin-field"><span>Linked login email</span><input id="adminStudentLinkedEmailInput" type="email" placeholder="student.login@example.com"></label>
-          <label class="admin-field"><span>Official results email</span><input id="adminStudentOfficialEmailInput" type="email" placeholder="student.official@example.com"></label>
-          <label class="admin-field"><span>Classroom</span><select id="adminStudentClassroomSelect"><option value="">No classroom</option></select></label>
-          <button class="btn" type="button" id="adminSaveStudentBtn">Save student</button>
-          <button class="btn secondary" type="button" id="adminResetStudentLinkBtn">Reset linked account</button>
-          <p class="small" id="adminClassroomsStatus"></p>
+        <h2>Class progress and student tracking</h2>
+        <div class="admin-row-actions">
+          <button class="btn secondary" type="button" id="adminBackfillHistoryBtn">Assign previous attempts</button>
+          <button class="btn secondary" type="button" id="adminClassroomProgressRefreshBtn">Refresh progress</button>
         </div>
       </div>
-      <div class="admin-results-toolbar">
+      <p class="small" id="adminClassroomProgressStatus">Load class progress to see classroom trends and student attempt history.</p>
+
+      <div class="admin-results-summary">
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Classes</div>
+          <div class="admin-stat-value" id="adminClassProgressClassrooms">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Students tracked</div>
+          <div class="admin-stat-value" id="adminClassProgressStudents">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Active students</div>
+          <div class="admin-stat-value" id="adminClassProgressActiveStudents">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Assigned attempts</div>
+          <div class="admin-stat-value" id="adminClassProgressAttempts">0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Avg overall</div>
+          <div class="admin-stat-value" id="adminClassProgressOverall">0.0</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-label">Latest activity</div>
+          <div class="admin-stat-value admin-stat-small" id="adminClassProgressLatest">—</div>
+        </div>
+      </div>
+
+      <div class="admin-results-toolbar admin-classroom-selector-bar">
         <label class="admin-field">
-          <span>Search students</span>
-          <input type="text" id="adminStudentSearchInput" placeholder="Student ID, name, email, classroom">
+          <span>Classroom</span>
+          <select id="adminClassroomSelect">
+            <option value="">Select a classroom</option>
+          </select>
+        </label>
+        <label class="admin-field">
+          <span>Teacher</span>
+          <input type="text" id="adminClassroomTeacherMeta" placeholder="Teacher details" readonly>
+        </label>
+        <label class="admin-field">
+          <span>Search student</span>
+          <input type="text" id="adminClassroomStudentSearchInput" placeholder="Student ID or name">
         </label>
       </div>
+
+      <div class="admin-detail-card admin-classroom-focus-card">
+        <div class="admin-result-detail-top admin-classroom-focus-top">
+          <div>
+            <div class="admin-detail-label">Selected classroom</div>
+            <h3 class="admin-classroom-focus-title" id="adminSelectedClassroomTitle">Choose a class</h3>
+            <p class="admin-classroom-focus-copy" id="adminSelectedClassroomMeta">Once selected, you will see the class trend, this month vs previous month, and clickable student progress.</p>
+          </div>
+        </div>
+
+        <div class="admin-classroom-metrics admin-classroom-metrics-wide">
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">Students</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomStudents">0</span>
+          </div>
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">Active students</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomActiveStudents">0</span>
+          </div>
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">Attempts</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomAttempts">0</span>
+          </div>
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">Avg overall</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomOverall">0.0</span>
+          </div>
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">This month</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomCurrentMonth">0</span>
+          </div>
+          <div class="admin-classroom-metric">
+            <span class="admin-classroom-metric-label">Previous month</span>
+            <span class="admin-classroom-metric-value" id="adminSelectedClassroomPreviousMonth">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-detail-grid">
+        <div class="admin-detail-card admin-classroom-chart-card">
+          <div class="admin-detail-label">Recent monthly trend</div>
+          <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
+          <div class="dashboard-chart-empty hidden" id="adminClassroomOverviewEmpty">No classroom activity is available yet.</div>
+        </div>
+        <div class="admin-detail-card admin-classroom-month-compare">
+          <div class="admin-detail-label">Month comparison</div>
+          <div class="admin-classroom-month-grid">
+            <div class="admin-classroom-month-card">
+              <span class="admin-classroom-metric-label" id="adminSelectedClassroomCurrentMonthLabel">This month</span>
+              <strong id="adminSelectedClassroomCurrentMonthAttempts">0 attempts</strong>
+              <span id="adminSelectedClassroomCurrentMonthOverall">Avg overall: 0.0</span>
+              <span id="adminSelectedClassroomCurrentMonthActive">Active students: 0</span>
+            </div>
+            <div class="admin-classroom-month-card">
+              <span class="admin-classroom-metric-label" id="adminSelectedClassroomPreviousMonthLabel">Previous month</span>
+              <strong id="adminSelectedClassroomPreviousMonthAttempts">0 attempts</strong>
+              <span id="adminSelectedClassroomPreviousMonthOverall">Avg overall: 0.0</span>
+              <span id="adminSelectedClassroomPreviousMonthActive">Active students: 0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="admin-results-table-wrap">
         <table class="admin-results-table">
           <thead>
             <tr>
               <th>Student ID</th>
               <th>Name</th>
-              <th>Classroom</th>
-              <th>Login email</th>
-              <th>Official email</th>
-              <th>Linked</th>
+              <th>Attempts</th>
+              <th>Full tests</th>
+              <th>Practice</th>
+              <th>Avg overall</th>
+              <th>Latest</th>
               <th>Action</th>
             </tr>
           </thead>
-          <tbody id="adminStudentsTbody"></tbody>
+          <tbody id="adminClassroomStudentsTbody"></tbody>
         </table>
       </div>
+    </div>
 
-      <div class="admin-result-detail" id="adminClassroomProgressPanel">
-        <div class="admin-result-detail-top">
-          <h2>Class progress and student tracking</h2>
-          <div class="admin-row-actions">
-            <button class="btn secondary" type="button" id="adminBackfillHistoryBtn">Assign previous attempts</button>
-            <button class="btn secondary" type="button" id="adminClassroomProgressRefreshBtn">Refresh progress</button>
+      <details class="admin-result-detail admin-classroom-management-panel" id="adminClassroomManagementPanel">
+        <summary>Manage classrooms and student IDs</summary>
+        <div class="admin-classroom-management-body">
+          <div class="admin-result-detail-top">
+            <h2>Classrooms and Student IDs</h2>
+            <button class="btn secondary" type="button" id="adminClassroomsRefreshBtn">Refresh classrooms</button>
+          </div>
+          <div class="admin-detail-grid">
+            <div class="admin-detail-card">
+              <div class="admin-detail-label">Create classroom</div>
+              <label class="admin-field"><span>Classroom name</span><input id="adminClassroomNameInput" type="text" placeholder="e.g. IELTS 11A"></label>
+              <label class="admin-field"><span>Teacher name</span><input id="adminClassroomTeacherNameInput" type="text" placeholder="Teacher name"></label>
+              <label class="admin-field"><span>Teacher email</span><input id="adminClassroomTeacherEmailInput" type="email" placeholder="teacher@example.com"></label>
+              <button class="btn" type="button" id="adminCreateClassroomBtn">Create classroom</button>
+            </div>
+            <div class="admin-detail-card">
+              <div class="admin-detail-label">Add / edit student</div>
+              <label class="admin-field"><span>Student ID</span><input id="adminStudentIdInput" type="text" placeholder="e.g. LZ-0001"></label>
+              <label class="admin-field"><span>Name</span><input id="adminStudentNameInput" type="text" placeholder="Name"></label>
+              <label class="admin-field"><span>Surname</span><input id="adminStudentSurnameInput" type="text" placeholder="Surname"></label>
+              <label class="admin-field"><span>Find previous account</span><input id="adminExistingAccountSearch" type="text" placeholder="Search past student name or email"></label>
+              <div class="admin-results-table-wrap hidden" id="adminExistingAccountResultsWrap">
+                <table class="admin-results-table">
+                  <tbody id="adminExistingAccountResults"></tbody>
+                </table>
+              </div>
+              <label class="admin-field"><span>Linked login email</span><input id="adminStudentLinkedEmailInput" type="email" placeholder="student.login@example.com"></label>
+              <label class="admin-field"><span>Official results email</span><input id="adminStudentOfficialEmailInput" type="email" placeholder="student.official@example.com"></label>
+              <label class="admin-field"><span>Classroom</span><select id="adminStudentClassroomSelect"><option value="">No classroom</option></select></label>
+              <button class="btn" type="button" id="adminSaveStudentBtn">Save student</button>
+              <button class="btn secondary" type="button" id="adminResetStudentLinkBtn">Reset linked account</button>
+              <p class="small" id="adminClassroomsStatus"></p>
+            </div>
+          </div>
+          <div class="admin-results-toolbar">
+            <label class="admin-field">
+              <span>Search students</span>
+              <input type="text" id="adminStudentSearchInput" placeholder="Student ID, name, email, classroom">
+            </label>
+          </div>
+          <div class="admin-results-table-wrap">
+            <table class="admin-results-table">
+              <thead>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>Classroom</th>
+                  <th>Login email</th>
+                  <th>Official email</th>
+                  <th>Linked</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminStudentsTbody"></tbody>
+            </table>
           </div>
         </div>
-        <p class="small" id="adminClassroomProgressStatus">Load class progress to see classroom trends and student attempt history.</p>
-
-        <div class="admin-results-summary">
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Classes</div>
-            <div class="admin-stat-value" id="adminClassProgressClassrooms">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Students tracked</div>
-            <div class="admin-stat-value" id="adminClassProgressStudents">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Active students</div>
-            <div class="admin-stat-value" id="adminClassProgressActiveStudents">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Assigned attempts</div>
-            <div class="admin-stat-value" id="adminClassProgressAttempts">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Avg overall</div>
-            <div class="admin-stat-value" id="adminClassProgressOverall">0.0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Latest activity</div>
-            <div class="admin-stat-value admin-stat-small" id="adminClassProgressLatest">—</div>
-          </div>
-        </div>
-
-        <div class="admin-detail-card admin-classroom-chart-card">
-          <div class="admin-detail-label">Classroom overview</div>
-          <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
-          <div class="dashboard-chart-empty hidden" id="adminClassroomOverviewEmpty">No classroom activity is available yet.</div>
-        </div>
-
-        <div class="admin-classroom-grid" id="adminClassroomCards"></div>
-      </div>
+      </details>
 
       <div class="admin-result-detail hidden" id="adminStudentProgressDetail">
         <div class="admin-result-detail-top">
@@ -1103,6 +1210,7 @@
       </div>
     </div>
 
+    <div id="adminResultsContent">
     <div class="admin-results-toolbar">
       <label class="admin-field">
         <span>Search</span>

@@ -3371,6 +3371,33 @@ async function attachStudentProfileToStoredHistory(env, organizationId, email, p
       official_email: patch.officialEmail || null,
     },
   }).catch(() => null);
+  await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    method: "PATCH",
+    query: {
+      user_email: `eq.${normalizedEmail}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+    body: {
+      student_profile_id: patch.studentProfileId || null,
+      student_id_code: patch.studentIdCode || null,
+      classroom_id: patch.classroomId || null,
+      classroom_name: patch.classroomName || "",
+      official_email: patch.officialEmail || null,
+    },
+  }).catch(() => null);
+  await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    method: "PATCH",
+    query: {
+      user_email: `eq.${normalizedEmail}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+    body: {
+      student_profile_id: patch.studentProfileId || null,
+      student_id_code: patch.studentIdCode || null,
+      classroom_id: patch.classroomId || null,
+      official_email: patch.officialEmail || null,
+    },
+  }).catch(() => null);
 
   if (!env?.STUDENT_REGISTRY) return;
   const submissions = await listJsonByPrefix(env.STUDENT_REGISTRY, "submission:", 1000);
@@ -3422,6 +3449,85 @@ async function attachStudentProfileToStoredHistory(env, organizationId, email, p
     if (!practiceId) continue;
     await writeJsonKv(env.STUDENT_REGISTRY, `practice-user:${normalizedEmail}:${practiceId}`, nextRecord);
     await writeJsonKv(env.STUDENT_REGISTRY, `practice-result:${practiceId}`, nextRecord);
+  }
+}
+
+async function listSupabaseHistoricalAttempts(env, organizationId = "") {
+  const normalizedOrganizationId = normalizeOrganizationId(organizationId || "");
+  const [recoveryRes, attemptsRes] = await Promise.all([
+    supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+      query: {
+        select: "submission_key,organization_id,login_email,user_email,student_full_name,student_profile_id,student_id_code,classroom_id,classroom_name,official_email,submitted_at,exam_id,reason",
+        order: "submitted_at.desc",
+        limit: "5000",
+        ...(normalizedOrganizationId ? { organization_id: `eq.${normalizedOrganizationId}` } : {}),
+      },
+    }).catch(() => ({ ok: false, data: [] })),
+    supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      query: {
+        select: "id,organization_id,user_email,student_full_name,student_profile_id,student_id_code,classroom_id,official_email,submitted_at,exam_id,reason",
+        order: "submitted_at.desc",
+        limit: "5000",
+        ...(normalizedOrganizationId ? { organization_id: `eq.${normalizedOrganizationId}` } : {}),
+      },
+    }).catch(() => ({ ok: false, data: [] })),
+  ]);
+
+  const recovery = (Array.isArray(recoveryRes?.data) ? recoveryRes.data : []).map((row) => ({
+    kind: "recovery",
+    id: oneLine(row?.submission_key || ""),
+    organizationId: normalizeOrganizationId(row?.organization_id || ""),
+    email: normalizeEmail(row?.login_email || row?.user_email || ""),
+    fullName: oneLine(row?.student_full_name || ""),
+    studentProfileId: oneLine(row?.student_profile_id || ""),
+    studentIdCode: oneLine(row?.student_id_code || ""),
+    submittedAt: oneLine(row?.submitted_at || ""),
+    examId: oneLine(row?.exam_id || ""),
+    reason: oneLine(row?.reason || ""),
+  }));
+  const examAttempts = (Array.isArray(attemptsRes?.data) ? attemptsRes.data : []).map((row) => ({
+    kind: "exam_attempt",
+    id: oneLine(row?.id || ""),
+    organizationId: normalizeOrganizationId(row?.organization_id || ""),
+    email: normalizeEmail(row?.user_email || ""),
+    fullName: oneLine(row?.student_full_name || ""),
+    studentProfileId: oneLine(row?.student_profile_id || ""),
+    studentIdCode: oneLine(row?.student_id_code || ""),
+    submittedAt: oneLine(row?.submitted_at || ""),
+    examId: oneLine(row?.exam_id || ""),
+    reason: oneLine(row?.reason || ""),
+  }));
+  return [...recovery, ...examAttempts];
+}
+
+async function attachStudentProfileToHistoricalRow(env, row, profile) {
+  if (!row?.id || !profile) return;
+  const patch = buildStudentProfileMetaPatch(profile);
+  if (row.kind === "recovery") {
+    await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+      method: "PATCH",
+      query: { submission_key: `eq.${row.id}` },
+      body: {
+        student_profile_id: patch.studentProfileId || null,
+        student_id_code: patch.studentIdCode || null,
+        classroom_id: patch.classroomId || null,
+        classroom_name: patch.classroomName || "",
+        official_email: patch.officialEmail || null,
+      },
+    }).catch(() => null);
+    return;
+  }
+  if (row.kind === "exam_attempt") {
+    await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "PATCH",
+      query: { id: `eq.${row.id}` },
+      body: {
+        student_profile_id: patch.studentProfileId || null,
+        student_id_code: patch.studentIdCode || null,
+        classroom_id: patch.classroomId || null,
+        official_email: patch.officialEmail || null,
+      },
+    }).catch(() => null);
   }
 }
 
@@ -3544,6 +3650,31 @@ async function collectHistoricalIdentityCandidates(env, organizationId = "") {
       observe(record?.loginEmail, record?.studentFullName, "practice-login", record?.submittedAt || record?.updatedAt, record);
     });
 
+  const recoveryRes = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    query: {
+      select: "submission_key,organization_id,login_email,user_email,student_full_name,submitted_at,updated_at",
+      order: "submitted_at.desc",
+      limit: "5000",
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+  }).catch(() => ({ ok: false, data: [] }));
+  (Array.isArray(recoveryRes?.data) ? recoveryRes.data : []).forEach((record) => {
+    observe(record?.user_email, record?.student_full_name, "recovery-user", record?.submitted_at || record?.updated_at, record);
+    observe(record?.login_email, record?.student_full_name, "recovery-login", record?.submitted_at || record?.updated_at, record);
+  });
+
+  const attemptsRes = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    query: {
+      select: "id,organization_id,user_email,student_full_name,submitted_at",
+      order: "submitted_at.desc",
+      limit: "5000",
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+  }).catch(() => ({ ok: false, data: [] }));
+  (Array.isArray(attemptsRes?.data) ? attemptsRes.data : []).forEach((record) => {
+    observe(record?.user_email, record?.student_full_name, "exam-attempt", record?.submitted_at, record);
+  });
+
   return Array.from(candidates.values()).map((candidate) => ({
     ...candidate,
     fullName: pickMostLikelyStudentName(candidate),
@@ -3581,8 +3712,14 @@ function chooseBestStudentProfileForCandidate(indexes, candidate) {
     .sort((a, b) => b.score - a.score);
   const best = scored[0];
   const second = scored[1];
+  const candidateTokens = tokenizeStudentNameForMatch(candidate.fullName);
+  const bestTokens = tokenizeStudentNameForMatch(best?.profile?.fullName || "");
+  const sameSurname = candidateTokens.at(-1) && bestTokens.at(-1) && candidateTokens.at(-1) === bestTokens.at(-1);
   if (best && best.score >= 0.9 && (!second || best.score - second.score >= 0.08)) {
     return { profile: best.profile, confidence: best.score, matchType: "fuzzy-name", alternatives: scored.slice(1, 5).map((entry) => entry.profile) };
+  }
+  if (best && sameSurname && best.score >= 0.86 && (!second || best.score - second.score >= 0.05)) {
+    return { profile: best.profile, confidence: best.score, matchType: "surname-weighted-fuzzy-name", alternatives: scored.slice(1, 5).map((entry) => entry.profile) };
   }
   return { profile: null, confidence: best?.score || 0, matchType: "no-safe-match", alternatives: scored.slice(0, 5).map((entry) => entry.profile) };
 }
@@ -3593,6 +3730,7 @@ async function backfillHistoricalStudentProfiles(env, auth) {
   const organizationId = getActorOrganizationId(auth);
   const indexes = buildStudentProfileMatchIndexes(loaded.students);
   const candidates = await collectHistoricalIdentityCandidates(env, organizationId);
+  const historicalRows = await listSupabaseHistoricalAttempts(env, organizationId);
 
   const attachPlan = new Map();
   const unmatched = [];
@@ -3636,13 +3774,41 @@ async function backfillHistoricalStudentProfiles(env, auth) {
     });
   }
 
+  let attachedAttemptCount = 0;
+  const unmatchedAttempts = [];
+  for (const row of historicalRows) {
+    const decision = chooseBestStudentProfileForCandidate(indexes, {
+      email: row.email,
+      fullName: row.fullName,
+    });
+    if (!decision.profile) {
+      if (row.fullName) {
+        unmatchedAttempts.push({
+          kind: row.kind,
+          id: row.id,
+          fullName: row.fullName,
+          email: row.email,
+          confidence: Number(decision.confidence || 0),
+          matchType: decision.matchType,
+        });
+      }
+      continue;
+    }
+    if (row.studentProfileId === decision.profile.id && row.studentIdCode === decision.profile.studentIdCode) continue;
+    await attachStudentProfileToHistoricalRow(env, row, decision.profile).catch(() => null);
+    attachedAttemptCount += 1;
+  }
+
   return {
     organizationId,
     scannedCandidates: candidates.length,
+    scannedAttemptRows: historicalRows.length,
     attachedEmailCount: matched.length,
+    attachedAttemptCount,
     unmatchedCount: unmatched.length,
     matched,
     unmatched: unmatched.slice(0, 50),
+    unmatchedAttempts: unmatchedAttempts.slice(0, 50),
   };
 }
 
@@ -3650,6 +3816,44 @@ function averageNullable(values) {
   const nums = (Array.isArray(values) ? values : []).map((value) => toNullableNumber(value)).filter((value) => value !== null);
   if (!nums.length) return null;
   return Math.round((nums.reduce((sum, value) => sum + value, 0) / nums.length) * 10) / 10;
+}
+
+function buildTrailingMonthSeries(attempts, months = 6) {
+  const count = Math.max(2, Number(months) || 6);
+  const now = new Date();
+  const currentStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const keys = [];
+  for (let idx = count - 1; idx >= 0; idx -= 1) {
+    const point = new Date(Date.UTC(currentStart.getUTCFullYear(), currentStart.getUTCMonth() - idx, 1));
+    keys.push(`${point.getUTCFullYear()}-${String(point.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  const grouped = new Map(keys.map((key) => [key, []]));
+  (Array.isArray(attempts) ? attempts : []).forEach((row) => {
+    const date = new Date(String(row?.submittedAt || ""));
+    if (Number.isNaN(date.getTime())) return;
+    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (!grouped.has(key)) return;
+    grouped.get(key).push(row);
+  });
+  return keys.map((key) => {
+    const rows = grouped.get(key) || [];
+    const [year, month] = key.split("-").map((value) => Number(value));
+    const label = new Date(Date.UTC(year, Math.max(0, month - 1), 1)).toLocaleString("en-US", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    const activeStudents = new Set(
+      rows.map((row) => oneLine(row?.studentProfileId || row?.studentIdCode || row?.studentFullName || "")).filter(Boolean)
+    );
+    return {
+      monthKey: key,
+      label,
+      attemptCount: rows.length,
+      activeStudentCount: activeStudents.size,
+      avgOverallBand: averageNullable(rows.map((row) => row?.overallBand)),
+    };
+  });
 }
 
 function resolveAttemptStudentProfile(indexes, row) {
@@ -3752,6 +3956,9 @@ async function buildClassroomProgressPayload(env, auth) {
         return (a.fullName || "").localeCompare(b.fullName || "");
       });
     const allAttempts = students.flatMap((student) => attemptsByProfileId.get(student.studentProfileId) || []);
+    const monthlySeries = buildTrailingMonthSeries(allAttempts, 6);
+    const currentMonth = monthlySeries[monthlySeries.length - 1] || null;
+    const previousMonth = monthlySeries[monthlySeries.length - 2] || null;
     return {
       id: oneLine(classroom.id || ""),
       name: oneLine(classroom.name || ""),
@@ -3769,6 +3976,9 @@ async function buildClassroomProgressPayload(env, auth) {
       avgWritingBand: averageNullable(allAttempts.map((row) => row.finalWritingBand)),
       avgSpeakingBand: averageNullable(allAttempts.map((row) => row.speakingBand)),
       latestSubmittedAt: allAttempts[0]?.submittedAt || "",
+      monthlySeries,
+      currentMonth,
+      previousMonth,
       students,
     };
   }).sort((a, b) => (a.name || "").localeCompare(b.name || ""));

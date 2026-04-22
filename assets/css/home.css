@@ -2273,6 +2273,38 @@
   color:var(--muted);
   font-weight:800;
 }
+.admin-page-nav{
+  justify-content:flex-start;
+}
+.admin-classroom-selector-bar{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+}
+.admin-classroom-selector-bar input[readonly]{
+  color:var(--ink);
+  background:rgba(23,50,77,.04);
+}
+.admin-classroom-focus-card{
+  margin-bottom:16px;
+}
+.admin-classroom-focus-top{
+  align-items:flex-start;
+}
+.admin-classroom-focus-title{
+  margin:6px 0 4px;
+  font-family:"Space Grotesk", Arial, sans-serif;
+  font-size:32px;
+  line-height:1;
+  letter-spacing:-.05em;
+  color:var(--ink);
+}
+.admin-classroom-focus-copy{
+  margin:0;
+  color:var(--muted);
+  line-height:1.65;
+}
+.admin-classroom-metrics-wide{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+}
 .admin-classroom-chart-card{
   margin-bottom:16px;
 }
@@ -2408,6 +2440,48 @@
   color:var(--ink);
   font-weight:900;
 }
+.admin-classroom-month-compare{
+  align-self:start;
+}
+.admin-classroom-month-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
+.admin-classroom-month-card{
+  display:grid;
+  gap:8px;
+  padding:16px;
+  border-radius:18px;
+  background:rgba(23,50,77,.05);
+}
+.admin-classroom-month-card strong{
+  color:var(--ink);
+  font-family:"Space Grotesk", Arial, sans-serif;
+  font-size:28px;
+  line-height:1;
+  letter-spacing:-.04em;
+}
+.admin-classroom-month-card span:last-child,
+.admin-classroom-month-card span:nth-last-child(2){
+  color:var(--muted);
+  font-size:13px;
+}
+.admin-classroom-management-panel{
+  margin-top:16px;
+}
+.admin-classroom-management-panel summary{
+  cursor:pointer;
+  list-style:none;
+  font-weight:900;
+  color:var(--ink);
+}
+.admin-classroom-management-panel summary::-webkit-details-marker{
+  display:none;
+}
+.admin-classroom-management-body{
+  margin-top:18px;
+}
 
 @media (max-width: 1024px){
   .home-hero{ grid-template-columns:1fr; }
@@ -2517,6 +2591,9 @@
   .footer-link-btn{ flex:1 1 100%; }
   .history-table-wrap,
   .admin-results-table-wrap{ overflow-x:auto; }
+  .admin-classroom-selector-bar,
+  .admin-classroom-month-grid,
+  .admin-classroom-metrics-wide{ grid-template-columns:1fr; }
   .admin-classroom-chart-row{ grid-template-columns:1fr; }
   .admin-classroom-metrics{ grid-template-columns:1fr; }
 }

@@ -138,7 +138,10 @@ function setSharedSetupMode(active, text) {
   const box = getEl("sharedSetupBox");
   if (box) box.classList.toggle("hidden", !active);
   const help = getEl("sharedSetupHelp");
-  if (help) help.textContent = text || "Enter your Student ID and your student password.";
+  if (help) help.textContent = text || "Enter your Student ID and student password. If you are not part of a class, type none.";
+  if (!active) {
+    setSharedSetupManualIdentityMode(false);
+  }
 
   const sharedBtn = getEl("sharedPasswordLoginBtn");
   if (sharedBtn) sharedBtn.classList.toggle("hidden", !!active);
@@ -214,6 +217,21 @@ function prefillSharedSetupFields(userLike) {
   const last = getEl("sharedSetupLastName");
   if (first && !first.value.trim()) first.value = parts.firstName;
   if (last && !last.value.trim()) last.value = parts.lastName;
+}
+
+function isNoneStudentId(value) {
+  return String(value || "").trim().toLowerCase() === "none";
+}
+
+function setSharedSetupManualIdentityMode(active, message = "") {
+  const manualBox = getEl("sharedSetupManualIdentity");
+  const preview = getEl("sharedSetupIdentityPreview");
+  const text = getEl("sharedSetupIdentityText");
+  if (manualBox) manualBox.classList.toggle("hidden", !active);
+  if (preview) preview.classList.toggle("hidden", active ? false : true);
+  if (text && active) {
+    text.textContent = message || "No classroom Student ID will be used. Enter your name and surname below.";
+  }
 }
 
 function normalizeStudentProfile(raw) {
@@ -538,7 +556,7 @@ async function fetchLinkedStudentProfile() {
     showProtectedApp(false);
     openLoginGate("Enter your teacher-given Student ID and student password before continuing.");
     clearAuthFlowModes();
-    setSharedSetupMode(true, "Enter your Student ID and student password before continuing.");
+    setSharedSetupMode(true, "Enter your Student ID and student password before continuing. If you are not part of a class, type none.");
   }
   return { ok: true, profile, required: data.required === true };
 }
@@ -580,10 +598,17 @@ async function previewStudentIdProfile() {
   const text = getEl("sharedSetupIdentityText");
   if (!preview || !text) return;
   if (!studentIdCode) {
+    setSharedSetupManualIdentityMode(false);
     preview.classList.add("hidden");
     text.textContent = "Enter a Student ID to load the official profile.";
     return;
   }
+  if (isNoneStudentId(studentIdCode)) {
+    preview.classList.remove("hidden");
+    setSharedSetupManualIdentityMode(true, "No classroom Student ID selected. Enter your name and surname below.");
+    return;
+  }
+  setSharedSetupManualIdentityMode(false);
   const token = await getAccessToken().catch(() => null);
   if (!token) return;
   const url = new URL("/api/auth/student-profile", window.location.origin);
@@ -993,14 +1018,14 @@ async function refreshAuthUI({ forceHome = false } = {}) {
       openLoginGate(
         shared.recoveryMode === "bypass"
           ? "Bypass accepted. Set a new password before continuing."
-          : "Enter your Student ID and student password before continuing."
+          : "Enter your Student ID and student password before continuing. If you are not part of a class, type none."
       );
       clearAuthFlowModes();
       setSharedSetupMode(
         true,
         shared.recoveryMode === "bypass"
           ? "Reset this student's password and confirm the Student ID before entering the platform."
-          : "Enter the Student ID and the student's password to continue. On first use, this becomes the student's saved password."
+          : "Enter the Student ID and the student's password to continue. If you are not part of a class, type none and fill your own name and surname."
       );
       prefillSharedSetupFields(shared.user);
       notifyAuthChanged();
@@ -1282,6 +1307,7 @@ async function completeSharedStudentSetup() {
   const studentIdCode = getEl("sharedSetupStudentId")?.value.trim() || "";
   const password = getEl("sharedSetupPasswordInput")?.value || "";
   const confirm = getEl("sharedSetupConfirmInput")?.value || "";
+  const isManualIdentity = isNoneStudentId(studentIdCode);
 
   if (!studentIdCode) {
     setMessage("Please enter your Student ID.", { tone: "error" });
@@ -1297,8 +1323,20 @@ async function completeSharedStudentSetup() {
   }
 
   try {
-    setMessage("Verifying Student ID...", { sticky: true });
-    const result = await upgradeSharedStudentPassword(password, { studentIdCode });
+    const result = isManualIdentity
+      ? await (async () => {
+          const firstName = getEl("sharedSetupFirstName")?.value.trim() || "";
+          const lastName = getEl("sharedSetupLastName")?.value.trim() || "";
+          if (!firstName || !lastName) {
+            throw new Error("Please enter your name and surname.");
+          }
+          setMessage("Saving your account setup...", { sticky: true });
+          return upgradeSharedStudentPassword(password, { firstName, lastName });
+        })()
+      : await (async () => {
+          setMessage("Verifying Student ID...", { sticky: true });
+          return upgradeSharedStudentPassword(password, { studentIdCode });
+        })();
     if (getEl("sharedSetupPasswordInput")) getEl("sharedSetupPasswordInput").value = "";
     if (getEl("sharedSetupConfirmInput")) getEl("sharedSetupConfirmInput").value = "";
     setMessage(result?.message || "Student setup complete.", { tone: "success", sticky: true });

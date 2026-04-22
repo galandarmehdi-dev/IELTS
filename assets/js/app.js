@@ -2009,14 +2009,29 @@
         if (row.studentIdCode) {
           hint.textContent = `Assigned code: ${row.studentIdCode}`;
         } else {
-          hint.textContent = "No Student ID is assigned to this result yet. Generate one here to attach a sign-in code to this student.";
+          hint.textContent = "No Student ID is assigned to this result yet. Type the sign-in code you want to assign to this student.";
+          const label = document.createElement("label");
+          label.className = "admin-field";
+          const codeTitle = document.createElement("span");
+          codeTitle.textContent = "Sign-in code";
+          const codeInput = document.createElement("input");
+          codeInput.type = "text";
+          codeInput.placeholder = "Enter student sign-in code";
+          label.appendChild(codeTitle);
+          label.appendChild(codeInput);
+          field.appendChild(label);
           const saveBtn = document.createElement("button");
           saveBtn.className = "btn secondary";
           saveBtn.type = "button";
           saveBtn.textContent = "Assign sign-in code";
           saveBtn.addEventListener("click", async () => {
+            const studentIdCode = String(codeInput.value || "").trim();
+            if (!studentIdCode) {
+              hint.textContent = "Please enter the sign-in code first.";
+              return;
+            }
             try {
-              const saved = await assignStudentCodeFromAdminResult(row, options.submissionRecord || null);
+              const saved = await assignStudentCodeFromAdminResult(row, options.submissionRecord || null, studentIdCode);
               const updatedRow = {
                 ...row,
                 studentIdCode: saved.studentIdCode || row.studentIdCode || "",
@@ -2698,10 +2713,11 @@
       await loadClassroomAdminData();
     }
 
-    async function assignStudentCodeFromAdminResult(row, submissionRecord = null) {
+    async function assignStudentCodeFromAdminResult(row, submissionRecord = null, studentIdCode = "") {
       const url = R()?.buildAdminApiUrl?.({ action: "assignStudentCodeFromResult" });
       if (!url) throw new Error("Admin endpoint is not available.");
       const payload = {
+        studentIdCode: String(studentIdCode || "").trim(),
         submittedAt: row?.submittedAt || "",
         studentFullName: row?.studentFullName || "",
         examId: row?.examId || "",

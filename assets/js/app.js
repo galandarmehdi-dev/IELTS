@@ -2445,6 +2445,9 @@
     const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
     const adminSaveStudentBtn = $("adminSaveStudentBtn");
     const adminResetStudentLinkBtn = $("adminResetStudentLinkBtn");
+    const adminBackfillHistoryBtn = $("adminBackfillHistoryBtn");
+    const adminClassroomProgressRefreshBtn = $("adminClassroomProgressRefreshBtn");
+    const adminStudentProgressCloseBtn = $("adminStudentProgressCloseBtn");
     const adminStudentSearchInput = $("adminStudentSearchInput");
     const adminExistingAccountSearch = $("adminExistingAccountSearch");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
@@ -2549,6 +2552,7 @@
     }
 
     const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [] };
+    const classroomProgressState = { summary: null, classrooms: [], studentAttemptsByCode: new Map(), selectedStudentId: "" };
 
     function setClassroomStatus(message, tone = "") {
       const el = $("adminClassroomsStatus");
@@ -2681,6 +2685,7 @@
       renderClassroomStudents();
       renderExistingAccountMatches();
       setClassroomStatus(`Loaded ${classroomAdminState.classrooms.length} classrooms and ${classroomAdminState.students.length} students.`, "success");
+      loadClassroomProgressData().catch(() => null);
     }
 
     async function createClassroomFromAdmin() {
@@ -2777,6 +2782,202 @@
       }
       setClassroomStatus("Linked account reset. History was not deleted.", "success");
       await loadClassroomAdminData();
+    }
+
+    function setClassroomProgressStatus(message, tone = "") {
+      const el = $("adminClassroomProgressStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = tone === "error" ? "#991b1b" : tone === "success" ? "#166534" : "";
+    }
+
+    function setClassroomProgressSummary(summary) {
+      const safe = summary || {};
+      if ($("adminClassProgressClassrooms")) $("adminClassProgressClassrooms").textContent = String(safe.classroomCount || 0);
+      if ($("adminClassProgressStudents")) $("adminClassProgressStudents").textContent = String(safe.studentCount || 0);
+      if ($("adminClassProgressActiveStudents")) $("adminClassProgressActiveStudents").textContent = String(safe.activeStudentCount || 0);
+      if ($("adminClassProgressAttempts")) $("adminClassProgressAttempts").textContent = String(safe.attemptCount || 0);
+      if ($("adminClassProgressOverall")) $("adminClassProgressOverall").textContent = safe.avgOverallBand === null || safe.avgOverallBand === undefined ? "0.0" : Number(safe.avgOverallBand).toFixed(1);
+      if ($("adminClassProgressLatest")) $("adminClassProgressLatest").textContent = fmtDate(safe.latestSubmittedAt);
+    }
+
+    function renderClassroomOverviewChart(classrooms) {
+      const wrap = $("adminClassroomOverviewChart");
+      const empty = $("adminClassroomOverviewEmpty");
+      if (!wrap || !empty) return;
+      const rows = Array.isArray(classrooms)
+        ? classrooms.filter((room) => Number(room?.attemptCount || 0) > 0).sort((a, b) => Number(b?.avgOverallBand || -1) - Number(a?.avgOverallBand || -1))
+        : [];
+      empty.classList.toggle("hidden", rows.length > 0);
+      if (!rows.length) {
+        wrap.innerHTML = "";
+        return;
+      }
+      wrap.innerHTML = rows.slice(0, 8).map((room) => {
+        const width = Math.max(0, Math.min(100, (Number(room?.avgOverallBand || 0) / 9) * 100));
+        const meta = `${Number(room?.attemptCount || 0)} attempts · ${Number(room?.activeStudentCount || 0)}/${Number(room?.studentCount || 0)} active`;
+        return `
+          <div class="admin-classroom-chart-row">
+            <div class="admin-classroom-chart-label">${escapeHtml(room?.name || "Classroom")}</div>
+            <div class="admin-classroom-chart-track"><span class="admin-classroom-chart-fill" style="width:${width.toFixed(2)}%"></span></div>
+            <div class="admin-classroom-chart-meta">Band ${escapeHtml(bandText(room?.avgOverallBand))} · ${escapeHtml(meta)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderClassroomCards(classrooms) {
+      const wrap = $("adminClassroomCards");
+      if (!wrap) return;
+      const rows = Array.isArray(classrooms) ? classrooms : [];
+      if (!rows.length) {
+        wrap.innerHTML = `<div class="admin-detail-card">No classroom analytics are available yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = rows.map((room) => `
+        <div class="admin-classroom-card">
+          <div class="admin-classroom-card-top">
+            <div>
+              <h3 class="admin-classroom-card-title">${escapeHtml(room?.name || "Classroom")}</h3>
+              <div class="admin-classroom-card-copy">
+                ${escapeHtml(room?.teacherName || "Teacher not set")} · ${escapeHtml(room?.teacherEmail || "No teacher email")}
+              </div>
+            </div>
+            <div class="admin-classroom-chart-meta">${escapeHtml(fmtDate(room?.latestSubmittedAt))}</div>
+          </div>
+          <div class="admin-classroom-metrics">
+            <div class="admin-classroom-metric">
+              <span class="admin-classroom-metric-label">Students</span>
+              <span class="admin-classroom-metric-value">${escapeHtml(String(room?.studentCount || 0))}</span>
+            </div>
+            <div class="admin-classroom-metric">
+              <span class="admin-classroom-metric-label">Avg overall</span>
+              <span class="admin-classroom-metric-value">Band ${escapeHtml(bandText(room?.avgOverallBand))}</span>
+            </div>
+            <div class="admin-classroom-metric">
+              <span class="admin-classroom-metric-label">Attempts</span>
+              <span class="admin-classroom-metric-value">${escapeHtml(String(room?.attemptCount || 0))}</span>
+            </div>
+            <div class="admin-classroom-metric">
+              <span class="admin-classroom-metric-label">Active students</span>
+              <span class="admin-classroom-metric-value">${escapeHtml(String(room?.activeStudentCount || 0))}</span>
+            </div>
+          </div>
+          <div class="admin-classroom-students">
+            ${(Array.isArray(room?.students) ? room.students : []).map((student) => `
+              <button class="admin-classroom-student-btn" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">
+                <span>
+                  <span class="admin-classroom-student-name">${escapeHtml(student?.fullName || student?.studentIdCode || "Student")}</span>
+                  <span class="admin-classroom-student-meta">${escapeHtml(student?.studentIdCode || "—")} · ${escapeHtml(String(student?.attemptCount || 0))} attempts · ${escapeHtml(fmtDate(student?.latestSubmittedAt))}</span>
+                </span>
+                <span class="admin-classroom-student-score">Band ${escapeHtml(bandText(student?.avgOverallBand))}</span>
+              </button>
+            `).join("") || `<div class="admin-classroom-chart-empty">No students in this classroom yet.</div>`}
+          </div>
+        </div>
+      `).join("");
+      Array.from(wrap.querySelectorAll("[data-classroom-student]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          const studentIdCode = button.getAttribute("data-classroom-student") || "";
+          if (studentIdCode) openStudentProgressFromClassroom(studentIdCode).catch((e) => setClassroomProgressStatus(e?.message || "Could not load student progress.", "error"));
+        });
+      });
+    }
+
+    function renderStudentProgressDetail(data) {
+      const panel = $("adminStudentProgressDetail");
+      const tbody = $("adminStudentProgressAttemptsTbody");
+      if (!panel || !tbody) return;
+      const student = data?.student || {};
+      const classroom = data?.classroom || {};
+      const attempts = Array.isArray(data?.attempts) ? data.attempts : [];
+      classroomProgressState.selectedStudentId = String(student?.studentIdCode || "");
+      classroomProgressState.studentAttemptsByCode.set(classroomProgressState.selectedStudentId, attempts);
+      if ($("adminStudentProgressTitle")) $("adminStudentProgressTitle").textContent = `${plainText(student?.fullName, "Student")} progress`;
+      if ($("adminStudentProgressAttempts")) $("adminStudentProgressAttempts").textContent = String(student?.attemptCount || attempts.length || 0);
+      if ($("adminStudentProgressFullAttempts")) $("adminStudentProgressFullAttempts").textContent = String(student?.fullAttemptCount || 0);
+      if ($("adminStudentProgressPracticeAttempts")) $("adminStudentProgressPracticeAttempts").textContent = String(student?.practiceAttemptCount || 0);
+      if ($("adminStudentProgressOverall")) $("adminStudentProgressOverall").textContent = student?.avgOverallBand === null || student?.avgOverallBand === undefined ? "0.0" : Number(student.avgOverallBand).toFixed(1);
+      if ($("adminStudentProgressLatest")) $("adminStudentProgressLatest").textContent = fmtDate(student?.latestSubmittedAt);
+      if ($("adminStudentProgressClassroom")) $("adminStudentProgressClassroom").textContent = plainText(classroom?.name || student?.classroomName, "—");
+      tbody.innerHTML = attempts.map((row, index) => `
+        <tr>
+          <td>${escapeHtml(fmtDate(row?.submittedAt))}</td>
+          <td>${escapeHtml(row?.source === "practice" ? (row?.practiceLabel || row?.examId || "Practice") : (row?.examId || "Mock test"))}</td>
+          <td>${escapeHtml(scoreText(row?.listeningTotal, row?.listeningBand, row?.listeningTotalQuestions || 40))}</td>
+          <td>${escapeHtml(scoreText(row?.readingTotal, row?.readingBand, row?.readingTotalQuestions || 40))}</td>
+          <td>${escapeHtml(row?.finalWritingBand === null || row?.finalWritingBand === undefined ? "—" : `Band ${bandText(row?.finalWritingBand)}`)}</td>
+          <td>${escapeHtml(row?.speakingBand === null || row?.speakingBand === undefined ? "—" : `Band ${bandText(row?.speakingBand)}`)}</td>
+          <td>${escapeHtml(row?.overallBand === null || row?.overallBand === undefined ? "—" : `Band ${bandText(effectiveOverallBand(row))}`)}</td>
+          <td><button class="btn secondary" type="button" data-student-attempt-index="${index}">View</button></td>
+        </tr>
+      `).join("") || `<tr><td colspan="8">No attempts matched to this student yet.</td></tr>`;
+      Array.from(tbody.querySelectorAll("[data-student-attempt-index]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          const idx = Number(button.getAttribute("data-student-attempt-index"));
+          const row = attempts[idx];
+          if (row) openAdminDetailForRow(row);
+        });
+      });
+      panel.classList.remove("hidden");
+      try {
+        panel.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (e) {}
+    }
+
+    async function loadClassroomProgressData(forceRefresh = false) {
+      if (!isAdminView()) return;
+      setClassroomProgressStatus("Loading class progress...");
+      const url = R()?.buildAdminApiUrl?.({ action: "classroomProgress", refresh: forceRefresh ? "1" : "" });
+      if (!url) return;
+      const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomProgressStatus(data?.error || "Could not load class progress.", "error");
+        return;
+      }
+      classroomProgressState.summary = data.summary || null;
+      classroomProgressState.classrooms = Array.isArray(data.classrooms) ? data.classrooms : [];
+      setClassroomProgressSummary(classroomProgressState.summary || {});
+      renderClassroomOverviewChart(classroomProgressState.classrooms);
+      renderClassroomCards(classroomProgressState.classrooms);
+      setClassroomProgressStatus(`Loaded progress for ${Number(classroomProgressState.classrooms.length || 0)} classrooms.`, "success");
+    }
+
+    async function openStudentProgressFromClassroom(studentIdCode) {
+      const url = R()?.buildAdminApiUrl?.({ action: "classroomStudentProgress", studentIdCode, t: Date.now() });
+      if (!url) return;
+      setClassroomProgressStatus(`Loading ${studentIdCode}...`);
+      const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomProgressStatus(data?.error || "Could not load student progress.", "error");
+        return;
+      }
+      renderStudentProgressDetail(data);
+      setClassroomProgressStatus(`Loaded progress for ${data?.student?.fullName || studentIdCode}.`, "success");
+    }
+
+    async function backfillStudentHistoryFromAdmin() {
+      const url = R()?.buildAdminApiUrl?.({ action: "backfillStudentHistory" });
+      if (!url) return;
+      setClassroomProgressStatus("Matching previous attempts to student IDs...");
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({}),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomProgressStatus(data?.error || "Could not assign previous attempts.", "error");
+        return;
+      }
+      const report = data.report || {};
+      setClassroomProgressStatus(`Assigned ${Number(report.attachedEmailCount || 0)} historical email trail(s). ${Number(report.unmatchedCount || 0)} still need manual review.`, "success");
+      await Promise.all([
+        loadClassroomAdminData(),
+        loadClassroomProgressData(true),
+      ]);
     }
 
     function syncAdminToggleMenu() {
@@ -4432,9 +4633,12 @@ function startFreshExam() {
       if (adminClassroomsPanel && !adminClassroomsPanel.classList.contains("hidden")) loadClassroomAdminData().catch(() => null);
     };
     if (adminClassroomsRefreshBtn) adminClassroomsRefreshBtn.onclick = () => loadClassroomAdminData().catch(() => null);
+    if (adminClassroomProgressRefreshBtn) adminClassroomProgressRefreshBtn.onclick = () => loadClassroomProgressData(true).catch((e) => setClassroomProgressStatus(e?.message || "Could not load class progress.", "error"));
+    if (adminBackfillHistoryBtn) adminBackfillHistoryBtn.onclick = () => backfillStudentHistoryFromAdmin().catch((e) => setClassroomProgressStatus(e?.message || "Could not assign previous attempts.", "error"));
     if (adminCreateClassroomBtn) adminCreateClassroomBtn.onclick = () => createClassroomFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not create classroom.", "error"));
     if (adminSaveStudentBtn) adminSaveStudentBtn.onclick = () => saveStudentFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not save student.", "error"));
     if (adminResetStudentLinkBtn) adminResetStudentLinkBtn.onclick = () => resetSelectedStudentLink().catch((e) => setClassroomStatus(e?.message || "Could not reset linked account.", "error"));
+    if (adminStudentProgressCloseBtn) adminStudentProgressCloseBtn.onclick = () => $("adminStudentProgressDetail")?.classList.add("hidden");
     if (adminStudentSearchInput) adminStudentSearchInput.addEventListener("input", renderClassroomStudents);
     if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {

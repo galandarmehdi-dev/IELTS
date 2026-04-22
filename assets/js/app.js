@@ -2368,6 +2368,7 @@
     const adminSaveStudentBtn = $("adminSaveStudentBtn");
     const adminResetStudentLinkBtn = $("adminResetStudentLinkBtn");
     const adminStudentSearchInput = $("adminStudentSearchInput");
+    const adminExistingAccountSearch = $("adminExistingAccountSearch");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
     const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
     const navResultsBtn = $("navToResultsBtn");
@@ -2469,7 +2470,7 @@
       $("openSpeakingExamBtn")?.click?.();
     }
 
-    const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "" };
+    const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [] };
 
     function setClassroomStatus(message, tone = "") {
       const el = $("adminClassroomsStatus");
@@ -2486,6 +2487,51 @@
         .map((room) => `<option value="${String(room.id || "").replace(/"/g, "&quot;")}">${String(room.name || "Classroom")}</option>`)
         .join("");
       if (current) select.value = current;
+    }
+
+    function renderExistingAccountMatches() {
+      const wrap = $("adminExistingAccountResultsWrap");
+      const tbody = $("adminExistingAccountResults");
+      const query = String($("adminExistingAccountSearch")?.value || "").trim().toLowerCase();
+      if (!wrap || !tbody) return;
+      if (!query) {
+        wrap.classList.add("hidden");
+        tbody.innerHTML = "";
+        return;
+      }
+      const rows = classroomAdminState.registryAccounts
+        .filter((account) => {
+          const hay = [account.fullName, account.email]
+            .map((value) => String(value || "").toLowerCase())
+            .join(" ");
+          return hay.includes(query);
+        })
+        .slice(0, 8);
+      wrap.classList.toggle("hidden", rows.length === 0);
+      tbody.innerHTML = rows.map((account) => `
+        <tr>
+          <td>
+            <button class="btn secondary" type="button" data-admin-pick-account="${escapeHtml(account.email || "")}">
+              ${escapeHtml(account.fullName || "Unknown student")} · ${escapeHtml(account.email || "")}
+            </button>
+          </td>
+        </tr>
+      `).join("");
+      Array.from(tbody.querySelectorAll("[data-admin-pick-account]")).forEach((button) => {
+        button.addEventListener("click", async () => {
+          const email = button.getAttribute("data-admin-pick-account") || "";
+          if (!email) return;
+          $("adminStudentLinkedEmailInput").value = email;
+          $("adminExistingAccountSearch").value = "";
+          renderExistingAccountMatches();
+          if (String($("adminStudentIdInput")?.value || "").trim()) {
+            await saveStudentFromAdmin();
+            setClassroomStatus(`Linked ${email} to this student profile.`, "success");
+          } else {
+            setClassroomStatus(`Filled linked login email with ${email}. Save the student to confirm.`, "success");
+          }
+        });
+      });
     }
 
     function renderClassroomStudents() {
@@ -2529,18 +2575,33 @@
     async function loadClassroomAdminData() {
       if (!isAdminView()) return;
       setClassroomStatus("Loading classroom data...");
-      const url = R()?.buildAdminApiUrl?.({ action: "classroomStudents" });
-      if (!url) return;
-      const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+      const studentsUrl = R()?.buildAdminApiUrl?.({ action: "classroomStudents" });
+      const registryUrl = R()?.buildAdminApiUrl?.({ action: "studentRegistry" });
+      if (!studentsUrl) return;
+      const authHeaders = await getAuthHeaders();
+      const [res, registryRes] = await Promise.all([
+        fetch(studentsUrl.toString(), { headers: authHeaders }).catch(() => null),
+        registryUrl ? fetch(registryUrl.toString(), { headers: authHeaders }).catch(() => null) : Promise.resolve(null),
+      ]);
       const data = res ? await res.json().catch(() => null) : null;
+      const registryData = registryRes ? await registryRes.json().catch(() => null) : null;
       if (!res || !res.ok || !data || data.ok !== true) {
         setClassroomStatus(data?.error || "Could not load classrooms.", "error");
         return;
       }
       classroomAdminState.classrooms = Array.isArray(data.classrooms) ? data.classrooms : [];
       classroomAdminState.students = Array.isArray(data.students) ? data.students : [];
+      classroomAdminState.registryAccounts = Array.isArray(registryData?.students)
+        ? registryData.students
+            .map((item) => ({
+              email: String(item?.email || "").trim().toLowerCase(),
+              fullName: String(item?.fullName || "").trim(),
+            }))
+            .filter((item) => item.email)
+        : [];
       fillClassroomSelect();
       renderClassroomStudents();
+      renderExistingAccountMatches();
       setClassroomStatus(`Loaded ${classroomAdminState.classrooms.length} classrooms and ${classroomAdminState.students.length} students.`, "success");
     }
 
@@ -4272,6 +4333,7 @@ function startFreshExam() {
     if (adminSaveStudentBtn) adminSaveStudentBtn.onclick = () => saveStudentFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not save student.", "error"));
     if (adminResetStudentLinkBtn) adminResetStudentLinkBtn.onclick = () => resetSelectedStudentLink().catch((e) => setClassroomStatus(e?.message || "Could not reset linked account.", "error"));
     if (adminStudentSearchInput) adminStudentSearchInput.addEventListener("input", renderClassroomStudents);
+    if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");
       try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}

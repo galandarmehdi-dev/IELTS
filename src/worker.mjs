@@ -8,6 +8,8 @@ const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
 const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS = 30 * 1000;
 const ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS = 20 * 1000;
+const AUTO_HISTORY_ATTACH_STATE = new Map();
+const AUTO_HISTORY_ATTACH_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_PRIMARY_ORGANIZATION_ID = "ieltsmock";
 const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
@@ -3399,6 +3401,35 @@ async function attachStudentProfileToStoredHistory(env, organizationId, email, p
     },
   }).catch(() => null);
 
+  await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    method: "PATCH",
+    query: {
+      user_email: `eq.${normalizedEmail}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+    body: {
+      student_profile_id: patch.studentProfileId || null,
+      student_id_code: patch.studentIdCode || null,
+      classroom_id: patch.classroomId || null,
+      classroom_name: patch.classroomName || "",
+      official_email: patch.officialEmail || null,
+    },
+  }).catch(() => null);
+
+  await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    method: "PATCH",
+    query: {
+      user_email: `eq.${normalizedEmail}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+    },
+    body: {
+      student_profile_id: patch.studentProfileId || null,
+      student_id_code: patch.studentIdCode || null,
+      classroom_id: patch.classroomId || null,
+      official_email: patch.officialEmail || null,
+    },
+  }).catch(() => null);
+
   if (!env?.STUDENT_REGISTRY) return;
   const submissions = await listJsonByPrefix(env.STUDENT_REGISTRY, "submission:", 1000);
   for (const record of submissions) {
@@ -3450,6 +3481,17 @@ async function attachStudentProfileToStoredHistory(env, organizationId, email, p
     await writeJsonKv(env.STUDENT_REGISTRY, `practice-user:${normalizedEmail}:${practiceId}`, nextRecord);
     await writeJsonKv(env.STUDENT_REGISTRY, `practice-result:${practiceId}`, nextRecord);
   }
+}
+
+async function updateStudentProfileById(env, id, patch) {
+  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+    method: "PATCH",
+    query: { id: `eq.${id}`, select: "*,classroom:classrooms(id,name)" },
+    headers: { Prefer: "return=representation" },
+    body: patch,
+  });
+  if (!res.ok) throw new Error(res.error || "Could not update student profile.");
+  return Array.isArray(res.data) ? res.data[0] || null : null;
 }
 
 async function listSupabaseHistoricalAttempts(env, organizationId = "") {
@@ -3529,17 +3571,6 @@ async function attachStudentProfileToHistoricalRow(env, row, profile) {
       },
     }).catch(() => null);
   }
-}
-
-async function updateStudentProfileById(env, id, patch) {
-  const res = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
-    method: "PATCH",
-    query: { id: `eq.${id}`, select: "*,classroom:classrooms(id,name)" },
-    headers: { Prefer: "return=representation" },
-    body: patch,
-  });
-  if (!res.ok) throw new Error(res.error || "Could not update student profile.");
-  return Array.isArray(res.data) ? res.data[0] || null : null;
 }
 
 function studentRecordBelongsToOrganization(record, organizationId = "") {
@@ -3812,6 +3843,49 @@ async function backfillHistoricalStudentProfiles(env, auth) {
   };
 }
 
+async function maybeAutoBackfillHistoricalStudentProfiles(env, auth, options = {}) {
+  if (!auth) return null;
+  const force = options?.force === true;
+  const scope = auth?.isSuperAdmin ? "super" : (getActorOrganizationId(auth) || "public");
+  const now = Date.now();
+  const current = AUTO_HISTORY_ATTACH_STATE.get(scope);
+  if (!force && current?.running) return current.promise || null;
+  if (!force && current?.completedAt && (now - current.completedAt) < AUTO_HISTORY_ATTACH_TTL_MS) {
+    return current.result || null;
+  }
+  const promise = backfillHistoricalStudentProfiles(env, auth)
+    .then((report) => {
+      AUTO_HISTORY_ATTACH_STATE.set(scope, {
+        running: false,
+        completedAt: Date.now(),
+        result: report,
+        promise: null,
+      });
+      if (Number(report?.attachedEmailCount || 0) > 0 || Number(report?.attachedAttemptCount || 0) > 0) {
+        try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (error) {}
+      }
+      return report;
+    })
+    .catch((error) => {
+      AUTO_HISTORY_ATTACH_STATE.set(scope, {
+        running: false,
+        completedAt: Date.now(),
+        result: null,
+        error: error?.message || String(error || ""),
+        promise: null,
+      });
+      return null;
+    });
+  AUTO_HISTORY_ATTACH_STATE.set(scope, {
+    running: true,
+    startedAt: now,
+    completedAt: current?.completedAt || 0,
+    result: current?.result || null,
+    promise,
+  });
+  return promise;
+}
+
 function averageNullable(values) {
   const nums = (Array.isArray(values) ? values : []).map((value) => toNullableNumber(value)).filter((value) => value !== null);
   if (!nums.length) return null;
@@ -4008,7 +4082,7 @@ async function buildClassroomProgressPayload(env, auth) {
 
 async function handleAdminBackfillStudentHistory(request, env, auth) {
   try {
-    const report = await backfillHistoricalStudentProfiles(env, auth);
+    const report = await maybeAutoBackfillHistoricalStudentProfiles(env, auth, { force: true });
     try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (error) {}
     return json(200, { ok: true, report });
   } catch (error) {
@@ -4959,6 +5033,9 @@ async function fetchAppsScriptJsonWithRetry(url, options = {}) {
 
 async function getAdminResultsSummary(env, options = {}) {
   const actor = options?.actor || null;
+  if (actor) {
+    await maybeAutoBackfillHistoricalStudentProfiles(env, actor, { force: options?.forceRefresh === true }).catch(() => null);
+  }
   const cacheKey = actor?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(actor) || "public"}`;
   const forceRefresh = options?.forceRefresh === true;
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);

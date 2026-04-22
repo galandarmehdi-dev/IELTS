@@ -1202,14 +1202,9 @@ async function signInWithSharedPassword() {
 
 async function signInWithStudentId() {
   const studentIdCode = getEl("studentIdLoginInput")?.value.trim() || "";
-  const password = getEl("studentIdPasswordInput")?.value || "";
 
   if (!studentIdCode) {
     setMessage("Please enter the Student ID.", { tone: "error" });
-    return;
-  }
-  if (!password) {
-    setMessage("Please enter the student password.", { tone: "error" });
     return;
   }
 
@@ -1217,7 +1212,7 @@ async function signInWithStudentId() {
   const res = await fetch("/api/auth/student-id-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentIdCode, password }),
+    body: JSON.stringify({ studentIdCode }),
   }).catch(() => null);
 
   const data = res ? await res.json().catch(() => null) : null;

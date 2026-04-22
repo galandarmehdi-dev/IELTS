@@ -2433,10 +2433,15 @@ async function consumeRateLimit(env, key, options = {}) {
   }
 
   attempts.push(now);
-  await writeJsonKv(env.STUDENT_REGISTRY, key, {
-    attempts,
-    updatedAt: new Date(now).toISOString(),
-  });
+  try {
+    await writeJsonKv(env.STUDENT_REGISTRY, key, {
+      attempts,
+      updatedAt: new Date(now).toISOString(),
+    });
+  } catch (error) {
+    if (!isKvQuotaExceededError(error)) throw error;
+    console.warn("[IELTS] KV rate-limit write skipped:", error?.message || error);
+  }
   return {
     allowed: true,
     remaining: Math.max(0, limit - attempts.length),
@@ -2583,8 +2588,18 @@ async function upsertStudentRegistry(env, payload) {
     next.setupCompleted = true;
   }
 
-  await writeJsonKv(env.STUDENT_REGISTRY, key, next);
+  try {
+    await writeJsonKv(env.STUDENT_REGISTRY, key, next);
+  } catch (error) {
+    if (!isKvQuotaExceededError(error)) throw error;
+    console.warn("[IELTS] KV student registry write skipped:", error?.message || error);
+  }
   return next;
+}
+
+function isKvQuotaExceededError(error) {
+  const message = String(error?.message || error || "");
+  return /KV put\(\) limit exceeded for the day/i.test(message);
 }
 
 async function authorizeStudentSubmissionAccess(rowLike, auth, request, env) {

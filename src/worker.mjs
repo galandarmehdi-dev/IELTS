@@ -2968,31 +2968,14 @@ function splitStudentFullName(fullName) {
   };
 }
 
-function generateStudentIdCandidate() {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
-  let out = "SID-";
-  for (let i = 0; i < bytes.length; i += 1) {
-    out += alphabet[bytes[i] % alphabet.length];
-  }
-  return out;
-}
-
-async function generateUniqueStudentIdCode(env, organizationId) {
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    const candidate = generateStudentIdCandidate();
-    const existing = await getStudentProfileByCode(env, candidate, organizationId);
-    if (!existing) return candidate;
-  }
-  throw new Error("Could not generate a unique Student ID right now.");
-}
-
 async function handleAdminAssignStudentCodeFromResult(request, env, auth) {
   const payload = await request.json().catch(() => null);
   const organizationId = auth.isSuperAdmin
     ? normalizeOrganizationId(payload?.organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env))
     : getActorOrganizationId(auth);
+  const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
   const fullName = oneLine(payload?.studentFullName || "");
+  if (!studentIdCode) return json(400, { ok: false, error: "Student sign-in code is required." });
   if (!fullName) return json(400, { ok: false, error: "Student name is required." });
   const linkedAuthEmail = normalizeEmail(payload?.studentEmail || "") || null;
   const officialEmail = normalizeEmail(payload?.officialEmail || payload?.studentEmail || "") || null;
@@ -3014,7 +2997,10 @@ async function handleAdminAssignStudentCodeFromResult(request, env, auth) {
     return json(200, { ok: true, student: publicStudentProfile(updatedExisting || existing), reused: true });
   }
 
-  const studentIdCode = await generateUniqueStudentIdCode(env, organizationId);
+  const sameCodeProfile = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  if (sameCodeProfile && sameCodeProfile.id !== existing?.id) {
+    return json(409, { ok: false, error: "This sign-in code is already assigned to another student." });
+  }
   const body = {
     organization_id: organizationId,
     student_id_code: studentIdCode,

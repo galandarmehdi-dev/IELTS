@@ -479,7 +479,18 @@ async function handleStudentProfileApi(request, env) {
     return json(200, { ok: true, profile: publicStudentProfile(profile) });
   }
 
-  const profile = await getStudentProfileByAuth(env, identity, organizationId);
+  let profile = await getStudentProfileByAuth(env, identity, organizationId);
+  if (!profile && identity.email) {
+    profile = await getStudentProfileByLinkedEmail(env, identity.email, organizationId);
+    if (profile) {
+      profile = await updateStudentProfileById(env, profile.id, {
+        linked_auth_user_id: identity.userId || null,
+        linked_auth_identity: identity.identity,
+        linked_auth_email: identity.email || null,
+        linked_at: profile.linked_at || new Date().toISOString(),
+      }).catch(() => profile);
+    }
+  }
   return json(200, {
     ok: true,
     profile: profile ? publicStudentProfile(profile) : null,
@@ -2822,6 +2833,7 @@ async function handleAdminSaveStudentProfile(request, env, auth) {
     name,
     surname: oneLine(payload?.surname || ""),
     classroom_id: oneLine(payload?.classroomId || payload?.classroom_id || "") || null,
+    linked_auth_email: normalizeEmail(payload?.linkedAuthEmail || payload?.linked_auth_email || "") || null,
     official_email: normalizeEmail(payload?.officialEmail || payload?.official_email || "") || null,
     is_active: payload?.isActive !== false,
   };

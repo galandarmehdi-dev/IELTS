@@ -1968,32 +1968,49 @@
       renderAdminTable(rows);
     }
 
+    function mergeAdminSubmissionIdentity(row, submissionRecord = null) {
+      const nextRow = row && typeof row === "object" ? { ...row } : {};
+      if (!submissionRecord || typeof submissionRecord !== "object") return nextRow;
+      return {
+        ...nextRow,
+        studentIdCode: nextRow.studentIdCode || submissionRecord.studentIdCode || "",
+        studentProfileId: nextRow.studentProfileId || submissionRecord.studentProfileId || "",
+        classroomId: nextRow.classroomId || submissionRecord.classroomId || "",
+        classroomName: nextRow.classroomName || submissionRecord.classroomName || "",
+        officialEmail: nextRow.officialEmail || submissionRecord.officialEmail || "",
+        loginEmail: nextRow.loginEmail || submissionRecord.loginEmail || submissionRecord.email || "",
+        studentEmail: nextRow.studentEmail || submissionRecord.officialEmail || submissionRecord.email || "",
+        signInMethod: nextRow.signInMethod || submissionRecord.provider || "",
+      };
+    }
+
     function renderAdminDetailFields(row, options = {}) {
+      const resolvedRow = mergeAdminSubmissionIdentity(row, options.submissionRecord || null);
       const loadingDetail = options.loadingDetail === true;
-      const overallWritingBand = effectiveWritingBand(row);
-      $("adminDetailTitle").textContent = row.studentFullName || "Result details";
+      const overallWritingBand = effectiveWritingBand(resolvedRow);
+      $("adminDetailTitle").textContent = resolvedRow.studentFullName || "Result details";
       const metaEl = $("adminDetailMeta");
       clearElement(metaEl);
-      appendLabeledLine(metaEl, "Test", row.practiceLabel || row.examId || "—");
-      appendLabeledLine(metaEl, "Submitted", fmtDate(row.submittedAt));
-      appendLabeledLine(metaEl, "Reason", row.reason || "—");
+      appendLabeledLine(metaEl, "Test", resolvedRow.practiceLabel || resolvedRow.examId || "—");
+      appendLabeledLine(metaEl, "Submitted", fmtDate(resolvedRow.submittedAt));
+      appendLabeledLine(metaEl, "Reason", resolvedRow.reason || "—");
       if (options.submissionRecord) {
         appendLabeledLine(metaEl, "Email", options.submissionRecord.email || "—");
         appendLabeledLine(metaEl, "Sign-in method", String(options.submissionRecord.provider || "email").replace(/-/g, " "));
-      } else if (row?.studentEmail) {
-        appendLabeledLine(metaEl, "Email", row.studentEmail || "—");
-        appendLabeledLine(metaEl, "Sign-in method", String(row.signInMethod || "email").replace(/-/g, " "));
+      } else if (resolvedRow?.studentEmail) {
+        appendLabeledLine(metaEl, "Email", resolvedRow.studentEmail || "—");
+        appendLabeledLine(metaEl, "Sign-in method", String(resolvedRow.signInMethod || "email").replace(/-/g, " "));
       }
-      appendLabeledLine(metaEl, "Student ID", row.studentIdCode || "—");
+      appendLabeledLine(metaEl, "Student ID", resolvedRow.studentIdCode || "—");
 
       const scoresEl = $("adminDetailScores");
       clearElement(scoresEl);
-      appendLabeledLine(scoresEl, "Listening", objectiveDetailText(row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40));
-      appendLabeledLine(scoresEl, "Reading", objectiveDetailText(row.readingTotal, row.readingBand, row.readingTotalQuestions || 40));
+      appendLabeledLine(scoresEl, "Listening", objectiveDetailText(resolvedRow.listeningTotal, resolvedRow.listeningBand, resolvedRow.listeningTotalQuestions || 40));
+      appendLabeledLine(scoresEl, "Reading", objectiveDetailText(resolvedRow.readingTotal, resolvedRow.readingBand, resolvedRow.readingTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
-      appendLabeledLine(scoresEl, "Speaking", `Band ${bandText(speakingBand(row))}`);
-      appendLabeledLine(scoresEl, "Overall score", `Band ${bandText(effectiveOverallBand(row))}`);
-      appendLabeledLine(scoresEl, "Writing words", `${writingWordText(row.task1Words)} / ${writingWordText(row.task2Words)}`);
+      appendLabeledLine(scoresEl, "Speaking", `Band ${bandText(speakingBand(resolvedRow))}`);
+      appendLabeledLine(scoresEl, "Overall score", `Band ${bandText(effectiveOverallBand(resolvedRow))}`);
+      appendLabeledLine(scoresEl, "Writing words", `${writingWordText(resolvedRow.task1Words)} / ${writingWordText(resolvedRow.task2Words)}`);
 
       const studentCodeEditor = $("adminDetailStudentCodeEditor");
       if (studentCodeEditor) {
@@ -2006,8 +2023,8 @@
         field.appendChild(title);
         const hint = document.createElement("div");
         hint.className = "small";
-        if (row.studentIdCode) {
-          hint.textContent = `Assigned code: ${row.studentIdCode}`;
+        if (resolvedRow.studentIdCode) {
+          hint.textContent = `Assigned code: ${resolvedRow.studentIdCode}`;
         } else {
           hint.textContent = "No Student ID is assigned to this result yet. Type the sign-in code you want to assign to this student.";
           const label = document.createElement("label");
@@ -2031,14 +2048,14 @@
               return;
             }
             try {
-              const saved = await assignStudentCodeFromAdminResult(row, options.submissionRecord || null, studentIdCode);
+              const saved = await assignStudentCodeFromAdminResult(resolvedRow, options.submissionRecord || null, studentIdCode);
               const updatedRow = {
-                ...row,
-                studentIdCode: saved.studentIdCode || row.studentIdCode || "",
-                studentProfileId: saved.id || row.studentProfileId || "",
-                classroomId: saved.classroomId || row.classroomId || "",
-                classroomName: saved.classroomName || row.classroomName || "",
-                officialEmail: saved.officialEmail || row.officialEmail || "",
+                ...resolvedRow,
+                studentIdCode: saved.studentIdCode || resolvedRow.studentIdCode || "",
+                studentProfileId: saved.id || resolvedRow.studentProfileId || "",
+                classroomId: saved.classroomId || resolvedRow.classroomId || "",
+                classroomName: saved.classroomName || resolvedRow.classroomName || "",
+                officialEmail: saved.officialEmail || resolvedRow.officialEmail || "",
               };
               mergeAdminRowIntoState(updatedRow, adminState.mode);
               renderAdminDetailFields(updatedRow, { ...options, loadingDetail: false });
@@ -2055,28 +2072,28 @@
 
       const task1ScoreEl = $("adminDetailTask1Score");
       clearElement(task1ScoreEl);
-      appendLabeledLine(task1ScoreEl, "Band", bandText(row.task1Band));
+      appendLabeledLine(task1ScoreEl, "Band", bandText(resolvedRow.task1Band));
       const task1BreakdownLabel = document.createElement("div");
       task1BreakdownLabel.textContent = "Breakdown:";
       task1ScoreEl.appendChild(task1BreakdownLabel);
-      appendTextBlock(task1ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(row.task1Breakdown));
+      appendTextBlock(task1ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(resolvedRow.task1Breakdown));
 
-      $("adminDetailTask1").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask1 || "");
-      $("adminDetailTask1Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task1Feedback, "");
+      $("adminDetailTask1").textContent = loadingDetail ? "Loading detailed writing response..." : (resolvedRow.writingTask1 || "");
+      $("adminDetailTask1Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(resolvedRow.task1Feedback, "");
       const task2ScoreEl = $("adminDetailTask2Score");
       clearElement(task2ScoreEl);
-      appendLabeledLine(task2ScoreEl, "Band", bandText(row.task2Band));
+      appendLabeledLine(task2ScoreEl, "Band", bandText(resolvedRow.task2Band));
       const task2BreakdownLabel = document.createElement("div");
       task2BreakdownLabel.textContent = "Breakdown:";
       task2ScoreEl.appendChild(task2BreakdownLabel);
-      appendTextBlock(task2ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(row.task2Breakdown));
-      $("adminDetailTask2").textContent = loadingDetail ? "Loading detailed writing response..." : (row.writingTask2 || "");
-      $("adminDetailTask2Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(row.task2Feedback, "");
+      appendTextBlock(task2ScoreEl, loadingDetail ? "Loading detailed writing analysis..." : plainText(resolvedRow.task2Breakdown));
+      $("adminDetailTask2").textContent = loadingDetail ? "Loading detailed writing response..." : (resolvedRow.writingTask2 || "");
+      $("adminDetailTask2Feedback").textContent = loadingDetail ? "Loading feedback..." : plainText(resolvedRow.task2Feedback, "");
       const overallEl = $("adminDetailOverallWriting");
       clearElement(overallEl);
       appendLabeledLine(overallEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
       overallEl.appendChild(document.createElement("br"));
-      appendTextBlock(overallEl, loadingDetail ? "Loading overall writing feedback..." : plainText(row.overallFeedback));
+      appendTextBlock(overallEl, loadingDetail ? "Loading overall writing feedback..." : plainText(resolvedRow.overallFeedback));
 
       const writingEditor = $("adminDetailWritingEditor");
       if (writingEditor) {
@@ -2165,7 +2182,7 @@
         input.min = "0";
         input.max = "9";
         input.step = "0.5";
-        input.value = speakingBand(row) === null ? "" : String(speakingBand(row));
+        input.value = speakingBand(resolvedRow) === null ? "" : String(speakingBand(resolvedRow));
         input.id = "adminDetailSpeakingInput";
         label.appendChild(title);
         label.appendChild(input);
@@ -2186,7 +2203,7 @@
           try {
             const savedSpeakingBand = await saveAdminSpeakingBand(row, nextValue === "" ? null : Number(nextValue));
             const updatedRow = {
-              ...row,
+              ...resolvedRow,
               speakingBand: savedSpeakingBand,
             };
             mergeAdminRowIntoState(updatedRow, adminState.mode);
@@ -2251,8 +2268,10 @@
         const objectivePromise = fetchObjectiveDetailForRow(row).catch(() => null);
         const [metaResult, fullResult, objectiveResult] = await Promise.all([metaPromise, fullResultPromise, objectivePromise]);
         const metaRecord = metaResult?.ok && metaResult.data?.ok === true ? metaResult.data.record : null;
-        const detailRow = fullResult ? { ...row, ...fullResult } : row;
-        if (fullResult) mergeAdminRowIntoState(detailRow, adminState.mode);
+        const detailRow = mergeAdminSubmissionIdentity(fullResult ? { ...row, ...fullResult } : row, metaRecord);
+        if (fullResult || detailRow.studentIdCode || detailRow.studentProfileId || detailRow.classroomId || detailRow.officialEmail) {
+          mergeAdminRowIntoState(detailRow, adminState.mode);
+        }
         renderAdminDetailFields(detailRow, { submissionRecord: metaRecord, loadingDetail: !fullResult });
         renderObjectiveReview("adminDetail", objectiveResult);
       } catch (e) {

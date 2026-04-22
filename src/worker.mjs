@@ -4348,14 +4348,10 @@ async function getAdminResultsSummary(env, options = {}) {
       throw new Error("Could not load admin results summary.");
     }
 
-  const visibleRows = await filterRowsForAdminActor(data.results, actor || { isSuperAdmin: true }, env);
-  const summaries = await Promise.all(visibleRows.map(async (row) => {
-    const summary = summarizeAdminResultRow(row);
-    const scoreMeta = await readSubmissionScoreMeta(env, summary);
-    return mergeSummaryWithScoreMeta(summary, scoreMeta);
-  }));
-  setCachedAdminResultsSummary(cacheKey, summaries);
-  return summaries;
+    const visibleRows = await filterRowsForAdminActor(data.results, actor || { isSuperAdmin: true }, env);
+    const summaries = visibleRows.map((row) => summarizeAdminResultRow(row));
+    setCachedAdminResultsSummary(cacheKey, summaries);
+    return summaries;
   } catch (error) {
     const stale = getAnyCachedAdminResultsSummary(cacheKey);
     if (stale?.length) return stale;

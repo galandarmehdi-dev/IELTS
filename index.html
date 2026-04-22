@@ -1005,6 +1005,102 @@
           <tbody id="adminStudentsTbody"></tbody>
         </table>
       </div>
+
+      <div class="admin-result-detail" id="adminClassroomProgressPanel">
+        <div class="admin-result-detail-top">
+          <h2>Class progress and student tracking</h2>
+          <div class="admin-row-actions">
+            <button class="btn secondary" type="button" id="adminBackfillHistoryBtn">Assign previous attempts</button>
+            <button class="btn secondary" type="button" id="adminClassroomProgressRefreshBtn">Refresh progress</button>
+          </div>
+        </div>
+        <p class="small" id="adminClassroomProgressStatus">Load class progress to see classroom trends and student attempt history.</p>
+
+        <div class="admin-results-summary">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Classes</div>
+            <div class="admin-stat-value" id="adminClassProgressClassrooms">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Students tracked</div>
+            <div class="admin-stat-value" id="adminClassProgressStudents">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Active students</div>
+            <div class="admin-stat-value" id="adminClassProgressActiveStudents">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Assigned attempts</div>
+            <div class="admin-stat-value" id="adminClassProgressAttempts">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Avg overall</div>
+            <div class="admin-stat-value" id="adminClassProgressOverall">0.0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Latest activity</div>
+            <div class="admin-stat-value admin-stat-small" id="adminClassProgressLatest">—</div>
+          </div>
+        </div>
+
+        <div class="admin-detail-card admin-classroom-chart-card">
+          <div class="admin-detail-label">Classroom overview</div>
+          <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
+          <div class="dashboard-chart-empty hidden" id="adminClassroomOverviewEmpty">No classroom activity is available yet.</div>
+        </div>
+
+        <div class="admin-classroom-grid" id="adminClassroomCards"></div>
+      </div>
+
+      <div class="admin-result-detail hidden" id="adminStudentProgressDetail">
+        <div class="admin-result-detail-top">
+          <h2 id="adminStudentProgressTitle">Student progress</h2>
+          <button class="btn secondary" type="button" id="adminStudentProgressCloseBtn">Close</button>
+        </div>
+        <div class="admin-results-summary">
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Attempts</div>
+            <div class="admin-stat-value" id="adminStudentProgressAttempts">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Full tests</div>
+            <div class="admin-stat-value" id="adminStudentProgressFullAttempts">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Practice</div>
+            <div class="admin-stat-value" id="adminStudentProgressPracticeAttempts">0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Avg overall</div>
+            <div class="admin-stat-value" id="adminStudentProgressOverall">0.0</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Latest</div>
+            <div class="admin-stat-value admin-stat-small" id="adminStudentProgressLatest">—</div>
+          </div>
+          <div class="admin-stat-card">
+            <div class="admin-stat-label">Classroom</div>
+            <div class="admin-stat-value admin-stat-small" id="adminStudentProgressClassroom">—</div>
+          </div>
+        </div>
+        <div class="admin-results-table-wrap">
+          <table class="admin-results-table">
+            <thead>
+              <tr>
+                <th>Submitted</th>
+                <th>Attempt</th>
+                <th>Listening</th>
+                <th>Reading</th>
+                <th>Writing</th>
+                <th>Speaking</th>
+                <th>Overall</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="adminStudentProgressAttemptsTbody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="admin-results-toolbar">

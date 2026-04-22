@@ -637,17 +637,19 @@
 
       try {
         const identity = getAcademicIdentity();
-        let fullName = identity.fullName || getStudentFullName();
+        const authUser = getCurrentAuthUser();
+        let fullName =
+          identity.fullName ||
+          getStudentFullName() ||
+          String(authUser?.name || authUser?.user_metadata?.name || authUser?.user_metadata?.preferred_name || "").trim().replace(/\s+/g, " ");
         if (identity.studentProfileId && fullName) {
           S().set(W.keys.studentName, fullName);
         }
-
         if (!UI().isValidFullName(fullName)) {
-          openFinalSubmitModal(reason, {
-            title: "Name required",
-            text: "Please type your Name and Surname to submit the exam.",
-          });
-          return;
+          fullName = String(authUser?.email || "Student").split("@")[0].replace(/[._-]+/g, " ").trim() || "Student";
+        }
+        if (fullName) {
+          S().set(W.keys.studentName, fullName);
         }
 
         hasSubmitted = true;
@@ -678,7 +680,6 @@
         const examId = isPracticeWriting
           ? (window.IELTS?.Practice?.buildPracticeExamId?.("writing", activeTestId, practiceScope) || `ielts-practice-writing-${testNumber.padStart(3, "0")}`)
           : `ielts-full-${testNumber.padStart(3, "0")}`;
-        const authUser = getCurrentAuthUser();
         const loginEmail = String(authUser?.email || "").trim().toLowerCase();
         const studentEmail = String(identity.resultEmail || loginEmail || "").trim().toLowerCase();
         const signInMethod = String(authUser?.provider || "email").trim().toLowerCase() || "email";

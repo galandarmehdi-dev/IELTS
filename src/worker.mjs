@@ -476,7 +476,6 @@ async function handleStudentIdLogin(request, env) {
   const tenant = resolveTenantContext(request, env);
   const payload = await request.json().catch(() => null);
   const studentIdCode = oneLine(payload?.studentIdCode || payload?.student_id_code || "");
-  const password = String(payload?.password || "");
   const rate = await consumeRateLimit(
     env,
     `rate:student-id-login:${buildRateLimitScope(request, studentIdCode)}`,
@@ -489,9 +488,6 @@ async function handleStudentIdLogin(request, env) {
   if (!studentIdCode) {
     return json(400, { ok: false, error: "Please enter the Student ID." });
   }
-  if (!password) {
-    return json(400, { ok: false, error: "Please enter the student password." });
-  }
 
   const profile = await getStudentProfileByCode(env, studentIdCode, tenant.organizationId);
   if (!profile) {
@@ -500,11 +496,6 @@ async function handleStudentIdLogin(request, env) {
   }
   if (profile.is_active === false) {
     return json(403, { ok: false, error: "This Student ID is not active. Please contact your teacher/admin." });
-  }
-  const passwordOk = await verifyStudentProfilePassword(profile, studentIdCode, password);
-  if (!passwordOk) {
-    await logSecurityEvent(env, request, "student_id_login_wrong_password", { studentIdCode });
-    return json(401, { ok: false, error: "Student ID or student password is incorrect." });
   }
 
   const publicProfile = publicStudentProfile(profile);

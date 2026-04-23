@@ -6545,6 +6545,89 @@ If the law is written in such a way that the manufacturer is held responsible fo
     ]
   }
 };
+const test15 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Cam15.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-notes">
+        <div class="note-row"><span class="qnum">1</span> Main language spoken in the country: <input data-lq="1" class="l-input tiny"></div>
+        <div class="note-row"><span class="qnum">2</span> The country’s main agricultural product: <input data-lq="2" class="l-input"></div>
+        <div class="note-row"><span class="qnum">3</span> The largest export product: <input data-lq="3" class="l-input"></div>
+        <div class="note-row"><span class="qnum">4</span> The major city outside the capital: <input data-lq="4" class="l-input"></div>
+        <div class="note-row"><span class="qnum">5</span> The population in millions: <input data-lq="5" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+    `
+  },
+  writing: {
+    task1Type: "Pie chart",
+    task2Type: "Discussion",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The two charts below show the proportion of qualified graduates in a particular country.<br>
+      Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/PieChart15.jpeg",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      Write about the following topic:<br><br>
+      Films and computer games containing violence are popular. Some people say they have a negative effect on society and should be banned. Others say they are just harmless relaxation. Discuss both views and give your own opinion.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `IELTS Reading Test 271 - Passage 1: Sugar and its impact
+
+A
+Sugar is a major source of energy for the body, providing fuel for the brain and muscles. However, excess sugar consumption can lead to health issues such as obesity and heart disease. In many cultures, sugar is considered a treat, but its effects are more harmful than people often realize.
+
+B
+Research has shown that sugar consumption has increased dramatically over the past century. The World Health Organization (WHO) suggests that we consume no more than 10% of our daily calories from sugar. However, many people exceed this recommendation.
+
+C
+Excessive sugar intake can lead to insulin resistance, which can increase the risk of developing type 2 diabetes. Furthermore, high sugar consumption has been linked to high blood pressure, inflammation, and heart disease.
+
+D
+Despite the known risks of sugar consumption, its use in the food industry continues to rise. Sugary foods and drinks are widely available, and their consumption is promoted by aggressive advertising campaigns.
+
+E
+To combat the negative effects of sugar, many health organizations recommend reducing sugar intake and promoting healthy, low-sugar alternatives in the diet. Public awareness campaigns and government policies are also essential to tackling this issue.
+
+blocks: [
+  {
+    type: "trueFalseNotGiven",
+    title: "Questions 1 - 5",
+    instructions: [
+      "Do the statements agree with the information in the reading passage?",
+      "Write TRUE if the statement agrees with the information.",
+      "Write FALSE if the statement contradicts the information.",
+      "Write NOT GIVEN if the information is not available in the passage."
+    ],
+    items: [
+      { q: 1, text: "Sugar is the main source of energy for the body." },
+      { q: 2, text: "Excessive sugar intake can increase the risk of heart disease." },
+      { q: 3, text: "All countries recommend a sugar intake of less than 10%." },
+      { q: 4, text: "Sugar consumption is declining in developed countries." },
+      { q: 5, text: "Sugar is linked to obesity and diabetes." }
+    ]
+  }
+]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -6561,6 +6644,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts12: test12,
   ielts13: test13,
   ielts14: test14,
+  ielts15: test15,
 };
 
 export function getProtectedTestContent(testId) {

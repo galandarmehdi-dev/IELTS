@@ -5041,6 +5041,12 @@ async function getAdminResultsSummary(env, options = {}) {
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
+  const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env).catch(() => null);
+  if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
+    setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
+    return supabaseSummaries;
+  }
+
   const backendUrl = new URL(env.ADMIN_BACKEND_URL);
   backendUrl.searchParams.set("action", "resultsSummary");
   backendUrl.searchParams.set("t", String(Date.now()));
@@ -5065,6 +5071,141 @@ async function getAdminResultsSummary(env, options = {}) {
     if (stale?.length) return stale;
     throw error;
   }
+}
+
+async function getAdminResultsSummaryFromSupabase(env) {
+  const serviceRoleKey = oneLine(env?.SUPABASE_SERVICE_ROLE_KEY || "");
+  const supabaseUrl = oneLine(env?.SUPABASE_URL || "").replace(/\/$/, "");
+  if (!serviceRoleKey || !supabaseUrl) return null;
+
+  const endpoint = new URL(`${supabaseUrl}/rest/v1/exam_attempts`);
+  endpoint.searchParams.set(
+    "select",
+    [
+      "submitted_at",
+      "student_full_name",
+      "exam_id",
+      "active_test_id",
+      "reason",
+      "listening_total",
+      "listening_band",
+      "reading_total",
+      "reading_band",
+      "final_writing_band",
+      "task1_words",
+      "task2_words",
+      "task1_band",
+      "task2_band",
+      "student_id_code",
+      "student_profile_id",
+      "official_email",
+      "organization_id",
+      "listening_answers",
+      "reading_answers",
+      "final_payload",
+    ].join(",")
+  );
+  endpoint.searchParams.set("order", "submitted_at.desc");
+  endpoint.searchParams.set("limit", "500");
+
+  const response = await fetch(endpoint.toString(), {
+    method: "GET",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+  });
+  const rows = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(rows)) return null;
+
+  return rows.map((row) => summarizeAdminAttemptRow(row));
+}
+
+function summarizeAdminAttemptRow(row) {
+  const finalPayload = row?.final_payload && typeof row.final_payload === "object" ? row.final_payload : {};
+  const inferredTestId = inferObjectiveTestId(row, finalPayload);
+  const listeningDerived = deriveObjectiveSummary("listening", inferredTestId, row?.listening_answers ?? finalPayload?.listening?.answers);
+  const readingDerived = deriveObjectiveSummary("reading", inferredTestId, row?.reading_answers ?? finalPayload?.reading?.answers);
+  const task1Words = toNullableNumber(row?.task1_words ?? finalPayload?.writing?.wordCount?.task1);
+  const task2Words = toNullableNumber(row?.task2_words ?? finalPayload?.writing?.wordCount?.task2);
+  const task1Band = toNullableBand(row?.task1_band);
+  const task2Band = toNullableBand(row?.task2_band);
+  const finalWritingBand = toEffectiveWritingBand({
+    finalWritingBand: row?.final_writing_band,
+    task1Words,
+    task2Words,
+    task1Band,
+    task2Band,
+  });
+
+  return {
+    submittedAt: oneLine(row?.submitted_at || finalPayload?.submittedAt || ""),
+    studentFullName: oneLine(row?.student_full_name || finalPayload?.studentFullName || ""),
+    examId: oneLine(row?.exam_id || finalPayload?.examId || ""),
+    reason: oneLine(row?.reason || finalPayload?.reason || ""),
+    listeningTotal: toNullableNumber(row?.listening_total) ?? listeningDerived.total,
+    listeningBand: toNullableBand(row?.listening_band) ?? listeningDerived.band,
+    readingTotal: toNullableNumber(row?.reading_total) ?? readingDerived.total,
+    readingBand: toNullableBand(row?.reading_band) ?? readingDerived.band,
+    finalWritingBand,
+    speakingBand: null,
+    overallBand: toRoundedOverallBand([
+      toNullableBand(row?.listening_band) ?? listeningDerived.band,
+      toNullableBand(row?.reading_band) ?? readingDerived.band,
+      finalWritingBand,
+      null,
+    ]),
+    task1Words,
+    task2Words,
+    task1Band,
+    task2Band,
+    studentIdCode: oneLine(row?.student_id_code || finalPayload?.studentIdCode || finalPayload?.writing?.studentIdCode || ""),
+    studentProfileId: oneLine(row?.student_profile_id || finalPayload?.studentProfileId || finalPayload?.writing?.studentProfileId || ""),
+    officialEmail: normalizeEmail(row?.official_email || finalPayload?.officialEmail || finalPayload?.writing?.officialEmail || ""),
+    organizationId: normalizeOrganizationId(row?.organization_id || finalPayload?.organizationId || ""),
+  };
+}
+
+function inferObjectiveTestId(row, finalPayload) {
+  const candidates = [
+    row?.active_test_id,
+    finalPayload?.activeTestId,
+    finalPayload?.listening?.activeTestId,
+    finalPayload?.reading?.activeTestId,
+    row?.exam_id,
+    finalPayload?.examId,
+    finalPayload?.listening?.testId,
+    finalPayload?.reading?.testId,
+  ]
+    .map((value) => oneLine(value || "").toLowerCase())
+    .filter(Boolean);
+
+  for (const value of candidates) {
+    const direct = value.match(/^ielts(\d+)$/i);
+    if (direct) return `ielts${Number(direct[1])}`;
+    const full = value.match(/^ielts-full-(\d+)$/i);
+    if (full) return `ielts${Number(full[1])}`;
+    const parts = value.match(/(?:ielts-reading-3parts|ielts-writing|ielts-listening)-0*(\d+)$/i);
+    if (parts) return `ielts${Number(parts[1])}`;
+  }
+  return "";
+}
+
+function deriveObjectiveSummary(skill, testId, answers) {
+  const answerMap = buildObjectiveAnswerMap(testId, skill);
+  const totalQuestions = Object.keys(answerMap).length;
+  if (!totalQuestions || !answers || typeof answers !== "object") {
+    return { total: null, band: null };
+  }
+  let total = 0;
+  for (const [q, correctValue] of Object.entries(answerMap)) {
+    const studentValue = answers?.[q] ?? answers?.[String(q)] ?? "";
+    if (matchesObjectiveAnswer(studentValue, correctValue)) total += 1;
+  }
+  return {
+    total,
+    band: objectiveBandFromRaw(skill, total, totalQuestions),
+  };
 }
 
 function summarizeAdminResultRow(row) {

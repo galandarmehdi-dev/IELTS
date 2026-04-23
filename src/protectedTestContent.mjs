@@ -6546,6 +6546,613 @@ If the law is written in such a way that the manufacturer is held responsible fo
   }
 };
 
+const test15 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Cam15.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-10</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Job details from employment agency</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Role</b>: <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+        <div class="note-row"><b>Location</b>: Fordham <span class="qnum">2</span> <input data-lq="2" class="l-input"> Centre</div>
+        <div class="note-row"><span class="qnum">3</span> <input data-lq="3" class="l-input"> Road, Fordham</div>
+        <div class="note-row" style="margin-top:12px;"><b>Work involves</b></div>
+        <div class="note-row bullet">● dealing with enquiries</div>
+        <div class="note-row bullet">● making <span class="qnum">4</span> <input data-lq="4" class="l-input"> and reorganising them</div>
+        <div class="note-row bullet">● maintaining the internal <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+        <div class="note-row bullet">● general administration</div>
+        <div class="note-row" style="margin-top:12px;"><b>Requirements</b></div>
+        <div class="note-row bullet">● <span class="qnum">6</span> <input data-lq="6" class="l-input"> (essential)</div>
+        <div class="note-row bullet">● a calm and <span class="qnum">7</span> <input data-lq="7" class="l-input"> manner</div>
+        <div class="note-row bullet">● good IT skills</div>
+        <div class="note-row" style="margin-top:12px;"><b>Other information</b></div>
+        <div class="note-row bullet">● a <span class="qnum">8</span> <input data-lq="8" class="l-input"> job – further opportunities may be available</div>
+        <div class="note-row bullet">● hours: 7.45 a.m. to <span class="qnum">9</span> <input data-lq="9" class="l-input tiny"> p.m. Monday to Friday</div>
+        <div class="note-row bullet">● <span class="qnum">10</span> <input data-lq="10" class="l-input"> is available onsite</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-14</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">11</span> The museum building was originally</div>
+        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) a factory.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) a private home.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) a hall of residence.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">12</span> The university uses part of the museum building as</div>
+        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) teaching rooms.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) a research library.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) administration offices.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">13</span> What does the guide say about the entrance fee?</div>
+        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) Visitors decide whether or not they wish to pay.</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) Only children and students receive a discount.</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) The museum charges extra for special exhibitions.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">14</span> What are visitors advised to leave in the cloakroom?</div>
+        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) cameras</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) coats</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) bags</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-20</div>
+      <div class="listen-inst">What information does the speaker give about each of the following areas of the museum? Choose <b>SIX</b> answers from the box and write the correct letter, <b>A-H</b>, next to Questions 15-20.</div>
+
+      <div class="people-box">
+        <div><b>A</b> Parents must supervise their children.</div>
+        <div><b>B</b> There are new things to see.</div>
+        <div><b>C</b> It is closed today.</div>
+        <div><b>D</b> This is only for school groups.</div>
+        <div><b>E</b> There is a quiz for visitors.</div>
+        <div><b>F</b> It features something created by students.</div>
+        <div><b>G</b> An expert is here today.</div>
+        <div><b>H</b> There is a one-way system.</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">15</span> Four Seasons
+        <select class="l-select" data-lq="15">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">16</span> Farmhouse Kitchen
+        <select class="l-select" data-lq="16">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">17</span> A Year on the Farm
+        <select class="l-select" data-lq="17">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">18</span> Wagon Walk
+        <select class="l-select" data-lq="18">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">19</span> Bees are Magic
+        <select class="l-select" data-lq="19">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">20</span> The Pond
+        <select class="l-select" data-lq="20">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-22</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E.</div>
+      <div class="listen-card-title">Which TWO educational skills were shown in the video of children doing origami?</div>
+
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="A"> A) solving problems</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="B"> B) following instructions</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="C"> C) working cooperatively</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="D"> D) learning through play</label>
+      <label class="mcq-opt"><input type="checkbox" data-lq-check="21" data-lq-count="2" value="E"> E) developing hand-eye coordination</label>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 23-27</div>
+      <div class="listen-inst">Which comment do the students make about each of the following children in the video? Choose <b>FIVE</b> answers from the box and write the correct letter, <b>A-G</b>, next to Questions 23-27.</div>
+
+      <div class="people-box">
+        <div><b>A</b> demonstrated independence</div>
+        <div><b>B</b> asked for teacher support</div>
+        <div><b>C</b> developed a competitive attitude</div>
+        <div><b>D</b> seemed to find the activity calming</div>
+        <div><b>E</b> seemed pleased with the results</div>
+        <div><b>F</b> seemed confused</div>
+        <div><b>G</b> seemed to find the activity easy</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">23</span> Sid
+        <select class="l-select" data-lq="23">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">24</span> Jack
+        <select class="l-select" data-lq="24">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">25</span> Naomi
+        <select class="l-select" data-lq="25">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">26</span> Anya
+        <select class="l-select" data-lq="26">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">27</span> Zara
+        <select class="l-select" data-lq="27">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 28-30</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">28</span> Before starting an origami activity in class, the students think it is important for the teacher to</div>
+        <label class="mcq-opt"><input type="radio" name="q28" value="A" data-lq-radio="28"> A) make models that demonstrate the different stages.</label>
+        <label class="mcq-opt"><input type="radio" name="q28" value="B" data-lq-radio="28"> B) check children understand the terminology involved.</label>
+        <label class="mcq-opt"><input type="radio" name="q28" value="C" data-lq-radio="28"> C) tell children not to worry if they find the activity difficult.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">29</span> The students agree that some teachers might be unwilling to use origami in class because</div>
+        <label class="mcq-opt"><input type="radio" name="q29" value="A" data-lq-radio="29"> A) they may not think that crafts are important.</label>
+        <label class="mcq-opt"><input type="radio" name="q29" value="B" data-lq-radio="29"> B) they may not have the necessary skills.</label>
+        <label class="mcq-opt"><input type="radio" name="q29" value="C" data-lq-radio="29"> C) they may worry that it will take up too much time.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">30</span> Why do the students decide to use origami in their maths teaching practice?</div>
+        <label class="mcq-opt"><input type="radio" name="q30" value="A" data-lq-radio="30"> A) to correct a particular misunderstanding</label>
+        <label class="mcq-opt"><input type="radio" name="q30" value="B" data-lq-radio="30"> B) to set a challenge</label>
+        <label class="mcq-opt"><input type="radio" name="q30" value="C" data-lq-radio="30"> C) to introduce a new concept</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Victor Hugo</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>His novel, Les Miserables</b></div>
+        <div class="note-row bullet">● It has been adapted for theatre and cinema.</div>
+        <div class="note-row bullet">● We know more about its overall <span class="qnum">31</span> <input data-lq="31" class="l-input"> than about its author.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>His early career</b></div>
+        <div class="note-row bullet">● In Paris, his career was successful and he led the Romantic movement.</div>
+        <div class="note-row bullet">● He spoke publicly about social issues, such as <span class="qnum">32</span> <input data-lq="32" class="l-input"> and education.</div>
+        <div class="note-row bullet">● Napoleon III disliked his views and exiled him.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>His exile from France</b></div>
+        <div class="note-row bullet">● Victor Hugo had to live elsewhere in <span class="qnum">33</span> <input data-lq="33" class="l-input"></div>
+        <div class="note-row bullet">● He used his income from the sale of some <span class="qnum">34</span> <input data-lq="34" class="l-input"> he had written to buy a house on Guernsey.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>His house on Guernsey</b></div>
+        <div class="note-row bullet">● Victor Hugo lived in this house until the end of the Empire in France.</div>
+        <div class="note-row bullet">● The ground floor contains portraits, <span class="qnum">35</span> <input data-lq="35" class="l-input"> and tapestries that he valued.</div>
+        <div class="note-row bullet">● He bought cheap <span class="qnum">36</span> <input data-lq="36" class="l-input"> made of wood and turned this into beautiful wall carvings.</div>
+        <div class="note-row bullet">● The first floor consists of furnished areas with wallpaper and <span class="qnum">37</span> <input data-lq="37" class="l-input"> that have a Chinese design.</div>
+        <div class="note-row bullet">● The library still contains many of his favourite books.</div>
+        <div class="note-row bullet">● He wrote in a room at the top of the house that had a view of the <span class="qnum">38</span> <input data-lq="38" class="l-input"></div>
+        <div class="note-row bullet">● He entertained other writers as well as poor <span class="qnum">39</span> <input data-lq="39" class="l-input"> in his house.</div>
+        <div class="note-row bullet">● Victor Hugo’s <span class="qnum">40</span> <input data-lq="40" class="l-input"> gave ownership of the house to the city of Paris in 1927.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+    `
+  },
+
+  writing: {
+    task1Type: "Pie chart",
+    task2Type: "Discussion",
+    task1Html: `
+      You should spend about 20 minutes on this task.<br>
+      The two charts below show the proportion of qualified graduates in a particular country.<br>
+      Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+      <b>Write at least 150 words.</b>
+    `,
+    task1ImageSrc: "https://audio.ieltsmock.org/PieChart15.jpeg",
+    task2Html: `
+      You should spend about 40 minutes on this task.<br><br>
+      Write about the following topic:<br><br>
+      Films and computer games containing violence are popular. Some people say they have a negative effect on society and should be banned. Others say they are just harmless relaxation. Discuss both views and give your own opinion.<br><br>
+      <b>Write at least 250 words.</b>
+    `
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Green roofs
+
+A
+Rooftops covered with grass, vegetable gardens and lush foliage are now a common sight in many cities around the world. More and more private companies and city authorities are investing in green roofs, drawn to their wide-ranging benefits. Among the benefits are saving on energy costs, mitigating the risk of floods, making habitats for urban wildlife, tackling air pollution and even growing food. These increasingly radical urban designs can help cities adapt to the monumental problems they face, such as access to resources and a lack of green space due to development. But the involvement of city authorities, businesses and other institutions is crucial to ensuring their success - as is research investigating different options to suit the variety of rooftop spaces found in cities. The UK is relatively new to developing green roofs, and local governments and institutions are playing a major role in spreading the practice. London is home to much of the UK's green roof market, mainly due to forward-thinking policies such as the London Plan, which has paved the way to more than doubling the area of green roofs in the capital.
+
+B
+Ongoing research is showcasing how green roofs in cities can integrate with 'living walls': environmentally friendly walls which are partially or completely covered with greenery, including a growing medium, such as soil or water. Research also indicates that green roofs can be integrated with drainage systems on the ground, such as street trees, so that the water is managed better and the built environment is made more sustainable. There is also evidence to demonstrate the social value of green roofs. Doctors are increasingly prescribing time spent gardening outdoors for patients dealing with anxiety and depression. And research has found that access to even the most basic green spaces can provide a better quality of life for dementia sufferers and help people avoid obesity.
+
+C
+In North America, green roofs have become mainstream, with a wide array of expansive, accessible and food-producing roofs installed in buildings. Again, city leaders and authorities have helped push the movement forward - only recently, San Francisco, USA, created a policy requiring new buildings to have green roofs. Toronto, Canada, has policies dating from the 1990s, encouraging the development of urban farms on rooftops. These countries also benefit from having newer buildings than in many parts of the world, which makes it easier to install green roofs. Being able to keep enough water at roof height and distribute it right across the rooftop is crucial to maintaining the plants on any green roof - especially on 'edible roofs' where fruit and vegetables are farmed. And it's much easier to do this in newer buildings, which can typically hold greater weight, than to retro-fit old ones. Having a stronger roof also makes it easier to grow a greater variety of plants, since the soil can be deeper.
+
+D
+For green roofs to become the norm for new developments, there needs to be support from public authorities and private investors. Those responsible for maintaining buildings may have to acquire new skills, such as landscaping, and in some cases, volunteers may be needed to help out. Other considerations include installing drainage paths, meeting health and safety requirements and perhaps allowing access for the public, as well as planning restrictions and disruption from regular activities in and around the buildings during installation. To convince investors and developers that installing green roofs is worthwhile, economic arguments are still the most important. The term 'natural capital' has been developed to explain the economic value of nature; for example, measuring the money saved by installing natural solutions to protect against flood damage, adapt to climate change or help people lead healthier and happier lives.
+
+E
+As the expertise about green roofs grows, official standards have been developed to ensure that they are designed, constructed and maintained properly, and function well. Improvements in the science and technology underpinning green roof development have also led to new variations in the concept. For example, 'blue roofs' enable buildings to hold water over longer periods of time, rather than draining it away quickly - crucial in times of heavier rainfall. There are also combinations of green roofs with solar panels, and 'brown roofs' which are wilder in nature and maximise biodiversity. If the trend continues, it could create new jobs and a more vibrant and sustainable local food economy - alongside many other benefits. There are still barriers to overcome, but the evidence so far indicates that green roofs have the potential to transform cities and help them function sustainably long into the future. The success stories need to be studied and replicated elsewhere, to make green, blue, brown and food-producing roofs the norm in cities around the world.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 1-5",
+            instructions: [
+              "Reading Passage 1 has five paragraphs, A-E.",
+              "Which paragraph contains the following information?",
+              "Write the correct letter, A-E, in boxes 1-5 on your answer sheet.",
+              "NB You may use any letter more than once."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E"
+            },
+            hideOptionsList: true,
+            items: [
+              { q: 1, text: "mention of several challenges to be overcome before a green roof can be installed" },
+              { q: 2, text: "reference to a city where green roofs have been promoted for many years" },
+              { q: 3, text: "a belief that existing green roofs should be used as a model for new ones" },
+              { q: 4, text: "examples of how green roofs can work in combination with other green urban initiatives" },
+              { q: 5, text: "the need to make a persuasive argument for the financial benefits of green roofs" }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 6-9",
+            instructions: [
+              "Complete the summary below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+              "Write your answers in boxes 6-9 on your answer sheet."
+            ],
+            items: [
+              { q: 6, text: "City rooftops covered with greenery have many advantages. These include lessening the likelihood that floods will occur, reducing how much money is spent on", tail: "and creating environments that are suitable for wildlife." },
+              { q: 7, text: "In many cases, they can also be used for producing", tail: "." },
+              { q: 8, text: "For example, the medical profession recommends", tail: "as an activity to help people cope with mental health issues." },
+              { q: 9, text: "Studies have also shown that the availability of green spaces can prevent physical problems such as", tail: "." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 10-11",
+            instructions: [
+              "Choose TWO letters, A-E.",
+              "Write the correct letters in boxes 10 and 11 on your answer sheet.",
+              "Which TWO advantages of using newer buildings for green roofs are mentioned in Paragraph C of the passage?"
+            ],
+            endings: {
+              A: "a longer growing season for edible produce",
+              B: "more economical use of water",
+              C: "greater water-storage capacity",
+              D: "ability to cultivate more plant types",
+              E: "a large surface area for growing plants"
+            },
+            items: [
+              { q: 10, text: "First advantage" },
+              { q: 11, text: "Second advantage" }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 12-13",
+            instructions: [
+              "Choose TWO letters, A-E.",
+              "Write the correct letters in boxes 12 and 13 on your answer sheet.",
+              "Which TWO aims of new variations on the concept of green roofs are mentioned in Paragraph E of the passage?"
+            ],
+            endings: {
+              A: "to provide habitats for a wide range of species",
+              B: "to grow plants successfully even in the wettest climates",
+              C: "to regulate the temperature of the immediate environment",
+              D: "to generate power from a sustainable source",
+              E: "to collect water to supply other buildings"
+            },
+            items: [
+              { q: 12, text: "First aim" },
+              { q: 13, text: "Second aim" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `The growth mindset
+
+Over the past century, a powerful idea has taken root in the educational landscape. The concept of intelligence as something innate has been supplanted by the idea that intelligence is not fixed, and that, with the right training, we can be the authors of our own cognitive capabilities. Psychologist Alfred Binet, the developer of the first intelligence tests, was one of many 19th-century scientists who held that earlier view and sought to quantify cognitive ability. Then, in the early 20th century, progressive thinkers revolted against the notion that inherent ability is destiny. Instead, educators such as John Dewey argued that every child's intelligence could be developed, given the right environment.
+
+'Growth mindset theory' is a relatively new - and extremely popular - version of this idea. In many schools today you will see hallways covered in motivational posters and hear speeches on the mindset of great sporting heroes who simply believed their way to the top. A major focus of the growth mindset in schools is coaxing students away from seeing failure as an indication of their ability, and towards seeing it as a chance to improve that ability. As educationalist Jeff Howard noted several decades ago: 'Smart is not something that you just are, smart is something that you can get.'
+
+The idea of the growth mindset is based on the work of psychologist Carol Dweck in California in the 1990s. In one key experiment, Dweck divided a group of 10- to 12-year-olds into two groups. All were told that they had achieved a high score on a test but the first group were praised for their intelligence in achieving this, while the others were praised for their effort. The second group - those who had been instilled with a 'growth mindset' - were subsequently far more likely to put effort into future tasks. Meanwhile, the former took on only those tasks that would not risk their sense of worth. This group had inferred that success or failure is due to innate ability, and this 'fixed mindset' had led them to fear of failure and lack of effort. Praising ability actually made the students perform worse, while praising effort emphasised that change was possible.
+
+One of the greatest impediments to successfully implementing a growth mindset, however, is the education system itself: in many parts of the world, the school climate is obsessed with performance in the form of constant testing, analysing and ranking of students - a key characteristic of the fixed mindset. Nor is it unusual for schools to create a certain cognitive dissonance, when they applaud the benefits of a growth mindset but then hand out fixed target grades in lessons based on performance.
+
+Aside from the implementation problem, the original growth mindset research has also received harsh criticism. The statistician Andrew Gelman claims that 'their research designs have enough degrees of freedom that they could take their data to support just about any theory at all'. Professor of Psychology Timothy Bates, who has been trying to replicate Dweck's work, is finding that the results are repeatedly null. He notes that: 'People with a growth mindset don't cope any better with failure ... Kids with the growth mindset aren't getting better grades, either before or after our intervention study.'
+
+Much of this criticism is not lost on Dweck, and she deserves great credit for responding to it and adapting her work accordingly. In fact, she argues that her work has been misunderstood and misapplied in a range of ways. She has also expressed concerns that her theories are being misappropriated in schools by being conflated with the self-esteem movement: 'For me the growth mindset is a tool for learning and improvement. It's not just a vehicle for making children feel good.'
+
+But there is another factor at work here. The failure to translate the growth mindset into the classroom might reflect a misunderstanding of the nature of teaching and learning itself. Growth mindset supporters David Yeager and Gregory Walton claim that interventions should be delivered in a subtle way to maximise their effectiveness. They say that if adolescents perceive a teacher's intervention as conveying that they are in need of help, this could undo its intended effects.
+
+A lot of what drives students is their innate beliefs and how they perceive themselves. There is a strong correlation between self-perception and achievement, but there is evidence to suggest that the actual effect of achievement on self-perception is stronger than the other way round. To stand in a classroom and successfully deliver a good speech is a genuine achievement, and that is likely to be more powerfully motivating than vague notions of 'motivation' itself.
+
+Recent evidence would suggest that growth mindset interventions are not the elixir of student learning that its proponents claim it to be. The growth mindset appears to be a viable construct in the lab, which, when administered in the classroom via targeted interventions, doesn't seem to work. It is hard to dispute that having faith in the capacity to change is a good attribute for students. Paradoxically, however, that aspiration is not well served by direct interventions that try to instil it.
+
+Motivational posters and talks are often a waste of time, and might well give students a deluded notion of what success actually means. Teaching concrete skills such as how to write an effective introduction to an essay then praising students' effort in getting there is probably a far better way of improving confidence than telling them how unique they are, or indeed how capable they are of changing their own brains. Perhaps growth mindset works best as a philosophy and not an intervention.`,
+        blocks: [
+          {
+            type: "mcq",
+            title: "Questions 14-16",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 14-16 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 14,
+                text: "What can we learn from the first paragraph?",
+                choices: {
+                  A: "where the notion of innate intelligence first began",
+                  B: "when ideas about the nature of intelligence began to shift",
+                  C: "how scientists have responded to changing views of intelligence",
+                  D: "why thinkers turned away from the idea of intelligence being fixed"
+                }
+              },
+              {
+                q: 15,
+                text: "The second paragraph describes how schools encourage students to",
+                choices: {
+                  A: "identify their personal ambitions.",
+                  B: "help each other to realise their goals.",
+                  C: "have confidence in their potential to succeed.",
+                  D: "concentrate on where their particular strengths lie."
+                }
+              },
+              {
+                q: 16,
+                text: "In the third paragraph, the writer suggests that students with a fixed mindset",
+                choices: {
+                  A: "tend to be less competitive.",
+                  B: "generally have a low sense of self-esteem.",
+                  C: "will only work hard if they are given constant encouragement.",
+                  D: "are afraid to push themselves beyond what they see as their limitations."
+                }
+              }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 17-22",
+            instructions: [
+              "Look at the following statements (Questions 17-22) and the list of people below.",
+              "Match each statement with the correct person or people, A-E.",
+              "Write the correct letter, A-E, in boxes 17-22 on your answer sheet.",
+              "NB You may use any letter more than once."
+            ],
+            endings: {
+              A: "Alfred Binet",
+              B: "Carol Dweck",
+              C: "Andrew Gelman",
+              D: "Timothy Bates",
+              E: "David Yeager and Gregory Walton"
+            },
+            items: [
+              { q: 17, text: "The methodology behind the growth mindset studies was not strict enough." },
+              { q: 18, text: "The idea of the growth mindset has been incorrectly interpreted." },
+              { q: 19, text: "Intellectual ability is an unchangeable feature of each individual." },
+              { q: 20, text: "The growth mindset should be promoted without students being aware of it." },
+              { q: 21, text: "The growth mindset is not simply about boosting students' morale." },
+              { q: 22, text: "Research shows that the growth mindset has no effect on academic achievement." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 23-26",
+            instructions: [
+              "Do the following statements agree with the views of the writer in Reading Passage 2?",
+              "In boxes 23-26 on your answer sheet, write",
+              "YES if the statement agrees with the views of the writer",
+              "NO if the statement contradicts the views of the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 23, text: "Dweck has handled criticisms of her work in an admirable way." },
+              { q: 24, text: "Students' self-perception is a more effective driver of self-confidence than actual achievement is." },
+              { q: 25, text: "Recent evidence about growth mindset interventions has attracted unfair coverage in the media." },
+              { q: 26, text: "Deliberate attempts to encourage students to strive for high achievement may have a negative effect." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `Alfred Wegener: science, exploration and the theory of continental drift
+by Mott T Greene
+
+Introduction
+This is a book about the life and scientific work of Alfred Wegener, whose reputation today rests with his theory of continental displacements, better known as 'continental drift'. Wegener proposed this theory in 1912 and developed it extensively for nearly 20 years. His book on the subject, The Origin of Continents and Oceans, went through four editions and was the focus of an international controversy in his lifetime and for some years after his death.
+
+Wegener's basic idea was that many mysteries about the Earth's history could be solved if one supposed that the continents moved laterally, rather than supposing that they remained fixed in place. Wegener showed in great detail how such continental movements were plausible and how they worked, using evidence from a large number of sciences including geology, geophysics, paleontology, and climatology. Wegener's idea - that the continents move - is at the heart of the theory that guides Earth sciences today: namely plate tectonics. Plate tectonics is in many respects quite different from Wegener's proposal, in the same way that modern evolutionary theory is very different from the ideas Charles Darwin proposed in the 1850s about biological evolution. Yet plate tectonics is a descendant of Alfred Wegener's theory of continental drift, in quite the same way that modern evolutionary theory is a descendant of Darwin's theory of natural selection.
+
+When I started writing about Wegener's life and work, one of the most intriguing things about him for me was that, although he came up with a theory on continental drift, he was not a geologist. He trained as an astronomer and pursued a career in atmospheric physics. When he proposed the theory of continental displacements in 1912, he was a lecturer in physics and astronomy at the University of Marburg, in southern Germany. However, he was not an 'unknown'. In 1906 he had set a world record (with his brother Kurt) for time aloft in a hot-air balloon: 52 hours. Between 1906 and 1908 he had taken part in a highly publicized and extremely dangerous expedition to the coast of northeast Greenland. He had also made a name for himself amongst a small circle of meteorologists and atmospheric physicists in Germany as the author of a textbook, Thermodynamics of the Atmosphere (1911), and of a number of interesting scientific papers.
+
+As important as Wegener's work on continental drift has turned out to be, it was largely a sideline to his interest in atmospheric physics, geophysics, and paleoclimatology, and thus I have been at great pains to put Wegener's work on continental drift in the larger context of his other scientific work, and in the even larger context of atmospheric sciences in his lifetime. This is a 'continental drift book' only to the extent that Wegener was interested in that topic and later became famous for it. My treatment of his other scientific work is no less detailed, though I certainly have devoted more attention to the reception of his ideas on continental displacement, as they were much more controversial than his other work.
+
+Readers interested in the specific detail of Wegener's career will see that he often stopped pursuing a given line of investigation (sometimes for years on end), only to pick it up later. I have tried to provide guideposts to his rapidly shifting interests by characterizing different phases of his life as careers in different sciences, which is reflected in the titles of the chapters. Thus, the index should be a sufficient guide for those interested in a particular aspect of Wegener's life but perhaps not all of it. My own feeling, however, is that the parts do not make as much sense on their own as do all of his activities taken together. In this respect I urge readers to try to experience Wegener's life as he lived it, with all the interruptions, changes of mind, and renewed efforts this entailed.
+
+Wegener left behind a few published works but, as was standard practice, these reported the results of his work - not the journey he took to reach that point. Only a few hundred of the many thousands of letters he wrote and received in his lifetime have survived and he didn't keep notebooks or diaries that recorded his life and activities. He was not active (with a few exceptions) in scientific societies, and did not seek to find influence or advance his ideas through professional contacts and politics, spending most of his time at home in his study reading and writing, or in the field collecting observations.
+
+Some famous scientists, such as Newton, Darwin, and Einstein, left mountains of written material behind, hundreds of notebooks and letters numbering in the tens of thousands. Others, like Michael Faraday, left extensive journals of their thoughts and speculations, parallel to their scientific notebooks. The more such material a scientist leaves behind, the better chance a biographer has of forming an accurate picture of how a scientist's ideas took shape and evolved.
+
+I am firmly of the opinion that most of us, Wegener included, are not in any real sense the authors of our own lives. We plan, think, and act, often with apparent freedom, but most of the time our lives 'happen to us', and we only retrospectively turn this happenstance into a coherent narrative of fulfilled intentions. This book, therefore, is a story both of the life and scientific work that Alfred Wegener planned and intended and of the life and scientific work that actually 'happened to him'. These are, as I think you will soon see, not always the same thing.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 27-30",
+            instructions: [
+              "Do the following statements agree with the claims of the writer in Reading Passage 3?",
+              "In boxes 27-30 on your answer sheet, write",
+              "YES if the statement agrees with the claims of the writer",
+              "NO if the statement contradicts the claims of the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 27, text: "Wegener's ideas about continental drift were widely disputed while he was alive." },
+              { q: 28, text: "The idea that the continents remained fixed in place was defended in a number of respected scientific publications." },
+              { q: 29, text: "Wegener relied on a limited range of scientific fields to support his theory of continental drift." },
+              { q: 30, text: "The similarities between Wegener's theory of continental drift and modern-day plate tectonics are enormous." }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 31-36",
+            instructions: [
+              "Complete the summary using the list of phrases, A-J, below.",
+              "Write the correct letter, A-J, in boxes 31-36 on your answer sheet."
+            ],
+            summaryTitle: "Wegener's life and work",
+            summaryLines: [
+              { text: "One of the remarkable things about Wegener from a", blankQ: 31, tail: "is that although he proposed a theory of continental drift, he was not a geologist." },
+              { text: "His", blankQ: 32, tail: "were limited to atmospheric physics." },
+              { text: "However, at the time he proposed his theory of continental drift in 1912, he was already a person of", blankQ: 33, tail: "." },
+              { text: "Six years previously, there had been his", blankQ: 34, tail: "of 52 hours in a hot-air balloon, followed by his well-publicised but" },
+              { text: "", blankQ: 35, before: "", after: "of Greenland's coast." },
+              { text: "With the publication of his textbook on thermodynamics, he had also come to the attention of a", blankQ: 36, tail: "of German scientists." }
+            ],
+            optionsTitle: "A - J",
+            options: [
+              { letter: "A", word: "modest fame" },
+              { letter: "B", word: "vast range" },
+              { letter: "C", word: "record-breaking achievement" },
+              { letter: "D", word: "research methods" },
+              { letter: "E", word: "select group" },
+              { letter: "F", word: "professional interests" },
+              { letter: "G", word: "scientific debate" },
+              { letter: "H", word: "hazardous exploration" },
+              { letter: "I", word: "biographer's perspective" },
+              { letter: "J", word: "narrow investigation" }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 37-40",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 37-40 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 37,
+                text: "What is Mott T Greene doing in the fifth paragraph?",
+                choices: {
+                  A: "describing what motivated him to write the book",
+                  B: "explaining why it is desirable to read the whole book",
+                  C: "suggesting why Wegener pursued so many different careers",
+                  D: "indicating what aspects of Wegener's life interested him most"
+                }
+              },
+              {
+                q: 38,
+                text: "What is said about Wegener in the sixth paragraph?",
+                choices: {
+                  A: "He was not a particularly ambitious person.",
+                  B: "He kept a record of all his scientific observations.",
+                  C: "He did not adopt many of the scientific practices of the time.",
+                  D: "He enjoyed discussing new discoveries with other scientists."
+                }
+              },
+              {
+                q: 39,
+                text: "What does Greene say about some other famous scientists?",
+                choices: {
+                  A: "Their published works had a greater impact than Wegener's did.",
+                  B: "They had fewer doubts about their scientific ideas than Wegener did.",
+                  C: "Their scientific ideas were more controversial than Wegener's.",
+                  D: "They are easier subjects to write about than Wegener."
+                }
+              },
+              {
+                q: 40,
+                text: "What is Greene's main point in the final paragraph?",
+                choices: {
+                  A: "It is not enough in life to have good intentions.",
+                  B: "People need to plan carefully if they want to succeed.",
+                  C: "People have little control over many aspects of their lives.",
+                  D: "It is important that people ensure they have the freedom to act."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -6561,6 +7168,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts12: test12,
   ielts13: test13,
   ielts14: test14,
+  ielts15: test15,
 };
 
 export function getProtectedTestContent(testId) {

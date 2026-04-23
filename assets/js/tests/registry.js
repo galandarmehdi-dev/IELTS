@@ -26,7 +26,7 @@
     historyUpdateMs: 15000,
   };
 
-  const REMOTE_TEST_CONTENT = new Set(["ielts1", "ielts2", "ielts3", "ielts4", "ielts5", "ielts6", "ielts7", "ielts8", "ielts9", "ielts10", "ielts11", "ielts12", "ielts13", "ielts14"]);
+  const REMOTE_TEST_CONTENT = new Set(["ielts1", "ielts2", "ielts3", "ielts4", "ielts5", "ielts6", "ielts7", "ielts8", "ielts9", "ielts10", "ielts11", "ielts12", "ielts13", "ielts14", "ielts15"]);
   const remoteTestContentPromises = new Map();
   const remoteScriptPromises = new Map();
 
@@ -175,6 +175,7 @@
       ielts12: { id: "ielts12", readingTestId: "ielts-reading-3parts-012", writingTestId: "ielts-writing-012", content: { reading: null, writing: null, listening: null } },
       ielts13: { id: "ielts13", readingTestId: "ielts-reading-3parts-013", writingTestId: "ielts-writing-013", content: { reading: null, writing: null, listening: null } },
       ielts14: { id: "ielts14", readingTestId: "ielts-reading-3parts-014", writingTestId: "ielts-writing-014", content: { reading: null, writing: null, listening: null } },
+      ielts15: { id: "ielts15", readingTestId: "ielts-reading-3parts-015", writingTestId: "ielts-writing-015", content: { reading: null, writing: null, listening: null } },
     },
   };
 

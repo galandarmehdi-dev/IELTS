@@ -5223,6 +5223,10 @@ function summarizeAdminResultRow(row) {
   return {
     submittedAt: oneLine(row?.submittedAt || row?.submitted_at || ""),
     studentFullName: oneLine(row?.studentFullName || row?.student_full_name || ""),
+    studentIdCode: oneLine(row?.studentIdCode || row?.student_id_code || ""),
+    classroom: oneLine(row?.classroom || row?.classroom_name || ""),
+    canonicalStudentName: oneLine(row?.canonicalStudentName || row?.canonical_student_name || ""),
+    officialEmail: normalizeEmail(row?.officialEmail || row?.official_email || ""),
     examId: oneLine(row?.examId || row?.exam_id || row?.active_test_id || ""),
     reason: oneLine(row?.reason || ""),
     organizationId: normalizeOrganizationId(row?.organizationId || row?.organization_id || ""),

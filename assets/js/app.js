@@ -1138,8 +1138,8 @@
     // Admin results dashboard
     // -----------------------------
     const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [] }, filtered: [] };
-    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V2";
-    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V2";
+    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V3";
+    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V3";
     const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();

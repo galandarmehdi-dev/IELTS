@@ -5107,39 +5107,67 @@ async function getAdminResultsSummary(env, options = {}) {
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
-  const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor).catch(() => null);
-  if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
-    setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
-    return supabaseSummaries;
-  }
-
-  const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-  backendUrl.searchParams.set("action", "resultsSummary");
-  backendUrl.searchParams.set("t", String(Date.now()));
-
   try {
-    const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
-    const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
-      method: "GET",
-      retries: forceRefresh ? 1 : 2,
-      timeoutMs: ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS,
-    });
-    if (!Array.isArray(data.results)) {
-      throw new Error("Could not load admin results summary.");
-    }
-
-    const visibleRows = await filterRowsForAdminActor(data.results, actor || { isSuperAdmin: true }, env);
-    const summaries = visibleRows.map((row) => summarizeAdminResultRow(row));
+    const appsScriptSummaries = await getAdminResultsSummaryFromAppsScript(env, actor, forceRefresh);
+    const supabaseRecentRows = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 100 }).catch(() => []);
+    const summaries = mergeAdminSummarySources(appsScriptSummaries, supabaseRecentRows);
     setCachedAdminResultsSummary(cacheKey, summaries);
     return summaries;
   } catch (error) {
+    const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => null);
+    if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
+      setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
+      return supabaseSummaries;
+    }
     const stale = getAnyCachedAdminResultsSummary(cacheKey);
     if (stale?.length) return stale;
     throw error;
   }
 }
 
-async function getAdminResultsSummaryFromSupabase(env, actor = null) {
+async function getAdminResultsSummaryFromAppsScript(env, actor = null, forceRefresh = false) {
+  const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+  backendUrl.searchParams.set("action", "resultsSummary");
+  backendUrl.searchParams.set("t", String(Date.now()));
+
+  const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+  const { data } = await fetchAppsScriptJsonWithRetry(signedBackendUrl, {
+    method: "GET",
+    retries: forceRefresh ? 1 : 2,
+    timeoutMs: ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS,
+  });
+  if (!Array.isArray(data.results)) {
+    throw new Error("Could not load admin results summary.");
+  }
+
+  const visibleRows = await filterRowsForAdminActor(data.results, actor || { isSuperAdmin: true }, env);
+  return visibleRows.map((row) => summarizeAdminResultRow(row));
+}
+
+function buildAdminSummaryIdentityKey(row) {
+  return [
+    oneLine(row?.submittedAt || row?.submitted_at || ""),
+    oneLine(row?.studentFullName || row?.student_full_name || "").toLowerCase(),
+    oneLine(row?.examId || row?.exam_id || "").toLowerCase(),
+    oneLine(row?.reason || "").toLowerCase(),
+  ].join("::");
+}
+
+function mergeAdminSummarySources(primaryRows, fallbackRows) {
+  const merged = [];
+  const seen = new Set();
+  const pushUnique = (row) => {
+    const key = buildAdminSummaryIdentityKey(row);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(row);
+  };
+  (Array.isArray(primaryRows) ? primaryRows : []).forEach(pushUnique);
+  (Array.isArray(fallbackRows) ? fallbackRows : []).forEach(pushUnique);
+  return merged.sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
+}
+
+async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {}) {
   const serviceRoleKey = oneLine(env?.SUPABASE_SERVICE_ROLE_KEY || "");
   const supabaseUrl = oneLine(env?.SUPABASE_URL || "").replace(/\/$/, "");
   if (!serviceRoleKey || !supabaseUrl) return null;
@@ -5173,7 +5201,7 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null) {
     endpoint.searchParams.set("organization_id", `eq.${actorOrganizationId}`);
   }
   endpoint.searchParams.set("order", "submitted_at.desc");
-  endpoint.searchParams.set("limit", "1000");
+  endpoint.searchParams.set("limit", String(Math.max(1, Number(options?.limit || 1000))));
 
   const response = await fetch(endpoint.toString(), {
     method: "GET",

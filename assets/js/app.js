@@ -1140,7 +1140,7 @@
     const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [] }, filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
     const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT";
-    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
+    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 
@@ -1337,6 +1337,67 @@
       adminState.rowsByMode[String(mode || "full")] = Array.isArray(rows) ? rows : [];
     }
 
+
+    function hasAdminMeaningfulValue(value) {
+      if (value === null || value === undefined) return false;
+      if (typeof value === "number") return Number.isFinite(value);
+      if (typeof value === "boolean") return true;
+      if (Array.isArray(value)) return value.length > 0;
+      if (typeof value === "object") return Object.keys(value).length > 0;
+      const text = String(value).trim();
+      return text !== "";
+    }
+
+    function mergeAdminRowsPreferHydrated(freshRow, cachedRow) {
+      const next = { ...(cachedRow || {}), ...(freshRow || {}) };
+      const keys = new Set([
+        ...Object.keys(cachedRow || {}),
+        ...Object.keys(freshRow || {}),
+      ]);
+      keys.forEach((key) => {
+        const freshValue = freshRow?.[key];
+        const cachedValue = cachedRow?.[key];
+        if (!hasAdminMeaningfulValue(freshValue) && hasAdminMeaningfulValue(cachedValue)) {
+          next[key] = cachedValue;
+        }
+      });
+      return next;
+    }
+
+    function mergeAdminResultsWithCache(rows, mode = adminState.mode) {
+      const freshRows = Array.isArray(rows) ? rows : [];
+      const cachedRows = [
+        ...getAdminRows(mode),
+        ...loadAdminResultsCache(mode),
+      ];
+      const cachedByKey = new Map();
+      cachedRows.forEach((row) => {
+        const key = buildAdminResultCacheKey(row);
+        if (!key) return;
+        cachedByKey.set(key, mergeAdminRowsPreferHydrated(row, cachedByKey.get(key) || null));
+      });
+      return freshRows.map((row) => {
+        const key = buildAdminResultCacheKey(row);
+        if (!key) return row;
+        return mergeAdminRowsPreferHydrated(row, cachedByKey.get(key) || null);
+      });
+    }
+
+    function hasHydratedAdminDetail(row) {
+      if (!row || typeof row !== "object") return false;
+      return [
+        row.studentEmail,
+        row.signInMethod,
+        row.writingTask1,
+        row.writingTask2,
+        row.task1Breakdown,
+        row.task2Breakdown,
+        row.overallFeedback,
+        row.task1Feedback,
+        row.task2Feedback,
+      ].some(hasAdminMeaningfulValue);
+    }
+
     function adminCacheKey(mode) {
       return `${ADMIN_RESULTS_CACHE_KEY}:${String(mode || "full")}`;
     }
@@ -1476,9 +1537,10 @@
       adminResultsPrefetchState.startedAtByMode[mode] = now;
       adminResultsPrefetchState.promiseByMode[mode] = fetchAdminResults(options)
         .then((rows) => {
-          setAdminRows(mode, rows);
-          saveAdminResultsCache(rows, mode);
-          return rows;
+          const mergedRows = mergeAdminResultsWithCache(rows, mode);
+          setAdminRows(mode, mergedRows);
+          saveAdminResultsCache(mergedRows, mode);
+          return mergedRows;
         })
         .finally(() => {
           adminResultsPrefetchState.promiseByMode[mode] = null;
@@ -1636,7 +1698,7 @@
       try {
         const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
         sessionStorage.setItem(adminCacheKey(mode), payload);
-        localStorage.removeItem(adminPersistentCacheKey(mode));
+        localStorage.setItem(adminPersistentCacheKey(mode), payload);
       } catch (e) {}
     }
 
@@ -1669,11 +1731,19 @@
     function mergeAdminRowIntoState(updatedRow, mode = adminState.mode) {
       if (!updatedRow) return;
       const targetKey = buildAdminResultCacheKey(updatedRow);
-      const nextRows = getAdminRows(mode).map((row) =>
-        buildAdminResultCacheKey(row) === targetKey ? { ...row, ...updatedRow } : row
-      );
+      let found = false;
+      const nextRows = getAdminRows(mode).map((row) => {
+        if (buildAdminResultCacheKey(row) !== targetKey) return row;
+        found = true;
+        return mergeAdminRowsPreferHydrated(updatedRow, row);
+      });
+      if (!found) nextRows.unshift(updatedRow);
       setAdminRows(mode, nextRows);
       saveAdminResultsCache(nextRows, mode);
+      const cacheKey = buildAdminResultCacheKey(updatedRow);
+      if (cacheKey && hasHydratedAdminDetail(updatedRow)) {
+        adminFullResultCache.set(cacheKey, updatedRow);
+      }
     }
 
     function renderSummary(rows) {
@@ -2251,7 +2321,14 @@
       if (!detail || !row) return;
       adminDetailState.sourceRowId = options.sourceRowId || null;
       adminDetailState.sourceScrollY = window.scrollY || 0;
-      renderAdminDetailFields(row, { loadingDetail: true });
+      const hasCachedDetail = hasHydratedAdminDetail(row);
+      if (hasCachedDetail) {
+        const cacheKey = buildAdminResultCacheKey(row);
+        if (cacheKey && !adminFullResultCache.has(cacheKey)) {
+          adminFullResultCache.set(cacheKey, row);
+        }
+      }
+      renderAdminDetailFields(row, { loadingDetail: !hasCachedDetail });
       renderObjectiveReview("adminDetail", null);
       detail.classList.remove("hidden");
       try {
@@ -2351,13 +2428,14 @@
         }
         const refresh = prefetchAdminResults({ forceRefresh, mode: adminState.mode })
           .then((rows) => {
-            setAdminRows(adminState.mode, rows);
-            saveAdminResultsCache(rows, adminState.mode);
-            fillExamFilter(rows);
-            fillMonthYearFilters(rows);
+            const mergedRows = mergeAdminResultsWithCache(rows, adminState.mode);
+            setAdminRows(adminState.mode, mergedRows);
+            saveAdminResultsCache(mergedRows, adminState.mode);
+            fillExamFilter(mergedRows);
+            fillMonthYearFilters(mergedRows);
             applyAdminFilters();
-            scheduleAdminDetailWarmup(rows, adminState.mode);
-            return rows;
+            scheduleAdminDetailWarmup(mergedRows, adminState.mode);
+            return mergedRows;
           });
         if (!usedCachedRows) {
           await refresh;

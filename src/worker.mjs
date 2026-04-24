@@ -5,7 +5,7 @@ import { getProtectedTestContent } from "./protectedTestContent.mjs";
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
-const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
+const ADMIN_RESULTS_SUMMARY_TTL_MS = 30 * 1000;
 const ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS = 30 * 1000;
 const ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS = 20 * 1000;
 const AUTO_HISTORY_ATTACH_STATE = new Map();
@@ -935,14 +935,6 @@ async function handleAdminApi(request, env) {
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     const forceRefresh = url.searchParams.get("refresh") === "1";
 
-    const cacheUrl = buildAdminResultsSummaryCacheUrl(url, auth);
-    const cache = caches.default;
-    const cacheRequest = new Request(cacheUrl.toString(), { method: "GET" });
-    const cachedResponse = await cache.match(cacheRequest);
-    if (cachedResponse) {
-      if (!forceRefresh) return cachedResponse;
-    }
-
     const search = normalizeMatchString(url.searchParams.get("q") || "");
     const examFilter = oneLine(url.searchParams.get("examId") || "");
     const monthFilter = oneLine(url.searchParams.get("month") || "");
@@ -960,8 +952,6 @@ async function handleAdminApi(request, env) {
       const staleSummaries = getAnyCachedAdminResultsSummary(auth?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(auth) || "public"}`);
       if (staleSummaries?.length) {
         summaries = staleSummaries;
-      } else if (cachedResponse) {
-        return cachedResponse;
       } else {
         return json(502, { ok: false, error: error?.message || "Could not load admin results summary." });
       }
@@ -1000,17 +990,15 @@ async function handleAdminApi(request, env) {
       rows = rows.slice(0, limitValue);
     }
 
-    const response = json(200, {
+    return json(200, {
       ok: true,
       results: rows,
       total: summaries.filter((row) => !isPracticeExamId(row?.examId)).length,
       filteredTotal: rows.length,
       generatedAt: new Date().toISOString(),
     }, {
-      "Cache-Control": `private, max-age=${Math.floor(ADMIN_RESULTS_SUMMARY_TTL_MS / 1000)}`
+      "Cache-Control": "private, no-store"
     });
-    await cache.put(cacheRequest, response.clone()).catch(() => null);
-    return response;
   }
 
   if (request.method === "GET" && action === "practiceResultsSummary") {

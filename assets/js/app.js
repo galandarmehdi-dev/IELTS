@@ -1138,9 +1138,9 @@
     // Admin results dashboard
     // -----------------------------
     const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [] }, filtered: [] };
-    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE";
-    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT";
-    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24;
+    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V2";
+    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V2";
+    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 
@@ -1698,22 +1698,16 @@
       try {
         const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
         sessionStorage.setItem(adminCacheKey(mode), payload);
-        localStorage.setItem(adminPersistentCacheKey(mode), payload);
       } catch (e) {}
     }
 
     function loadAdminResultsCache(mode = adminState.mode) {
       try {
         const sessionRaw = readSessionValueWithLegacyFallback(adminCacheKey(mode));
-        const localRaw = readSessionValueWithLegacyFallback(adminPersistentCacheKey(mode));
         const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : null;
-        const localParsed = localRaw ? JSON.parse(localRaw) : null;
-        const sessionSavedAt = Number(sessionParsed?.savedAt || 0);
-        const localSavedAt = Number(localParsed?.savedAt || 0);
-        const picked = sessionSavedAt >= localSavedAt ? sessionParsed : localParsed;
-        if (!picked) return [];
-        if (Date.now() - Number(picked.savedAt || 0) > ADMIN_RESULTS_CACHE_MAX_AGE_MS) return [];
-        return Array.isArray(picked?.rows) ? picked.rows : [];
+        if (!sessionParsed) return [];
+        if (Date.now() - Number(sessionParsed.savedAt || 0) > ADMIN_RESULTS_CACHE_MAX_AGE_MS) return [];
+        return Array.isArray(sessionParsed?.rows) ? sessionParsed.rows : [];
       } catch (e) {
         return [];
       }

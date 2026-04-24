@@ -1138,9 +1138,10 @@
     // Admin results dashboard
     // -----------------------------
     const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [] }, filtered: [] };
-    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V3";
-    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V3";
+    const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V4";
+    const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V4";
     const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
+    const ADMIN_RESULTS_PERSISTENT_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 
@@ -1411,18 +1412,7 @@
         const sessionValue = sessionStorage.getItem(key);
         if (sessionValue !== null) return sessionValue;
       } catch (e) {}
-      try {
-        const legacyValue = localStorage.getItem(key);
-        if (legacyValue !== null) {
-          try {
-            sessionStorage.setItem(key, legacyValue);
-            localStorage.removeItem(key);
-          } catch (e) {}
-        }
-        return legacyValue;
-      } catch (e) {
-        return null;
-      }
+      return null;
     }
 
     function updateAdminResultsModeChrome() {
@@ -1699,15 +1689,32 @@
         const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
         sessionStorage.setItem(adminCacheKey(mode), payload);
       } catch (e) {}
+      try {
+        const payload = JSON.stringify({ rows: Array.isArray(rows) ? rows : [], savedAt: Date.now() });
+        localStorage.setItem(adminPersistentCacheKey(mode), payload);
+      } catch (e) {}
     }
 
     function loadAdminResultsCache(mode = adminState.mode) {
       try {
         const sessionRaw = readSessionValueWithLegacyFallback(adminCacheKey(mode));
         const sessionParsed = sessionRaw ? JSON.parse(sessionRaw) : null;
-        if (!sessionParsed) return [];
-        if (Date.now() - Number(sessionParsed.savedAt || 0) > ADMIN_RESULTS_CACHE_MAX_AGE_MS) return [];
-        return Array.isArray(sessionParsed?.rows) ? sessionParsed.rows : [];
+        if (sessionParsed && Date.now() - Number(sessionParsed.savedAt || 0) <= ADMIN_RESULTS_CACHE_MAX_AGE_MS) {
+          return Array.isArray(sessionParsed?.rows) ? sessionParsed.rows : [];
+        }
+      } catch (e) {}
+      try {
+        const persistentRaw = localStorage.getItem(adminPersistentCacheKey(mode));
+        const persistentParsed = persistentRaw ? JSON.parse(persistentRaw) : null;
+        if (!persistentParsed) return [];
+        if (Date.now() - Number(persistentParsed.savedAt || 0) > ADMIN_RESULTS_PERSISTENT_CACHE_MAX_AGE_MS) return [];
+        if (Array.isArray(persistentParsed?.rows)) {
+          try {
+            sessionStorage.setItem(adminCacheKey(mode), JSON.stringify(persistentParsed));
+          } catch (e) {}
+          return persistentParsed.rows;
+        }
+        return [];
       } catch (e) {
         return [];
       }

@@ -5,7 +5,7 @@ import { getProtectedTestContent } from "./protectedTestContent.mjs";
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_CACHE = new Map();
-const ADMIN_RESULTS_SUMMARY_TTL_MS = 30 * 1000;
+const ADMIN_RESULTS_SUMMARY_TTL_MS = 5 * 60 * 1000;
 const ADMIN_RESULTS_SUMMARY_FETCH_TIMEOUT_MS = 30 * 1000;
 const ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS = 20 * 1000;
 const AUTO_HISTORY_ATTACH_STATE = new Map();

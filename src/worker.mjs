@@ -2546,31 +2546,46 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
   return next;
 }
 
-function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "") {
-  return {
+function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "", options = {}) {
+  const includeClassroomName = options?.includeClassroomName === true;
+  const includeSpeaking = options?.includeSpeaking === true;
+  const includeOverall = options?.includeOverall === true;
+  const patch = {
     organization_id: normalizeOrganizationId(summary?.organizationId || summary?.organization_id || organizationId || "") || null,
     student_profile_id: oneLine(summary?.studentProfileId || summary?.student_profile_id || "") || null,
     student_id_code: oneLine(summary?.studentIdCode || summary?.student_id_code || "") || null,
     classroom_id: oneLine(summary?.classroomId || summary?.classroom_id || "") || null,
-    classroom_name: oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || ""),
     official_email: normalizeEmail(summary?.officialEmail || summary?.official_email || "") || null,
     listening_total: toNullableNumber(summary?.listeningTotal ?? summary?.listening_total),
     listening_band: toNullableBand(summary?.listeningBand ?? summary?.listening_band),
     reading_total: toNullableNumber(summary?.readingTotal ?? summary?.reading_total),
     reading_band: toNullableBand(summary?.readingBand ?? summary?.reading_band),
     final_writing_band: toNullableBand(summary?.finalWritingBand ?? summary?.final_writing_band),
-    speaking_band: toNullableBand(summary?.speakingBand ?? summary?.speaking_band),
-    overall_band: toNullableBand(summary?.overallBand ?? summary?.overall_band),
     task1_words: toNullableNumber(summary?.task1Words ?? summary?.task1_words),
     task2_words: toNullableNumber(summary?.task2Words ?? summary?.task2_words),
     task1_band: toNullableBand(summary?.task1Band ?? summary?.task1_band),
     task2_band: toNullableBand(summary?.task2Band ?? summary?.task2_band),
   };
+  if (includeClassroomName) {
+    patch.classroom_name = oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || "");
+  }
+  if (includeSpeaking) {
+    patch.speaking_band = toNullableBand(summary?.speakingBand ?? summary?.speaking_band);
+  }
+  if (includeOverall) {
+    patch.overall_band = toNullableBand(summary?.overallBand ?? summary?.overall_band);
+  }
+  return patch;
 }
 
 async function persistHydratedAdminSummary(env, lookupRow, summary = {}) {
   const normalizedOrganizationId = normalizeOrganizationId(summary?.organizationId || summary?.organization_id || lookupRow?.organizationId || lookupRow?.organization_id || "");
   const patch = buildHydratedAdminSummaryPatch(summary, normalizedOrganizationId);
+  const recoveryPatch = buildHydratedAdminSummaryPatch(summary, normalizedOrganizationId, {
+    includeClassroomName: true,
+    includeSpeaking: true,
+    includeOverall: true,
+  });
   const examAttemptQuery = {
     submitted_at: `eq.${oneLine(lookupRow?.submittedAt || lookupRow?.submitted_at || "")}`,
     student_full_name: `eq.${oneLine(lookupRow?.studentFullName || lookupRow?.student_full_name || "")}`,
@@ -2586,7 +2601,7 @@ async function persistHydratedAdminSummary(env, lookupRow, summary = {}) {
 
   const keys = buildSubmissionLookupKeys({ ...lookupRow, organizationId: normalizedOrganizationId }, normalizedOrganizationId);
   for (const key of keys) {
-    await updateSubmissionRecoveryRow(env, key, patch).catch(() => null);
+    await updateSubmissionRecoveryRow(env, key, recoveryPatch).catch(() => null);
   }
 }
 
@@ -5161,11 +5176,8 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null) {
       "student_id_code",
       "student_profile_id",
       "classroom_id",
-      "classroom_name",
       "official_email",
       "organization_id",
-      "speaking_band",
-      "overall_band",
     ].join(",")
   );
   const actorOrganizationId = getActorOrganizationId(actor || null);
@@ -5214,12 +5226,12 @@ function summarizeAdminAttemptRow(row) {
     readingTotal: toNullableNumber(row?.reading_total),
     readingBand,
     finalWritingBand,
-    speakingBand,
-    overallBand: toNullableBand(row?.overall_band) ?? toRoundedOverallBand([
+    speakingBand: null,
+    overallBand: toRoundedOverallBand([
       listeningBand,
       readingBand,
       finalWritingBand,
-      speakingBand,
+      null,
     ]),
     task1Words,
     task2Words,
@@ -5228,7 +5240,7 @@ function summarizeAdminAttemptRow(row) {
     studentIdCode: oneLine(row?.student_id_code || ""),
     studentProfileId: oneLine(row?.student_profile_id || ""),
     classroomId: oneLine(row?.classroom_id || ""),
-    classroom: oneLine(row?.classroom_name || ""),
+    classroom: "",
     canonicalStudentName: oneLine(row?.student_full_name || ""),
     officialEmail: normalizeEmail(row?.official_email || ""),
     organizationId: normalizeOrganizationId(row?.organization_id || ""),

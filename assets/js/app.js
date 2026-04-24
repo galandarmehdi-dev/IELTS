@@ -1529,14 +1529,13 @@
       if (!safeRows.length) return;
       const warmup = () => {
         if (document.body?.dataset?.activeView !== "adminResults") return;
-        prefetchAdminFullResults(safeRows, 3, mode);
-        prefetchAdminObjectiveDetails(safeRows, 2);
+        prefetchAdminFullResults(safeRows, 1, mode);
       };
       if (typeof window.requestIdleCallback === "function") {
-        window.requestIdleCallback(() => warmup(), { timeout: 2500 });
+        window.requestIdleCallback(() => warmup(), { timeout: 4000 });
         return;
       }
-      window.setTimeout(warmup, 1200);
+      window.setTimeout(warmup, 2500);
     }
 
     function prefetchAdminFullResults(rows, limit, mode = adminState.mode) {

@@ -5033,15 +5033,12 @@ async function fetchAppsScriptJsonWithRetry(url, options = {}) {
 
 async function getAdminResultsSummary(env, options = {}) {
   const actor = options?.actor || null;
-  if (actor) {
-    await maybeAutoBackfillHistoricalStudentProfiles(env, actor, { force: options?.forceRefresh === true }).catch(() => null);
-  }
   const cacheKey = actor?.isSuperAdmin ? "all:super" : `all:${getActorOrganizationId(actor) || "public"}`;
   const forceRefresh = options?.forceRefresh === true;
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
-  const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env).catch(() => null);
+  const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor).catch(() => null);
   if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
     setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
     return supabaseSummaries;
@@ -5073,7 +5070,7 @@ async function getAdminResultsSummary(env, options = {}) {
   }
 }
 
-async function getAdminResultsSummaryFromSupabase(env) {
+async function getAdminResultsSummaryFromSupabase(env, actor = null) {
   const serviceRoleKey = oneLine(env?.SUPABASE_SERVICE_ROLE_KEY || "");
   const supabaseUrl = oneLine(env?.SUPABASE_URL || "").replace(/\/$/, "");
   if (!serviceRoleKey || !supabaseUrl) return null;
@@ -5085,7 +5082,6 @@ async function getAdminResultsSummaryFromSupabase(env) {
       "submitted_at",
       "student_full_name",
       "exam_id",
-      "active_test_id",
       "reason",
       "listening_total",
       "listening_band",
@@ -5098,15 +5094,17 @@ async function getAdminResultsSummaryFromSupabase(env) {
       "task2_band",
       "student_id_code",
       "student_profile_id",
+      "classroom_name",
       "official_email",
       "organization_id",
-      "listening_answers",
-      "reading_answers",
-      "final_payload",
     ].join(",")
   );
+  const actorOrganizationId = getActorOrganizationId(actor || null);
+  if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+    endpoint.searchParams.set("organization_id", `eq.${actorOrganizationId}`);
+  }
   endpoint.searchParams.set("order", "submitted_at.desc");
-  endpoint.searchParams.set("limit", "500");
+  endpoint.searchParams.set("limit", "1000");
 
   const response = await fetch(endpoint.toString(), {
     method: "GET",
@@ -5122,14 +5120,12 @@ async function getAdminResultsSummaryFromSupabase(env) {
 }
 
 function summarizeAdminAttemptRow(row) {
-  const finalPayload = row?.final_payload && typeof row.final_payload === "object" ? row.final_payload : {};
-  const inferredTestId = inferObjectiveTestId(row, finalPayload);
-  const listeningDerived = deriveObjectiveSummary("listening", inferredTestId, row?.listening_answers ?? finalPayload?.listening?.answers);
-  const readingDerived = deriveObjectiveSummary("reading", inferredTestId, row?.reading_answers ?? finalPayload?.reading?.answers);
-  const task1Words = toNullableNumber(row?.task1_words ?? finalPayload?.writing?.wordCount?.task1);
-  const task2Words = toNullableNumber(row?.task2_words ?? finalPayload?.writing?.wordCount?.task2);
+  const task1Words = toNullableNumber(row?.task1_words);
+  const task2Words = toNullableNumber(row?.task2_words);
   const task1Band = toNullableBand(row?.task1_band);
   const task2Band = toNullableBand(row?.task2_band);
+  const listeningBand = toNullableBand(row?.listening_band);
+  const readingBand = toNullableBand(row?.reading_band);
   const finalWritingBand = toEffectiveWritingBand({
     finalWritingBand: row?.final_writing_band,
     task1Words,
@@ -5139,19 +5135,19 @@ function summarizeAdminAttemptRow(row) {
   });
 
   return {
-    submittedAt: oneLine(row?.submitted_at || finalPayload?.submittedAt || ""),
-    studentFullName: oneLine(row?.student_full_name || finalPayload?.studentFullName || ""),
-    examId: oneLine(row?.exam_id || finalPayload?.examId || ""),
-    reason: oneLine(row?.reason || finalPayload?.reason || ""),
-    listeningTotal: toNullableNumber(row?.listening_total) ?? listeningDerived.total,
-    listeningBand: toNullableBand(row?.listening_band) ?? listeningDerived.band,
-    readingTotal: toNullableNumber(row?.reading_total) ?? readingDerived.total,
-    readingBand: toNullableBand(row?.reading_band) ?? readingDerived.band,
+    submittedAt: oneLine(row?.submitted_at || ""),
+    studentFullName: oneLine(row?.student_full_name || ""),
+    examId: oneLine(row?.exam_id || ""),
+    reason: oneLine(row?.reason || ""),
+    listeningTotal: toNullableNumber(row?.listening_total),
+    listeningBand,
+    readingTotal: toNullableNumber(row?.reading_total),
+    readingBand,
     finalWritingBand,
     speakingBand: null,
     overallBand: toRoundedOverallBand([
-      toNullableBand(row?.listening_band) ?? listeningDerived.band,
-      toNullableBand(row?.reading_band) ?? readingDerived.band,
+      listeningBand,
+      readingBand,
       finalWritingBand,
       null,
     ]),
@@ -5159,10 +5155,12 @@ function summarizeAdminAttemptRow(row) {
     task2Words,
     task1Band,
     task2Band,
-    studentIdCode: oneLine(row?.student_id_code || finalPayload?.studentIdCode || finalPayload?.writing?.studentIdCode || ""),
-    studentProfileId: oneLine(row?.student_profile_id || finalPayload?.studentProfileId || finalPayload?.writing?.studentProfileId || ""),
-    officialEmail: normalizeEmail(row?.official_email || finalPayload?.officialEmail || finalPayload?.writing?.officialEmail || ""),
-    organizationId: normalizeOrganizationId(row?.organization_id || finalPayload?.organizationId || ""),
+    studentIdCode: oneLine(row?.student_id_code || ""),
+    studentProfileId: oneLine(row?.student_profile_id || ""),
+    classroom: oneLine(row?.classroom_name || ""),
+    canonicalStudentName: oneLine(row?.student_full_name || ""),
+    officialEmail: normalizeEmail(row?.official_email || ""),
+    organizationId: normalizeOrganizationId(row?.organization_id || ""),
   };
 }
 

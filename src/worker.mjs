@@ -1059,6 +1059,12 @@ async function handleAdminApi(request, env) {
     });
     const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
+    if (mergedResult) {
+      await persistHydratedAdminSummary(env, {
+        ...submissionLookup,
+        organizationId: submissionOrganizationId,
+      }, mergedResult).catch(() => null);
+    }
     return json(200, { ...data, result: mergedResult });
   }
 
@@ -1177,6 +1183,12 @@ async function handleAdminApi(request, env) {
     }
     const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
+    if (mergedResult) {
+      await persistHydratedAdminSummary(env, {
+        ...submissionLookup,
+        organizationId: submissionOrganizationId,
+      }, mergedResult).catch(() => null);
+    }
     return json(200, { ...data, result: mergedResult });
   }
 
@@ -1349,11 +1361,14 @@ async function handleAdminApi(request, env) {
     if (!canActorAccessOrganization(auth, submissionOrganizationId)) {
       return json(403, { ok: false, error: "This result does not belong to the current tenant." });
     }
+    const summaryLookup = { submittedAt, studentFullName, examId, reason, organizationId: submissionOrganizationId };
     const meta = await writeSubmissionScoreMeta(
       env,
-      { submittedAt, studentFullName, examId, reason, organizationId: submissionOrganizationId },
+      summaryLookup,
       { speakingBand, organizationId: submissionOrganizationId }
     );
+    const hydrated = mergeSummaryWithScoreMeta({ submittedAt, studentFullName, examId, reason }, meta || { speakingBand, organizationId: submissionOrganizationId });
+    await persistHydratedAdminSummary(env, summaryLookup, hydrated).catch(() => null);
     try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
     return json(200, { ok: true, speakingBand, meta });
   }
@@ -1411,6 +1426,13 @@ async function handleAdminApi(request, env) {
       task2Band,
       finalWritingBand,
     });
+    const hydrated = mergeSummaryWithScoreMeta(existing, meta || {
+      task1Band,
+      task2Band,
+      finalWritingBand,
+      organizationId: submissionLookup.organizationId || "",
+    });
+    await persistHydratedAdminSummary(env, submissionLookup, hydrated).catch(() => null);
     try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
     return json(200, {
       ok: true,
@@ -2522,6 +2544,50 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
   };
   await writeJsonKv(env.STUDENT_REGISTRY, key, next);
   return next;
+}
+
+function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "") {
+  return {
+    organization_id: normalizeOrganizationId(summary?.organizationId || summary?.organization_id || organizationId || "") || null,
+    student_profile_id: oneLine(summary?.studentProfileId || summary?.student_profile_id || "") || null,
+    student_id_code: oneLine(summary?.studentIdCode || summary?.student_id_code || "") || null,
+    classroom_id: oneLine(summary?.classroomId || summary?.classroom_id || "") || null,
+    classroom_name: oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || ""),
+    official_email: normalizeEmail(summary?.officialEmail || summary?.official_email || "") || null,
+    listening_total: toNullableNumber(summary?.listeningTotal ?? summary?.listening_total),
+    listening_band: toNullableBand(summary?.listeningBand ?? summary?.listening_band),
+    reading_total: toNullableNumber(summary?.readingTotal ?? summary?.reading_total),
+    reading_band: toNullableBand(summary?.readingBand ?? summary?.reading_band),
+    final_writing_band: toNullableBand(summary?.finalWritingBand ?? summary?.final_writing_band),
+    speaking_band: toNullableBand(summary?.speakingBand ?? summary?.speaking_band),
+    overall_band: toNullableBand(summary?.overallBand ?? summary?.overall_band),
+    task1_words: toNullableNumber(summary?.task1Words ?? summary?.task1_words),
+    task2_words: toNullableNumber(summary?.task2Words ?? summary?.task2_words),
+    task1_band: toNullableBand(summary?.task1Band ?? summary?.task1_band),
+    task2_band: toNullableBand(summary?.task2Band ?? summary?.task2_band),
+  };
+}
+
+async function persistHydratedAdminSummary(env, lookupRow, summary = {}) {
+  const normalizedOrganizationId = normalizeOrganizationId(summary?.organizationId || summary?.organization_id || lookupRow?.organizationId || lookupRow?.organization_id || "");
+  const patch = buildHydratedAdminSummaryPatch(summary, normalizedOrganizationId);
+  const examAttemptQuery = {
+    submitted_at: `eq.${oneLine(lookupRow?.submittedAt || lookupRow?.submitted_at || "")}`,
+    student_full_name: `eq.${oneLine(lookupRow?.studentFullName || lookupRow?.student_full_name || "")}`,
+    exam_id: `eq.${oneLine(lookupRow?.examId || lookupRow?.exam_id || "")}`,
+  };
+  if (normalizedOrganizationId) examAttemptQuery.organization_id = `eq.${normalizedOrganizationId}`;
+  if (oneLine(lookupRow?.reason || "")) examAttemptQuery.reason = `eq.${oneLine(lookupRow.reason)}`;
+  await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    method: "PATCH",
+    query: examAttemptQuery,
+    body: patch,
+  }).catch(() => null);
+
+  const keys = buildSubmissionLookupKeys({ ...lookupRow, organizationId: normalizedOrganizationId }, normalizedOrganizationId);
+  for (const key of keys) {
+    await updateSubmissionRecoveryRow(env, key, patch).catch(() => null);
+  }
 }
 
 function mergeSummaryWithScoreMeta(summary, scoreMeta) {
@@ -5094,9 +5160,12 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null) {
       "task2_band",
       "student_id_code",
       "student_profile_id",
+      "classroom_id",
       "classroom_name",
       "official_email",
       "organization_id",
+      "speaking_band",
+      "overall_band",
     ].join(",")
   );
   const actorOrganizationId = getActorOrganizationId(actor || null);
@@ -5126,6 +5195,7 @@ function summarizeAdminAttemptRow(row) {
   const task2Band = toNullableBand(row?.task2_band);
   const listeningBand = toNullableBand(row?.listening_band);
   const readingBand = toNullableBand(row?.reading_band);
+  const speakingBand = toNullableBand(row?.speaking_band);
   const finalWritingBand = toEffectiveWritingBand({
     finalWritingBand: row?.final_writing_band,
     task1Words,
@@ -5144,12 +5214,12 @@ function summarizeAdminAttemptRow(row) {
     readingTotal: toNullableNumber(row?.reading_total),
     readingBand,
     finalWritingBand,
-    speakingBand: null,
-    overallBand: toRoundedOverallBand([
+    speakingBand,
+    overallBand: toNullableBand(row?.overall_band) ?? toRoundedOverallBand([
       listeningBand,
       readingBand,
       finalWritingBand,
-      null,
+      speakingBand,
     ]),
     task1Words,
     task2Words,
@@ -5157,6 +5227,7 @@ function summarizeAdminAttemptRow(row) {
     task2Band,
     studentIdCode: oneLine(row?.student_id_code || ""),
     studentProfileId: oneLine(row?.student_profile_id || ""),
+    classroomId: oneLine(row?.classroom_id || ""),
     classroom: oneLine(row?.classroom_name || ""),
     canonicalStudentName: oneLine(row?.student_full_name || ""),
     officialEmail: normalizeEmail(row?.official_email || ""),

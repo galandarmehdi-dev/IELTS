@@ -957,23 +957,14 @@
     </div>
 
     <div class="hidden" id="adminClassroomsPage">
-    <div class="workspace-banner admin-banner">
-      <div class="workspace-banner-copy">
-        <span class="workspace-banner-kicker">Class analytics</span>
-        <strong>Choose one class, review its monthly movement, and open any student’s full attempt trail.</strong>
-        <p>This workspace keeps class performance and individual progress together without crowding the results table.</p>
-      </div>
-    </div>
-
     <div class="admin-result-detail" id="adminClassroomProgressPanel">
       <div class="admin-result-detail-top">
-        <h2>Class progress and student tracking</h2>
+        <h2>Classroom register</h2>
         <div class="admin-row-actions">
-          <button class="btn secondary" type="button" id="adminBackfillHistoryBtn">Assign previous attempts</button>
           <button class="btn secondary" type="button" id="adminClassroomProgressRefreshBtn">Refresh progress</button>
         </div>
       </div>
-      <p class="small" id="adminClassroomProgressStatus">Load class progress to see classroom trends and student attempt history.</p>
+      <p class="small" id="adminClassroomProgressStatus">Choose a class to review current performance, monthly movement, and each student's full attempt history.</p>
 
       <div class="admin-results-summary">
         <div class="admin-stat-card">
@@ -1019,84 +1010,157 @@
         </label>
       </div>
 
-      <div class="admin-detail-card admin-classroom-focus-card">
-        <div class="admin-result-detail-top admin-classroom-focus-top">
-          <div>
-            <div class="admin-detail-label">Selected classroom</div>
-            <h3 class="admin-classroom-focus-title" id="adminSelectedClassroomTitle">Choose a class</h3>
-            <p class="admin-classroom-focus-copy" id="adminSelectedClassroomMeta">Once selected, you will see the class trend, this month vs previous month, and clickable student progress.</p>
-          </div>
-        </div>
-
-        <div class="admin-classroom-metrics admin-classroom-metrics-wide">
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">Students</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomStudents">0</span>
-          </div>
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">Active students</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomActiveStudents">0</span>
-          </div>
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">Attempts</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomAttempts">0</span>
-          </div>
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">Avg overall</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomOverall">0.0</span>
-          </div>
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">This month</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomCurrentMonth">0</span>
-          </div>
-          <div class="admin-classroom-metric">
-            <span class="admin-classroom-metric-label">Previous month</span>
-            <span class="admin-classroom-metric-value" id="adminSelectedClassroomPreviousMonth">0</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="admin-detail-grid">
-        <div class="admin-detail-card admin-classroom-chart-card">
-          <div class="admin-detail-label">Recent monthly trend</div>
-          <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
-          <div class="dashboard-chart-empty hidden" id="adminClassroomOverviewEmpty">No classroom activity is available yet.</div>
-        </div>
-        <div class="admin-detail-card admin-classroom-month-compare">
-          <div class="admin-detail-label">Month comparison</div>
-          <div class="admin-classroom-month-grid">
-            <div class="admin-classroom-month-card">
-              <span class="admin-classroom-metric-label" id="adminSelectedClassroomCurrentMonthLabel">This month</span>
-              <strong id="adminSelectedClassroomCurrentMonthAttempts">0 attempts</strong>
-              <span id="adminSelectedClassroomCurrentMonthOverall">Avg overall: 0.0</span>
-              <span id="adminSelectedClassroomCurrentMonthActive">Active students: 0</span>
-            </div>
-            <div class="admin-classroom-month-card">
-              <span class="admin-classroom-metric-label" id="adminSelectedClassroomPreviousMonthLabel">Previous month</span>
-              <strong id="adminSelectedClassroomPreviousMonthAttempts">0 attempts</strong>
-              <span id="adminSelectedClassroomPreviousMonthOverall">Avg overall: 0.0</span>
-              <span id="adminSelectedClassroomPreviousMonthActive">Active students: 0</span>
+      <div class="admin-classroom-register-layout">
+        <aside class="admin-detail-card admin-classroom-directory-card">
+          <div class="admin-result-detail-top admin-classroom-directory-top">
+            <div>
+              <div class="admin-detail-label">Class list</div>
+              <h3 class="admin-classroom-directory-title">Your classes</h3>
             </div>
           </div>
-        </div>
-      </div>
+          <p class="admin-classroom-directory-copy">Pick a class here or from the dropdown to jump straight into its register view.</p>
+          <div class="admin-classroom-directory-list" id="adminClassroomDirectory"></div>
+        </aside>
 
-      <div class="admin-results-table-wrap">
-        <table class="admin-results-table">
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Attempts</th>
-              <th>Full tests</th>
-              <th>Practice</th>
-              <th>Avg overall</th>
-              <th>Latest</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="adminClassroomStudentsTbody"></tbody>
-        </table>
+        <div class="admin-classroom-register-main">
+          <div class="admin-detail-card admin-classroom-focus-card">
+            <div class="admin-result-detail-top admin-classroom-focus-top">
+              <div>
+                <div class="admin-detail-label">Selected classroom</div>
+                <h3 class="admin-classroom-focus-title" id="adminSelectedClassroomTitle">Choose a class</h3>
+                <p class="admin-classroom-focus-copy" id="adminSelectedClassroomMeta">You’ll see monthly movement, active students, and each student’s attempt history in one place.</p>
+              </div>
+            </div>
+
+            <div class="admin-classroom-metrics admin-classroom-metrics-wide">
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">Students</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomStudents">0</span>
+              </div>
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">Active students</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomActiveStudents">0</span>
+              </div>
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">Attempts</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomAttempts">0</span>
+              </div>
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">Avg overall</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomOverall">0.0</span>
+              </div>
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">This month</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomCurrentMonth">0</span>
+              </div>
+              <div class="admin-classroom-metric">
+                <span class="admin-classroom-metric-label">Previous month</span>
+                <span class="admin-classroom-metric-value" id="adminSelectedClassroomPreviousMonth">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-detail-grid admin-classroom-register-grid">
+            <div class="admin-detail-card admin-classroom-chart-card">
+              <div class="admin-detail-label">Recent monthly trend</div>
+              <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
+              <div class="dashboard-chart-empty hidden" id="adminClassroomOverviewEmpty">No classroom activity is available yet.</div>
+            </div>
+            <div class="admin-detail-card admin-classroom-month-compare">
+              <div class="admin-detail-label">Month comparison</div>
+              <div class="admin-classroom-month-grid">
+                <div class="admin-classroom-month-card">
+                  <span class="admin-classroom-metric-label" id="adminSelectedClassroomCurrentMonthLabel">This month</span>
+                  <strong id="adminSelectedClassroomCurrentMonthAttempts">0 attempts</strong>
+                  <span id="adminSelectedClassroomCurrentMonthOverall">Avg overall: 0.0</span>
+                  <span id="adminSelectedClassroomCurrentMonthActive">Active students: 0</span>
+                </div>
+                <div class="admin-classroom-month-card">
+                  <span class="admin-classroom-metric-label" id="adminSelectedClassroomPreviousMonthLabel">Previous month</span>
+                  <strong id="adminSelectedClassroomPreviousMonthAttempts">0 attempts</strong>
+                  <span id="adminSelectedClassroomPreviousMonthOverall">Avg overall: 0.0</span>
+                  <span id="adminSelectedClassroomPreviousMonthActive">Active students: 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-detail-card admin-classroom-students-card">
+            <div class="admin-result-detail-top">
+              <div>
+                <div class="admin-detail-label">Student register</div>
+                <h3 class="admin-classroom-section-title">Students and results</h3>
+              </div>
+            </div>
+            <div class="admin-results-table-wrap">
+              <table class="admin-results-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Attempts</th>
+                    <th>Full tests</th>
+                    <th>Practice</th>
+                    <th>Avg overall</th>
+                    <th>Latest</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminClassroomStudentsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-result-detail hidden" id="adminStudentProgressDetail">
+            <div class="admin-result-detail-top">
+              <h2 id="adminStudentProgressTitle">Student progress</h2>
+              <button class="btn secondary" type="button" id="adminStudentProgressCloseBtn">Close</button>
+            </div>
+            <div class="admin-results-summary">
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Attempts</div>
+                <div class="admin-stat-value" id="adminStudentProgressAttempts">0</div>
+              </div>
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Full tests</div>
+                <div class="admin-stat-value" id="adminStudentProgressFullAttempts">0</div>
+              </div>
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Practice</div>
+                <div class="admin-stat-value" id="adminStudentProgressPracticeAttempts">0</div>
+              </div>
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Avg overall</div>
+                <div class="admin-stat-value" id="adminStudentProgressOverall">0.0</div>
+              </div>
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Latest</div>
+                <div class="admin-stat-value admin-stat-small" id="adminStudentProgressLatest">—</div>
+              </div>
+              <div class="admin-stat-card">
+                <div class="admin-stat-label">Classroom</div>
+                <div class="admin-stat-value admin-stat-small" id="adminStudentProgressClassroom">—</div>
+              </div>
+            </div>
+            <div class="admin-results-table-wrap">
+              <table class="admin-results-table">
+                <thead>
+                  <tr>
+                    <th>Submitted</th>
+                    <th>Attempt</th>
+                    <th>Listening</th>
+                    <th>Reading</th>
+                    <th>Writing</th>
+                    <th>Speaking</th>
+                    <th>Overall</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="adminStudentProgressAttemptsTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1159,55 +1223,6 @@
         </div>
       </details>
 
-      <div class="admin-result-detail hidden" id="adminStudentProgressDetail">
-        <div class="admin-result-detail-top">
-          <h2 id="adminStudentProgressTitle">Student progress</h2>
-          <button class="btn secondary" type="button" id="adminStudentProgressCloseBtn">Close</button>
-        </div>
-        <div class="admin-results-summary">
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Attempts</div>
-            <div class="admin-stat-value" id="adminStudentProgressAttempts">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Full tests</div>
-            <div class="admin-stat-value" id="adminStudentProgressFullAttempts">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Practice</div>
-            <div class="admin-stat-value" id="adminStudentProgressPracticeAttempts">0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Avg overall</div>
-            <div class="admin-stat-value" id="adminStudentProgressOverall">0.0</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Latest</div>
-            <div class="admin-stat-value admin-stat-small" id="adminStudentProgressLatest">—</div>
-          </div>
-          <div class="admin-stat-card">
-            <div class="admin-stat-label">Classroom</div>
-            <div class="admin-stat-value admin-stat-small" id="adminStudentProgressClassroom">—</div>
-          </div>
-        </div>
-        <div class="admin-results-table-wrap">
-          <table class="admin-results-table">
-            <thead>
-              <tr>
-                <th>Submitted</th>
-                <th>Attempt</th>
-                <th>Listening</th>
-                <th>Reading</th>
-                <th>Writing</th>
-                <th>Speaking</th>
-                <th>Overall</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="adminStudentProgressAttemptsTbody"></tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
     <div id="adminResultsContent">

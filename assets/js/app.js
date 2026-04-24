@@ -2400,8 +2400,10 @@
       setAdminPage("classrooms");
       UI().setExamNavStatus("Status: Classroom analytics");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "classrooms"); } catch (e) {}
-      await loadClassroomAdminData(forceRefresh);
       await loadClassroomProgressData(forceRefresh);
+      if ($("adminClassroomManagementPanel")?.open) {
+        await loadClassroomAdminData(forceRefresh);
+      }
     }
 
     function exportAdminRowsCsv() {
@@ -2505,10 +2507,10 @@
     const adminPageResultsBtn = $("adminPageResultsBtn");
     const adminPageClassroomsBtn = $("adminPageClassroomsBtn");
     const adminClassroomsRefreshBtn = $("adminClassroomsRefreshBtn");
+    const adminClassroomManagementPanel = $("adminClassroomManagementPanel");
     const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
     const adminSaveStudentBtn = $("adminSaveStudentBtn");
     const adminResetStudentLinkBtn = $("adminResetStudentLinkBtn");
-    const adminBackfillHistoryBtn = $("adminBackfillHistoryBtn");
     const adminClassroomProgressRefreshBtn = $("adminClassroomProgressRefreshBtn");
     const adminStudentProgressCloseBtn = $("adminStudentProgressCloseBtn");
     const adminStudentSearchInput = $("adminStudentSearchInput");
@@ -2616,7 +2618,7 @@
       $("openSpeakingExamBtn")?.click?.();
     }
 
-    const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [] };
+    const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [], loaded: false, loading: false };
     const classroomProgressState = { summary: null, classrooms: [], studentAttemptsByCode: new Map(), selectedStudentId: "", selectedClassroomId: "" };
 
     function setClassroomStatus(message, tone = "") {
@@ -2719,12 +2721,18 @@
       });
     }
 
-    async function loadClassroomAdminData() {
+    async function loadClassroomAdminData(forceRefresh = false) {
       if (!isAdminView()) return;
+      if (classroomAdminState.loading) return;
+      if (classroomAdminState.loaded && !forceRefresh) return;
+      classroomAdminState.loading = true;
       setClassroomStatus("Loading classroom data...");
       const studentsUrl = R()?.buildAdminApiUrl?.({ action: "classroomStudents" });
       const registryUrl = R()?.buildAdminApiUrl?.({ action: "studentRegistry" });
-      if (!studentsUrl) return;
+      if (!studentsUrl) {
+        classroomAdminState.loading = false;
+        return;
+      }
       const authHeaders = await getAuthHeaders();
       const [res, registryRes] = await Promise.all([
         fetch(studentsUrl.toString(), { headers: authHeaders }).catch(() => null),
@@ -2734,6 +2742,7 @@
       const registryData = registryRes ? await registryRes.json().catch(() => null) : null;
       if (!res || !res.ok || !data || data.ok !== true) {
         setClassroomStatus(data?.error || "Could not load classrooms.", "error");
+        classroomAdminState.loading = false;
         return;
       }
       classroomAdminState.classrooms = Array.isArray(data.classrooms) ? data.classrooms : [];
@@ -2749,6 +2758,8 @@
       fillClassroomSelect();
       renderClassroomStudents();
       renderExistingAccountMatches();
+      classroomAdminState.loaded = true;
+      classroomAdminState.loading = false;
       setClassroomStatus(`Loaded ${classroomAdminState.classrooms.length} classrooms and ${classroomAdminState.students.length} students.`, "success");
     }
 
@@ -2773,7 +2784,7 @@
       $("adminClassroomNameInput").value = "";
       $("adminClassroomTeacherNameInput").value = "";
       $("adminClassroomTeacherEmailInput").value = "";
-      await loadClassroomAdminData();
+      await loadClassroomAdminData(true);
     }
 
     async function saveStudentFromAdmin() {
@@ -2798,7 +2809,7 @@
         return;
       }
       setClassroomStatus("Student saved.", "success");
-      await loadClassroomAdminData();
+      await loadClassroomAdminData(true);
     }
 
     async function assignStudentCodeFromAdminResult(row, submissionRecord = null, studentIdCode = "") {
@@ -2845,7 +2856,7 @@
         return;
       }
       setClassroomStatus("Linked account reset. History was not deleted.", "success");
-      await loadClassroomAdminData();
+      await loadClassroomAdminData(true);
     }
 
     function setClassroomProgressStatus(message, tone = "") {
@@ -2863,6 +2874,32 @@
       if ($("adminClassProgressAttempts")) $("adminClassProgressAttempts").textContent = String(safe.attemptCount || 0);
       if ($("adminClassProgressOverall")) $("adminClassProgressOverall").textContent = safe.avgOverallBand === null || safe.avgOverallBand === undefined ? "0.0" : Number(safe.avgOverallBand).toFixed(1);
       if ($("adminClassProgressLatest")) $("adminClassProgressLatest").textContent = fmtDate(safe.latestSubmittedAt);
+    }
+
+    function renderClassroomDirectory() {
+      const wrap = $("adminClassroomDirectory");
+      if (!wrap) return;
+      const classrooms = Array.isArray(classroomProgressState.classrooms) ? classroomProgressState.classrooms : [];
+      if (!classrooms.length) {
+        wrap.innerHTML = `<div class="small">No classrooms available yet.</div>`;
+        return;
+      }
+      wrap.innerHTML = classrooms.map((room) => {
+        const selected = String(room?.id || "") === String(classroomProgressState.selectedClassroomId || "");
+        return `
+          <button class="admin-classroom-directory-item${selected ? " is-active" : ""}" type="button" data-classroom-pick="${escapeHtml(room?.id || "")}">
+            <span class="admin-classroom-directory-name">${escapeHtml(room?.name || "Classroom")}</span>
+            <span class="admin-classroom-directory-meta">${escapeHtml(String(room?.studentCount || 0))} students · ${escapeHtml(String(room?.attemptCount || 0))} attempts</span>
+          </button>
+        `;
+      }).join("");
+      Array.from(wrap.querySelectorAll("[data-classroom-pick]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          classroomProgressState.selectedClassroomId = String(button.getAttribute("data-classroom-pick") || "");
+          if (adminClassroomSelect) adminClassroomSelect.value = classroomProgressState.selectedClassroomId;
+          renderSelectedClassroomWorkspace();
+        });
+      });
     }
 
     function renderClassroomOverviewChart(series) {
@@ -2903,7 +2940,7 @@
         return !query || hay.includes(query);
       });
       tbody.innerHTML = filtered.map((student) => `
-        <tr>
+        <tr class="${String(student?.studentIdCode || "") === String(classroomProgressState.selectedStudentId || "") ? "is-selected" : ""}">
           <td>${escapeHtml(student?.studentIdCode || "—")}</td>
           <td>${escapeHtml(student?.fullName || "Student")}</td>
           <td>${escapeHtml(String(student?.attemptCount || 0))}</td>
@@ -2911,7 +2948,7 @@
           <td>${escapeHtml(String(student?.practiceAttemptCount || 0))}</td>
           <td>${escapeHtml(student?.avgOverallBand === null || student?.avgOverallBand === undefined ? "—" : `Band ${bandText(student?.avgOverallBand)}`)}</td>
           <td>${escapeHtml(fmtDate(student?.latestSubmittedAt))}</td>
-          <td><button class="btn secondary" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">View</button></td>
+          <td><button class="btn secondary" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">Open</button></td>
         </tr>
       `).join("") || `<tr><td colspan="8">No students matched this class view yet.</td></tr>`;
       Array.from(tbody.querySelectorAll("[data-classroom-student]")).forEach((button) => {
@@ -2940,10 +2977,11 @@
         || classrooms[0]
         || null;
       classroomProgressState.selectedClassroomId = String(selected?.id || "");
+      renderClassroomDirectory();
       if ($("adminSelectedClassroomTitle")) $("adminSelectedClassroomTitle").textContent = plainText(selected?.name, "Choose a class");
       if ($("adminSelectedClassroomMeta")) $("adminSelectedClassroomMeta").textContent = selected
-        ? `${plainText(selected?.teacherName, "Teacher not set")} · ${plainText(selected?.teacherEmail, "No teacher email")} · Latest: ${fmtDate(selected?.latestSubmittedAt)}`
-        : "Once selected, you will see the class trend, this month vs previous month, and clickable student progress.";
+        ? `${plainText(selected?.teacherName, "Teacher not set")} · ${plainText(selected?.teacherEmail, "No teacher email")} · Latest activity: ${fmtDate(selected?.latestSubmittedAt)}`
+        : "You’ll see monthly movement, active students, and each student’s attempt history in one place.";
       if ($("adminClassroomTeacherMeta")) $("adminClassroomTeacherMeta").value = selected ? `${plainText(selected?.teacherName, "Teacher not set")} · ${plainText(selected?.teacherEmail, "No teacher email")}` : "";
       if ($("adminSelectedClassroomStudents")) $("adminSelectedClassroomStudents").textContent = String(selected?.studentCount || 0);
       if ($("adminSelectedClassroomActiveStudents")) $("adminSelectedClassroomActiveStudents").textContent = String(selected?.activeStudentCount || 0);
@@ -4715,9 +4753,15 @@ function startFreshExam() {
       if (adminState.page === "classrooms") openAdminResultsView(false, adminState.mode);
       else openAdminClassroomsView().catch((e) => setClassroomProgressStatus(e?.message || "Could not open classrooms.", "error"));
     };
-    if (adminClassroomsRefreshBtn) adminClassroomsRefreshBtn.onclick = () => loadClassroomAdminData().catch(() => null);
+    if (adminClassroomsRefreshBtn) adminClassroomsRefreshBtn.onclick = () => loadClassroomAdminData(true).catch(() => null);
     if (adminClassroomProgressRefreshBtn) adminClassroomProgressRefreshBtn.onclick = () => loadClassroomProgressData(true).catch((e) => setClassroomProgressStatus(e?.message || "Could not load class progress.", "error"));
-    if (adminBackfillHistoryBtn) adminBackfillHistoryBtn.onclick = () => backfillStudentHistoryFromAdmin().catch((e) => setClassroomProgressStatus(e?.message || "Could not assign previous attempts.", "error"));
+    if (adminClassroomManagementPanel) {
+      adminClassroomManagementPanel.addEventListener("toggle", () => {
+        if (adminClassroomManagementPanel.open) {
+          loadClassroomAdminData(true).catch((e) => setClassroomStatus(e?.message || "Could not load classrooms.", "error"));
+        }
+      });
+    }
     if (adminCreateClassroomBtn) adminCreateClassroomBtn.onclick = () => createClassroomFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not create classroom.", "error"));
     if (adminSaveStudentBtn) adminSaveStudentBtn.onclick = () => saveStudentFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not save student.", "error"));
     if (adminResetStudentLinkBtn) adminResetStudentLinkBtn.onclick = () => resetSelectedStudentLink().catch((e) => setClassroomStatus(e?.message || "Could not reset linked account.", "error"));

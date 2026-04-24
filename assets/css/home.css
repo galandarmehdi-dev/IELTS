@@ -2279,6 +2279,74 @@
 .admin-classroom-selector-bar{
   grid-template-columns:repeat(3, minmax(0, 1fr));
 }
+.admin-classroom-register-layout{
+  display:grid;
+  grid-template-columns:minmax(240px, 300px) minmax(0, 1fr);
+  gap:16px;
+  align-items:start;
+}
+.admin-classroom-register-main{
+  display:grid;
+  gap:16px;
+}
+.admin-classroom-register-grid{
+  grid-template-columns:minmax(0, 1.15fr) minmax(280px, .85fr);
+}
+.admin-classroom-directory-card{
+  position:sticky;
+  top:20px;
+}
+.admin-classroom-directory-top{
+  align-items:flex-start;
+}
+.admin-classroom-directory-title{
+  margin:6px 0 0;
+  font-family:"Space Grotesk", Arial, sans-serif;
+  font-size:26px;
+  line-height:1;
+  letter-spacing:-.04em;
+  color:var(--ink);
+}
+.admin-classroom-directory-copy{
+  margin:0;
+  color:var(--muted);
+  line-height:1.6;
+  font-size:13px;
+}
+.admin-classroom-directory-list{
+  display:grid;
+  gap:10px;
+}
+.admin-classroom-directory-item{
+  display:grid;
+  gap:4px;
+  width:100%;
+  text-align:left;
+  border:1px solid rgba(23,50,77,.1);
+  border-radius:18px;
+  padding:14px 16px;
+  background:#fff;
+  cursor:pointer;
+  transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.admin-classroom-directory-item:hover{
+  border-color:rgba(196,69,54,.24);
+  box-shadow:0 12px 30px rgba(18,26,36,.08);
+  transform:translateY(-1px);
+}
+.admin-classroom-directory-item.is-active{
+  border-color:rgba(196,69,54,.28);
+  background:linear-gradient(135deg, rgba(23,50,77,.06) 0%, rgba(196,69,54,.08) 100%);
+}
+.admin-classroom-directory-name{
+  color:var(--ink);
+  font-weight:900;
+}
+.admin-classroom-directory-meta{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
 .admin-classroom-selector-bar input[readonly]{
   color:var(--ink);
   background:rgba(23,50,77,.04);
@@ -2306,7 +2374,7 @@
   grid-template-columns:repeat(3, minmax(0, 1fr));
 }
 .admin-classroom-chart-card{
-  margin-bottom:16px;
+  margin-bottom:0;
 }
 .admin-classroom-chart{
   display:grid;
@@ -2443,6 +2511,17 @@
 .admin-classroom-month-compare{
   align-self:start;
 }
+.admin-classroom-section-title{
+  margin:6px 0 0;
+  font-family:"Space Grotesk", Arial, sans-serif;
+  font-size:24px;
+  line-height:1;
+  letter-spacing:-.04em;
+  color:var(--ink);
+}
+.admin-classroom-students-card .admin-results-table tr.is-selected{
+  background:rgba(23,50,77,.05);
+}
 .admin-classroom-month-grid{
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));
@@ -2511,6 +2590,9 @@
   .dashboard-profile-hero{ grid-template-columns:1fr; align-items:flex-start; }
   .dashboard-summary,
   .dashboard-goals-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .admin-classroom-register-layout{ grid-template-columns:1fr; }
+  .admin-classroom-directory-card{ position:static; }
+  .admin-classroom-register-grid{ grid-template-columns:1fr; }
 }
 
 @media (max-width: 760px){

@@ -1738,7 +1738,8 @@ async function handleAdminApi(request, env) {
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     const id = oneLine(url.searchParams.get("id") || "");
     if (!id) return json(400, { ok: false, error: "Missing practice result id." });
-    const record = await readJsonKv(env.STUDENT_REGISTRY, `practice-result:${id}`);
+    let record = await readJsonKv(env.STUDENT_REGISTRY, `practice-result:${id}`);
+    if (!record) record = await loadPracticeRecordFromSupabase(env, id);
     if (!record) return json(404, { ok: false, error: "Practice result not found." });
 
     const adminAuth = await authenticateAdmin(request, env);
@@ -4857,6 +4858,44 @@ async function listJsonByPrefix(namespace, prefix, limit = 1000) {
     if (value) rows.push(value);
   }
   return rows;
+}
+
+async function loadPracticeRecordFromSupabase(env, id) {
+  if (!id) return null;
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    query: {
+      select: "*",
+      attempt_kind: "eq.practice",
+      submission_key: `eq.${id}`,
+      limit: "1",
+    },
+  });
+  if (!res.ok || !Array.isArray(res.data) || !res.data.length) return null;
+  const row = res.data[0];
+  const summary = row?.summary && typeof row.summary === "object" ? row.summary : {};
+  return {
+    id: row.submission_key || row.id,
+    source: row.source || "practice-objective",
+    practiceSection: row.practice_section || "",
+    practiceLabel: row.practice_label || "",
+    submittedAt: row.submitted_at || "",
+    studentFullName: row.student_full_name || "",
+    email: row.user_email || row.login_email || "",
+    loginEmail: row.login_email || row.user_email || "",
+    studentProfileId: row.student_profile_id || "",
+    studentIdCode: row.student_id_code || "",
+    classroomId: row.classroom_id || "",
+    classroomName: row.classroom_name || "",
+    officialEmail: row.official_email || "",
+    organizationId: row.organization_id || "",
+    signInMethod: row.sign_in_method || "email",
+    examId: row.exam_id || "",
+    activeTestId: row.active_test_id || "",
+    reason: row.reason || "",
+    totalQuestions: Number(summary.totalQuestions || 0),
+    totalCorrect: Number(summary.totalCorrect || 0),
+    review: Array.isArray(summary.review) ? summary.review : [],
+  };
 }
 
 async function getStudentPracticeRows(env, email, organizationId = "") {

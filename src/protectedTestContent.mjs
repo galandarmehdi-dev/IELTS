@@ -3106,15 +3106,15 @@ const test8 = {
   },
 
   writing: {
-    task1Type: "Line graph",
-    task2Type: "Agree or disagree",
+        task1Type: "Pie chart",
+    task2Type: "Discussion",
     task1Html: `
       You should spend about 20 minutes on this task.<br>
-      The line graph shows the number of players in four different sports (badminton, tennis, basketball, rugby) in a particular European country between 1985 and 2005.<br>
+      The two charts below show the proportion of qualified graduates in a particular country.<br>
       Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
       <b>Write at least 150 words.</b>
     `,
-    task1ImageSrc: "https://audio.ieltsmock.org/f465a3939aaca96c.jpeg",
+    task1ImageSrc: "https://audio.ieltsmock.org/PieChart15.jpeg",
     task2Html: `
       You should spend about 40 minutes on this task.<br><br>
       In some countries, many children are becoming overweight and unhealthy. Some people say it is the responsibility of governments to solve this problem.<br>
@@ -6799,15 +6799,15 @@ const test15 = {
   },
 
   writing: {
-    task1Type: "Pie chart",
-    task2Type: "Discussion",
+task1Type: "Line graph",
+    task2Type: "Agree or disagree",
     task1Html: `
       You should spend about 20 minutes on this task.<br>
-      The two charts below show the proportion of qualified graduates in a particular country.<br>
+      The line graph shows the number of players in four different sports (badminton, tennis, basketball, rugby) in a particular European country between 1985 and 2005.<br>
       Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
       <b>Write at least 150 words.</b>
     `,
-    task1ImageSrc: "https://audio.ieltsmock.org/PieChart15.jpeg",
+    task1ImageSrc: "https://audio.ieltsmock.org/f465a3939aaca96c.jpeg",
     task2Html: `
       You should spend about 40 minutes on this task.<br><br>
       Write about the following topic:<br><br>

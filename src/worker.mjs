@@ -5144,29 +5144,66 @@ async function getAdminResultsSummaryFromAppsScript(env, actor = null, forceRefr
   return visibleRows.map((row) => summarizeAdminResultRow(row));
 }
 
+const ADMIN_SUMMARY_DEDUP_WINDOW_MS = 5 * 60 * 1000;
+
 function buildAdminSummaryIdentityKey(row) {
-  const rawTs = oneLine(row?.submittedAt || row?.submitted_at || "");
-  const parsedTs = Date.parse(rawTs);
   return [
-    Number.isFinite(parsedTs) ? String(parsedTs) : rawTs,
     oneLine(row?.studentFullName || row?.student_full_name || "").toLowerCase(),
     oneLine(row?.examId || row?.exam_id || "").toLowerCase(),
     oneLine(row?.reason || "").toLowerCase(),
   ].join("::");
 }
 
+function adminSummaryRowTimestamp(row) {
+  const ts = Date.parse(String(row?.submittedAt || row?.submitted_at || ""));
+  return Number.isFinite(ts) ? ts : NaN;
+}
+
+function adminSummaryRowDataScore(row) {
+  let score = 0;
+  if (row?.listeningBand !== null && row?.listeningBand !== undefined && row?.listeningBand !== "") score++;
+  if (row?.readingBand !== null && row?.readingBand !== undefined && row?.readingBand !== "") score++;
+  if (row?.finalWritingBand !== null && row?.finalWritingBand !== undefined && row?.finalWritingBand !== "") score++;
+  if (row?.speakingBand !== null && row?.speakingBand !== undefined && row?.speakingBand !== "") score++;
+  if (row?.listeningTotal !== null && row?.listeningTotal !== undefined && row?.listeningTotal !== "") score++;
+  if (row?.readingTotal !== null && row?.readingTotal !== undefined && row?.readingTotal !== "") score++;
+  return score;
+}
+
 function mergeAdminSummarySources(primaryRows, fallbackRows) {
-  const merged = [];
-  const seen = new Set();
-  const pushUnique = (row) => {
+  const groups = new Map();
+  const consider = (row) => {
     const key = buildAdminSummaryIdentityKey(row);
-    if (!key || seen.has(key)) return;
-    seen.add(key);
-    merged.push(row);
+    if (!key) return;
+    const ts = adminSummaryRowTimestamp(row);
+    const score = adminSummaryRowDataScore(row);
+    const existing = groups.get(key) || [];
+    let mergedInto = null;
+    for (const entry of existing) {
+      if (!Number.isFinite(ts) || !Number.isFinite(entry.ts)) continue;
+      if (Math.abs(ts - entry.ts) <= ADMIN_SUMMARY_DEDUP_WINDOW_MS) {
+        mergedInto = entry;
+        break;
+      }
+    }
+    if (mergedInto) {
+      if (score > mergedInto.score) {
+        mergedInto.row = row;
+        mergedInto.score = score;
+        mergedInto.ts = ts;
+      }
+      return;
+    }
+    existing.push({ row, ts, score });
+    groups.set(key, existing);
   };
-  (Array.isArray(primaryRows) ? primaryRows : []).forEach(pushUnique);
-  (Array.isArray(fallbackRows) ? fallbackRows : []).forEach(pushUnique);
-  return merged.sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
+  (Array.isArray(primaryRows) ? primaryRows : []).forEach(consider);
+  (Array.isArray(fallbackRows) ? fallbackRows : []).forEach(consider);
+  const merged = [];
+  for (const entries of groups.values()) {
+    for (const entry of entries) merged.push(entry.row);
+  }
+  return merged.sort((a, b) => (adminSummaryRowTimestamp(b) || 0) - (adminSummaryRowTimestamp(a) || 0));
 }
 
 async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {}) {

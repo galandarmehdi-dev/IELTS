@@ -5145,8 +5145,10 @@ async function getAdminResultsSummaryFromAppsScript(env, actor = null, forceRefr
 }
 
 function buildAdminSummaryIdentityKey(row) {
+  const rawTs = oneLine(row?.submittedAt || row?.submitted_at || "");
+  const parsedTs = Date.parse(rawTs);
   return [
-    oneLine(row?.submittedAt || row?.submitted_at || ""),
+    Number.isFinite(parsedTs) ? String(parsedTs) : rawTs,
     oneLine(row?.studentFullName || row?.student_full_name || "").toLowerCase(),
     oneLine(row?.examId || row?.exam_id || "").toLowerCase(),
     oneLine(row?.reason || "").toLowerCase(),

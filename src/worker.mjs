@@ -5107,22 +5107,39 @@ async function getAdminResultsSummary(env, options = {}) {
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
+  // Supabase is the canonical source now that Apps Script auto-syncs every grading.
+  // Return Supabase immediately and refresh the Apps Script-augmented cache in the background.
+  const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => null);
+  if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
+    setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
+    refreshAdminSummaryFromAppsScriptInBackground(env, actor, cacheKey, forceRefresh);
+    return supabaseSummaries;
+  }
+
+  // No Supabase data → fall back to Apps Script (slow path, only on cold start / migration).
   try {
     const appsScriptSummaries = await getAdminResultsSummaryFromAppsScript(env, actor, forceRefresh);
-    const supabaseRecentRows = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 100 }).catch(() => []);
-    const summaries = mergeAdminSummarySources(appsScriptSummaries, supabaseRecentRows);
-    setCachedAdminResultsSummary(cacheKey, summaries);
-    return summaries;
+    setCachedAdminResultsSummary(cacheKey, appsScriptSummaries);
+    return appsScriptSummaries;
   } catch (error) {
-    const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => null);
-    if (Array.isArray(supabaseSummaries) && supabaseSummaries.length) {
-      setCachedAdminResultsSummary(cacheKey, supabaseSummaries);
-      return supabaseSummaries;
-    }
     const stale = getAnyCachedAdminResultsSummary(cacheKey);
     if (stale?.length) return stale;
     throw error;
   }
+}
+
+function refreshAdminSummaryFromAppsScriptInBackground(env, actor, cacheKey, forceRefresh) {
+  // Fire-and-forget: merge Apps Script-augmented data into the in-memory cache for the next request.
+  // We don't await this so the current request returns at Supabase speed.
+  (async () => {
+    try {
+      const appsScriptSummaries = await getAdminResultsSummaryFromAppsScript(env, actor, forceRefresh);
+      if (!Array.isArray(appsScriptSummaries) || !appsScriptSummaries.length) return;
+      const supabaseRecent = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => []);
+      const merged = mergeAdminSummarySources(appsScriptSummaries, supabaseRecent);
+      setCachedAdminResultsSummary(cacheKey, merged);
+    } catch (e) {}
+  })();
 }
 
 async function getAdminResultsSummaryFromAppsScript(env, actor = null, forceRefresh = false) {

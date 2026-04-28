@@ -302,6 +302,290 @@
   font-weight: 700;
 }
 
+/* ---- Utility ---- */
+#vocabularySection .hidden { display: none !important; }
+
+/* ---- Breadcrumbs ---- */
+#vocabularySection .vocab-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#vocabularySection .vocab-crumb {
+  border: 0;
+  background: none;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #213c58;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#vocabularySection .vocab-crumb.is-current {
+  color: #64748b;
+  text-decoration: none;
+  cursor: default;
+}
+
+#vocabularySection .vocab-crumb-sep {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+/* ---- Section / Task landing cards ---- */
+#vocabularySection .vocab-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+#vocabularySection .vocab-section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px 20px;
+  border: 1px solid rgba(30, 41, 59, 0.1);
+  border-radius: 22px;
+  background: rgba(255, 253, 248, 0.9);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.06);
+  cursor: pointer;
+  text-align: left;
+  transition: box-shadow 120ms ease, transform 120ms ease;
+}
+
+#vocabularySection .vocab-section-card:hover {
+  box-shadow: 0 14px 40px rgba(31, 41, 55, 0.12);
+  transform: translateY(-2px);
+}
+
+#vocabularySection .vocab-section-card-title {
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #172436;
+}
+
+#vocabularySection .vocab-section-card-meta {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* ---- Deck card refinements ---- */
+#vocabularySection .vocab-deck-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+#vocabularySection .vocab-deck-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* ---- Stat label (below the big number) ---- */
+#vocabularySection .vocab-stat-label {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- Study shell & question card ---- */
+#vocabularySection .vocab-study-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#vocabularySection .vocab-question-card {
+  border: 1px solid rgba(30, 41, 59, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 16px 50px rgba(31, 41, 55, 0.07);
+  padding: 24px;
+}
+
+#vocabularySection .vocab-mode-label {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+#vocabularySection .vocab-prompt-cloze {
+  font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+  line-height: 1.5;
+  font-weight: 700;
+}
+
+/* ---- Ghost button variant ---- */
+#vocabularySection .vocab-btn.ghost {
+  background: transparent;
+  color: #526174;
+  border: 1px solid rgba(36, 52, 71, 0.16);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* ---- Memrise word card ---- */
+#vocabularySection .vocab-word-card {
+  border: 1px solid rgba(30, 41, 59, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.95);
+  box-shadow: 0 18px 52px rgba(31, 41, 55, 0.07);
+  padding: 26px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+#vocabularySection .vocab-word-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#vocabularySection .vocab-word-term {
+  margin: 0;
+  font-family: "Space Grotesk", "Manrope", sans-serif;
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: #172436;
+  line-height: 1;
+}
+
+#vocabularySection .vocab-word-pos {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(33, 60, 88, 0.08);
+  color: #213c58;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+#vocabularySection .vocab-word-definition {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #344456;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+#vocabularySection .vocab-word-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#vocabularySection .vocab-word-section-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+#vocabularySection .vocab-word-examples {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#vocabularySection .vocab-word-examples li {
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(33, 60, 88, 0.04);
+  color: #344456;
+  font-size: 0.97rem;
+  line-height: 1.6;
+}
+
+#vocabularySection .vocab-word-examples li mark {
+  background: rgba(154, 72, 62, 0.12);
+  color: #7c2f28;
+  border-radius: 3px;
+  padding: 1px 2px;
+}
+
+#vocabularySection .vocab-word-examples li strong {
+  color: #172436;
+  font-weight: 800;
+}
+
+#vocabularySection .vocab-word-chiprow {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+#vocabularySection .vocab-chip {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(33, 60, 88, 0.07);
+  color: #213c58;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+#vocabularySection .vocab-chip.is-pos {
+  background: rgba(22, 101, 52, 0.09);
+  color: #166534;
+}
+
+#vocabularySection .vocab-chip.is-neg {
+  background: rgba(153, 27, 27, 0.09);
+  color: #991b1b;
+}
+
+/* ---- Progress cards ---- */
+#vocabularySection .vocab-progress-card {
+  padding: 16px;
+  border: 1px solid rgba(36, 52, 71, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.88);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#vocabularySection .vocab-progress-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #172436;
+}
+
 @media (max-width: 760px) {
   #vocabularySection {
     padding: 18px 12px 64px;
@@ -320,5 +604,17 @@
   #vocabularySection .vocab-stats-grid,
   #vocabularySection .vocab-deck-grid {
     grid-template-columns: 1fr;
+  }
+
+  #vocabularySection .vocab-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #vocabularySection .vocab-word-card {
+    padding: 18px 16px;
+  }
+
+  #vocabularySection .vocab-question-card {
+    padding: 18px 16px;
   }
 }

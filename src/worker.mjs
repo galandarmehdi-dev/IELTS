@@ -2537,9 +2537,7 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
 
 function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "", options = {}) {
   const includeClassroomName = options?.includeClassroomName === true;
-  const includeSpeaking = options?.includeSpeaking === true;
-  const includeOverall = options?.includeOverall === true;
-  const patch = {
+  return {
     organization_id: normalizeOrganizationId(summary?.organizationId || summary?.organization_id || organizationId || "") || null,
     student_profile_id: oneLine(summary?.studentProfileId || summary?.student_profile_id || "") || null,
     student_id_code: oneLine(summary?.studentIdCode || summary?.student_id_code || "") || null,
@@ -2554,17 +2552,10 @@ function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "", optio
     task2_words: toNullableNumber(summary?.task2Words ?? summary?.task2_words),
     task1_band: toNullableBand(summary?.task1Band ?? summary?.task1_band),
     task2_band: toNullableBand(summary?.task2Band ?? summary?.task2_band),
+    speaking_band: toNullableBand(summary?.speakingBand ?? summary?.speaking_band),
+    overall_band: toNullableBand(summary?.overallBand ?? summary?.overall_band),
+    ...(includeClassroomName ? { classroom_name: oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || "") } : {}),
   };
-  if (includeClassroomName) {
-    patch.classroom_name = oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || "");
-  }
-  if (includeSpeaking) {
-    patch.speaking_band = toNullableBand(summary?.speakingBand ?? summary?.speaking_band);
-  }
-  if (includeOverall) {
-    patch.overall_band = toNullableBand(summary?.overallBand ?? summary?.overall_band);
-  }
-  return patch;
 }
 
 async function persistHydratedAdminSummary(env, lookupRow, summary = {}) {
@@ -5284,6 +5275,8 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {
       "task2_words",
       "task1_band",
       "task2_band",
+      "speaking_band",
+      "overall_band",
       "student_id_code",
       "student_profile_id",
       "classroom_id",
@@ -5337,12 +5330,12 @@ function summarizeAdminAttemptRow(row) {
     readingTotal: toNullableNumber(row?.reading_total),
     readingBand,
     finalWritingBand,
-    speakingBand: null,
-    overallBand: toRoundedOverallBand([
+    speakingBand,
+    overallBand: toNullableBand(row?.overall_band) ?? toRoundedOverallBand([
       listeningBand,
       readingBand,
       finalWritingBand,
-      null,
+      speakingBand,
     ]),
     task1Words,
     task2Words,

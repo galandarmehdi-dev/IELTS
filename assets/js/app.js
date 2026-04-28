@@ -1907,6 +1907,140 @@
       speakingTd.appendChild(wrapper);
     }
 
+    function buildInlineWritingEditor(row, writingTd) {
+      clearElement(writingTd);
+      writingTd.classList.add("admin-inline-score-cell");
+
+      const ew = effectiveWritingBand(row);
+      const hasGrade = ew !== null && ew !== undefined;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "admin-inline-score";
+
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "admin-inline-score-trigger";
+      trigger.textContent = hasGrade ? `Band ${bandText(ew)}` : "Band null";
+      trigger.setAttribute("aria-label", `Edit writing band for ${row.studentFullName || "student"}`);
+      if (hasGrade) trigger.disabled = true;
+      wrapper.appendChild(trigger);
+
+      if (!hasGrade) {
+        const openEditor = () => {
+          clearElement(wrapper);
+          wrapper.classList.add("is-editing");
+
+          function makeInput(label, placeholder) {
+            const row = document.createElement("div");
+            row.className = "admin-inline-writing-row";
+            const lbl = document.createElement("label");
+            lbl.textContent = label;
+            const inp = document.createElement("input");
+            inp.type = "number";
+            inp.min = "0";
+            inp.max = "9";
+            inp.step = "0.5";
+            inp.className = "admin-inline-score-input";
+            inp.placeholder = placeholder;
+            row.appendChild(lbl);
+            row.appendChild(inp);
+            wrapper.appendChild(row);
+            return inp;
+          }
+
+          const t1Input = makeInput("T1 Band", "e.g. 6.5");
+          const t2Input = makeInput("T2 Band", "e.g. 7.0");
+          const ovInput = makeInput("Overall", "auto");
+
+          function autoOverall() {
+            const t1 = t1Input.value.trim();
+            const t2 = t2Input.value.trim();
+            if (ovInput === document.activeElement) return;
+            if (t1 !== "" && t2 !== "") {
+              const avg = (Number(t1) + Number(t2)) / 2;
+              ovInput.value = (Math.round(avg * 2) / 2).toFixed(1);
+            } else if (t1 !== "") {
+              ovInput.value = Number(t1).toFixed(1);
+            } else if (t2 !== "") {
+              ovInput.value = Number(t2).toFixed(1);
+            }
+          }
+          t1Input.addEventListener("input", autoOverall);
+          t2Input.addEventListener("input", autoOverall);
+
+          const btnRow = document.createElement("div");
+          btnRow.className = "admin-inline-score-btn-row";
+
+          const saveBtn = document.createElement("button");
+          saveBtn.type = "button";
+          saveBtn.className = "admin-inline-score-save";
+          saveBtn.textContent = "Save";
+          btnRow.appendChild(saveBtn);
+
+          const cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "admin-inline-score-cancel";
+          cancelBtn.textContent = "Cancel";
+          btnRow.appendChild(cancelBtn);
+
+          wrapper.appendChild(btnRow);
+
+          const message = document.createElement("div");
+          message.className = "admin-inline-score-message";
+          wrapper.appendChild(message);
+
+          cancelBtn.addEventListener("click", () => buildInlineWritingEditor(row, writingTd));
+
+          saveBtn.addEventListener("click", async () => {
+            autoOverall();
+            const t1 = t1Input.value.trim() === "" ? null : Number(t1Input.value);
+            const t2 = t2Input.value.trim() === "" ? null : Number(t2Input.value);
+            const ov = ovInput.value.trim() === "" ? null : Number(ovInput.value);
+            if (t1 === null && t2 === null && ov === null) {
+              message.textContent = "Enter at least one band.";
+              return;
+            }
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            [t1Input, t2Input, ovInput].forEach((i) => (i.disabled = true));
+            message.textContent = "Saving…";
+            try {
+              const saved = await saveAdminWritingBands(row, {
+                task1Band: t1,
+                task2Band: t2,
+                finalWritingBand: ov,
+              });
+              const updatedRow = {
+                ...row,
+                task1Band: saved.task1Band,
+                task2Band: saved.task2Band,
+                finalWritingBand: saved.finalWritingBand,
+              };
+              mergeAdminRowIntoState(updatedRow, adminState.mode);
+              if ($("adminResultDetail") && !$("adminResultDetail")?.classList?.contains("hidden")) {
+                const currentTitle = $("adminDetailTitle")?.textContent || "";
+                if (currentTitle === (row.studentFullName || "Result details")) {
+                  renderAdminDetailFields(updatedRow, { loadingDetail: false });
+                }
+              }
+              applyAdminFilters();
+            } catch (error) {
+              message.textContent = error?.message || "Could not save writing bands.";
+              saveBtn.disabled = false;
+              cancelBtn.disabled = false;
+              [t1Input, t2Input, ovInput].forEach((i) => (i.disabled = false));
+            }
+          });
+
+          try { t1Input.focus(); } catch (e) {}
+        };
+
+        trigger.addEventListener("click", openEditor);
+      }
+
+      writingTd.appendChild(wrapper);
+    }
+
     function appendAdminObjectiveCell(cell, total, band, totalQuestions = 40) {
       const totalValue = nullableNumber(total);
       const bandValue = nullableBand(band);
@@ -1966,7 +2100,7 @@
         tr.appendChild(readingTd);
 
         const writingTd = document.createElement("td");
-        writingTd.textContent = `Band ${bandText(effectiveWritingBand(row))}`;
+        buildInlineWritingEditor(row, writingTd);
         tr.appendChild(writingTd);
 
         const speakingTd = document.createElement("td");

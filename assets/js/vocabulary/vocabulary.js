@@ -967,8 +967,9 @@
       setTimeout(() => setStatus(""), 1500);
     });
     $("vocabBackHomeBtn")?.addEventListener("click", () => {
-      const home = window.IELTS?.Router?.goHome || (() => { window.location.hash = ""; });
-      try { home(); } catch (e) {}
+      close();
+      try { window.IELTS?.Router?.goHome?.(); } catch (e) {}
+      try { window.IELTS?.UI?.showOnly?.("home"); } catch (e) {}
     });
   }
 
@@ -1000,12 +1001,14 @@
 
   function open() {
     if (!requireSignedIn()) return;
+    try { window.IELTS?.UI?.showOnly?.("vocabulary"); } catch (e) {}
     document.getElementById("vocabularySection")?.classList.remove("hidden");
     setActiveView("dashboard");
     ensureLoaded();
   }
 
   function close() {
+    try { window.IELTS?.UI?.showOnly?.("home"); } catch (e) {}
     document.getElementById("vocabularySection")?.classList.add("hidden");
   }
 

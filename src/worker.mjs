@@ -1460,9 +1460,6 @@ async function handleAdminApi(request, env) {
     };
     if (submissionOrganizationId) examAttemptQuery.organization_id = `eq.${submissionOrganizationId}`;
     if (reason) examAttemptQuery.reason = `eq.${reason}`;
-    await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
-      method: "PATCH",
-      query: examAttemptQuery,
     const { overallBand } = await deriveUpdatedOverallBand(env, examAttemptQuery, { finalWritingBand });
     await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
       method: "PATCH",

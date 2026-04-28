@@ -319,6 +319,50 @@
     document.addEventListener("dragstart", examOnlyBlock, true);
     document.addEventListener("selectstart", examOnlyBlock, true);
     document.addEventListener("dblclick", examOnlyBlock, true);
+
+    let pointerDown = null;
+    document.addEventListener("mousedown", (event) => {
+      if (!isExamGuardActive()) return;
+      if (!isHighlightingTarget(event.target)) return;
+      if (isEditableTarget(event.target)) return;
+      pointerDown = {
+        x: Number(event.clientX || 0),
+        y: Number(event.clientY || 0),
+        moved: false,
+      };
+    }, true);
+
+    document.addEventListener("mousemove", (event) => {
+      if (!pointerDown) return;
+      const dx = Math.abs(Number(event.clientX || 0) - pointerDown.x);
+      const dy = Math.abs(Number(event.clientY || 0) - pointerDown.y);
+      if (dx > 6 || dy > 6) pointerDown.moved = true;
+    }, true);
+
+    document.addEventListener("mouseup", (event) => {
+      if (!isExamGuardActive()) {
+        pointerDown = null;
+        return;
+      }
+      if (!pointerDown) return;
+      const dragging = pointerDown.moved;
+      pointerDown = null;
+      if (dragging) return;
+      if (!isHighlightingTarget(event.target)) return;
+      if (isEditableTarget(event.target)) return;
+      try { window.getSelection()?.removeAllRanges?.(); } catch (e) {}
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+
+    document.addEventListener("webkitmouseforcewillbegin", (event) => {
+      if (!isExamGuardActive()) return;
+      if (!isHighlightingTarget(event.target)) return;
+      if (isEditableTarget(event.target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      try { window.getSelection()?.removeAllRanges?.(); } catch (e) {}
+    }, true);
   }
 
   const EXAM_INTEGRITY = {

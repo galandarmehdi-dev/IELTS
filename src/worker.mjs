@@ -1084,6 +1084,11 @@ async function handleAdminApi(request, env) {
   }
 
   if (request.method === "GET" && action === "writingSamples") {
+    // Writing samples are platform content — require a signed-in user so the
+    // raw Google Sheets URL in source doesn't also expose content publicly.
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
     const response = await fetch(WRITING_SHEET_CSV_URL, { method: "GET" });
     const csvText = await response.text();
     if (!response.ok || !csvText) {

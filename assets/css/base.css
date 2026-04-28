@@ -25,6 +25,18 @@
   --radius-lg:30px;
   --exam-nav-h:64px;
   --ielts-font-scale:1;
+
+  /* ── Z-index scale ─────────────────────────────────────────
+     Use these tokens everywhere; never use bare integers.
+     ──────────────────────────────────────────────────────── */
+  --z-base:      1;      /* normal in-flow content          */
+  --z-raised:    10;     /* sticky headers, inline badges   */
+  --z-nav:       30;     /* exam nav bar                    */
+  --z-dropdown:  100;    /* dropdowns, tooltips             */
+  --z-modal:     1200;   /* dialogs / modals                */
+  --z-overlay:   9000;   /* full-screen overlays            */
+  --z-toast:     10000;  /* transient notifications         */
+  --z-top:       99999;  /* absolute last resort            */
 }
 
 body[data-font-scale="small"]{ --ielts-font-scale:.93; }

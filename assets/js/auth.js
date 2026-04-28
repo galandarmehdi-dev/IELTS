@@ -45,10 +45,7 @@ function readSessionJsonWithLegacyFallback(key) {
     const legacyRaw = localStorage.getItem(key);
     if (!legacyRaw) return null;
     const parsed = JSON.parse(legacyRaw || "null");
-    try {
-      sessionStorage.setItem(key, JSON.stringify(parsed));
-      localStorage.removeItem(key);
-    } catch (e) {}
+    try { sessionStorage.setItem(key, JSON.stringify(parsed)); } catch (e) {}
     return parsed;
   } catch (e) {
     return null;
@@ -59,8 +56,11 @@ function writeSessionJson(key, value) {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch (e) {}
+  // Also persist to localStorage so the session survives opening a new tab
+  // mid-exam (sessionStorage is per-tab; losing session during a timed exam
+  // forces a re-login that breaks the student's flow).
   try {
-    localStorage.removeItem(key);
+    localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {}
 }
 
@@ -81,10 +81,7 @@ function readSessionStringWithLegacyFallback(key) {
   try {
     const legacyValue = localStorage.getItem(key);
     if (legacyValue !== null) {
-      try {
-        sessionStorage.setItem(key, legacyValue);
-        localStorage.removeItem(key);
-      } catch (e) {}
+      try { sessionStorage.setItem(key, legacyValue); } catch (e) {}
     }
     return legacyValue;
   } catch (e) {
@@ -97,7 +94,7 @@ function writeSessionString(key, value) {
     sessionStorage.setItem(key, String(value));
   } catch (e) {}
   try {
-    localStorage.removeItem(key);
+    localStorage.setItem(key, String(value));
   } catch (e) {}
 }
 
@@ -650,7 +647,8 @@ function forceHideAllAppSections() {
     "dashboardSection",
     "speakingSection",
     "examNav",
-    "adminResultsSection"
+    "adminResultsSection",
+    "vocabularySection",
   ].forEach((id) => {
     const el = getEl(id);
     if (el) el.classList.add("hidden");

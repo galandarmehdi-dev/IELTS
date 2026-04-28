@@ -1355,8 +1355,19 @@ async function handleAdminApi(request, env) {
       summaryLookup,
       { speakingBand, organizationId: submissionOrganizationId }
     );
-    const hydrated = mergeSummaryWithScoreMeta({ submittedAt, studentFullName, examId, reason }, meta || { speakingBand, organizationId: submissionOrganizationId });
-    await persistHydratedAdminSummary(env, summaryLookup, hydrated).catch(() => null);
+    // Narrow patch — only touch speaking_band, never overwrite writing/listening bands.
+    const examAttemptQuery = {
+      submitted_at: `eq.${submittedAt}`,
+      student_full_name: `eq.${studentFullName}`,
+      exam_id: `eq.${examId}`,
+    };
+    if (submissionOrganizationId) examAttemptQuery.organization_id = `eq.${submissionOrganizationId}`;
+    if (reason) examAttemptQuery.reason = `eq.${reason}`;
+    await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "PATCH",
+      query: examAttemptQuery,
+      body: { speaking_band: speakingBand },
+    }).catch(() => null);
     try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
     return json(200, { ok: true, speakingBand, meta });
   }
@@ -1374,6 +1385,8 @@ async function handleAdminApi(request, env) {
     }
 
     const submissionLookup = { submittedAt, studentFullName, examId, reason };
+
+    // Fetch existing grade from Apps Script backend (best-effort — don't fail hard).
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
     backendUrl.searchParams.set("action", "studentResult");
     backendUrl.searchParams.set("submittedAt", submittedAt);
@@ -1387,47 +1400,65 @@ async function handleAdminApi(request, env) {
       headers: await filteredProxyHeaders(request, env, signedBackendUrl),
       retries: 1,
       timeoutMs: ADMIN_RESULT_DETAIL_FETCH_TIMEOUT_MS,
-    });
+    }).catch(() => ({ data: null }));
     const existing = data?.result || {};
-    const backendHasWritingGrade =
-      toNullableBand(existing?.task1Band) !== null ||
-      toNullableBand(existing?.task2Band) !== null ||
-      toNullableBand(existing?.finalWritingBand) !== null;
+
+    // Determine which bands to use: prefer backend-graded values, then payload.
+    const backendTask1Band = toNullableBand(existing?.task1Band);
+    const backendTask2Band = toNullableBand(existing?.task2Band);
+    const backendFinalWritingBand = toNullableBand(existing?.finalWritingBand);
+    const backendHasWritingGrade = backendTask1Band !== null || backendTask2Band !== null || backendFinalWritingBand !== null;
+
+    let task1Band, task2Band, finalWritingBand;
     if (backendHasWritingGrade) {
-      return json(409, {
-        ok: false,
-        error: "Writing grades already exist for this submission and cannot be edited here.",
-      });
+      // Backend already graded — sync those values to Supabase/KV instead of blocking.
+      task1Band = backendTask1Band;
+      task2Band = backendTask2Band;
+      finalWritingBand = backendFinalWritingBand ?? toRoundedOverallBand([task1Band, task2Band]);
+    } else {
+      task1Band = toNullableBand(payload?.task1Band);
+      task2Band = toNullableBand(payload?.task2Band);
+      finalWritingBand =
+        toNullableBand(payload?.finalWritingBand) ??
+        toRoundedOverallBand([task1Band, task2Band]);
+      if (task1Band === null && task2Band === null && finalWritingBand === null) {
+        return json(400, { ok: false, error: "Enter at least one writing band." });
+      }
     }
 
-    const task1Band = toNullableBand(payload?.task1Band);
-    const task2Band = toNullableBand(payload?.task2Band);
-    const finalWritingBand =
-      toNullableBand(payload?.finalWritingBand) ??
-      toRoundedOverallBand([task1Band, task2Band]);
-    if (task1Band === null && task2Band === null && finalWritingBand === null) {
-      return json(400, { ok: false, error: "Enter at least one writing band." });
-    }
+    // Persist to KV.
+    await writeSubmissionScoreMeta(env, submissionLookup, { task1Band, task2Band, finalWritingBand }).catch(() => null);
 
-    const meta = await writeSubmissionScoreMeta(env, submissionLookup, {
-      task1Band,
-      task2Band,
-      finalWritingBand,
-    });
-    const hydrated = mergeSummaryWithScoreMeta(existing, meta || {
-      task1Band,
-      task2Band,
-      finalWritingBand,
-      organizationId: submissionLookup.organizationId || "",
-    });
-    await persistHydratedAdminSummary(env, submissionLookup, hydrated).catch(() => null);
-    try { ADMIN_RESULTS_SUMMARY_CACHE.delete("all"); } catch (e) {}
+    // Patch only writing-related columns in exam_attempts — never touch speaking_band/overall_band here.
+    const submissionOrganizationId = await inferSubmissionOrganizationId(
+      env,
+      submissionLookup,
+      getActorOrganizationId(auth)
+    );
+    const examAttemptQuery = {
+      submitted_at: `eq.${submittedAt}`,
+      student_full_name: `eq.${studentFullName}`,
+      exam_id: `eq.${examId}`,
+    };
+    if (submissionOrganizationId) examAttemptQuery.organization_id = `eq.${submissionOrganizationId}`;
+    if (reason) examAttemptQuery.reason = `eq.${reason}`;
+    await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "PATCH",
+      query: examAttemptQuery,
+      body: {
+        task1_band: task1Band,
+        task2_band: task2Band,
+        final_writing_band: finalWritingBand,
+      },
+    }).catch(() => null);
+
+    try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
     return json(200, {
       ok: true,
       task1Band,
       task2Band,
       finalWritingBand,
-      meta,
+      syncedFromBackend: backendHasWritingGrade,
     });
   }
 
@@ -2537,9 +2568,7 @@ async function writeSubmissionScoreMeta(env, row, patch = {}) {
 
 function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "", options = {}) {
   const includeClassroomName = options?.includeClassroomName === true;
-  const includeSpeaking = options?.includeSpeaking === true;
-  const includeOverall = options?.includeOverall === true;
-  const patch = {
+  return {
     organization_id: normalizeOrganizationId(summary?.organizationId || summary?.organization_id || organizationId || "") || null,
     student_profile_id: oneLine(summary?.studentProfileId || summary?.student_profile_id || "") || null,
     student_id_code: oneLine(summary?.studentIdCode || summary?.student_id_code || "") || null,
@@ -2554,17 +2583,10 @@ function buildHydratedAdminSummaryPatch(summary = {}, organizationId = "", optio
     task2_words: toNullableNumber(summary?.task2Words ?? summary?.task2_words),
     task1_band: toNullableBand(summary?.task1Band ?? summary?.task1_band),
     task2_band: toNullableBand(summary?.task2Band ?? summary?.task2_band),
+    speaking_band: toNullableBand(summary?.speakingBand ?? summary?.speaking_band),
+    overall_band: toNullableBand(summary?.overallBand ?? summary?.overall_band),
+    ...(includeClassroomName ? { classroom_name: oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || "") } : {}),
   };
-  if (includeClassroomName) {
-    patch.classroom_name = oneLine(summary?.classroomName || summary?.classroom_name || summary?.classroom || "");
-  }
-  if (includeSpeaking) {
-    patch.speaking_band = toNullableBand(summary?.speakingBand ?? summary?.speaking_band);
-  }
-  if (includeOverall) {
-    patch.overall_band = toNullableBand(summary?.overallBand ?? summary?.overall_band);
-  }
-  return patch;
 }
 
 async function persistHydratedAdminSummary(env, lookupRow, summary = {}) {
@@ -5284,6 +5306,8 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {
       "task2_words",
       "task1_band",
       "task2_band",
+      "speaking_band",
+      "overall_band",
       "student_id_code",
       "student_profile_id",
       "classroom_id",
@@ -5337,12 +5361,12 @@ function summarizeAdminAttemptRow(row) {
     readingTotal: toNullableNumber(row?.reading_total),
     readingBand,
     finalWritingBand,
-    speakingBand: null,
-    overallBand: toRoundedOverallBand([
+    speakingBand,
+    overallBand: toNullableBand(row?.overall_band) ?? toRoundedOverallBand([
       listeningBand,
       readingBand,
       finalWritingBand,
-      null,
+      speakingBand,
     ]),
     task1Words,
     task2Words,

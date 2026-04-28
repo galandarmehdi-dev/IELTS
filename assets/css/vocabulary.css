@@ -618,3 +618,26 @@
     padding: 18px 16px;
   }
 }
+
+/* Narrow phones (≤ 420 px) — prevent minmax grids from overflowing */
+@media (max-width: 420px) {
+  #vocabularySection .vocab-section-grid,
+  #vocabularySection .vocab-deck-grid,
+  #vocabularySection .vocab-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #vocabularySection .vocab-chip-row {
+    gap: 6px;
+  }
+
+  #vocabularySection .vocab-chip {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+
+  #vocabularySection .vocab-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

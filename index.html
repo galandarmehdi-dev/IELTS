@@ -153,7 +153,7 @@
       <div id="bypassResetBox" class="hidden">
         <div class="auth-field-group">
           <label class="auth-label" for="bypassPasswordInput">Bypass password</label>
-          <input id="bypassPasswordInput" type="password" placeholder="Enter the admin bypass password" autocomplete="current-password">
+          <input id="bypassPasswordInput" type="password" placeholder="Enter the admin bypass password" autocomplete="off" data-lpignore="true" data-1p-ignore="true">
         </div>
         <button id="useBypassBtn" class="btn auth-full-btn" type="button">Use bypass and reset password</button>
         <p id="bypassResetHelp" class="small auth-inline-help">Enter the bypass password to recover this student account.</p>
@@ -180,11 +180,11 @@
         </div>
         <div class="auth-field-group">
           <label class="auth-label" for="sharedSetupPasswordInput">Student password</label>
-          <input id="sharedSetupPasswordInput" type="password" placeholder="Enter the student's password" autocomplete="current-password">
+          <input id="sharedSetupPasswordInput" type="password" placeholder="Enter the student's password" autocomplete="new-password">
         </div>
         <div class="auth-field-group">
           <label class="auth-label" for="sharedSetupConfirmInput">Confirm password</label>
-          <input id="sharedSetupConfirmInput" type="password" placeholder="Confirm the student's password" autocomplete="current-password">
+          <input id="sharedSetupConfirmInput" type="password" placeholder="Confirm the student's password" autocomplete="new-password">
         </div>
         <button id="finishSharedSetupBtn" class="btn auth-full-btn" type="button">Save student setup</button>
         <p id="sharedSetupHelp" class="small auth-inline-help">Enter your Student ID and student password. Your name and class come from the teacher-created profile.</p>
@@ -203,7 +203,7 @@
         <p id="passwordResetHelp" class="small auth-inline-help">Choose a new password for your student account.</p>
       </div>
 
-      <p id="authMessage" class="small auth-message"></p>
+      <p id="authMessage" class="small auth-message" aria-live="polite" aria-atomic="true"></p>
     </div>
   </div>
 </section>
@@ -1442,7 +1442,7 @@
       </div>
 
       <!-- Start Warning Modal -->
-      <div class="listen-modal" id="listenModal">
+      <div class="listen-modal" id="listenModal" role="dialog" aria-modal="true" aria-label="Before you start listening">
         <div class="listen-modal-card">
           <h2>Before you start</h2>
           <div class="listen-modal-body">
@@ -1972,7 +1972,7 @@
 </section>
 
   <!-- Modal (reused) -->
-  <div class="modal hidden" id="modal">
+  <div class="modal hidden" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
       <h3 id="modalTitle">Submitted</h3>
       <p class="small" id="modalText"></p>

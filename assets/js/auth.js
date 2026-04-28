@@ -111,7 +111,16 @@ function isSharedPasswordUser() {
   return String(user?.provider || "").trim().toLowerCase() === "shared-password";
 }
 
+// Hide every secondary auth panel atomically. Call this before opening any
+// specific panel so two panels can never be visible at the same time.
+function hideAllAuthBoxes() {
+  ["passwordResetBox", "bypassResetBox", "sharedSetupBox", "signUpBox", "recoveryOptionsBox"].forEach((id) => {
+    getEl(id)?.classList.add("hidden");
+  });
+}
+
 function setPasswordResetMode(active, text) {
+  if (active) hideAllAuthBoxes();
   const recoveryBox = getEl("passwordResetBox");
   if (recoveryBox) recoveryBox.classList.toggle("hidden", !active);
   const resetHelp = getEl("passwordResetHelp");
@@ -123,6 +132,7 @@ function setPasswordResetMode(active, text) {
 }
 
 function setBypassRecoveryMode(active, text) {
+  if (active) hideAllAuthBoxes();
   const options = getEl("recoveryOptionsBox");
   if (options) options.classList.remove("hidden");
   const box = getEl("bypassResetBox");
@@ -132,6 +142,7 @@ function setBypassRecoveryMode(active, text) {
 }
 
 function setSharedSetupMode(active, text) {
+  if (active) hideAllAuthBoxes();
   const box = getEl("sharedSetupBox");
   if (box) box.classList.toggle("hidden", !active);
   const help = getEl("sharedSetupHelp");
@@ -1285,8 +1296,9 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   if (!nextPassword || nextPassword.length < 6) {
     throw new Error("Choose a password with at least 6 characters.");
   }
-  const studentIdCode = String(profile?.studentIdCode || "").trim();
-  if (studentIdCode) {
+  const studentIdCode = String(profile?.studentIdCode || "").trim().toLowerCase();
+  // "none" (any casing) means no Student ID — fall through to name+email setup.
+  if (studentIdCode && studentIdCode !== "none") {
     const linked = await linkStudentProfileWithStudentId(studentIdCode, nextPassword);
     markPersonalPasswordEnabled(email);
     clearAuthFlowModes();

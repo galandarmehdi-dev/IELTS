@@ -306,7 +306,7 @@
       if (isEditableTarget(event.target)) return;
       if (
         isHighlightingTarget(event.target) &&
-        (event.type === "selectstart" || event.type === "dblclick")
+        event.type === "selectstart"
       ) {
         return;
       }
@@ -319,6 +319,151 @@
     document.addEventListener("dragstart", examOnlyBlock, true);
     document.addEventListener("selectstart", examOnlyBlock, true);
     document.addEventListener("dblclick", examOnlyBlock, true);
+  }
+
+  const EXAM_INTEGRITY = {
+    strikes: 0,
+    lastViolationAt: 0,
+    promptOpen: false,
+    lastFullscreenAttemptAt: 0,
+    lastFullscreenReminderAt: 0,
+    intervalId: null,
+  };
+
+  function currentActiveExamView() {
+    return String(document.body?.dataset?.activeView || "").trim().toLowerCase();
+  }
+
+  function isExamSessionActiveForIntegrity() {
+    if (isAdminView()) return false;
+    const started = String(S()?.get?.(R()?.KEYS?.EXAM_STARTED, "false") || "false") === "true";
+    if (!started) return false;
+    const view = currentActiveExamView();
+    return view === "listening" || view === "reading" || view === "writing";
+  }
+
+  function resetExamIntegrityState() {
+    EXAM_INTEGRITY.strikes = 0;
+    EXAM_INTEGRITY.lastViolationAt = 0;
+    EXAM_INTEGRITY.promptOpen = false;
+    EXAM_INTEGRITY.lastFullscreenReminderAt = 0;
+  }
+
+  function stopExamByIntegrityPolicy() {
+    try { UI()?.setExamStarted?.(false); } catch (e) {}
+    try { R()?.clearLaunchContext?.(); } catch (e) {}
+    try {
+      UI()?.showSubmittedOverlay?.(
+        "Exam stopped due to repeated attempts to leave fullscreen or switch tabs/windows."
+      );
+    } catch (e) {
+      showNotice("Exam stopped due to repeated attempts to leave fullscreen or switch tabs/windows.", "Exam stopped");
+      try { UI()?.showOnly?.("home"); } catch (_) {}
+    }
+  }
+
+  async function requestExamFullscreen() {
+    const root = document.documentElement;
+    if (!root || document.fullscreenElement) return true;
+    try {
+      await root.requestFullscreen?.({ navigationUI: "hide" });
+      return !!document.fullscreenElement;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function handleIntegrityViolation(reason) {
+    if (!isExamSessionActiveForIntegrity()) return;
+    if (EXAM_INTEGRITY.promptOpen) return;
+    const now = Date.now();
+    if (now - EXAM_INTEGRITY.lastViolationAt < 1200) return;
+    EXAM_INTEGRITY.lastViolationAt = now;
+    EXAM_INTEGRITY.strikes += 1;
+
+    if (EXAM_INTEGRITY.strikes < 3) {
+      const remaining = 3 - EXAM_INTEGRITY.strikes;
+      Modal()?.showModal?.(
+        "Exam integrity warning",
+        `Warning ${EXAM_INTEGRITY.strikes}/2. Do not leave fullscreen or switch tabs/windows. If this happens again, you will be asked for the test entry password. Remaining warning${remaining === 1 ? "" : "s"}: ${remaining}.`,
+        { mode: "confirm" }
+      );
+      return;
+    }
+
+    EXAM_INTEGRITY.promptOpen = true;
+    Modal()?.showModal?.(
+      "Security check required",
+      "You repeatedly left fullscreen or switched tabs/windows. Enter the test entry password to continue, or end the exam now.",
+      {
+        mode: "password",
+        showCancel: true,
+        submitText: "Continue",
+        cancelText: "End exam",
+        onConfirm: async () => {
+          EXAM_INTEGRITY.promptOpen = false;
+          EXAM_INTEGRITY.strikes = 0;
+          EXAM_INTEGRITY.lastViolationAt = Date.now();
+          await requestExamFullscreen();
+        },
+        onCancel: () => {
+          EXAM_INTEGRITY.promptOpen = false;
+          stopExamByIntegrityPolicy();
+        },
+      }
+    );
+  }
+
+  function installExamIntegrityGuards() {
+    if (window.__IELTS_EXAM_INTEGRITY_GUARDS__) return;
+    window.__IELTS_EXAM_INTEGRITY_GUARDS__ = true;
+
+    document.addEventListener("fullscreenchange", () => {
+      if (!isExamSessionActiveForIntegrity()) return;
+      if (!document.fullscreenElement) {
+        handleIntegrityViolation("fullscreen");
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!isExamSessionActiveForIntegrity()) return;
+      if (document.visibilityState === "hidden") {
+        handleIntegrityViolation("visibility");
+      }
+    });
+
+    window.addEventListener("blur", () => {
+      if (!isExamSessionActiveForIntegrity()) return;
+      const modalOpen = !document.getElementById("modal")?.classList?.contains("hidden");
+      if (modalOpen) return;
+      handleIntegrityViolation("blur");
+    });
+
+    EXAM_INTEGRITY.intervalId = window.setInterval(async () => {
+      if (!isExamSessionActiveForIntegrity()) {
+        resetExamIntegrityState();
+        return;
+      }
+      if (document.fullscreenElement) return;
+      const now = Date.now();
+      if (EXAM_INTEGRITY.promptOpen) return;
+      if (now - EXAM_INTEGRITY.lastFullscreenReminderAt < 15000) return;
+      EXAM_INTEGRITY.lastFullscreenReminderAt = now;
+      EXAM_INTEGRITY.promptOpen = true;
+      Modal()?.showModal?.(
+        "Fullscreen required",
+        "Full and practice tests require fullscreen mode. Click Continue to enter fullscreen and resume the exam.",
+        {
+          mode: "gate",
+          submitText: "Continue",
+          onConfirm: async () => {
+            EXAM_INTEGRITY.promptOpen = false;
+            EXAM_INTEGRITY.lastFullscreenAttemptAt = Date.now();
+            await requestExamFullscreen();
+          },
+        }
+      );
+    }, 1000);
   }
 
 
@@ -363,6 +508,7 @@
 
   document.addEventListener("partials:loaded", () => {
     installAntiCheatGuards();
+    installExamIntegrityGuards();
 
     // Bind modal buttons once
     if (window.IELTS?.Modal && typeof window.IELTS.Modal.bindModalOnce === "function") {

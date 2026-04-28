@@ -217,9 +217,12 @@ function buildContentSecurityPolicy() {
     "script-src 'self' https://esm.sh",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com",
+    "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com https://bgujwyknnszwborgbkxq.supabase.co",
     "media-src 'self' blob: https://audio.ieltsmock.org",
-    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://script.google.com https://script.googleusercontent.com https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh",
+    // Removed: script.google.com and script.googleusercontent.com — the frontend never
+    // calls Apps Script directly (worker proxies all calls), so these entries only widen
+    // the attack surface without providing any benefit.
+    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh",
   ].join("; ");
 }
 
@@ -1366,13 +1369,14 @@ async function handleAdminApi(request, env) {
     };
     if (submissionOrganizationId) examAttemptQuery.organization_id = `eq.${submissionOrganizationId}`;
     if (reason) examAttemptQuery.reason = `eq.${reason}`;
+    const { overallBand } = await deriveUpdatedOverallBand(env, examAttemptQuery, { speakingBand });
     await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
       method: "PATCH",
       query: examAttemptQuery,
-      body: { speaking_band: speakingBand },
+      body: { speaking_band: speakingBand, ...(overallBand !== null ? { overall_band: overallBand } : {}) },
     }).catch(() => null);
     try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
-    return json(200, { ok: true, speakingBand, meta });
+    return json(200, { ok: true, speakingBand, overallBand, meta });
   }
 
   if (request.method === "POST" && action === "adminResultWritingScore") {
@@ -1454,10 +1458,15 @@ async function handleAdminApi(request, env) {
     await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
       method: "PATCH",
       query: examAttemptQuery,
+    const { overallBand } = await deriveUpdatedOverallBand(env, examAttemptQuery, { finalWritingBand });
+    await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "PATCH",
+      query: examAttemptQuery,
       body: {
         task1_band: task1Band,
         task2_band: task2Band,
         final_writing_band: finalWritingBand,
+        ...(overallBand !== null ? { overall_band: overallBand } : {}),
       },
     }).catch(() => null);
 
@@ -1467,6 +1476,7 @@ async function handleAdminApi(request, env) {
       task1Band,
       task2Band,
       finalWritingBand,
+      overallBand,
       syncedFromBackend,
     });
   }
@@ -1652,12 +1662,13 @@ async function handleAdminApi(request, env) {
         });
     } else if (env.STUDENT_REGISTRY) {
       const prefix = auth.isSuperAdmin ? "submission-backup:" : `submission-backup:${actorOrganizationId}::`;
-      const listed = await env.STUDENT_REGISTRY.list({ prefix, limit: 1000 });
-      for (const key of listed.keys || []) {
+      // Cap at 200 to stay within CPU budget — each KV.get is ~10 ms so 1000 = ~10 s.
+      const listed = await env.STUDENT_REGISTRY.list({ prefix, limit: 200 });
+      await Promise.all((listed.keys || []).map(async (key) => {
         const record = await readJsonKv(env.STUDENT_REGISTRY, key.name);
-        if (!record) continue;
+        if (!record) return;
         const organizationId = normalizeOrganizationId(record?.organizationId || "");
-        if (!canActorAccessOrganization(auth, organizationId)) continue;
+        if (!canActorAccessOrganization(auth, organizationId)) return;
         backups.push({
           key: key.name,
           email: normalizeEmail(record?.email || ""),
@@ -1671,7 +1682,7 @@ async function handleAdminApi(request, env) {
           backedUpAt: oneLine(record?.backedUpAt || ""),
           payloadBytes: Number(record?.payloadBytes || 0),
         });
-      }
+      }));
     }
     backups.sort((a, b) => Date.parse(b.backedUpAt || b.submittedAt || "") - Date.parse(a.backedUpAt || a.submittedAt || ""));
     return json(200, { ok: true, backups });
@@ -2587,6 +2598,25 @@ async function writeSubmissionBackup(env, request, auth, finalPayload, options =
   return { ok: true, key: built.key, record: publicRecord };
 }
 
+// Fetch the four component bands from exam_attempts and compute an updated overall.
+// Returns { listeningBand, readingBand, finalWritingBand, speakingBand, overallBand }.
+async function deriveUpdatedOverallBand(env, examAttemptQuery, overrides = {}) {
+  try {
+    const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      query: { ...examAttemptQuery, select: "listening_band,reading_band,final_writing_band,speaking_band", limit: "1" },
+    });
+    const row = Array.isArray(res.data) ? res.data[0] : null;
+    const listeningBand = toNullableBand(overrides.listeningBand ?? row?.listening_band);
+    const readingBand   = toNullableBand(overrides.readingBand   ?? row?.reading_band);
+    const finalWritingBand = toNullableBand(overrides.finalWritingBand ?? row?.final_writing_band);
+    const speakingBand  = toNullableBand(overrides.speakingBand  ?? row?.speaking_band);
+    const overallBand   = toRoundedOverallBand([listeningBand, readingBand, finalWritingBand, speakingBand]);
+    return { listeningBand, readingBand, finalWritingBand, speakingBand, overallBand };
+  } catch (e) {
+    return { overallBand: null };
+  }
+}
+
 function toRoundedOverallBand(parts) {
   const nums = (Array.isArray(parts) ? parts : [])
     .map((value) => toNullableBand(value))
@@ -3267,7 +3297,10 @@ async function updateSubmissionRecoveryRow(env, submissionKey, patch = {}) {
 }
 
 function buildSubmissionRecoveryRow(summary, finalPayload, options = {}) {
-  const submissionKey = buildSubmissionMetaKeyWithOrganization(summary);
+  // Practice records use their practice_<hash> id as the submission_key so that
+  // loadPracticeRecordFromSupabase can find them with a simple eq query.
+  const practiceKey = options?.attemptKind === "practice" ? (options?.practiceId || finalPayload?.id || "") : "";
+  const submissionKey = practiceKey || buildSubmissionMetaKeyWithOrganization(summary);
   if (!submissionKey) {
     return { ok: false, status: 400, error: "Missing submission recovery key fields." };
   }
@@ -3565,35 +3598,6 @@ async function attachStudentProfileToStoredHistory(env, organizationId, email, p
       official_email: patch.officialEmail || null,
     },
   }).catch(() => null);
-  await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
-    method: "PATCH",
-    query: {
-      user_email: `eq.${normalizedEmail}`,
-      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
-    },
-    body: {
-      student_profile_id: patch.studentProfileId || null,
-      student_id_code: patch.studentIdCode || null,
-      classroom_id: patch.classroomId || null,
-      official_email: patch.officialEmail || null,
-    },
-  }).catch(() => null);
-
-  await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
-    method: "PATCH",
-    query: {
-      user_email: `eq.${normalizedEmail}`,
-      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
-    },
-    body: {
-      student_profile_id: patch.studentProfileId || null,
-      student_id_code: patch.studentIdCode || null,
-      classroom_id: patch.classroomId || null,
-      classroom_name: patch.classroomName || "",
-      official_email: patch.officialEmail || null,
-    },
-  }).catch(() => null);
-
   await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
     method: "PATCH",
     query: {

@@ -1172,6 +1172,9 @@ async function handleAdminApi(request, env) {
     const scoreMeta = await readSubmissionScoreMeta(env, submissionLookup);
     const mergedResult = data.result ? mergeSummaryWithScoreMeta(data.result, scoreMeta) : data.result;
     if (mergedResult) {
+      const submissionOrganizationId = await inferSubmissionOrganizationId(
+        env, submissionLookup, getActorOrganizationId(auth)
+      );
       await persistHydratedAdminSummary(env, {
         ...submissionLookup,
         organizationId: submissionOrganizationId,
@@ -1403,27 +1406,33 @@ async function handleAdminApi(request, env) {
     }).catch(() => ({ data: null }));
     const existing = data?.result || {};
 
-    // Determine which bands to use: prefer backend-graded values, then payload.
+    // Admin-supplied values always win. Only fall back to the Apps Script backend
+    // when the admin provided nothing (i.e. this is a pure sync call with no input).
+    const adminTask1Band = toNullableBand(payload?.task1Band);
+    const adminTask2Band = toNullableBand(payload?.task2Band);
+    const adminFinalWritingBand = toNullableBand(payload?.finalWritingBand);
+    const adminHasInput = adminTask1Band !== null || adminTask2Band !== null || adminFinalWritingBand !== null;
+
     const backendTask1Band = toNullableBand(existing?.task1Band);
     const backendTask2Band = toNullableBand(existing?.task2Band);
     const backendFinalWritingBand = toNullableBand(existing?.finalWritingBand);
     const backendHasWritingGrade = backendTask1Band !== null || backendTask2Band !== null || backendFinalWritingBand !== null;
 
-    let task1Band, task2Band, finalWritingBand;
-    if (backendHasWritingGrade) {
-      // Backend already graded — sync those values to Supabase/KV instead of blocking.
+    let task1Band, task2Band, finalWritingBand, syncedFromBackend;
+    if (adminHasInput) {
+      // Admin explicitly entered bands — use them regardless of what the backend says.
+      task1Band = adminTask1Band;
+      task2Band = adminTask2Band;
+      finalWritingBand = adminFinalWritingBand ?? toRoundedOverallBand([task1Band, task2Band]);
+      syncedFromBackend = false;
+    } else if (backendHasWritingGrade) {
+      // No admin input: auto-sync whatever Apps Script already graded.
       task1Band = backendTask1Band;
       task2Band = backendTask2Band;
       finalWritingBand = backendFinalWritingBand ?? toRoundedOverallBand([task1Band, task2Band]);
+      syncedFromBackend = true;
     } else {
-      task1Band = toNullableBand(payload?.task1Band);
-      task2Band = toNullableBand(payload?.task2Band);
-      finalWritingBand =
-        toNullableBand(payload?.finalWritingBand) ??
-        toRoundedOverallBand([task1Band, task2Band]);
-      if (task1Band === null && task2Band === null && finalWritingBand === null) {
-        return json(400, { ok: false, error: "Enter at least one writing band." });
-      }
+      return json(400, { ok: false, error: "Enter at least one writing band." });
     }
 
     // Persist to KV.
@@ -1458,7 +1467,7 @@ async function handleAdminApi(request, env) {
       task1Band,
       task2Band,
       finalWritingBand,
-      syncedFromBackend: backendHasWritingGrade,
+      syncedFromBackend,
     });
   }
 
@@ -2170,18 +2179,72 @@ function normalizePasswordSubject(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+const PBKDF2_ITERATIONS = 250_000;
+const PBKDF2_PREFIX = "pbkdf2v1:";
+
+// Hash a password with PBKDF2-SHA-256 (250k iterations).
+// Output format: "pbkdf2v1:<base64url-hash>" so legacy SHA-256 hashes
+// (which never start with this prefix) can still be verified.
 async function hashStudentPassword(subject, password, salt) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(String(password || "")),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const saltBytes = enc.encode(
+    `${String(salt || "").trim()}::${normalizePasswordSubject(subject)}`
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: saltBytes, iterations: PBKDF2_ITERATIONS },
+    keyMaterial,
+    256
+  );
+  return PBKDF2_PREFIX + toBase64UrlFromBytes(new Uint8Array(bits));
+}
+
+// Legacy SHA-256 hash (used only for verifying old stored hashes).
+async function hashStudentPasswordLegacy(subject, password, salt) {
   const raw = `${String(salt || "").trim()}::${normalizePasswordSubject(subject)}::${String(password || "")}`;
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
   return toBase64UrlFromBytes(new Uint8Array(digest));
+}
+
+// Timing-safe comparison of two equal-length byte arrays.
+async function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  const keyMaterial = crypto.getRandomValues(new Uint8Array(32));
+  const key = await crypto.subtle.importKey("raw", keyMaterial, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const [sigA, sigB] = await Promise.all([
+    crypto.subtle.sign("HMAC", key, a),
+    crypto.subtle.sign("HMAC", key, b),
+  ]);
+  const bytesA = new Uint8Array(sigA);
+  const bytesB = new Uint8Array(sigB);
+  let diff = 0;
+  for (let i = 0; i < bytesA.length; i++) diff |= bytesA[i] ^ bytesB[i];
+  return diff === 0;
+}
+
+async function passwordHashesMatch(actual, expected) {
+  const enc = new TextEncoder();
+  return timingSafeEqual(enc.encode(actual), enc.encode(expected));
 }
 
 async function verifyStudentPassword(record, email, password) {
   const expected = String(record?.passwordHash || "").trim();
   const salt = String(record?.passwordSalt || "").trim();
   if (!expected || !salt || !password) return false;
-  const actual = await hashStudentPassword(email, password, salt);
-  return actual === expected;
+  // New PBKDF2 hashes start with the prefix; legacy hashes do not.
+  if (expected.startsWith(PBKDF2_PREFIX)) {
+    const actual = await hashStudentPassword(email, password, salt);
+    return passwordHashesMatch(actual, expected);
+  }
+  // Legacy SHA-256 path — still works for existing students.
+  const actual = await hashStudentPasswordLegacy(email, password, salt);
+  return passwordHashesMatch(actual, expected);
 }
 
 async function verifyStudentProfilePassword(profile, studentIdCode, password, currentEmail = "") {
@@ -2193,9 +2256,12 @@ async function verifyStudentProfilePassword(profile, studentIdCode, password, cu
     profile?.linked_auth_email || "",
     currentEmail,
   ].map((value) => normalizePasswordSubject(value)).filter(Boolean);
+  const isPbkdf2 = expected.startsWith(PBKDF2_PREFIX);
   for (const subject of new Set(subjects)) {
-    const actual = await hashStudentPassword(subject, password, salt);
-    if (actual === expected) return true;
+    const actual = isPbkdf2
+      ? await hashStudentPassword(subject, password, salt)
+      : await hashStudentPasswordLegacy(subject, password, salt);
+    if (await passwordHashesMatch(actual, expected)) return true;
   }
   return false;
 }
@@ -2650,6 +2716,20 @@ function mergeSummaryWithScoreMeta(summary, scoreMeta) {
   };
 }
 
+// High-volume brute-force events that must NOT write to KV on every attempt —
+// doing so exhausts the KV write quota and breaks student progress saves.
+const SECURITY_EVENTS_NO_KV = new Set([
+  "shared_login_wrong_password",
+  "shared_login_wrong_personal_password",
+  "shared_login_wrong_linked_profile_password",
+  "shared_login_rate_limited",
+  "shared_bypass_wrong_password",
+  "shared_bypass_rate_limited",
+  "student_id_login_rate_limited",
+  "test_password_wrong",
+  "test_password_rate_limited",
+]);
+
 async function logSecurityEvent(env, request, type, details = {}) {
   const event = {
     type: oneLine(type || "unknown"),
@@ -2663,10 +2743,16 @@ async function logSecurityEvent(env, request, type, details = {}) {
     console.warn("[IELTS security]", JSON.stringify(event));
   } catch (e) {}
 
+  // Skip KV for high-frequency brute-force events to avoid exhausting write quota.
   if (!env?.STUDENT_REGISTRY || !event.type) return event;
-  const key = `telemetry:${event.at.slice(0, 10)}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  if (SECURITY_EVENTS_NO_KV.has(event.type)) return event;
+
+  // Deduplicate: one record per IP + event-type per day (not one per occurrence).
+  const ip = String(event.ip || "noip").replace(/[^a-zA-Z0-9._:-]/g, "_");
+  const day = event.at.slice(0, 10);
+  const key = `telemetry:${day}:${event.type}:${ip}`;
   try {
-    await writeJsonKv(env.STUDENT_REGISTRY, key, event);
+    await writeJsonKv(env.STUDENT_REGISTRY, key, event, { expirationTtl: 7 * 24 * 60 * 60 });
   } catch (e) {}
   return event;
 }

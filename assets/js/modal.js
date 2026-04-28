@@ -53,7 +53,29 @@
   function hideModal() {
     if (MODAL_MODE === "locked") return; // locked means cannot close
     const modal = $("modal");
+    const passInput = $("modalPasscode");
+    if (passInput) passInput.value = "";
     if (modal) modal.classList.add("hidden");
+  }
+
+  function hardenPassInput(passInput) {
+    if (!passInput) return;
+    passInput.value = "";
+    passInput.setAttribute("type", "text");
+    passInput.setAttribute("autocomplete", "off");
+    passInput.setAttribute("autocapitalize", "off");
+    passInput.setAttribute("autocorrect", "off");
+    passInput.setAttribute("spellcheck", "false");
+    passInput.setAttribute("inputmode", "text");
+    passInput.setAttribute("data-lpignore", "true");
+    passInput.setAttribute("data-1p-ignore", "true");
+    passInput.setAttribute("data-form-type", "other");
+    passInput.setAttribute("data-masked", "true");
+    passInput.setAttribute("name", `tp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    passInput.readOnly = true;
+    setTimeout(() => {
+      try { passInput.readOnly = false; } catch (e) {}
+    }, 0);
   }
 
   function showModal(title, text, opts = {}) {
@@ -88,18 +110,7 @@
     if (textWrap) textWrap.classList.toggle("hidden", !isText);
     if (passError) { passError.textContent = ""; passError.classList.add("hidden"); }
     if (passInput && isPassword) {
-      passInput.value = "";
-      passInput.setAttribute("autocomplete", "new-password");
-      passInput.setAttribute("autocapitalize", "off");
-      passInput.setAttribute("autocorrect", "off");
-      passInput.setAttribute("spellcheck", "false");
-      passInput.setAttribute("data-lpignore", "true");
-      passInput.setAttribute("data-1p-ignore", "true");
-      passInput.setAttribute("data-form-type", "other");
-      passInput.readOnly = true;
-      setTimeout(() => {
-        try { passInput.readOnly = false; } catch (e) {}
-      }, 0);
+      hardenPassInput(passInput);
     }
     setTextAreaError("");
     if (textLabel && isText) textLabel.textContent = opts.inputLabel || "Input";
@@ -138,6 +149,18 @@
   function bindModalOnce() {
     const submit = $("modalSubmitBtn");
     const cancel = $("modalCancelBtn");
+    const passInput = $("modalPasscode");
+
+    if (passInput && !passInput.dataset.guardBound) {
+      passInput.dataset.guardBound = "1";
+      const block = (event) => event.preventDefault();
+      passInput.addEventListener("copy", block);
+      passInput.addEventListener("cut", block);
+      passInput.addEventListener("paste", block);
+      passInput.addEventListener("drop", block);
+      passInput.addEventListener("dragstart", block);
+      passInput.addEventListener("contextmenu", block);
+    }
 
     if (submit && !submit.dataset.bound) {
       submit.dataset.bound = "1";
@@ -195,6 +218,7 @@
           const fn = MODAL_ONCONFIRM;
           MODAL_ONCONFIRM = null;
           MODAL_ONCANCEL = null;
+          if (passInput) passInput.value = "";
           hideModal();
           if (typeof fn === "function") fn();
           if (submit) submit.disabled = false;

@@ -45,6 +45,10 @@
 .modal-name-input,
 .modal-pass-input,
 .modal-text-input{ background:#fff; }
+.modal-pass-input[data-masked="true"]{
+  -webkit-text-security: disc;
+  text-security: disc;
+}
 .modal-text-input{
   min-height:180px;
   resize:vertical;

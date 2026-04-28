@@ -1311,7 +1311,7 @@
       const finalBand = nullableBand(row?.finalWritingBand);
       const hasTask1 = task1Words !== null && task1Words > 0;
       const hasTask2 = task2Words !== null && task2Words > 0;
-      if (!hasTask1 && !hasTask2) return null;
+      if (!hasTask1 && !hasTask2) return finalBand;
       if (hasTask1 && hasTask2) {
         if (finalBand !== null) return finalBand;
         if (task1Band !== null && task2Band !== null) {
@@ -5162,6 +5162,9 @@ function startFreshExam() {
       renderHomeResumeAction();
       UI().setExamNavStatus("Status: Home");
     };
+    $("dashboardOpenVocabularyBtn")?.addEventListener("click", () => {
+      window.IELTS?.Vocabulary?.open?.();
+    });
     $("adminResultsSearch")?.addEventListener("input", applyAdminFilters);
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsMonthFilter")?.addEventListener("change", applyAdminFilters);
@@ -5270,6 +5273,10 @@ function startFreshExam() {
           }
           if (id === 'startIelts7Btn' || /Start Test 7|Open Test 7/i.test(id)) {
             safeCall('IELTS.App.startFreshExamForTest', ['ielts7']);
+            return;
+          }
+          if (id === 'dashboardOpenVocabularyBtn' || /Open vocabulary/i.test(id)) {
+            safeCall('IELTS.Vocabulary.open');
             return;
           }
           if (id === 'openHistoryBtn' || /My History/i.test(id)) {

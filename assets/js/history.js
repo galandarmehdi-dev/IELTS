@@ -1276,7 +1276,7 @@
         fillHistoryMonthYearFilters(state.rows);
         applyHistoryFilters();
       } else if ($("historyTbody")) {
-        $("historyTbody").innerHTML = '<tr><td colspan="9">Loading history...</td></tr>';
+        $("historyTbody").innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
       }
       const shouldForceRefresh = !!pendingOpenKey || !!window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
       let rows = await prefetchHistoryRows({ forceRefresh: shouldForceRefresh });
@@ -1302,7 +1302,7 @@
         if (lastLocal?.submittedAt) {
           const tbody = $("historyTbody");
           if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="9">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
           }
         }
       }
@@ -1329,7 +1329,7 @@
       }).catch(() => {});
     } catch (err) {
       const tbody = $("historyTbody");
-      if (tbody) tbody.innerHTML = `<tr><td colspan="9">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
     }
   }
 

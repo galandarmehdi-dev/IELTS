@@ -2282,12 +2282,6 @@
         overallTd.textContent = `Band ${bandText(effectiveOverallBand(row))}`;
         tr.appendChild(overallTd);
 
-        const wordsTd = document.createElement("td");
-        wordsTd.append(`T1: ${writingWordText(row.task1Words)}`);
-        wordsTd.appendChild(document.createElement("br"));
-        wordsTd.append(`T2: ${writingWordText(row.task2Words)}`);
-        tr.appendChild(wordsTd);
-
         const actionTd = document.createElement("td");
         const actions = document.createElement("div");
         actions.className = "admin-row-actions";
@@ -2737,7 +2731,7 @@
           applyAdminFilters();
           usedCachedRows = true;
         } else if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="8">Loading results...</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9">Loading results...</td></tr>';
         }
         const refresh = prefetchAdminResults({ forceRefresh, mode: adminState.mode })
           .then((rows) => {
@@ -2757,7 +2751,7 @@
           refresh.catch(() => null);
         }
       } catch (e) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="9">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
         renderSummary([]);
       }
     }

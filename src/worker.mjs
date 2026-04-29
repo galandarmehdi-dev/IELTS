@@ -16,6 +16,9 @@ const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (isSensitiveAssetPath(url.pathname)) {
+      return json(404, { ok: false, error: "Not found." });
+    }
     const unknownTenantResponse = rejectUnknownTenant(request, env);
     if (unknownTenantResponse) return unknownTenantResponse;
 
@@ -67,6 +70,28 @@ export default {
     return applyDocumentSecurityHeaders(response);
   },
 };
+
+function isSensitiveAssetPath(pathname = "") {
+  const path = String(pathname || "").trim().toLowerCase();
+  if (!path || path === "/") return false;
+  const blockedExact = new Set([
+    "/package.json",
+    "/package-lock.json",
+    "/wrangler.jsonc",
+    "/.gitignore",
+    "/.assetsignore",
+    "/.dev.vars",
+    "/.dev.vars.example",
+  ]);
+  if (blockedExact.has(path)) return true;
+  if (path.startsWith("/.git/")) return true;
+  if (path.startsWith("/.github/")) return true;
+  if (path.startsWith("/src/")) return true;
+  if (path.startsWith("/tools/")) return true;
+  if (path.startsWith("/supabase/")) return true;
+  if (path.startsWith("/docs/")) return true;
+  return false;
+}
 
 function normalizeOrganizationId(value, fallback = "") {
   return String(value || fallback || "")
@@ -5423,11 +5448,100 @@ async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {
   });
   const rows = await response.json().catch(() => null);
   if (!response.ok || !Array.isArray(rows)) return null;
+  const needsProfileHydration = rows.some(
+    (row) =>
+      oneLine(row?.student_id_code || "") &&
+      (!oneLine(row?.classroom_id || "") || !normalizeEmail(row?.official_email || ""))
+  );
 
-  return rows.map((row) => summarizeAdminAttemptRow(row));
+  // Fetch student profiles in parallel chunks to resolve classroom IDs and official emails.
+  const profileByCode = new Map();
+  if (needsProfileHydration) {
+    const codes = Array.from(
+      new Set(rows.map((row) => oneLine(row?.student_id_code || "")).filter(Boolean))
+    );
+    const chunkSize = 120;
+    const profileChunks = [];
+    for (let index = 0; index < codes.length; index += chunkSize) {
+      const chunk = codes.slice(index, index + chunkSize);
+      if (chunk.length) profileChunks.push(chunk);
+    }
+    const profileResults = await Promise.all(
+      profileChunks.map((chunk) => {
+        const query = {
+          select: "student_id_code,classroom_id,official_email,name,surname,organization_id",
+          student_id_code: `in.(${chunk.join(",")})`,
+        };
+        if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+          query.organization_id = `eq.${actorOrganizationId}`;
+        }
+        return supabaseServiceRequest(env, "/rest/v1/student_profiles", { query }).catch(() => null);
+      })
+    );
+    profileResults.forEach((res) => {
+      if (!res?.ok || !Array.isArray(res.data)) return;
+      res.data.forEach((profileRow) => {
+        const code = oneLine(profileRow?.student_id_code || "");
+        if (!code) return;
+        profileByCode.set(code, profileRow);
+      });
+    });
+  }
+
+  const classroomIds = new Set();
+  rows.forEach((row) => {
+    const rowClassroomId = oneLine(row?.classroom_id || "");
+    if (rowClassroomId) classroomIds.add(rowClassroomId);
+    const code = oneLine(row?.student_id_code || "");
+    const profileRow = code ? profileByCode.get(code) : null;
+    const profileClassroomId = oneLine(profileRow?.classroom_id || "");
+    if (profileClassroomId) classroomIds.add(profileClassroomId);
+  });
+
+  // Fetch classroom names in parallel chunks.
+  const classroomNameById = new Map();
+  const classroomChunks = [];
+  const allClassroomIds = Array.from(classroomIds);
+  const classroomChunkSize = 120;
+  for (let index = 0; index < allClassroomIds.length; index += classroomChunkSize) {
+    const chunk = allClassroomIds.slice(index, index + classroomChunkSize);
+    if (chunk.length) classroomChunks.push(chunk);
+  }
+  const classroomResults = await Promise.all(
+    classroomChunks.map((chunk) => {
+      const query = { select: "id,name", id: `in.(${chunk.join(",")})` };
+      if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+        query.organization_id = `eq.${actorOrganizationId}`;
+      }
+      return supabaseServiceRequest(env, "/rest/v1/classrooms", { query }).catch(() => null);
+    })
+  );
+  classroomResults.forEach((res) => {
+    if (!res?.ok || !Array.isArray(res.data)) return;
+    res.data.forEach((classroomRow) => {
+      const id = oneLine(classroomRow?.id || "");
+      if (!id) return;
+      classroomNameById.set(id, oneLine(classroomRow?.name || ""));
+    });
+  });
+
+  return rows.map((row) => {
+    const code = oneLine(row?.student_id_code || "");
+    const profileRow = code ? profileByCode.get(code) : null;
+    const profileClassroomId = oneLine(profileRow?.classroom_id || "");
+    const rowClassroomId = oneLine(row?.classroom_id || "");
+    const resolvedClassroomId = rowClassroomId || profileClassroomId;
+    const resolvedClassroomName = oneLine(classroomNameById.get(resolvedClassroomId) || "");
+    return summarizeAdminAttemptRow(row, {
+      classroomId: resolvedClassroomId,
+      classroomName: resolvedClassroomName,
+      officialEmail: normalizeEmail(row?.official_email || "") || normalizeEmail(profileRow?.official_email || ""),
+      canonicalStudentName: [profileRow?.name, profileRow?.surname].filter(Boolean).join(" ").trim() || oneLine(row?.student_full_name || ""),
+    });
+  });
 }
 
-function summarizeAdminAttemptRow(row) {
+function summarizeAdminAttemptRow(row, enrichment = {}) {
   const task1Words = toNullableNumber(row?.task1_words);
   const task2Words = toNullableNumber(row?.task2_words);
   const task1Band = toNullableBand(row?.task1_band);
@@ -5466,10 +5580,11 @@ function summarizeAdminAttemptRow(row) {
     task2Band,
     studentIdCode: oneLine(row?.student_id_code || ""),
     studentProfileId: oneLine(row?.student_profile_id || ""),
-    classroomId: oneLine(row?.classroom_id || ""),
-    classroom: "",
-    canonicalStudentName: oneLine(row?.student_full_name || ""),
-    officialEmail: normalizeEmail(row?.official_email || ""),
+    classroomId: oneLine(enrichment?.classroomId || row?.classroom_id || ""),
+    classroomName: oneLine(enrichment?.classroomName || ""),
+    classroom: oneLine(enrichment?.classroomName || ""),
+    canonicalStudentName: oneLine(enrichment?.canonicalStudentName || row?.student_full_name || ""),
+    officialEmail: normalizeEmail(enrichment?.officialEmail || row?.official_email || ""),
     organizationId: normalizeOrganizationId(row?.organization_id || ""),
   };
 }

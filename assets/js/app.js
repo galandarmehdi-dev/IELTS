@@ -1784,6 +1784,31 @@
       sel.value = exams.includes(current) ? current : "";
     }
 
+    function resolveClassroomName(row) {
+      return String(row?.classroomName || row?.classroom || "").trim();
+    }
+
+    function fillClassFilter(rows) {
+      const sel = $("adminResultsClassFilter");
+      if (!sel) return;
+      const current = sel.value || "";
+      const classes = Array.from(
+        new Set((rows || []).map((row) => resolveClassroomName(row)).filter(Boolean))
+      ).sort((a, b) => a.localeCompare(b));
+      clearElement(sel);
+      const allOption = document.createElement("option");
+      allOption.value = "";
+      allOption.textContent = "All classes";
+      sel.appendChild(allOption);
+      classes.forEach((className) => {
+        const option = document.createElement("option");
+        option.value = className;
+        option.textContent = className;
+        sel.appendChild(option);
+      });
+      sel.value = classes.includes(current) ? current : "";
+    }
+
     function fillMonthYearFilters(rows) {
       const monthSel = $("adminResultsMonthFilter");
       const yearSel = $("adminResultsYearFilter");
@@ -2286,16 +2311,18 @@
       const examFilter = String($("adminResultsExamFilter")?.value || "").trim();
       const monthFilter = String($("adminResultsMonthFilter")?.value || "").trim();
       const yearFilter = String($("adminResultsYearFilter")?.value || "").trim();
+      const classFilter = String($("adminResultsClassFilter")?.value || "").trim();
       const sortValue = String($("adminResultsSort")?.value || "submittedAt_desc");
       let rows = getAdminRows(adminState.mode).slice();
 
       if (q) {
         rows = rows.filter((row) => {
-          const hay = [row.studentFullName, row.reason, row.examId, row.practiceLabel].map((x) => String(x || "").toLowerCase()).join(" ");
+          const hay = [row.studentFullName, row.reason, row.examId, row.practiceLabel, resolveClassroomName(row)].map((x) => String(x || "").toLowerCase()).join(" ");
           return hay.includes(q);
         });
       }
       if (examFilter) rows = rows.filter((row) => String(row.examId || "") === examFilter);
+      if (classFilter) rows = rows.filter((row) => resolveClassroomName(row) === classFilter);
       if (monthFilter || yearFilter) {
         rows = rows.filter((row) => {
           const d = new Date(row?.submittedAt || 0);
@@ -2315,6 +2342,9 @@
         if (field === "submittedAt") {
           av = new Date(av || 0).getTime();
           bv = new Date(bv || 0).getTime();
+        } else if (field === "classroomName") {
+          av = resolveClassroomName(a).toLowerCase();
+          bv = resolveClassroomName(b).toLowerCase();
         } else if (["listeningTotal", "readingTotal"].includes(field)) {
           av = nullableNumber(av);
           bv = nullableNumber(bv);
@@ -2697,11 +2727,13 @@
           setAdminRows(adminState.mode, cachedRows);
           fillExamFilter(cachedRows);
           fillMonthYearFilters(cachedRows);
+          fillClassFilter(cachedRows);
           applyAdminFilters();
           usedCachedRows = true;
         } else if (getAdminRows(adminState.mode).length) {
           fillExamFilter(getAdminRows(adminState.mode));
           fillMonthYearFilters(getAdminRows(adminState.mode));
+          fillClassFilter(getAdminRows(adminState.mode));
           applyAdminFilters();
           usedCachedRows = true;
         } else if (tbody) {
@@ -2714,6 +2746,7 @@
             saveAdminResultsCache(mergedRows, adminState.mode);
             fillExamFilter(mergedRows);
             fillMonthYearFilters(mergedRows);
+            fillClassFilter(mergedRows);
             applyAdminFilters();
             scheduleAdminDetailWarmup(mergedRows, adminState.mode);
             return mergedRows;
@@ -5169,6 +5202,7 @@ function startFreshExam() {
     $("adminResultsExamFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsMonthFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsYearFilter")?.addEventListener("change", applyAdminFilters);
+    $("adminResultsClassFilter")?.addEventListener("change", applyAdminFilters);
     $("adminResultsSort")?.addEventListener("change", applyAdminFilters);
     window.addEventListener("ielts:viewmodechange", (event) => {
       syncAdminToggleMenu();

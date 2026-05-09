@@ -39,12 +39,12 @@
   min-height:38px;
   padding:0 14px;
   border-radius:999px;
-  border:1px solid rgba(23,50,77,.14);
-  background:rgba(255,253,249,.86);
-  color:var(--navy);
+  border:1px solid rgba(37,99,235,.2);
+  background:var(--brand-soft);
+  color:var(--brand);
   font-size:13px;
-  font-weight:900;
-  box-shadow:0 10px 20px rgba(18,26,36,.06);
+  font-weight:800;
+  box-shadow:none;
 }
 .exam-nav-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
@@ -59,13 +59,14 @@
   justify-content:space-between;
   gap:14px;
   padding:14px 20px;
-  background:rgba(255,251,246,.88);
-  backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(18,26,36,.07);
+  background:rgba(248,250,252,.96);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
   position:sticky;
   top:var(--exam-nav-h, 64px);
   z-index:110000;
-  box-shadow:0 10px 24px rgba(18,26,36,.05);
+  box-shadow:0 1px 0 var(--line), 0 4px 12px rgba(15,23,42,.04);
 }
 .reading-controls-right{
   display:flex;
@@ -83,7 +84,7 @@
   height:calc(100dvh - var(--exam-nav-h, 64px) - 88px);
   min-height:calc(100dvh - var(--exam-nav-h, 64px) - 88px);
   overflow:hidden;
-  background:linear-gradient(180deg, #f6f0e7 0%, #efe7dd 100%);
+  background:var(--soft-2);
 }
 .passage,
 .questions{
@@ -125,9 +126,9 @@
   flex:0 0 12px;
   position:relative;
   cursor:col-resize;
-  background:linear-gradient(180deg, #e8dfd3 0%, #e2d7ca 100%);
-  border-left:1px solid rgba(18,26,36,.08);
-  border-right:1px solid rgba(18,26,36,.08);
+  background:var(--line);
+  border-left:1px solid var(--line-strong);
+  border-right:1px solid var(--line-strong);
 }
 .splitter::before{
   content:"";
@@ -138,25 +139,25 @@
   height:70px;
   transform:translate(-50%, -50%);
   border-radius:999px;
-  background:#b7ab9c;
+  background:var(--line-strong);
 }
 .splitter.dragging,
-.splitter:focus-visible{ background:#d7cdc0; outline:none; }
+.splitter:focus-visible{ background:var(--brand-soft); outline:none; }
 .questions{
   flex:1 1 auto;
   padding:18px 18px 24px;
 }
 .qcard{
   margin-top:16px;
-  border:1px solid rgba(255,255,255,.78);
-  border-radius:26px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
   padding:20px;
-  background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);
-  box-shadow:0 22px 50px rgba(18,26,36,.08);
+  background:var(--paper);
+  box-shadow:var(--shadow-sm);
 }
 .qcard:focus-within{
-  border-color:rgba(23,50,77,.28);
-  box-shadow:0 24px 52px rgba(23,50,77,.12);
+  border-color:rgba(37,99,235,.35);
+  box-shadow:0 0 0 3px rgba(37,99,235,.1), var(--shadow-sm);
 }
 .qcard h3,
 .qcard h4{ color:var(--ink); }

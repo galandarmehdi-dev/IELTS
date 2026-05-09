@@ -8,18 +8,18 @@
   -webkit-overflow-scrolling:touch;
   overscroll-behavior:contain;
   background:
-    radial-gradient(900px 420px at 0% 0%, rgba(23,50,77,.16), transparent 58%),
-    radial-gradient(760px 340px at 100% 0%, rgba(196,69,54,.14), transparent 56%),
-    linear-gradient(180deg, #f6f0e7 0%, #eee7dd 100%);
+    radial-gradient(900px 480px at 0% 0%, rgba(37,99,235,.055), transparent 58%),
+    radial-gradient(700px 360px at 100% 0%, rgba(30,58,138,.04), transparent 56%),
+    linear-gradient(180deg, var(--soft) 0%, var(--soft-2) 100%);
 }
 .writing-screen.hidden{ display:none; }
 .writing-shell{
   width:min(1120px, 95%);
   margin:20px auto 28px;
-  background:rgba(255,253,249,.92);
-  border:1px solid rgba(255,255,255,.8);
-  border-radius:32px;
-  box-shadow:0 32px 84px rgba(18,26,36,.16);
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:var(--radius-xl);
+  box-shadow:var(--shadow);
   overflow:hidden;
 }
 .writing-top{
@@ -47,10 +47,10 @@
   min-height:42px;
   padding:0 14px;
   border-radius:999px;
-  border:1px solid rgba(23,50,77,.14);
-  background:rgba(255,253,249,.82);
-  color:var(--navy);
-  font-weight:900;
+  border:1px solid rgba(37,99,235,.2);
+  background:var(--brand-soft);
+  color:var(--brand);
+  font-weight:700;
   text-transform:uppercase;
   letter-spacing:.08em;
 }
@@ -63,16 +63,16 @@
 .name-input{ background:#fff; }
 .writing-body{ padding:20px 22px 24px; }
 .writing-card{
-  border:1px solid rgba(255,255,255,.78);
-  border-radius:28px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
   padding:22px;
-  background:linear-gradient(180deg, rgba(255,253,249,.98) 0%, rgba(246,239,230,.94) 100%);
-  box-shadow:0 24px 56px rgba(18,26,36,.08);
+  background:var(--soft);
+  box-shadow:var(--shadow-sm);
   margin:14px 0;
 }
 .writing-card:focus-within{
-  border-color:rgba(23,50,77,.28);
-  box-shadow:0 24px 56px rgba(23,50,77,.12);
+  border-color:rgba(37,99,235,.35);
+  box-shadow:0 0 0 3px rgba(37,99,235,.1), var(--shadow-sm);
 }
 .writing-card-title{
   font-family:"Space Grotesk", Arial, sans-serif;
@@ -98,9 +98,9 @@
 .writing-zoom-actions{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .writing-graph{
   overflow:auto;
-  border:1px solid rgba(23,50,77,.10);
-  border-radius:22px;
-  background:rgba(255,253,249,.76);
+  border:1px solid var(--line);
+  border-radius:var(--radius-md);
+  background:var(--soft);
   padding:12px;
   margin:10px 0 14px;
   display:flex;

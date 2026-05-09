@@ -709,6 +709,11 @@
         S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
         S().set(R().EXAM.keys.finalSubmitted, "true");
 
+        // Mark any active assignment for this test as complete (non-blocking).
+        try {
+          window.IELTS?.Assignments?.markAssignmentCompleteForTest?.(activeTestId);
+        } catch (e) {}
+
         UI().lockWholeExamAfterFinalSubmit();
 
         const hasWritingText = hasAnyWritingText(writingPayload);

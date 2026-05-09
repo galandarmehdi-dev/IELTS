@@ -1990,6 +1990,10 @@ qnum.textContent = `${item.q}`;
 
       if (hasSubmittedReading) {
         lockReadingUI();
+        if (REVIEW_MODE && lastReviewRows.length) {
+          renderReviewPanel(lastReviewRows, lastReviewRevealed);
+          syncReviewButtons();
+        }
         // If the page is refreshed after Reading was submitted, show the Writing gate.
         transitionToWritingOnce();
       }

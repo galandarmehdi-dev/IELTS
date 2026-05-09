@@ -1238,9 +1238,11 @@ function applyActiveListeningContent() {
   ensureListeningReviewButtons();
 }
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", setupListeningUI);
+      document.addEventListener("DOMContentLoaded", function () {
+        if (String(window.location.hash || "").includes("/listening")) setupListeningUI();
+      });
     } else {
-      setupListeningUI();
+      if (String(window.location.hash || "").includes("/listening")) setupListeningUI();
     }
   }
 

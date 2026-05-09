@@ -4,8 +4,11 @@
 
   const ADMIN_API_PATH = "/api/admin";
 
-  const SPEAKING_UPLOAD_ENDPOINT =
-    "https://script.google.com/macros/s/AKfycbwtL1AnMuTKcs7RpESRYCqOMqUyOktGryDis_sydeEb8T7oU1UbxOTub1omtOvkIhsb/exec";
+  // SPEAKING_UPLOAD_ENDPOINT must not be hardcoded in source.
+  // The worker serves it via /api/admin?action=speakingUploadUrl
+  // or it is injected at build time. Leave empty here — the speaking
+  // engine reads window.__IELTS_SPEAKING_UPLOAD_URL__ at runtime.
+  const SPEAKING_UPLOAD_ENDPOINT = (typeof window !== "undefined" && window.__IELTS_SPEAKING_UPLOAD_URL__) || "";
 
   const REALTIME_SESSION_ENDPOINT =
     "https://ielts-speaking-realtime.galandar-mehdi.workers.dev/realtime/session";

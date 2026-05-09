@@ -86,6 +86,88 @@
     };
   }
 
+  function assignmentLaunchDebugEnabled() {
+    return false;
+  }
+
+  function assignmentLaunchDebugLog(label, payload = {}) {
+    if (!assignmentLaunchDebugEnabled()) return;
+  }
+
+  function derivePlacementLevelFromBand(avgOverall) {
+    const band = Number(avgOverall);
+    if (!Number.isFinite(band)) {
+      return {
+        label: "No score yet",
+        level: "—",
+        recommendation: "Recommended: complete one full mock test to unlock your personalised plan.",
+      };
+    }
+    if (band >= 8) {
+      return { label: "Advanced", level: "C2", recommendation: "Recommended: focus on precision, task response depth, and high-band writing control." };
+    }
+    if (band >= 7) {
+      return { label: "Upper-Intermediate", level: "C1", recommendation: "Recommended: maintain full mocks and strengthen consistency across all skills." };
+    }
+    if (band >= 5.5) {
+      return { label: "Intermediate", level: "B2", recommendation: "Recommended: prioritise Writing Task 2 and reading question-type drills." };
+    }
+    return { label: "Foundation", level: "B1", recommendation: "Recommended: build grammar and vocabulary fundamentals with guided practice." };
+  }
+
+  function resolveOverallBandForAverage(row) {
+    if (!row || typeof row !== "object") return null;
+    const direct = Number(row.overall_band);
+    if (Number.isFinite(direct)) return direct;
+    const parts = [Number(row.listening_band), Number(row.reading_band), Number(row.final_writing_band), Number(row.speaking_band)]
+      .filter((value) => Number.isFinite(value));
+    if (!parts.length) return null;
+    const avg = parts.reduce((sum, value) => sum + value, 0) / parts.length;
+    return Math.round(avg * 10) / 10;
+  }
+
+  async function refreshHomePlacementPreview() {
+    const bandEl = $("homePlacementPreviewBand");
+    const subEl = $("homePlacementPreviewSub");
+    const fillEl = $("homePlacementPreviewFill");
+    const nextEl = $("homePlacementPreviewNext");
+    if (!bandEl || !subEl || !fillEl || !nextEl) return;
+
+    if (!window.IELTS?.Auth?.isSignedIn?.()) {
+      bandEl.textContent = "—";
+      subEl.textContent = "Sign in to see your average overall band.";
+      fillEl.style.width = "0%";
+      nextEl.textContent = "Recommended: sign in and complete a full mock test.";
+      return;
+    }
+
+    try {
+      const rows = await window.IELTS?.History?.prefetch?.({ forceRefresh: false });
+      const validBands = Array.isArray(rows)
+        ? rows.map(resolveOverallBandForAverage).filter((value) => value !== null)
+        : [];
+      if (!validBands.length) {
+        bandEl.textContent = "—";
+        subEl.textContent = "Complete a scored test to see your average overall band.";
+        fillEl.style.width = "0%";
+        nextEl.textContent = "Recommended: complete one full mock test to unlock your personalised plan.";
+        return;
+      }
+      const avgOverall = validBands.reduce((sum, value) => sum + value, 0) / validBands.length;
+      const rounded = Math.round(avgOverall * 10) / 10;
+      const level = derivePlacementLevelFromBand(rounded);
+      bandEl.textContent = rounded.toFixed(1);
+      subEl.textContent = `${level.label} · ${level.level}`;
+      fillEl.style.width = `${Math.max(0, Math.min(100, (rounded / 9) * 100)).toFixed(1)}%`;
+      nextEl.textContent = level.recommendation;
+    } catch (error) {
+      bandEl.textContent = "—";
+      subEl.textContent = "Could not load your history average right now.";
+      fillEl.style.width = "0%";
+      nextEl.textContent = "Recommended: open History once and try again.";
+    }
+  }
+
   function derivePracticeExamId(section, activeTestId, scopeValue) {
     const testDigits = String(activeTestId || "ielts1").match(/(\d+)/);
     const testNumber = String(testDigits?.[1] || "1").padStart(3, "0");
@@ -195,6 +277,12 @@
     if (!res.ok || !data || data.ok !== true) {
       throw new Error(data?.error || `HTTP ${res.status}`);
     }
+    try {
+      const assignedTarget = String(window.__IELTS_ACTIVE_ASSIGNED_TARGET__ || "");
+      if (assignedTarget && window.IELTS?.Assignments?.markAssignmentCompleteForTest) {
+        window.IELTS.Assignments.markAssignmentCompleteForTest(assignedTarget);
+      }
+    } catch (e) {}
 
     return data;
   }
@@ -233,7 +321,7 @@
     try { R()?.clearLaunchContext?.(); } catch (e) {}
     try { UI().showOnly("home"); } catch (e) {}
     try { UI().updateHomeStatusLine("Status: Ready"); } catch (e) {}
-    try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+    try { history.replaceState({}, "", "/"); } catch (e) {}
   }
 
   function isEditableTarget(target) {
@@ -327,6 +415,10 @@
     promptOpen: false,
     lastFullscreenAttemptAt: 0,
     lastFullscreenReminderAt: 0,
+    lastUserInteractionAt: 0,
+    isCoarsePointerDevice:
+      !!window.matchMedia?.("(pointer: coarse)")?.matches ||
+      (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0),
     intervalId: null,
   };
 
@@ -336,6 +428,7 @@
 
   function isExamSessionActiveForIntegrity() {
     if (isAdminView()) return false;
+    if (!isFullExamFlow()) return false;
     const started = String(S()?.get?.(R()?.KEYS?.EXAM_STARTED, "false") || "false") === "true";
     if (!started) return false;
     const view = currentActiveExamView();
@@ -347,19 +440,38 @@
     EXAM_INTEGRITY.lastViolationAt = 0;
     EXAM_INTEGRITY.promptOpen = false;
     EXAM_INTEGRITY.lastFullscreenReminderAt = 0;
+    EXAM_INTEGRITY.lastUserInteractionAt = 0;
+  }
+
+  function markIntegrityUserInteraction() {
+    EXAM_INTEGRITY.lastUserInteractionAt = Date.now();
+  }
+
+  function shouldIgnoreIntegrityViolation(reason) {
+    const now = Date.now();
+    const modalOpen = !document.getElementById("modal")?.classList?.contains("hidden");
+    if (modalOpen) return true;
+
+    // Give browser fullscreen transitions a brief grace window.
+    if (now - EXAM_INTEGRITY.lastFullscreenAttemptAt < 2500) return true;
+
+    // Tablet/mobile browsers can emit noisy blur events during normal gestures.
+    if (EXAM_INTEGRITY.isCoarsePointerDevice) {
+      if (reason === "blur") return true;
+      if ((reason === "fullscreen" || reason === "visibility") && now - EXAM_INTEGRITY.lastUserInteractionAt < 1400) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function stopExamByIntegrityPolicy() {
     try { UI()?.setExamStarted?.(false); } catch (e) {}
     try { R()?.clearLaunchContext?.(); } catch (e) {}
-    try {
-      UI()?.showSubmittedOverlay?.(
-        "Exam stopped due to repeated attempts to leave fullscreen or switch tabs/windows."
-      );
-    } catch (e) {
-      showNotice("Exam stopped due to repeated attempts to leave fullscreen or switch tabs/windows.", "Exam stopped");
-      try { UI()?.showOnly?.("home"); } catch (_) {}
-    }
+    try { clearAllStudentAttemptKeys(); } catch (e) {}
+    try { resetToPublicHomeFromStaleRoute(); } catch (e) {}
+    showNotice("Exam stopped. Your unfinished attempt was cleared.", "Exam stopped");
+    try { UI()?.showOnly?.("home"); } catch (_) {}
   }
 
   async function requestExamFullscreen() {
@@ -376,6 +488,7 @@
   async function handleIntegrityViolation(reason) {
     if (!isExamSessionActiveForIntegrity()) return;
     if (EXAM_INTEGRITY.promptOpen) return;
+    if (shouldIgnoreIntegrityViolation(reason)) return;
     const now = Date.now();
     if (now - EXAM_INTEGRITY.lastViolationAt < 1200) return;
     EXAM_INTEGRITY.lastViolationAt = now;
@@ -408,6 +521,9 @@
         },
         onCancel: () => {
           EXAM_INTEGRITY.promptOpen = false;
+          try { clearAllStudentAttemptKeys(); } catch (e) {}
+          try { resetToPublicHomeFromStaleRoute(); } catch (e) {}
+          try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
           stopExamByIntegrityPolicy();
         },
       }
@@ -417,6 +533,10 @@
   function installExamIntegrityGuards() {
     if (window.__IELTS_EXAM_INTEGRITY_GUARDS__) return;
     window.__IELTS_EXAM_INTEGRITY_GUARDS__ = true;
+
+    document.addEventListener("pointerdown", markIntegrityUserInteraction, true);
+    document.addEventListener("touchstart", markIntegrityUserInteraction, { capture: true, passive: true });
+    document.addEventListener("keydown", markIntegrityUserInteraction, true);
 
     document.addEventListener("fullscreenchange", () => {
       if (!isExamSessionActiveForIntegrity()) return;
@@ -434,8 +554,6 @@
 
     window.addEventListener("blur", () => {
       if (!isExamSessionActiveForIntegrity()) return;
-      const modalOpen = !document.getElementById("modal")?.classList?.contains("hidden");
-      if (modalOpen) return;
       handleIntegrityViolation("blur");
     });
 
@@ -452,7 +570,7 @@
       EXAM_INTEGRITY.promptOpen = true;
       Modal()?.showModal?.(
         "Fullscreen required",
-        "Full and practice tests require fullscreen mode. Click Continue to enter fullscreen and resume the exam.",
+        "Full exams require fullscreen mode. Click Continue to enter fullscreen and resume the exam.",
         {
           mode: "gate",
           submitText: "Continue",
@@ -470,6 +588,44 @@
 
   // Start engine method when split bundles load out-of-order.
   // Retries for a short period, and logs failures instead of silently swallowing them.
+  function showEngineError(engineName, err) {
+    console.error(`[IELTS] Engine failed: ${engineName}`, err);
+    // Try modal first (graceful)
+    try {
+      window.IELTS?.Modal?.showModal?.(
+        "Failed to load exam section",
+        `The ${engineName} section could not be started. Please reload the page and try again.\n\nIf this keeps happening, clear your browser cache.`,
+        {
+          mode: "confirm",
+          submitText: "Reload page",
+          showCancel: true,
+          cancelText: "Dismiss",
+          onConfirm: () => { window.location.reload(); },
+        }
+      );
+    } catch (modalErr) {
+      // Fallback: inject an inline banner if modal is unavailable
+      try {
+        const existing = document.getElementById("ielts-engine-error-banner");
+        if (existing) return; // already showing
+        const banner = document.createElement("div");
+        banner.id = "ielts-engine-error-banner";
+        banner.style.cssText = [
+          "position:fixed;top:0;left:0;right:0;z-index:99999",
+          "background:#fef2f2;border-bottom:2px solid #fca5a5",
+          "padding:14px 20px;display:flex;align-items:center;gap:12px",
+          "font-size:14px;color:#991b1b;font-family:inherit",
+        ].join(";");
+        banner.innerHTML = `
+          <span style="flex:1">⚠ Failed to load the <strong>${engineName}</strong> exam section. Please reload the page.</span>
+          <button onclick="window.location.reload()" style="padding:6px 14px;background:#dc2626;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">Reload</button>
+          <button onclick="this.parentElement.remove()" style="padding:6px 10px;background:transparent;border:1px solid #fca5a5;border-radius:6px;cursor:pointer;font-size:13px;color:#991b1b">✕</button>
+        `;
+        document.body?.prepend(banner);
+      } catch (e) {}
+    }
+  }
+
   function startEngineWhenReady(engineName, methodName, { maxMs = 3500, intervalMs = 100 } = {}) {
     const startAt = Date.now();
     return new Promise((resolve, reject) => {
@@ -479,6 +635,7 @@
             await R()?.ensureActiveTestContent?.();
           } catch (e) {
             console.error(`[IELTS] Failed to load protected test content for ${engineName}`, e);
+            showEngineError(engineName, e);
             reject(e);
             return;
           }
@@ -490,13 +647,14 @@
             resolve(true);
           } catch (e) {
             console.error(`[IELTS] Failed to start ${engineName}.${methodName}`, e);
+            showEngineError(engineName, e);
             reject(e);
           }
           return;
         }
         if (Date.now() - startAt >= maxMs) {
           const err = new Error(`Engine not ready: ${engineName}.${methodName}`);
-          console.error("[IELTS]", err);
+          showEngineError(engineName, err);
           reject(err);
           return;
         }
@@ -878,6 +1036,9 @@
             cancelText: "Go to homepage",
             onConfirm: () => {
               window.__IELTS_RESUME_ROUTE_PROMPT_OPEN__ = false;
+              // Gates were suppressed while the prompt was open; re-enable them so
+              // the Listening→Reading gate fires normally after resuming.
+              try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
               resumeStudentExamRoute(route);
             },
             onCancel: () => {
@@ -938,6 +1099,11 @@
       const nextRoute = Router().parseHashRoute();
       if (!nextRoute?.view) return;
 
+      if (nextRoute.view === "home") {
+        try { history.replaceState({}, "", "/"); } catch (e) {}
+        return;
+      }
+
       if (isExamRouteView(nextRoute.view)) {
         if (isAdminView()) {
           if (document.body?.dataset?.activeView !== nextRoute.view) openAdminRoute(nextRoute);
@@ -946,8 +1112,15 @@
         if (matchesActiveNonFullLaunch(nextRoute.view)) {
           return;
         }
+        const examStarted = String(S().get(R().KEYS.EXAM_STARTED, "false")) === "true";
+        if (isStudentExamRouteActive() || examStarted) {
+          // Freshly started exams can have no saved answers yet; do not treat them as stale.
+          return;
+        }
         if (!hasResumableStudentAttempt()) {
-          resetToPublicHomeFromStaleRoute();
+          // Preserve direct active exam hash routes instead of collapsing to home.
+          try { UI().showOnly(nextRoute.view); } catch (e) {}
+          try { UI().setExamNavStatus("Status: Ready to start"); } catch (e) {}
           return;
         }
         if (!isStudentExamRouteActive()) {
@@ -966,6 +1139,20 @@
         } else {
           window.IELTS?.Auth?.openLoginGate?.("Please log in to open Vocabulary.");
         }
+      }
+      if (nextRoute.view === "grammar" && document.body?.dataset?.activeView !== "grammar") {
+        try { window.IELTS?.Grammar?.init?.(); } catch (e) {}
+        UI().showOnly("grammar");
+      }
+      if (nextRoute.view === "placementTest" && document.body?.dataset?.activeView !== "placementTest") {
+        UI().showOnly("placementTest");
+      }
+      if (nextRoute.view === "recentQuestions" && document.body?.dataset?.activeView !== "recentQuestions") {
+        UI().showOnly("recentQuestions");
+      }
+      if (nextRoute.view === "resources" && document.body?.dataset?.activeView !== "resources") {
+        try { window.IELTS?.ResourcesPage?.init?.(); } catch (e) {}
+        UI().showOnly("resources");
       }
     }
 
@@ -997,7 +1184,7 @@
           {
             mode: "confirm",
             submitText: "Leave exam",
-            cancelText: "Stay here",
+            cancelText: "Continue exam",
             onConfirm: () => {
               clearStudentAttemptForExit();
               if (typeof onLeave === "function") onLeave();
@@ -1025,6 +1212,34 @@
       if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) return;
       event.preventDefault();
       event.returnValue = "";
+    });
+
+    // ── In-app navigation guard ──────────────────────────────────────────────
+    // Intercept hash changes that would take a student away from an active exam
+    // (e.g. clicking Home in the exam-nav or any setHashRoute call to "home").
+    // We revert the URL silently, then show the Leave/Continue modal.
+    // Between-section navigation (listening→reading→writing) is always allowed.
+    window.addEventListener("hashchange", (event) => {
+      if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) return;
+      const newView = (safe(() => Router().parseHashRoute()?.view)) || "";
+      if (isExamRouteView(newView)) return; // cross-section nav is fine
+
+      // Revert the URL change without firing another hashchange event.
+      try {
+        const prevHash = new URL(event.oldURL).hash;
+        if (prevHash && location.hash !== prevHash) history.replaceState(null, "", prevHash);
+      } catch (e) {}
+
+      // Show Leave / Continue exam dialog.
+      confirmLeaveStudentExam(() => {
+        // Student confirmed "Leave exam" — clear state and go home cleanly.
+        try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+        try { UI().showOnly("home"); } catch (e) {}
+        try { history.replaceState({}, "", "/"); } catch (e) {}
+        try { UI().updateHomeStatusLine(); } catch (e) {}
+        try { renderHomeResumeAction(); } catch (e) {}
+        try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
+      });
     });
 
     // -----------------------------
@@ -1151,6 +1366,7 @@
     window.IELTS.App = window.IELTS.App || {};
     window.IELTS.App.showListeningGate = showListeningGate;
     window.IELTS.App.showReadingGate = showReadingGate;
+    window.IELTS.App.openResourceHub = openResourceHub;
 
     // Storage-based fallback polling (in case an event is missed)
     let lastListen = S().get((activeScopedKeys()?.listening || R().TESTS.listeningKeys).submitted, "false");
@@ -1201,7 +1417,7 @@
         if (!isAdminView()) return;
         try { stopAllAudio(); } catch (e) {}
         UI().showOnly("home");
-        try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "home"); } catch (e) {}
+        try { history.replaceState({}, "", "/"); } catch (e) {}
         UI().updateHomeStatusLine();
         UI().setExamNavStatus("Status: Home");
       };
@@ -1283,7 +1499,7 @@
     // -----------------------------
     // Admin results dashboard
     // -----------------------------
-    const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [] }, filtered: [] };
+    const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [], diagnostic: [] }, filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V4";
     const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V4";
     const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
@@ -1301,6 +1517,16 @@
 
     function nullableBand(value) {
       return nullableNumber(value);
+    }
+
+    function parseBandRangeMidpoint(value) {
+      const text = String(value || "").trim();
+      if (!text) return null;
+      const parts = text.split("-").map((part) => nullableBand(part));
+      if (parts.length >= 2 && parts[0] !== null && parts[1] !== null) {
+        return (parts[0] + parts[1]) / 2;
+      }
+      return nullableBand(text);
     }
 
     function effectiveWritingBand(row) {
@@ -1357,24 +1583,24 @@
 
     function numberText(value) {
       const n = nullableNumber(value);
-      return n === null ? "null" : String(n);
+      return n === null ? "—" : String(n);
     }
 
     function writingWordText(value) {
       const n = nullableNumber(value);
-      return n !== null && n > 0 ? String(n) : "null";
+      return n !== null && n > 0 ? String(n) : "—";
     }
 
     function objectiveDetailText(total, band, totalQuestions = 40) {
       const totalValue = nullableNumber(total);
       const bandValue = nullableBand(band);
-      if (totalValue === null && bandValue === null) return "null";
+      if (totalValue === null && bandValue === null) return "—";
       return `${numberText(total)} / ${Number(totalQuestions) || 40} (Band ${bandText(band)})`;
     }
 
     function bandText(value) {
       const n = nullableBand(value);
-      return n === null ? "null" : n.toFixed(1);
+      return n === null ? "—" : n.toFixed(1);
     }
 
     function plainText(value, fallback = "—") {
@@ -1564,25 +1790,33 @@
     function updateAdminResultsModeChrome() {
       const fullBtn = $("adminResultsModeFullBtn");
       const practiceBtn = $("adminResultsModePracticeBtn");
+      const diagnosticBtn = $("adminResultsModeDiagnosticBtn");
       const isPractice = adminState.mode === "practice";
+      const isDiagnostic = adminState.mode === "diagnostic";
       if (fullBtn) {
-        fullBtn.className = isPractice ? "btn secondary" : "btn";
-        fullBtn.setAttribute("aria-pressed", isPractice ? "false" : "true");
+        fullBtn.className = (isPractice || isDiagnostic) ? "btn secondary" : "btn";
+        fullBtn.setAttribute("aria-pressed", (!isPractice && !isDiagnostic) ? "true" : "false");
       }
       if (practiceBtn) {
         practiceBtn.className = isPractice ? "btn" : "btn secondary";
         practiceBtn.setAttribute("aria-pressed", isPractice ? "true" : "false");
       }
+      if (diagnosticBtn) {
+        diagnosticBtn.className = isDiagnostic ? "btn" : "btn secondary";
+        diagnosticBtn.setAttribute("aria-pressed", isDiagnostic ? "true" : "false");
+      }
       const title = document.querySelector(".admin-results-title");
       const subtitle = document.querySelector(".admin-results-subtitle");
       const empty = $("adminResultsEmpty");
-      if (title) title.textContent = isPractice ? "Practice review dashboard" : "Results command dashboard";
+      if (title) title.textContent = isDiagnostic ? "Diagnostic results dashboard" : (isPractice ? "Practice review dashboard" : "Results command dashboard");
       if (subtitle) {
         subtitle.textContent = isPractice
           ? "Review section-only and practice attempts separately from full mocks."
-          : "Search, filter, inspect, and export student submissions from a cleaner cohort-management workspace.";
+          : (isDiagnostic
+            ? "Review placement/diagnostic outcomes, estimated IELTS readiness, and weakest skill areas."
+            : "Search, filter, inspect, and export student submissions from a cleaner cohort-management workspace.");
       }
-      if (empty) empty.textContent = isPractice ? "No practice results found." : "No results found.";
+      if (empty) empty.textContent = isDiagnostic ? "No diagnostic results found." : (isPractice ? "No practice results found." : "No results found.");
     }
 
     async function fetchAdminResults(options = {}) {
@@ -1591,7 +1825,7 @@
       if (!endpoint) throw new Error("Admin endpoint is missing.");
 
       const url = new URL(endpoint, window.location.origin);
-      url.searchParams.set("action", mode === "practice" ? "practiceResultsSummary" : "resultsSummary");
+      url.searchParams.set("action", mode === "practice" ? "practiceResultsSummary" : (mode === "diagnostic" ? "diagnosticResultsSummary" : "resultsSummary"));
       if (options.forceRefresh === true) {
         url.searchParams.set("refresh", "1");
         url.searchParams.set("t", String(Date.now()));
@@ -1609,10 +1843,45 @@
           let data = null;
           try { data = JSON.parse(text); } catch (e) {}
           if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
-          if (!data || data.ok !== true || !Array.isArray(data.results)) {
+          const sourceRows = Array.isArray(data?.results) ? data.results : (Array.isArray(data?.rows) ? data.rows : null);
+          if (!data || data.ok !== true || !Array.isArray(sourceRows)) {
             throw new Error((data && data.error) || "Could not load admin results.");
           }
-          return data.results;
+          if (mode !== "diagnostic") return sourceRows;
+          return sourceRows.map((row) => {
+            const bandRange = String(row?.estimated_ielts_band || "").trim();
+            const low = Number((bandRange.split("-")[0] || "").trim());
+            const high = Number((bandRange.split("-")[1] || "").trim());
+            const midpoint = Number.isFinite(low) && Number.isFinite(high)
+              ? Math.round(((low + high) / 2) * 2) / 2
+              : (Number.isFinite(low) ? low : null);
+            return {
+              submittedAt: row?.submitted_at || "",
+              studentFullName: row?.student_name || "(No name)",
+              examId: "placement-diagnostic",
+              reason: `Diagnostic · Weakest: ${row?.weaknesses || "—"} · CEFR: ${row?.estimated_cefr_level || "—"}`,
+              listeningTotal: null,
+              listeningBand: null,
+              readingTotal: null,
+              readingBand: null,
+              finalWritingBand: null,
+              speakingBand: null,
+              overallBand: midpoint,
+              task1Words: 0,
+              task2Words: 0,
+              task1Band: null,
+              task2Band: null,
+              classroomName: "",
+              classroom: "",
+              diagnosticResultId: row?.id || "",
+              diagnosticPercentage: row?.overall_percentage ?? null,
+              diagnosticBandRange: bandRange || "—",
+              diagnosticCefrLevel: row?.estimated_cefr_level || "—",
+              diagnosticStrength: row?.strengths || "—",
+              diagnosticWeakness: row?.weaknesses || "—",
+              diagnosticDeadline: row?.deadline_selected || "—",
+            };
+          });
         } catch (error) {
           lastError = error;
           if (attempt < 2) {
@@ -1919,19 +2188,37 @@
     }
 
     function renderSummary(rows) {
+      const isDiagnosticMode = adminState.mode === "diagnostic";
       const count = rows.length;
-      const avgListening = scoreAverage(rows, (row) => nullableBand(row?.listeningBand));
-      const avgReading = scoreAverage(rows, (row) => nullableBand(row?.readingBand));
-      const avgWriting = scoreAverage(rows, (row) => effectiveWritingBand(row));
-      const avgSpeaking = scoreAverage(rows, (row) => speakingBand(row));
-      const avgOverall = scoreAverage(rows, (row) => effectiveOverallBand(row));
+      const avgListening = isDiagnosticMode
+        ? scoreAverage(rows, (row) => nullableNumber(row?.diagnosticPercentage))
+        : scoreAverage(rows, (row) => nullableBand(row?.listeningBand));
+      const avgReading = isDiagnosticMode
+        ? null
+        : scoreAverage(rows, (row) => nullableBand(row?.readingBand));
+      const avgWriting = isDiagnosticMode
+        ? null
+        : scoreAverage(rows, (row) => effectiveWritingBand(row));
+      const avgSpeaking = isDiagnosticMode
+        ? null
+        : scoreAverage(rows, (row) => speakingBand(row));
+      const avgOverall = isDiagnosticMode
+        ? null
+        : scoreAverage(rows, (row) => effectiveOverallBand(row));
       const latest = rows.slice().sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0))[0];
       if ($("adminStatSubmissions")) $("adminStatSubmissions").textContent = String(count);
-      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening === null ? "null" : avgListening.toFixed(1);
+      if ($("adminStatListening")) $("adminStatListening").textContent = avgListening === null ? "null" : `${avgListening.toFixed(1)}${isDiagnosticMode ? "%" : ""}`;
       if ($("adminStatReading")) $("adminStatReading").textContent = avgReading === null ? "null" : avgReading.toFixed(1);
       if ($("adminStatWriting")) $("adminStatWriting").textContent = avgWriting === null ? "null" : avgWriting.toFixed(1);
       if ($("adminStatSpeaking")) $("adminStatSpeaking").textContent = avgSpeaking === null ? "null" : avgSpeaking.toFixed(1);
-      if ($("adminStatOverall")) $("adminStatOverall").textContent = avgOverall === null ? "null" : avgOverall.toFixed(1);
+      if ($("adminStatOverall")) {
+        if (isDiagnosticMode) {
+          const diagnosticAvgBand = scoreAverage(rows, (row) => parseBandRangeMidpoint(row?.diagnosticBandRange));
+          $("adminStatOverall").textContent = diagnosticAvgBand === null ? "null" : diagnosticAvgBand.toFixed(1);
+        } else {
+          $("adminStatOverall").textContent = avgOverall === null ? "null" : avgOverall.toFixed(1);
+        }
+      }
       if ($("adminStatLatest")) $("adminStatLatest").textContent = latest ? `${latest.studentFullName || "(No name)"} · ${fmtDate(latest.submittedAt)}` : "—";
     }
 
@@ -2240,6 +2527,7 @@
       }
       empty?.classList.add("hidden");
       rows.forEach((row, idx) => {
+        const isDiagnostic = adminState.mode === "diagnostic" || String(row?.examId || "").toLowerCase() === "placement-diagnostic";
         const tr = document.createElement("tr");
         tr.id = `admin-result-row-${idx}`;
 
@@ -2259,27 +2547,46 @@
         tr.appendChild(nameTd);
 
         const examTd = document.createElement("td");
-        examTd.textContent = row.practiceLabel || row.examId || "—";
+        examTd.textContent = isDiagnostic ? "Placement Diagnostic" : (row.practiceLabel || row.examId || "—");
         tr.appendChild(examTd);
 
         const listeningTd = document.createElement("td");
-        appendAdminObjectiveCell(listeningTd, row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40);
+        if (isDiagnostic) {
+          const pct = nullableNumber(row?.diagnosticPercentage);
+          listeningTd.textContent = pct === null ? "null" : `${pct.toFixed(1)}%`;
+        } else {
+          appendAdminObjectiveCell(listeningTd, row.listeningTotal, row.listeningBand, row.listeningTotalQuestions || 40);
+        }
         tr.appendChild(listeningTd);
 
         const readingTd = document.createElement("td");
-        appendAdminObjectiveCell(readingTd, row.readingTotal, row.readingBand, row.readingTotalQuestions || 40);
+        if (isDiagnostic) {
+          readingTd.textContent = row?.diagnosticCefrLevel || "—";
+        } else {
+          appendAdminObjectiveCell(readingTd, row.readingTotal, row.readingBand, row.readingTotalQuestions || 40);
+        }
         tr.appendChild(readingTd);
 
         const writingTd = document.createElement("td");
-        buildInlineWritingEditor(row, writingTd);
+        if (isDiagnostic) {
+          writingTd.textContent = row?.diagnosticWeakness || "—";
+        } else {
+          buildInlineWritingEditor(row, writingTd);
+        }
         tr.appendChild(writingTd);
 
         const speakingTd = document.createElement("td");
-        buildInlineSpeakingEditor(row, speakingTd);
+        if (isDiagnostic) {
+          speakingTd.textContent = row?.diagnosticStrength || "—";
+        } else {
+          buildInlineSpeakingEditor(row, speakingTd);
+        }
         tr.appendChild(speakingTd);
 
         const overallTd = document.createElement("td");
-        overallTd.textContent = `Band ${bandText(effectiveOverallBand(row))}`;
+        overallTd.textContent = isDiagnostic
+          ? (row?.diagnosticBandRange ? `Band ${row.diagnosticBandRange}` : "Band null")
+          : `Band ${bandText(effectiveOverallBand(row))}`;
         tr.appendChild(overallTd);
 
         const actionTd = document.createElement("td");
@@ -2390,11 +2697,12 @@
     function renderAdminDetailFields(row, options = {}) {
       const resolvedRow = mergeAdminSubmissionIdentity(row, options.submissionRecord || null);
       const loadingDetail = options.loadingDetail === true;
+      const isDiagnostic = adminState.mode === "diagnostic" || String(resolvedRow?.examId || "").toLowerCase() === "placement-diagnostic";
       const overallWritingBand = effectiveWritingBand(resolvedRow);
       $("adminDetailTitle").textContent = resolvedRow.studentFullName || "Result details";
       const metaEl = $("adminDetailMeta");
       clearElement(metaEl);
-      appendLabeledLine(metaEl, "Test", resolvedRow.practiceLabel || resolvedRow.examId || "—");
+      appendLabeledLine(metaEl, "Test", isDiagnostic ? "Placement Diagnostic" : (resolvedRow.practiceLabel || resolvedRow.examId || "—"));
       appendLabeledLine(metaEl, "Submitted", fmtDate(resolvedRow.submittedAt));
       appendLabeledLine(metaEl, "Reason", resolvedRow.reason || "—");
       if (options.submissionRecord) {
@@ -2408,6 +2716,39 @@
 
       const scoresEl = $("adminDetailScores");
       clearElement(scoresEl);
+      if (isDiagnostic) {
+        const diagPct = nullableNumber(resolvedRow?.diagnosticPercentage);
+        appendLabeledLine(scoresEl, "Overall diagnostic", diagPct === null ? "null" : `${diagPct.toFixed(1)}%`);
+        appendLabeledLine(scoresEl, "Estimated IELTS", resolvedRow?.diagnosticBandRange ? `Band ${resolvedRow.diagnosticBandRange}` : "Band null");
+        appendLabeledLine(scoresEl, "Estimated CEFR", resolvedRow?.diagnosticCefrLevel || "—");
+        appendLabeledLine(scoresEl, "Strongest area", resolvedRow?.diagnosticStrength || "—");
+        appendLabeledLine(scoresEl, "Weakest area", resolvedRow?.diagnosticWeakness || "—");
+        appendLabeledLine(scoresEl, "Deadline", resolvedRow?.diagnosticDeadline || "Not specified");
+
+        const studentCodeEditor = $("adminDetailStudentCodeEditor");
+        if (studentCodeEditor) clearElement(studentCodeEditor);
+        const writingEditor = $("adminDetailWritingEditor");
+        if (writingEditor) clearElement(writingEditor);
+        const speakingEditor = $("adminDetailSpeakingEditor");
+        if (speakingEditor) clearElement(speakingEditor);
+
+        const task1ScoreEl = $("adminDetailTask1Score");
+        clearElement(task1ScoreEl);
+        appendLabeledLine(task1ScoreEl, "Diagnostic note", "No essay tasks in placement diagnostic.", { bold: false });
+        const task2ScoreEl = $("adminDetailTask2Score");
+        clearElement(task2ScoreEl);
+        appendLabeledLine(task2ScoreEl, "Diagnostic note", "No essay tasks in placement diagnostic.", { bold: false });
+
+        $("adminDetailTask1").textContent = "";
+        $("adminDetailTask2").textContent = "";
+        $("adminDetailTask1Feedback").textContent = "";
+        $("adminDetailTask2Feedback").textContent = "";
+        const overallEl = $("adminDetailOverallWriting");
+        clearElement(overallEl);
+        appendTextBlock(overallEl, "Placement diagnostic contains listening, reading, grammar, and vocabulary sections only.");
+        return;
+      }
+
       appendLabeledLine(scoresEl, "Listening", objectiveDetailText(resolvedRow.listeningTotal, resolvedRow.listeningBand, resolvedRow.listeningTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Reading", objectiveDetailText(resolvedRow.readingTotal, resolvedRow.readingBand, resolvedRow.readingTotalQuestions || 40));
       appendLabeledLine(scoresEl, "Overall Writing", `Band ${bandText(overallWritingBand)}`);
@@ -2624,6 +2965,7 @@
     async function renderAdminDetail(row, options = {}) {
       const detail = $("adminResultDetail");
       if (!detail || !row) return;
+      const isDiagnostic = adminState.mode === "diagnostic" || String(row?.examId || "").toLowerCase() === "placement-diagnostic";
       adminDetailState.sourceRowId = options.sourceRowId || null;
       adminDetailState.sourceScrollY = window.scrollY || 0;
       const hasCachedDetail = hasHydratedAdminDetail(row);
@@ -2639,6 +2981,9 @@
       try {
         detail.scrollIntoView({ behavior: "smooth", block: "start" });
       } catch (e) {}
+      if (isDiagnostic) {
+        return;
+      }
       try {
         const token = await window.IELTS?.Auth?.getAccessToken?.();
         if (adminState.mode === "practice" && row.source === "practice-objective") {
@@ -2706,11 +3051,15 @@
 
     async function openAdminResultsView(forceRefresh = false, mode = adminState.mode) {
       if (!isAdminView()) return;
-      adminState.mode = mode === "practice" ? "practice" : "full";
+      adminState.mode = (mode === "practice" || mode === "diagnostic") ? mode : "full";
       setAdminPage("results");
       updateAdminResultsModeChrome();
       UI().showOnly("adminResults");
-      UI().setExamNavStatus(adminState.mode === "practice" ? "Status: Practice results" : "Status: Admin results");
+      UI().setExamNavStatus(
+        adminState.mode === "practice"
+          ? "Status: Practice results"
+          : (adminState.mode === "diagnostic" ? "Status: Diagnostic results" : "Status: Admin results")
+      );
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
       const tbody = $("adminResultsTbody");
       try {
@@ -2731,7 +3080,7 @@
           applyAdminFilters();
           usedCachedRows = true;
         } else if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="9">Loading results...</td></tr>';
+          tbody.innerHTML = '<tr class="ui-table-state-row"><td colspan="9">Loading results...</td></tr>';
         }
         const refresh = prefetchAdminResults({ forceRefresh, mode: adminState.mode })
           .then((rows) => {
@@ -2751,19 +3100,24 @@
           refresh.catch(() => null);
         }
       } catch (e) {
-        if (tbody) tbody.innerHTML = `<tr><td colspan="9">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr class="ui-table-state-row"><td colspan="9">${escapeHtml(e.message || "Could not load results.")}</td></tr>`;
         renderSummary([]);
       }
     }
 
     function setAdminPage(page) {
-      const nextPage = page === "classrooms" ? "classrooms" : "results";
+      const validPages = ["results", "classrooms", "assignments", "questions"];
+      const nextPage = validPages.includes(page) ? page : "results";
       adminState.page = nextPage;
       $("adminResultsBanner")?.classList.toggle("hidden", nextPage !== "results");
       $("adminResultsContent")?.classList.toggle("hidden", nextPage !== "results");
       $("adminClassroomsPage")?.classList.toggle("hidden", nextPage !== "classrooms");
+      $("adminAssignmentsPage")?.classList.toggle("hidden", nextPage !== "assignments");
+      $("adminQuestionsPage")?.classList.toggle("hidden", nextPage !== "questions");
       const resultsBtn = $("adminPageResultsBtn");
       const classroomsBtn = $("adminPageClassroomsBtn");
+      const assignmentsBtn = $("adminPageAssignmentsBtn");
+      const questionsBtn = $("adminPageQuestionsBtn");
       const toggleBtn = $("adminClassroomsToggleBtn");
       if (resultsBtn) {
         resultsBtn.className = nextPage === "results" ? "btn" : "btn secondary";
@@ -2773,9 +3127,73 @@
         classroomsBtn.className = nextPage === "classrooms" ? "btn" : "btn secondary";
         classroomsBtn.setAttribute("aria-pressed", nextPage === "classrooms" ? "true" : "false");
       }
+      if (assignmentsBtn) {
+        assignmentsBtn.className = nextPage === "assignments" ? "btn" : "btn secondary";
+        assignmentsBtn.setAttribute("aria-pressed", nextPage === "assignments" ? "true" : "false");
+      }
+      if (questionsBtn) {
+        questionsBtn.className = nextPage === "questions" ? "btn" : "btn secondary";
+        questionsBtn.setAttribute("aria-pressed", nextPage === "questions" ? "true" : "false");
+      }
       if (toggleBtn) toggleBtn.textContent = nextPage === "classrooms" ? "Results" : "Classrooms";
       if (nextPage !== "classrooms") {
         $("adminStudentProgressDetail")?.classList.add("hidden");
+      }
+    }
+
+    async function loadAdminPendingQuestions() {
+      const list = $("adminQuestionsList");
+      const status = $("adminQuestionsStatus");
+      if (!list) return;
+      if (status) status.textContent = "Loading…";
+      list.innerHTML = "";
+      try {
+        const token = await window.IELTS?.Auth?.getAccessToken?.() || null;
+        const url = new URL("/api/admin", window.location.origin);
+        url.searchParams.set("action", "listPendingQuestions");
+        const res = await fetch(url.toString(), { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (!res.ok) throw new Error("Could not load pending questions.");
+        const data = await res.json();
+        const posts = data.posts || [];
+        if (status) status.textContent = posts.length ? `${posts.length} pending question${posts.length === 1 ? "" : "s"}` : "No pending questions.";
+        if (!posts.length) return;
+        list.innerHTML = posts.map((p) => `
+          <div style="border:1px solid var(--neutral-200,#e5e7eb);border-radius:8px;padding:14px 16px;margin-bottom:12px">
+            <div style="font-size:12px;color:var(--neutral-500,#6b7280);margin-bottom:6px">
+              <strong>${p.module}</strong> · ${p.test_type}${p.country ? ` · ${p.country}` : ""}${p.exam_date ? ` · ${p.exam_date}` : ""}
+              <span style="margin-left:8px;font-size:11px;color:var(--neutral-400,#9ca3af)">${p.user_id || "anonymous"}</span>
+            </div>
+            <p style="margin:0 0 10px;font-size:14px;line-height:1.5">${p.question_text}</p>
+            <div style="display:flex;gap:8px">
+              <button class="btn" style="font-size:12px;padding:5px 14px" data-qid="${p.id}" data-qaction="approve">Approve</button>
+              <button class="btn secondary" style="font-size:12px;padding:5px 14px" data-qid="${p.id}" data-qaction="reject">Reject</button>
+            </div>
+          </div>`).join("");
+        list.querySelectorAll("[data-qid]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.qid;
+            const action = btn.dataset.qaction === "approve" ? "approveQuestion" : "rejectQuestion";
+            btn.disabled = true;
+            btn.textContent = "…";
+            try {
+              const tok = await window.IELTS?.Auth?.getAccessToken?.() || null;
+              const u = new URL("/api/admin", window.location.origin);
+              u.searchParams.set("action", action);
+              const r = await fetch(u.toString(), { method: "POST", headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+              const d = await r.json().catch(() => null);
+              if (!r.ok || !d?.ok) throw new Error(d?.error || "Failed.");
+              btn.closest("div[style]").remove();
+              const remaining = list.querySelectorAll("[data-qid]").length / 2;
+              if (status) status.textContent = remaining ? `${remaining} pending question${remaining === 1 ? "" : "s"}` : "No pending questions.";
+            } catch (e) {
+              btn.disabled = false;
+              btn.textContent = btn.dataset.qaction === "approve" ? "Approve" : "Reject";
+              if (status) status.textContent = `Error: ${e.message}`;
+            }
+          });
+        });
+      } catch (e) {
+        if (status) status.textContent = e.message || "Could not load questions.";
       }
     }
 
@@ -2793,7 +3211,9 @@
 
     function exportAdminRowsCsv() {
       if (!isAdminView() || !adminState.filtered.length) return;
-      const headers = ["organizationId","submittedAt","studentFullName","studentIdCode","classroomName","officialEmail","studentProfileId","classroomId","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","speakingBand","overallBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
+      const headers = adminState.mode === "diagnostic"
+        ? ["organizationId","submittedAt","studentFullName","studentEmail","studentIdCode","studentProfileId","classroomId","examId","reason","diagnosticPercentage","diagnosticBandRange","diagnosticCefrLevel","diagnosticStrength","diagnosticWeakness","diagnosticDeadline"]
+        : ["organizationId","submittedAt","studentFullName","studentIdCode","classroomName","officialEmail","studentProfileId","classroomId","examId","reason","listeningTotal","listeningBand","readingTotal","readingBand","finalWritingBand","speakingBand","overallBand","task1Words","task2Words","task1Band","task1Breakdown","task1Feedback","task2Band","task2Breakdown","task2Feedback","overallFeedback"];
       const lines = [headers.join(",")].concat(
         adminState.filtered.map((row) =>
           headers
@@ -2804,7 +3224,9 @@
       const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = adminState.mode === "practice" ? "ielts-practice-results.csv" : "ielts-results.csv";
+      a.download = adminState.mode === "practice"
+        ? "ielts-practice-results.csv"
+        : (adminState.mode === "diagnostic" ? "ielts-diagnostic-results.csv" : "ielts-results.csv");
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
@@ -2826,7 +3248,11 @@
       !isAdminView()
     ) {
       if (!hasResumableStudentAttempt()) {
-        pendingStartupRouteAction = () => resetToPublicHomeFromStaleRoute();
+        pendingStartupRouteAction = () => {
+          // Preserve legacy active exam hash routes at startup.
+          try { UI().showOnly(route.view); } catch (e) {}
+          try { UI().setExamNavStatus("Status: Ready to start"); } catch (e) {}
+        };
       } else {
         pendingStartupRouteAction = () => promptResumeStudentExamRoute(route);
       }
@@ -2861,10 +3287,31 @@
       }
     }
 
+    // Pathname-based hub routing — clean URL support (no hash present)
+    if (!pendingResourceHubKind) {
+      if (window.location.pathname === "/mock-tests/") pendingResourceHubKind = "fullExam";
+      if (window.location.pathname === "/listening/") pendingResourceHubKind = "listening";
+      if (window.location.pathname === "/reading/") pendingResourceHubKind = "reading";
+      if (window.location.pathname === "/writing/") pendingResourceHubKind = "writing";
+      if (window.location.pathname === "/speaking/") pendingResourceHubKind = "speaking";
+    }
+
+    const pendingPlacementStartupRoute = window.location.pathname === "/placement-test/";
+    const pendingVocabularyStartupRoute = window.location.pathname === "/vocabulary/";
+    const pendingRecentQuestionsStartupRoute = window.location.pathname === "/recent-questions/";
+    const hasPendingHashStartupRoute = !!(route && route.view && route.view !== "home");
+    const hasPendingHubStartupRoute = !!pendingResourceHubKind;
+    const hasPendingStartupRoute = hasPendingHashStartupRoute || hasPendingHubStartupRoute || pendingPlacementStartupRoute || pendingVocabularyStartupRoute || pendingRecentQuestionsStartupRoute;
+
     // -----------------------------
     // Default to home
     // -----------------------------
-    UI().showOnly("home");
+    // Clean hub routes must win over the generic home startup path.
+    // Otherwise `/mock-tests/` or `/listening/` briefly get rewritten to `/`
+    // before the hub has a chance to render.
+    if (!hasPendingStartupRoute) {
+      UI().showOnly("home");
+    }
     UI().updateHomeStatusLine();
     renderHomeResumeAction();
 
@@ -2878,6 +3325,10 @@
     const startBtnT3 = $("startIelts3Btn");
     const startBtnT3b = $("cardStartIelts3Btn");
     const footerStartTest1Btn = $("footerStartTest1Btn");
+    const homeStartFullMockBtn = $("homeStartFullMockBtn");
+    const homeHeroFocusStartBtn = $("homeHeroFocusStartBtn");
+    const homeOpenAssignmentsBtn = $("homeOpenAssignmentsBtn");
+    const homeOpenHistoryQuickBtn = $("homeOpenHistoryQuickBtn");
     const openDashboardBtn = $("openDashboardBtn");
     const footerOpenContactBtn = $("footerOpenContactBtn");
     const homeAccountDropdown = $("homeAccountDropdown");
@@ -2891,10 +3342,13 @@
     const adminClassroomsToggleBtn = $("adminClassroomsToggleBtn");
     const adminPageResultsBtn = $("adminPageResultsBtn");
     const adminPageClassroomsBtn = $("adminPageClassroomsBtn");
+    const adminPageAssignmentsBtn = $("adminPageAssignmentsBtn");
     const adminClassroomsRefreshBtn = $("adminClassroomsRefreshBtn");
     const adminClassroomManagementPanel = $("adminClassroomManagementPanel");
     const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
     const adminSaveStudentBtn = $("adminSaveStudentBtn");
+    const adminMoveStudentClassroomBtn = $("adminMoveStudentClassroomBtn");
+    const adminRemoveStudentClassroomBtn = $("adminRemoveStudentClassroomBtn");
     const adminResetStudentLinkBtn = $("adminResetStudentLinkBtn");
     const adminClassroomProgressRefreshBtn = $("adminClassroomProgressRefreshBtn");
     const adminStudentProgressCloseBtn = $("adminStudentProgressCloseBtn");
@@ -2924,7 +3378,7 @@
     }
 
     // Student password gate (does NOT affect admin view)
-    function requireTestPassword(onOk) {
+    function requireTestPassword(onOk, testId) {
       if (isAdminView()) {
         onOk();
         return;
@@ -2934,21 +3388,47 @@
         return;
       }
 
-      // Always ask in student view (no "remember" unlock),
-      // so every click on Start Exam requires the password.
-      window.IELTS?.Modal?.showModal?.(
-        "Enter password",
-        "This test is password-protected. Please enter the password to start.",
-        {
-          mode: "password",
-          submitText: "Start exam",
-          showCancel: true,
-          cancelText: "Back",
-          onConfirm: () => {
+      function showPasswordModal() {
+        window.IELTS?.Modal?.showModal?.(
+          "Enter password",
+          "This test is password-protected. Please enter the password to start.",
+          {
+            mode: "password",
+            submitText: "Start exam",
+            showCancel: true,
+            cancelText: "Back",
+            onConfirm: () => {
+              onOk();
+            },
+          }
+        );
+      }
+
+      // If a testId is provided, check for assignment access first.
+      // Students with an active published assignment bypass the password.
+      const resolvedTestId = testId || safe(() => getActiveTestId()) || "";
+      if (resolvedTestId && window.IELTS?.Assignments?.checkAssignmentAccess) {
+        window.IELTS.Assignments.checkAssignmentAccess(resolvedTestId).then((result) => {
+          if (result && result.completed) {
+            window.IELTS?.Modal?.showModal?.(
+              "Assignment completed",
+              "You have already completed this assignment.",
+              { mode: "confirm" }
+            );
+            return;
+          }
+          if (result && result.access) {
             onOk();
-          },
-        }
-      );
+          } else {
+            showPasswordModal();
+          }
+        }).catch(() => {
+          showPasswordModal();
+        });
+        return;
+      }
+
+      showPasswordModal();
     }
 
 
@@ -3079,16 +3559,16 @@
         return !query || hay.includes(query);
       });
       tbody.innerHTML = rows.map((student) => `
-        <tr>
+        <tr class="ui-data-row">
           <td>${escapeHtml(student.studentIdCode || "—")}</td>
           <td>${escapeHtml(student.fullName || "—")}</td>
           <td>${escapeHtml(student.classroomName || "—")}</td>
           <td>${escapeHtml(student.linkedAuthEmail || "—")}</td>
           <td>${escapeHtml(student.officialEmail || "—")}</td>
           <td>${student.linkedAuthIdentity || student.linkedAuthUserId ? "Linked" : "Unlinked"}</td>
-          <td><button class="btn secondary" type="button" data-admin-edit-student="${escapeHtml(student.studentIdCode || "")}">Edit</button></td>
+          <td><button class="btn secondary ui-row-action" type="button" data-admin-edit-student="${escapeHtml(student.studentIdCode || "")}">Edit</button></td>
         </tr>
-      `).join("") || `<tr><td colspan="7">No students found.</td></tr>`;
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="7">No students found.</td></tr>`;
       Array.from(tbody.querySelectorAll("[data-admin-edit-student]")).forEach((button) => {
         button.addEventListener("click", () => {
           const code = button.getAttribute("data-admin-edit-student") || "";
@@ -3195,6 +3675,38 @@
       }
       setClassroomStatus("Student saved.", "success");
       await loadClassroomAdminData(true);
+    }
+
+    async function moveSelectedStudentToClassroom() {
+      const classroomId = String($("adminStudentClassroomSelect")?.value || "").trim();
+      if (!classroomId) {
+        setClassroomStatus("Choose a destination classroom first.", "error");
+        return;
+      }
+      const studentIdCode = String($("adminStudentIdInput")?.value || "").trim();
+      if (!studentIdCode) {
+        setClassroomStatus("Select a student first.", "error");
+        return;
+      }
+      await saveStudentFromAdmin();
+      const classroomName = classroomAdminState.classrooms.find((row) => String(row.id || "") === classroomId)?.name || "the selected classroom";
+      setClassroomStatus(`Student moved to ${classroomName}.`, "success");
+    }
+
+    async function removeSelectedStudentFromClassroom() {
+      const studentIdCode = String($("adminStudentIdInput")?.value || "").trim();
+      const studentName = String($("adminStudentNameInput")?.value || "").trim();
+      if (!studentIdCode || !studentName) {
+        setClassroomStatus("Select a student first.", "error");
+        return;
+      }
+      if (!String($("adminStudentClassroomSelect")?.value || "").trim()) {
+        setClassroomStatus("This student is already not assigned to a classroom.");
+        return;
+      }
+      $("adminStudentClassroomSelect").value = "";
+      await saveStudentFromAdmin();
+      setClassroomStatus("Student removed from classroom.", "success");
     }
 
     async function assignStudentCodeFromAdminResult(row, submissionRecord = null, studentIdCode = "") {
@@ -3333,9 +3845,9 @@
           <td>${escapeHtml(String(student?.practiceAttemptCount || 0))}</td>
           <td>${escapeHtml(student?.avgOverallBand === null || student?.avgOverallBand === undefined ? "—" : `Band ${bandText(student?.avgOverallBand)}`)}</td>
           <td>${escapeHtml(fmtDate(student?.latestSubmittedAt))}</td>
-          <td><button class="btn secondary" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">Open</button></td>
+          <td><button class="btn secondary ui-row-action" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">Open</button></td>
         </tr>
-      `).join("") || `<tr><td colspan="8">No students matched this class view yet.</td></tr>`;
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="8">No students matched this class view yet.</td></tr>`;
       Array.from(tbody.querySelectorAll("[data-classroom-student]")).forEach((button) => {
         button.addEventListener("click", () => {
           const studentIdCode = button.getAttribute("data-classroom-student") || "";
@@ -3403,7 +3915,7 @@
       if ($("adminStudentProgressLatest")) $("adminStudentProgressLatest").textContent = fmtDate(student?.latestSubmittedAt);
       if ($("adminStudentProgressClassroom")) $("adminStudentProgressClassroom").textContent = plainText(classroom?.name || student?.classroomName, "—");
       tbody.innerHTML = attempts.map((row, index) => `
-        <tr>
+        <tr class="ui-data-row">
           <td>${escapeHtml(fmtDate(row?.submittedAt))}</td>
           <td>${escapeHtml(row?.source === "practice" ? (row?.practiceLabel || row?.examId || "Practice") : (row?.examId || "Mock test"))}</td>
           <td>${escapeHtml(scoreText(row?.listeningTotal, row?.listeningBand, row?.listeningTotalQuestions || 40))}</td>
@@ -3411,9 +3923,9 @@
           <td>${escapeHtml(row?.finalWritingBand === null || row?.finalWritingBand === undefined ? "—" : `Band ${bandText(row?.finalWritingBand)}`)}</td>
           <td>${escapeHtml(row?.speakingBand === null || row?.speakingBand === undefined ? "—" : `Band ${bandText(row?.speakingBand)}`)}</td>
           <td>${escapeHtml(row?.overallBand === null || row?.overallBand === undefined ? "—" : `Band ${bandText(effectiveOverallBand(row))}`)}</td>
-          <td><button class="btn secondary" type="button" data-student-attempt-index="${index}">View</button></td>
+          <td><button class="btn secondary ui-row-action" type="button" data-student-attempt-index="${index}">View</button></td>
         </tr>
-      `).join("") || `<tr><td colspan="8">No attempts matched to this student yet.</td></tr>`;
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="8">No attempts matched to this student yet.</td></tr>`;
       Array.from(tbody.querySelectorAll("[data-student-attempt-index]")).forEach((button) => {
         button.addEventListener("click", () => {
           const idx = Number(button.getAttribute("data-student-attempt-index"));
@@ -3520,7 +4032,39 @@
       } catch (e) {}
     }
 
+    function setExamRouteForLaunch(testId, view) {
+      const safeTest = encodeURIComponent(String(testId || getActiveTestId() || "ielts1"));
+      const safeView = encodeURIComponent(String(view || "home"));
+      const hashValue = `#/${safeTest}/${safeView}`;
+      const assignedLaunchActive = (() => {
+        try {
+          return !!window.__IELTS_ACTIVE_ASSIGNED_TARGET__;
+        } catch (e) {
+          return false;
+        }
+      })();
+
+      // Assigned starts were being bounced back to home by hashchange/home-reconcile.
+      // For assignment launches we update the hash silently and keep the already-opened view.
+      if (assignedLaunchActive) {
+        try {
+          const nextUrl = `${window.location.pathname || "/"}${window.location.search || ""}${hashValue}`;
+          window.history.replaceState(window.history.state || {}, "", nextUrl);
+          return;
+        } catch (e) {}
+      }
+
+      try { Router().setHashRoute(testId, view); } catch (e) {}
+    }
+
     function launchListeningOnly(testId, pageIndex) {
+      assignmentLaunchDebugLog("launchListeningOnly:enter", {
+        testId,
+        pageIndex,
+        activeViewBefore: document.body?.dataset?.activeView || "",
+        hashBefore: window.location.hash,
+        pathBefore: window.location.pathname,
+      });
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:LISTENING`;
@@ -3532,12 +4076,29 @@
       safe(() => Modal().hideModal());
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("listening"); } catch (e) {}
+      assignmentLaunchDebugLog("launchListeningOnly:afterShowOnly", {
+        activeView: document.body?.dataset?.activeView || "",
+        hash: window.location.hash,
+        path: window.location.pathname,
+      });
       try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Listening${Number.isInteger(pageIndex) ? ` · Section ${pageIndex + 1}` : ""}`); } catch (e) {}
-      try { Router().setHashRoute(testId, "listening"); } catch (e) {}
+      setExamRouteForLaunch(testId, "listening");
+      assignmentLaunchDebugLog("launchListeningOnly:afterSetHashRoute", {
+        activeView: document.body?.dataset?.activeView || "",
+        hash: window.location.hash,
+        path: window.location.pathname,
+      });
       startEngineWhenReady("Listening", "initListeningSystem").catch((e) => console.error("[IELTS] Listening-only launch failed:", e));
     }
 
     function launchReadingOnly(testId, partId) {
+      assignmentLaunchDebugLog("launchReadingOnly:enter", {
+        testId,
+        partId,
+        activeViewBefore: document.body?.dataset?.activeView || "",
+        hashBefore: window.location.hash,
+        pathBefore: window.location.pathname,
+      });
       try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
       setActiveTestId(testId);
       const scope = `IELTS:SECTION:${testId}:READING`;
@@ -3549,8 +4110,18 @@
       safe(() => Modal().hideModal());
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("reading"); } catch (e) {}
+      assignmentLaunchDebugLog("launchReadingOnly:afterShowOnly", {
+        activeView: document.body?.dataset?.activeView || "",
+        hash: window.location.hash,
+        path: window.location.pathname,
+      });
       try { UI().setExamNavStatus(`Status: ${R()?.getTestLabel?.(testId) || testId} Reading${partId ? ` · ${String(partId).replace("part", "Section ")}` : ""}`); } catch (e) {}
-      try { Router().setHashRoute(testId, "reading"); } catch (e) {}
+      setExamRouteForLaunch(testId, "reading");
+      assignmentLaunchDebugLog("launchReadingOnly:afterSetHashRoute", {
+        activeView: document.body?.dataset?.activeView || "",
+        hash: window.location.hash,
+        path: window.location.pathname,
+      });
       startEngineWhenReady("Reading", "startReadingSystem").catch((e) => console.error("[IELTS] Reading-only launch failed:", e));
     }
 
@@ -3601,7 +4172,7 @@
       try { UI().showOnly("home"); } catch (e) {}
       try { UI().updateHomeStatusLine("Status: Ready"); } catch (e) {}
       try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
-      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      try { history.replaceState({}, "", "/"); } catch (e) {}
     }
 
     function createMetaPill(text) {
@@ -3613,36 +4184,37 @@
 
     function createCatalogCard(options) {
       const card = document.createElement("article");
-      card.className = "home-catalog-card";
+      card.className = "home-catalog-card ui-activity-card";
+      card.setAttribute("data-card-kind", "test-selection");
 
       const kicker = document.createElement("div");
-      kicker.className = "home-catalog-kicker";
+      kicker.className = "home-catalog-kicker ui-card-kicker";
       kicker.textContent = options.kicker || "Section";
       card.appendChild(kicker);
 
       const title = document.createElement("h3");
-      title.className = "home-catalog-title";
+      title.className = "home-catalog-title ui-card-title";
       title.textContent = options.title || "Practice";
       card.appendChild(title);
 
       const copy = document.createElement("p");
-      copy.className = "home-catalog-copy";
+      copy.className = "home-catalog-copy ui-card-copy";
       copy.textContent = options.copy || "";
       card.appendChild(copy);
 
       if (Array.isArray(options.meta) && options.meta.length) {
         const meta = document.createElement("div");
-        meta.className = "home-catalog-meta";
+        meta.className = "home-catalog-meta ui-card-meta";
         options.meta.forEach((item) => meta.appendChild(createMetaPill(item)));
         card.appendChild(meta);
       }
 
       const actions = document.createElement("div");
-      actions.className = "home-catalog-actions";
+      actions.className = "home-catalog-actions ui-card-actions";
 
       const primary = document.createElement("button");
       primary.type = "button";
-      primary.className = "home-btn";
+      primary.className = "home-btn ui-card-action-primary";
       primary.textContent = options.primaryLabel || "Open";
       primary.addEventListener("click", options.onPrimary);
       actions.appendChild(primary);
@@ -3650,7 +4222,7 @@
       if (options.onSecondary) {
         const secondary = document.createElement("button");
         secondary.type = "button";
-        secondary.className = "home-btn ghost";
+        secondary.className = "home-btn ghost ui-card-action-secondary";
         secondary.textContent = options.secondaryLabel || "Open";
         secondary.addEventListener("click", options.onSecondary);
         actions.appendChild(secondary);
@@ -3674,7 +4246,7 @@
         options.extraActions.forEach((action) => {
           const btn = document.createElement("button");
           btn.type = "button";
-          btn.className = action.ghost ? "home-btn ghost" : "home-btn ghost";
+          btn.className = action.ghost ? "home-btn ghost ui-card-action-secondary" : "home-btn ghost ui-card-action-secondary";
           btn.textContent = action.label;
           btn.addEventListener("click", action.onClick);
           actions.appendChild(btn);
@@ -4442,34 +5014,98 @@
       rememberHub(kind);
       renderResourceHub(kind, focusId);
       UI().showOnly(view);
-      try { Router().setHashRoute(getActiveTestId(), view); } catch (e) {}
+      // Hub views with clean URL mappings use pushState via showOnly/VIEW_TO_PATH.
+      // Only use hash routing for views that have no clean URL yet.
+      const HUB_CLEAN_PATHS = {
+        fullExamHub: "/mock-tests/",
+        listeningHub: "/listening/",
+        readingHub: "/reading/",
+        writingHub: "/writing/",
+        speakingHub: "/speaking/",
+      };
+      if (!HUB_CLEAN_PATHS[view]) {
+        try { Router().setHashRoute(getActiveTestId(), view); } catch (e) {}
+      }
       UI().setExamNavStatus(`Status: ${kind} page`);
       if (focusId) {
         setTimeout(() => document.getElementById(focusId)?.scrollIntoView?.({ behavior: "smooth", block: "start" }), 40);
       }
     }
 
+    function launchFullExamFromCatalog(testId) {
+      const resolved = String(testId || "").trim();
+      if (!resolved) return;
+      requireTestPassword(() => {
+        setActiveTestId(resolved);
+        startFreshExam();
+      }, resolved);
+    }
+
+    function openGrammarFromMenu() {
+      try { window.IELTS?.Grammar?.init?.(); } catch (e) {}
+      try { UI().showOnly("grammar"); } catch (e) {}
+      try { UI().setExamNavStatus("Status: Grammar"); } catch (e) {}
+    }
+
+    function openResourcesFromMenu() {
+      try { window.IELTS?.ResourcesPage?.init?.(); } catch (e) {}
+      try { UI().showOnly("resources"); } catch (e) {}
+      try { UI().setExamNavStatus("Status: Resources"); } catch (e) {}
+    }
+
     function renderMenuGroup(menu) {
       const wrap = document.createElement("div");
       wrap.className = "home-skill-menu";
 
-      const trigger = document.createElement("button");
-      trigger.type = "button";
+      const isSingleAction = menu.items.length === 1;
+      const singleItem = isSingleAction ? menu.items[0] : null;
+      const trigger = singleItem?.href ? document.createElement("a") : document.createElement("button");
+      if (trigger.tagName === "BUTTON") trigger.type = "button";
       trigger.className = "home-skill-trigger";
-      trigger.appendChild(document.createElement("span")).textContent = menu.label;
-      trigger.appendChild(document.createElement("i")).textContent = "▾";
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = menu.label;
+      trigger.appendChild(labelSpan);
+      if (singleItem?.href) trigger.href = singleItem.href;
+
+      if (!isSingleAction) {
+        const arrow = document.createElement("i");
+        arrow.textContent = "▾";
+        trigger.appendChild(arrow);
+      }
+
+      if (isSingleAction) {
+        if (!singleItem?.href) {
+          trigger.addEventListener("click", () => {
+            document.querySelectorAll(".home-skill-dropdown").forEach((el) => el.classList.add("hidden"));
+            menu.items[0].onClick();
+          });
+        }
+        wrap.appendChild(trigger);
+        return wrap;
+      }
 
       const dropdown = document.createElement("div");
       dropdown.className = "home-skill-dropdown hidden";
 
       menu.items.forEach((item) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
+        const btn = item.href ? document.createElement("a") : document.createElement("button");
+        if (btn.tagName === "BUTTON") btn.type = "button";
         btn.className = "home-skill-item";
-        btn.textContent = item.label;
-        btn.addEventListener("click", () => {
+        if (item.href) btn.href = item.href;
+        const strong = document.createElement("strong");
+        strong.textContent = item.label;
+        btn.appendChild(strong);
+        if (item.copy) {
+          const copy = document.createElement("span");
+          copy.textContent = item.copy;
+          btn.appendChild(copy);
+        }
+        btn.addEventListener("click", (event) => {
           dropdown.classList.add("hidden");
-          item.onClick();
+          if (!item.href) {
+            event.preventDefault();
+            item.onClick();
+          }
         });
         dropdown.appendChild(btn);
       });
@@ -4510,63 +5146,62 @@
     function renderHomeMenus() {
       if (!homeExploreMenus) return;
       clearElement(homeExploreMenus);
-      const fullExamCatalog = R()?.buildHomeCatalog?.()?.fullExams || [];
-      const quickStartItems = fullExamCatalog.slice(0, 3).map((item) => ({
-        label: `Start ${item.label}`,
-        copy: `Quick start ${item.label.toLowerCase()}.`,
-        onClick: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
-      }));
       const menus = [
         {
           kicker: "Core path",
-          label: "Take Full Exam",
+          label: "Exams",
           items: [
-            { label: "Open full exam page", copy: "See all uploaded complete exams in one place.", onClick: () => openResourceHub("fullExam") },
-          ].concat(quickStartItems).concat([
-            { label: "See more full exams", copy: "Browse the grouped full exam collections.", onClick: () => openResourceHub("fullExam") },
-          ]),
-        },
-        {
-          kicker: "Skill page",
-          label: "Reading",
-          items: [
-            { label: "Open reading page", copy: "Reading exams, sections, practice buckets, and tips.", onClick: () => openResourceHub("reading") },
-            { label: "Take full reading exam", copy: "Jump straight to the reading-only exam page.", onClick: () => openResourceHub("reading", "reading-full-exams") },
-            { label: "Take by section", copy: "Open reading sections 1, 2, or 3 separately.", onClick: () => openResourceHub("reading", "reading-sections") },
-            { label: "Practice by question type", copy: "Go straight to TFNG, Headings, Completion, and more.", onClick: () => openResourceHub("reading", "reading-practice-types") },
-            { label: "Reading tips", copy: "See the reading strategy page section.", onClick: () => openResourceHub("reading", "reading-tips") },
+            { label: "Browse all full exams", copy: "See every complete mock exam in one place.", href: "/mock-tests/" },
+            { label: "See all exam collections", copy: "Browse by series: IRM, OG, Cambridge, and more.", href: "/mock-tests/" },
           ],
         },
         {
-          kicker: "Skill page",
-          label: "Listening",
+          kicker: "Skills",
+          label: "Practice",
           items: [
-            { label: "Open listening page", copy: "Listening exams, sections, and tips.", onClick: () => openResourceHub("listening") },
-            { label: "Take full listening exam", copy: "Go to listening-only exam cards.", onClick: () => openResourceHub("listening", "listening-full-exams") },
-            { label: "Listening tips", copy: "See listening technique guidance.", onClick: () => openResourceHub("listening", "listening-tips") },
+            { label: "Reading", copy: "Full reading exams, sections, and question-type practice.", href: "/reading/" },
+            { label: "Listening", copy: "Listening exams, section-by-section, and strategy tips.", href: "/listening/" },
+            { label: "Writing", copy: "Task 1 and Task 2 practice with AI feedback.", href: "/writing/" },
+            { label: "Speaking", copy: "Speaking practice, predicted topics, and sample answers.", href: "/speaking/" },
           ],
         },
         {
-          kicker: "Skill page",
-          label: "Writing",
+          kicker: "Learn",
+          label: "Grammar",
           items: [
-            { label: "Open writing page", copy: "Writing task launchers, sample answers, and guidance.", onClick: () => openResourceHub("writing") },
-            { label: "Take whole writing section", copy: "Open both Task 1 and Task 2 together with the normal writing submit flow.", onClick: () => openResourceHub("writing", "writing-full-exams") },
-            { label: "Writing Task 1", copy: "Open Task 1-focused writing access.", onClick: () => openResourceHub("writing", "writing-task1") },
-            { label: "Writing Task 2", copy: "Open Task 2-focused writing access.", onClick: () => openResourceHub("writing", "writing-task2") },
-            { label: "Task 1 sample library", copy: "Browse Task 1 sample answers in a dedicated page.", onClick: () => openResourceHub("writingSamplesTask1") },
-            { label: "Task 2 sample library", copy: "Browse Task 2 sample answers in a dedicated page.", onClick: () => openResourceHub("writingSamplesTask2") },
+            { label: "Grammar hub", copy: "12 structured grammar topics for IELTS Writing and Speaking.", onClick: () => openGrammarFromMenu() },
+            { label: "Tenses", copy: "Master all IELTS-relevant tense forms.", onClick: () => openGrammarFromMenu() },
+            { label: "Linking words", copy: "Coherence and cohesion vocabulary for band 7+.", onClick: () => openGrammarFromMenu() },
+            { label: "Conditionals", copy: "If-clauses and hypothetical language for high band scores.", onClick: () => openGrammarFromMenu() },
           ],
         },
         {
-          kicker: "Skill page",
-          label: "Speaking",
+          kicker: "Learn",
+          label: "Vocabulary",
           items: [
-            { label: "Open speaking page", copy: "Speaking practice, predicted questions, tips, and sample answers.", onClick: () => openResourceHub("speaking") },
-            { label: "Practice speaking", copy: "Jump straight into the speaking module.", onClick: () => openResourceHub("speaking", "speaking-practice") },
-            { label: "Predicted speaking questions", copy: "See likely prompt themes and examples.", onClick: () => openResourceHub("speaking", "speaking-predicted") },
-            { label: "Tips for speaking", copy: "Open speaking technique guidance.", onClick: () => openResourceHub("speaking", "speaking-tips") },
-            { label: "Sample answers", copy: "Open speaking sample response guidance.", onClick: () => openResourceHub("speaking", "speaking-samples") },
+            { label: "Open vocabulary hub", copy: "Themed IELTS word banks, flashcards, and practice.", href: "/vocabulary/" },
+          ],
+        },
+        {
+          kicker: "Tools",
+          label: "Placement",
+          items: [
+            { label: "Take placement test", copy: "Find your approximate IELTS level in under 15 minutes.", href: "/placement-test/" },
+          ],
+        },
+        {
+          kicker: "Community",
+          label: "Questions",
+          items: [
+            { label: "Browse recent questions", copy: "Read what other students saw on their real IELTS exams.", href: "/recent-questions/" },
+            { label: "Share your experience", copy: "Help others by posting your recent exam questions and topics.", href: "/recent-questions/" },
+          ],
+        },
+        {
+          kicker: "Support",
+          label: "Resources",
+          items: [
+            { label: "Browse all resources", copy: "Download guides, templates, and study materials.", onClick: () => openResourcesFromMenu() },
           ],
         },
       ];
@@ -4613,7 +5248,7 @@
                 copy: item.description,
                 meta: item.meta,
                 primaryLabel: "Start full exam",
-                onPrimary: () => requireTestPassword(() => { setActiveTestId(item.id); startFreshExam(); }),
+                onPrimary: () => launchFullExamFromCatalog(item.id),
               }));
             });
             return grid;
@@ -4640,7 +5275,7 @@
               copy: item.description,
               meta: item.meta,
               primaryLabel: "Open full reading",
-              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
+              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId), item.testId),
             }));
           });
           return grid;
@@ -4655,11 +5290,11 @@
               copy: "Launch one reading part at a time when a student wants focused repair work instead of the full reading paper.",
               meta: ["Section 1", "Section 2", "Section 3"],
               primaryLabel: "Full reading",
-              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId)),
+              onPrimary: () => requireTestPassword(() => launchReadingOnly(item.testId), item.testId),
               extraActions: [
-                { label: "Section 1", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part1")) },
-                { label: "Section 2", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part2")) },
-                { label: "Section 3", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part3")) },
+                { label: "Section 1", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part1"), item.testId) },
+                { label: "Section 2", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part2"), item.testId) },
+                { label: "Section 3", onClick: () => requireTestPassword(() => launchReadingOnly(item.testId, "part3"), item.testId) },
               ],
             }));
           });
@@ -4753,7 +5388,7 @@
               copy: item.description,
               meta: item.meta,
               primaryLabel: "Open full listening",
-              onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId)),
+              onPrimary: () => requireTestPassword(() => launchListeningOnly(item.testId), item.testId),
             }));
           });
           return grid;
@@ -4831,7 +5466,7 @@
               copy: "Launch the full Writing section with both tasks and submit it the same way as the full exam.",
               meta: ["Task 1 + Task 2", "Normal submission flow"],
               primaryLabel: "Open Writing",
-              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId)),
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId), item.testId),
             }));
           });
           return grid;
@@ -4846,7 +5481,7 @@
               copy: "Launch writing and focus the student directly on Task 1.",
               meta: ["Visual / report task"],
               primaryLabel: "Open Task 1",
-              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task1")),
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task1"), item.testId),
             }));
           });
           return grid;
@@ -4861,7 +5496,7 @@
               copy: "Launch writing and focus the student directly on Task 2.",
               meta: ["Essay task"],
               primaryLabel: "Open Task 2",
-              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task2")),
+              onPrimary: () => requireTestPassword(() => launchWritingOnly(item.testId, "task2"), item.testId),
             }));
           });
           return grid;
@@ -5076,7 +5711,7 @@ function startFreshExam() {
       try { UI().setExamStarted(true); } catch (e) {}
       try { UI().showOnly("listening"); } catch (e) {}
       try { UI().setExamNavStatus("Status: Listening in progress"); } catch (e) {}
-      try { window.IELTS?.Router?.setHashRoute?.((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening"); } catch (e) {}
+      setExamRouteForLaunch((window.IELTS?.Registry?.getActiveTestId?.() || "ielts1"), "listening");
 
       try {
         startEngineWhenReady("Listening", "initListeningSystem").catch(e => console.error('[IELTS] Listening failed to start:', e));
@@ -5101,22 +5736,99 @@ function startFreshExam() {
       startFreshExam();
     }
 
+    function startAssignedPractice(assignmentTargetId) {
+      const value = String(assignmentTargetId || "").trim();
+      assignmentLaunchDebugLog("startAssignedPractice:enter", {
+        assignmentTargetId,
+        value,
+        activeViewBefore: document.body?.dataset?.activeView || "",
+        hashBefore: window.location.hash,
+        pathBefore: window.location.pathname,
+      });
+      if (!value.startsWith("practice|")) return false;
+      const parts = value.split("|");
+      const type = parts[1] || "";
+      const testId = parts[2] || (R()?.TESTS?.defaultTestId || "ielts1");
+      const scope = parts[3] || "";
+      assignmentLaunchDebugLog("startAssignedPractice:parsed", { type, testId, scope, parts });
+      if (type === "reading") {
+        if (scope && scope.startsWith("section")) {
+          launchReadingOnly(testId, `part${String(scope).replace("section", "")}`);
+          return true;
+        }
+        launchReadingOnly(testId);
+        return true;
+      }
+      if (type === "listening") {
+        if (scope && scope.startsWith("section")) {
+          const pageIndex = Number(String(scope).replace("section", "")) - 1;
+          launchListeningOnly(testId, Number.isFinite(pageIndex) ? pageIndex : undefined);
+          return true;
+        }
+        launchListeningOnly(testId);
+        return true;
+      }
+      if (type === "writing") {
+        if (scope === "task1" || scope === "task2") {
+          launchWritingOnly(testId, scope);
+          return true;
+        }
+        launchWritingOnly(testId);
+        return true;
+      }
+      if (type === "reading-task") {
+        const taskType = parts[2] || "";
+        if (taskType) {
+          launchReadingPractice(taskType);
+          return true;
+        }
+      }
+      return false;
+    }
+
     window.IELTS = window.IELTS || {};
     window.IELTS.App = window.IELTS.App || {};
     window.IELTS.App.startFreshExamForTest = startFreshExamForTest;
+    window.IELTS.App.startAssignedPractice = startAssignedPractice;
+    window.IELTS.App.launchListeningOnly = launchListeningOnly;
+    window.IELTS.App.launchReadingOnly = launchReadingOnly;
+    window.IELTS.App.launchWritingOnly = launchWritingOnly;
+    window.IELTS.App.launchReadingPractice = launchReadingPractice;
     window.IELTS.App.leavePracticeReviewToHome = leavePracticeReviewToHome;
+    window.IELTS.App.startFreshExam = startFreshExam;
+    window.IELTS.App.startFreshExamByAssignment = function (testId) {
+      try { setActiveTestId(testId); } catch (e) {}
+      try { startFreshExam(); } catch (e) {}
+    };
     window.IELTS.Practice = window.IELTS.Practice || {};
     window.IELTS.Practice.submitObjectiveSection = submitObjectiveSectionPractice;
     window.IELTS.Practice.buildPracticeExamId = derivePracticeExamId;
     window.IELTS.Practice.buildPracticeLabel = derivePracticeLabel;
 
-    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
-    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
-    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); });
-    if (startBtnT3) startBtnT3.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
-    if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); });
-    if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); });
+    if (startBtn) startBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); }, "ielts1");
+    if (startBtn2) startBtn2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); }, "ielts1");
+    if (startBtnT2) startBtnT2.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); }, "ielts2");
+    if (startBtnT2b) startBtnT2b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts2"); startFreshExam(); }, "ielts2");
+    if (startBtnT3) startBtnT3.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); }, "ielts3");
+    if (startBtnT3b) startBtnT3b.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts3"); startFreshExam(); }, "ielts3");
+    if (footerStartTest1Btn) footerStartTest1Btn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); }, "ielts1");
+    if (homeStartFullMockBtn && homeStartFullMockBtn.tagName === "BUTTON") homeStartFullMockBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); }, "ielts1");
+    const homePlacementStartBtn = $("homePlacementStartBtn");
+    if (homePlacementStartBtn && homePlacementStartBtn.tagName === "BUTTON") homePlacementStartBtn.onclick = () => { UI().showOnly("placementTest"); try { Router().setHashRoute(getActiveTestId(), "placementTest"); } catch(e) {} };
+    if (homeHeroFocusStartBtn) homeHeroFocusStartBtn.onclick = () => requireTestPassword(() => { window.IELTS.Registry.setActiveTestId("ielts1"); startFreshExam(); }, "ielts1");
+    if (homeOpenAssignmentsBtn) homeOpenAssignmentsBtn.onclick = () => {
+      if (!window.IELTS?.Auth?.isSignedIn?.()) {
+        window.IELTS?.Auth?.openLoginGate?.("Please log in to open assignments.");
+        return;
+      }
+      const assignmentsSection = $("studentAssignmentsSection");
+      if (assignmentsSection && !assignmentsSection.classList.contains("hidden")) {
+        assignmentsSection.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      openHistoryFromMenu();
+    };
+    if (homeOpenHistoryQuickBtn) homeOpenHistoryQuickBtn.onclick = () => openHistoryFromMenu();
     if (openDashboardBtn) openDashboardBtn.onclick = (e) => {
       e.preventDefault();
       if (!window.IELTS?.Auth?.isSignedIn?.()) {
@@ -5134,6 +5846,11 @@ function startFreshExam() {
     if (adminResultsBtn) adminResultsBtn.onclick = () => openAdminResultsView(false, "full");
     if (adminPageResultsBtn) adminPageResultsBtn.onclick = () => openAdminResultsView(false, adminState.mode);
     if (adminPageClassroomsBtn) adminPageClassroomsBtn.onclick = () => openAdminClassroomsView().catch((e) => setClassroomProgressStatus(e?.message || "Could not open classrooms.", "error"));
+    if (adminPageAssignmentsBtn) adminPageAssignmentsBtn.onclick = () => { UI().showOnly("adminResults"); window.IELTS?.Assignments?.openAssignmentsPage?.(); };
+    const adminPageQuestionsBtn = $("adminPageQuestionsBtn");
+    if (adminPageQuestionsBtn) adminPageQuestionsBtn.onclick = () => { UI().showOnly("adminResults"); setAdminPage("questions"); loadAdminPendingQuestions(); };
+    const adminQuestionsRefreshBtn = $("adminQuestionsRefreshBtn");
+    if (adminQuestionsRefreshBtn) adminQuestionsRefreshBtn.onclick = () => loadAdminPendingQuestions();
     if (adminClassroomsToggleBtn) adminClassroomsToggleBtn.onclick = () => {
       if (adminState.page === "classrooms") openAdminResultsView(false, adminState.mode);
       else openAdminClassroomsView().catch((e) => setClassroomProgressStatus(e?.message || "Could not open classrooms.", "error"));
@@ -5149,6 +5866,8 @@ function startFreshExam() {
     }
     if (adminCreateClassroomBtn) adminCreateClassroomBtn.onclick = () => createClassroomFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not create classroom.", "error"));
     if (adminSaveStudentBtn) adminSaveStudentBtn.onclick = () => saveStudentFromAdmin().catch((e) => setClassroomStatus(e?.message || "Could not save student.", "error"));
+    if (adminMoveStudentClassroomBtn) adminMoveStudentClassroomBtn.onclick = () => moveSelectedStudentToClassroom().catch((e) => setClassroomStatus(e?.message || "Could not move student to classroom.", "error"));
+    if (adminRemoveStudentClassroomBtn) adminRemoveStudentClassroomBtn.onclick = () => removeSelectedStudentFromClassroom().catch((e) => setClassroomStatus(e?.message || "Could not remove student from classroom.", "error"));
     if (adminResetStudentLinkBtn) adminResetStudentLinkBtn.onclick = () => resetSelectedStudentLink().catch((e) => setClassroomStatus(e?.message || "Could not reset linked account.", "error"));
     if (adminStudentProgressCloseBtn) adminStudentProgressCloseBtn.onclick = () => $("adminStudentProgressDetail")?.classList.add("hidden");
     if (adminStudentSearchInput) adminStudentSearchInput.addEventListener("input", renderClassroomStudents);
@@ -5161,13 +5880,15 @@ function startFreshExam() {
     if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");
-      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      try { history.replaceState({}, "", "/"); } catch (e) {}
       UI().updateHomeStatusLine();
       renderHomeResumeAction();
       UI().setExamNavStatus("Status: Home");
     };
     if (adminResultsModeFullBtn) adminResultsModeFullBtn.onclick = () => openAdminResultsView(false, "full");
     if (adminResultsModePracticeBtn) adminResultsModePracticeBtn.onclick = () => openAdminResultsView(false, "practice");
+    const adminResultsModeDiagnosticBtn = $("adminResultsModeDiagnosticBtn");
+    if (adminResultsModeDiagnosticBtn) adminResultsModeDiagnosticBtn.onclick = () => openAdminResultsView(false, "diagnostic");
     if (navResultsBtn) navResultsBtn.onclick = () => openAdminResultsView(false, "full");
     if (adminRefreshBtn) adminRefreshBtn.onclick = () => openAdminResultsView(true);
     if (adminExportBtn) adminExportBtn.onclick = () => exportAdminRowsCsv();
@@ -5183,9 +5904,28 @@ function startFreshExam() {
     if (pendingResourceHubKind) {
       openResourceHub(pendingResourceHubKind);
     }
+    if (pendingPlacementStartupRoute) {
+      try { UI().showOnly("placementTest"); } catch (e) {}
+    }
+    if (pendingVocabularyStartupRoute) {
+      try {
+        if (window.IELTS?.Auth?.isSignedIn?.()) {
+          window.IELTS?.Vocabulary?.open?.("dashboard");
+        } else {
+          UI().showOnly("vocabulary");
+          window.IELTS?.Auth?.openLoginGate?.("Please log in to open Vocabulary.");
+        }
+      } catch (e) {}
+    }
+    if (pendingRecentQuestionsStartupRoute) {
+      try {
+        UI().showOnly("recentQuestions");
+        window.IELTS?.RecentQuestions?.render?.();
+      } catch (e) {}
+    }
     if (resourceHubBackBtn) resourceHubBackBtn.onclick = () => {
       UI().showOnly("home");
-      try { Router().setHashRoute(getActiveTestId(), "home"); } catch (e) {}
+      try { history.replaceState({}, "", "/"); } catch (e) {}
       renderHomeResumeAction();
       UI().setExamNavStatus("Status: Home");
     };
@@ -5208,16 +5948,45 @@ function startFreshExam() {
     window.addEventListener("ielts:authchanged", () => {
       syncAdminToggleMenu();
       setTimeout(reconcileStartupRoute, 0);
+      refreshHomePlacementPreview().catch(() => {});
     });
     syncAdminToggleMenu();
 
+    // ── New pages init ──────────────────────────────────────────────────────────────
+    try { window.IELTS?.Grammar?.init?.(); } catch (e) {}
+    try { window.IELTS?.PlacementTest?.init?.(); } catch (e) {}
+    try { window.IELTS?.ResourcesPage?.init?.(); } catch (e) {}
+    try { window.IELTS?.RecentQuestions?.init?.(); } catch (e) {}
+    // ── End new pages init ───────────────────────────────────────────────────────
+
+    // ── Assignments module init ──────────────────────────────────────────────
+    try { window.IELTS?.Assignments?.init?.(); } catch (e) {}
+    // Reload student assignments when auth state changes (sign-in / sign-out)
+    window.addEventListener("ielts:authchanged", () => {
+      try { window.IELTS?.Assignments?.clearAccessCache?.(); } catch (e) {}
+      if (!isAdminView() && window.IELTS?.Auth?.isSignedIn?.()) {
+        window.IELTS?.Assignments?.loadStudentAssignments?.();
+      }
+    });
+    // Load student assignments on first load if already signed in
+    if (!isAdminView() && window.IELTS?.Auth?.isSignedIn?.()) {
+      try { window.IELTS?.Assignments?.loadStudentAssignments?.(); } catch (e) {}
+    }
+    refreshHomePlacementPreview().catch(() => {});
+    // ── End Assignments init ─────────────────────────────────────────────────
+
     window.addEventListener("focus", () => {
       renderHomeResumeAction();
+      refreshHomePlacementPreview().catch(() => {});
     });
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") renderHomeResumeAction();
+      if (document.visibilityState === "visible") {
+        renderHomeResumeAction();
+        refreshHomePlacementPreview().catch(() => {});
+      }
     });
     setTimeout(reconcileStartupRoute, 0);
+    setTimeout(() => { try { window.IELTS?.Router?.initFromPath?.(); } catch (e) {} }, 0);
     $("adminDetailCloseBtn")?.addEventListener("click", closeAdminDetail);
     $("adminResultsTbody")?.addEventListener("click", (e) => {
       const btn = e.target?.closest?.("[data-admin-view]");
@@ -5227,10 +5996,28 @@ function startFreshExam() {
       if (row) renderAdminDetail(row, { sourceRowId: btn.getAttribute("data-admin-row-id") || null });
     });
 
-    // If student refreshes after Listening is already submitted, show gate (not auto-reading)
+    // If student refreshes after Listening is already submitted, show gate (not auto-reading).
+    // BUT: if they landed on home / no hash with an active attempt, the gates must NOT
+    // hijack the screen — show the "Resume or Leave?" prompt instead.  The gates will
+    // fire naturally once the student returns to their section via the prompt.
     if (!isAdminView()) {
-      showListeningGate();
-      showReadingGate();
+      const startupView = (safe(() => Router().parseHashRoute()?.view)) || "";
+      if (!isExamRouteView(startupView) && hasResumableStudentAttempt()) {
+        // Suppress gates while the resume prompt is open.
+        try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
+        const resumeView = getResumableStudentView();
+        if (resumeView) {
+          promptResumeStudentExamRoute({ view: resumeView, testId: getActiveTestId() });
+        } else {
+          // No deterministic section to resume — release suppression and run gates normally.
+          try { window.__IELTS_SUPPRESS_AUTO_GATES__ = false; } catch (e) {}
+          showListeningGate();
+          showReadingGate();
+        }
+      } else {
+        showListeningGate();
+        showReadingGate();
+      }
     }
 
     document.addEventListener("click", (e) => {

@@ -53,6 +53,10 @@
     const vocabulary = $("vocabularySection");
     const speaking = $("speakingSection");
     const adminResults = $("adminResultsSection");
+    const grammar = $("grammarSection");
+    const placementTest = $("placementTestSection");
+    const recentQuestions = $("recentQuestionsSection");
+    const resourcesPage = $("resourcesSection");
 
     const isHome = view === "home";
     const isResourceHub = ["fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"].includes(view);
@@ -64,6 +68,10 @@
     const isVocabulary = view === "vocabulary";
     const isSpeaking = view === "speaking";
     const isAdminResults = view === "adminResults";
+    const isGrammar = view === "grammar";
+    const isPlacementTest = view === "placementTest";
+    const isRecentQuestions = view === "recentQuestions";
+    const isResourcesPage = view === "resources";
 
     if (home) home.classList.toggle("hidden", !isHome);
     if (resourceHub) resourceHub.classList.toggle("hidden", !isResourceHub);
@@ -76,6 +84,10 @@
     if (vocabulary) vocabulary.classList.toggle("hidden", !isVocabulary);
     if (speaking) speaking.classList.toggle("hidden", !isSpeaking);
     if (adminResults) adminResults.classList.toggle("hidden", !isAdminResults);
+    if (grammar) grammar.classList.toggle("hidden", !isGrammar);
+    if (placementTest) placementTest.classList.toggle("hidden", !isPlacementTest);
+    if (recentQuestions) recentQuestions.classList.toggle("hidden", !isRecentQuestions);
+    if (resourcesPage) resourcesPage.classList.toggle("hidden", !isResourcesPage);
 
     try {
       document.body.dataset.activeView = view;
@@ -92,6 +104,32 @@
 
     try {
       S()?.set(R().KEYS.HOME_LAST_VIEW, view);
+    } catch (e) {}
+
+    try {
+      const VIEW_TO_PATH = {
+        home: "/",
+        fullExamHub: "/mock-tests/",
+        listeningHub: "/listening/",
+        readingHub: "/reading/",
+        writingHub: "/writing/",
+        speakingHub: "/speaking/",
+        placementTest: "/placement-test/",
+        vocabulary: "/vocabulary/",
+        recentQuestions: "/recent-questions/",
+        dashboard: "/dashboard/",
+        history: "/history/",
+        assignments: "/assignments/",
+        adminResults: "/admin/",
+      };
+      const path = VIEW_TO_PATH[view];
+      if (path !== undefined) {
+        if (window.location.pathname !== path) {
+          window.history.pushState({ view }, "", path);
+        } else if (window.location.hash) {
+          window.history.replaceState({ view }, "", path);
+        }
+      }
     } catch (e) {}
   }
 
@@ -218,6 +256,15 @@
       }, 120);
     });
     setTimeout(updateExamNavHeightVar, 0);
+  } catch (e) {}
+
+  try {
+    const __header = document.querySelector(".home-header");
+    if (__header) {
+      window.addEventListener("scroll", () => {
+        __header.classList.toggle("is-scrolled", window.scrollY > 4);
+      }, { passive: true });
+    }
   } catch (e) {}
 
   window.IELTS = window.IELTS || {};

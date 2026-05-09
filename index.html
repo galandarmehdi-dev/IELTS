@@ -248,159 +248,181 @@
 
     <div class="home-hero">
       <div class="home-hero-left">
-        <div class="home-badge">Performance-focused IELTS prep</div>
-        <h1 class="home-title">A focused IELTS platform for full mocks, section exams, and skill-based practice</h1>
-        <p class="home-subtitle">
-          Choose a skill from the top navigation and move directly into dedicated reading, listening, writing, speaking, or full-exam pages without a crowded homepage.
-        </p>
-
-        <div class="home-trust-strip" aria-label="Platform highlights">
-          <div class="trust-pill">Full exam path</div>
-          <div class="trust-pill">Section-only access</div>
-          <div class="trust-pill">Question-type practice</div>
-          <div class="trust-pill">Student dashboard</div>
+        <h1 class="home-title">The complete IELTS preparation platform</h1>
+        <p class="home-subtitle">Full mock exams, skill practice, grammar, vocabulary, and AI-graded writing — all in one place.</p>
+        <div class="home-hero-cta" aria-label="Primary actions">
+          <a class="home-btn" id="homeStartFullMockBtn" href="/mock-tests/">Start a full mock test</a>
+          <button class="home-btn ghost" type="button" id="homeOpenHistoryQuickBtn">View recent results</button>
         </div>
-
-        <div class="home-metric-strip" aria-label="Core platform stats">
-          <div class="hero-stat">
-            <span class="hero-stat-value">10</span>
-            <span class="hero-stat-label">complete uploaded mock sets</span>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-value">05</span>
-            <span class="hero-stat-label">skill paths from the homepage</span>
-          </div>
-          <div class="hero-stat">
-            <span class="hero-stat-value">01</span>
-            <span class="hero-stat-label">single professional student workspace</span>
-          </div>
-        </div>
-
-        <div class="home-preferences" aria-label="Display settings">
-          <div class="home-preferences-title">Display settings</div>
-          <label class="home-select-wrap" for="fontSizeSelect">
-            <span>Font size</span>
-            <select id="fontSizeSelect" class="home-select">
-              <option value="small">Small</option>
-              <option value="medium" selected>Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="home-notes" id="homeStatusLine">Status: Ready to begin your mock exam</div>
-        <div class="home-resume-action hidden" id="homeResumeAction"></div>
       </div>
 
       <div class="home-hero-right">
-        <div class="home-rail-panel home-command-panel">
+        <div class="home-rail-panel home-command-panel home-focus-card">
           <div class="home-card-topline">At a glance</div>
-          <div class="command-title">Everything is organised by purpose, not stacked on one screen</div>
-          <div class="command-copy">Use the navigation above to move straight into full exams, skill pages, section-only routes, and practice collections from a cleaner starting point.</div>
+          <div class="command-title">Continue your training</div>
 
-          <div class="command-list">
-            <div class="command-row">
-              <div>
-                <strong>Take Full Exam</strong>
-                <span>Complete mock exams in the normal IELTS flow</span>
-              </div>
-              <b>Exam</b>
+          <section id="studentAssignmentsSection" class="hidden hero-assignment-inline" aria-label="Your assignments">
+            <div class="student-assignments-heading hero-assignment-heading">
+              <span>📋</span> Assigned task
             </div>
-            <div class="command-row">
-              <div>
-                <strong>Reading and Listening</strong>
-                <span>Full skill exams, sections, and targeted drills</span>
-              </div>
-              <b>Skill</b>
+            <div class="student-assignments-list" id="studentAssignmentsList"></div>
+          </section>
+
+          <div class="hero-focus-fallback" id="homeHeroFocusFallback">
+            <div class="hero-focus-title">Continue full mock path</div>
+            <div class="hero-focus-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</div>
+            <button class="home-btn hero-focus-btn" type="button" id="homeHeroFocusStartBtn">Continue</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- hidden elements still needed by JS -->
+    <div class="home-notes hidden" id="homeStatusLine" aria-hidden="true"></div>
+    <div class="home-resume-action hidden" id="homeResumeAction" aria-hidden="true"></div>
+    <select id="fontSizeSelect" class="hidden" aria-hidden="true">
+      <option value="small">Small</option>
+      <option value="medium" selected>Medium</option>
+      <option value="large">Large</option>
+    </select>
+  </header>
+
+  <main class="home-main" id="homeHowItWorks">
+
+    <!-- ── Placement test panel ── -->
+    <div class="home-placement-band">
+      <div class="home-placement-inner">
+        <div class="home-placement-left">
+          <div class="home-placement-kicker">Free · 15 minutes</div>
+          <h2 class="home-placement-title">Identify your level.<br>Get a personalised plan.</h2>
+          <p class="home-placement-copy">Answer 15 carefully selected questions across Grammar, Vocabulary, and Reading. We'll pinpoint your current IELTS band and recommend exactly where to focus next.</p>
+          <div class="home-placement-levels" aria-label="Level bands">
+            <span class="home-placement-level">B1</span>
+            <span class="home-placement-level-arrow">→</span>
+            <span class="home-placement-level">B2</span>
+            <span class="home-placement-level-arrow">→</span>
+            <span class="home-placement-level active">C1</span>
+            <span class="home-placement-level-arrow">→</span>
+            <span class="home-placement-level">C2</span>
+          </div>
+          <a class="home-btn home-placement-cta" id="homePlacementStartBtn" href="/placement-test/">Take the placement test</a>
+        </div>
+        <div class="home-placement-right" aria-hidden="true">
+          <div class="home-placement-card-preview">
+            <div class="home-placement-preview-label">Your result</div>
+            <div class="home-placement-preview-band" id="homePlacementPreviewBand">—</div>
+            <div class="home-placement-preview-sub" id="homePlacementPreviewSub">Complete a scored test to see your average overall band.</div>
+            <div class="home-placement-preview-bar">
+              <div class="home-placement-preview-fill" id="homePlacementPreviewFill" style="width:0%"></div>
             </div>
-            <div class="command-row">
-              <div>
-                <strong>Writing and Speaking</strong>
-                <span>Task-focused practice, tips, and examples</span>
-              </div>
-              <b>Prep</b>
+            <div class="home-placement-preview-next" id="homePlacementPreviewNext">Recommended: complete one full mock test to unlock your personalised plan.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Feature cards ── -->
+    <div class="home-features-band" id="homeFeaturesGrid">
+      <div class="home-features-inner">
+        <div class="home-features-heading">
+          <h2 class="home-features-title">Everything you need to reach your target band</h2>
+        </div>
+        <div class="home-features-grid">
+          <div class="home-feature-card">
+            <div class="home-feature-icon">📝</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">Full Mock Exams</div>
+              <p class="home-feature-card-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</p>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon">🎯</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">Skill Practice</div>
+              <p class="home-feature-card-copy">Target Reading, Listening, Writing, or Speaking individually.</p>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon">🤖</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">AI Writing Feedback</div>
+              <p class="home-feature-card-copy">Get a band score and detailed feedback on Task 1 &amp; Task 2.</p>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon">📚</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">Grammar Hub</div>
+              <p class="home-feature-card-copy">12 structured grammar topics for IELTS Writing and Speaking.</p>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon">🗂️</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">Vocabulary Hub</div>
+              <p class="home-feature-card-copy">IELTS word banks by topic with flashcards and practice.</p>
+            </div>
+          </div>
+          <div class="home-feature-card">
+            <div class="home-feature-icon">💬</div>
+            <div class="home-feature-card-body">
+              <div class="home-feature-card-title">Real Exam Questions</div>
+              <p class="home-feature-card-copy">Students share recent exam topics — stay ahead of what's coming.</p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </header>
 
-  <main class="home-main" id="homeHowItWorks">
-    <div class="home-grid compact-grid">
-      <div class="home-info">
-        <div class="home-info-h">Professional structure</div>
-        <div class="home-info-p">The homepage now stays clean while the real depth lives inside dedicated skill pages and dropdown routes.</div>
+    <!-- Trust signals -->
+    <div style="padding: 40px 24px 0; max-width: 860px; margin: 0 auto;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px">
+        <div style="background:#fff;border:1px solid var(--neutral-200,#e5ecf6);border-radius:12px;padding:18px 20px">
+          <div style="font-size:20px;margin-bottom:6px">🏅</div>
+          <div style="font-weight:700;font-size:13px;color:var(--neutral-900,#0f172a);margin-bottom:4px">Exam-realistic tests</div>
+          <p style="margin:0;font-size:12px;color:var(--neutral-500,#6b7280);line-height:1.5">Timed modules follow real IELTS structure and question types.</p>
+        </div>
+        <div style="background:#fff;border:1px solid var(--neutral-200,#e5ecf6);border-radius:12px;padding:18px 20px">
+          <div style="font-size:20px;margin-bottom:6px">🤖</div>
+          <div style="font-weight:700;font-size:13px;color:var(--neutral-900,#0f172a);margin-bottom:4px">AI writing feedback</div>
+          <p style="margin:0;font-size:12px;color:var(--neutral-500,#6b7280);line-height:1.5">Band estimates and detailed suggestions on every writing submission.</p>
+        </div>
+        <div style="background:#fff;border:1px solid var(--neutral-200,#e5ecf6);border-radius:12px;padding:18px 20px">
+          <div style="font-size:20px;margin-bottom:6px">👩‍🏫</div>
+          <div style="font-weight:700;font-size:13px;color:var(--neutral-900,#0f172a);margin-bottom:4px">Teacher tools</div>
+          <p style="margin:0;font-size:12px;color:var(--neutral-500,#6b7280);line-height:1.5">Classrooms, assignments, and student progress tracking built in.</p>
+        </div>
+        <div style="background:#fff;border:1px solid var(--neutral-200,#e5ecf6);border-radius:12px;padding:18px 20px">
+          <div style="font-size:20px;margin-bottom:6px">🔒</div>
+          <div style="font-weight:700;font-size:13px;color:var(--neutral-900,#0f172a);margin-bottom:4px">Secure &amp; private</div>
+          <p style="margin:0;font-size:12px;color:var(--neutral-500,#6b7280);line-height:1.5">Your results and progress are stored securely and never sold.</p>
+        </div>
       </div>
-
-      <div class="home-info">
-        <div class="home-info-h">Automatic organisation</div>
-        <div class="home-info-p">Uploaded full exams still work as full mocks and also feed the relevant skill and practice pages automatically.</div>
-      </div>
-
-      <div class="home-info">
-        <div class="home-info-h">Student workspace</div>
-        <div class="home-info-p">Dashboard, analytics, history, synced settings, and recommendations stay available from the account menu.</div>
-      </div>
+      <p style="font-size:11px;color:var(--neutral-400,#9ca3af);text-align:center;margin:0 0 8px">ieltsmock.org is an independent IELTS practice platform and is not affiliated with IELTS, British Council, IDP Education, or Cambridge Assessment English.</p>
     </div>
 
-    <section class="home-premium-band">
-      <div class="home-section-head">
-        <div class="home-card-topline">Platform structure</div>
-        <h2 class="home-section-title">Students choose the route first, then go deeper inside the right page</h2>
-        <p class="home-section-copy">This keeps the homepage focused and makes it easier to move directly into the exact kind of IELTS work a student needs.</p>
-      </div>
-
-      <div class="premium-grid">
-        <article class="premium-card">
-          <h3>Choose by goal, not by clutter</h3>
-          <p>Students start with the skill they want to work on first, then move into the relevant page for full exams, sections, tips, and samples.</p>
-        </article>
-        <article class="premium-card">
-          <h3>Keep full exams intact</h3>
-          <p>Uploaded full exams still function as complete mocks while also feeding the section and practice pages automatically.</p>
-        </article>
-        <article class="premium-card">
-          <h3>Support both teaching and self-study</h3>
-          <p>The structure works for independent learners and also gives tutors/admins a cleaner way to point students toward the right type of work.</p>
-        </article>
-      </div>
-    </section>
-
-    <div class="home-grid compact-grid">
-      <div class="home-info">
-        <div class="home-info-h">Writing support</div>
-        <div class="home-info-p">Writing pages separate Task 1 and Task 2 and include model bandscore guidance for teaching and self-checking.</div>
-      </div>
-
-      <div class="home-info">
-        <div class="home-info-h">Speaking support</div>
-        <div class="home-info-p">Speaking now sits inside its own page with practice access, predicted themes, tips, and sample-answer guidance.</div>
-      </div>
-
-      <div class="home-info">
-        <div class="home-info-h">Student workspace</div>
-        <div class="home-info-p">Profiles, synced settings, analytics, recommendations, and history stay connected through the same account menu and dashboard.</div>
-      </div>
-    </div>
   </main>
 
   <footer class="home-footer premium-footer">
     <div class="home-footer-inner premium-footer-inner">
       <div>
-        <div class="footer-brand">IELTS Mock Practice Portal</div>
-        <div class="home-footer-muted">Structured IELTS preparation with dedicated skill pages, professional navigation, synced student profiles, and a cleaner route into full exams, practice, and review.</div>
+        <div class="footer-brand">ieltsmock</div>
+        <div class="home-footer-muted">Complete IELTS preparation — mock exams, skill practice, grammar, vocabulary, placement test, and AI feedback.</div>
+        <div class="home-footer-muted" style="margin-top:6px;font-size:11px;opacity:.7">ieltsmock.org is an independent practice platform and is not affiliated with IELTS, British Council, IDP, or Cambridge.</div>
       </div>
       <div class="footer-links">
-        <button class="footer-link-btn" type="button" id="footerOpenContactBtn">Contact</button>
+        <a class="footer-link-btn" href="/about">About</a>
+        <a class="footer-link-btn" href="/contact">Contact</a>
+        <a class="footer-link-btn" href="/privacy">Privacy</a>
+        <a class="footer-link-btn" href="/terms">Terms</a>
       </div>
     </div>
   </footer>
 </section>
 
-<section id="resourceHubSection" class="resource-hub-screen hidden" aria-label="Skill resource hub">
+<section id="resourceHubSection" class="resource-hub-screen hidden ui-page" aria-label="Skill resource hub">
   <div class="resource-hub-shell">
-    <div class="resource-hub-topbar">
+    <div class="resource-hub-topbar ui-panel ui-panel-hero">
       <div class="resource-hub-copy">
         <div class="home-badge" id="resourceHubBadge">Skill page</div>
         <h1 id="resourceHubTitle">Exam resources</h1>
@@ -411,14 +433,14 @@
       </div>
     </div>
 
-    <div class="resource-hub-anchorbar" id="resourceHubAnchorbar"></div>
-    <div class="resource-hub-content" id="resourceHubContent"></div>
+    <div class="resource-hub-anchorbar ui-tabs-shell" id="resourceHubAnchorbar"></div>
+    <div class="resource-hub-content ui-stack" id="resourceHubContent"></div>
   </div>
 </section>
 
-<section id="dashboardSection" class="dashboard-screen hidden" aria-label="Student dashboard">
+<section id="dashboardSection" class="dashboard-screen hidden ui-page" aria-label="Student dashboard">
   <div class="dashboard-shell">
-    <div class="dashboard-cover-card">
+    <div class="dashboard-cover-card ui-panel ui-panel-hero">
       <div class="dashboard-cover">
         <div class="dashboard-cover-overlay">
           <div class="dashboard-cover-copy">
@@ -455,7 +477,7 @@
       </div>
     </div>
 
-    <div class="dashboard-social-layout">
+    <div class="dashboard-social-layout ui-layout-shell">
       <aside class="dashboard-sidebar">
         <div class="dashboard-quick-card">
           <div class="dashboard-card-topline">Shortcuts</div>
@@ -492,17 +514,17 @@
         </div>
       </aside>
 
-      <div class="dashboard-main-column">
-        <div class="dashboard-tabbar" role="tablist" aria-label="Student dashboard sections">
+      <div class="dashboard-main-column ui-stack">
+        <div class="dashboard-tabbar ui-tabs-shell" role="tablist" aria-label="Student dashboard sections">
           <button class="dashboard-tab is-active" type="button" id="dashboardTabOverview" data-dashboard-tab="overview" aria-selected="true">Overview</button>
           <button class="dashboard-tab" type="button" id="dashboardTabActivity" data-dashboard-tab="activity" aria-selected="false">Activity</button>
           <button class="dashboard-tab" type="button" id="dashboardTabSettings" data-dashboard-tab="settings" aria-selected="false">Settings</button>
           <button class="dashboard-tab" type="button" id="dashboardTabGoals" data-dashboard-tab="goals" aria-selected="false">Goals</button>
         </div>
 
-        <div class="dashboard-panel-group">
+        <div class="dashboard-panel-group ui-stack">
           <div class="dashboard-panel" data-dashboard-panel="overview">
-            <div class="dashboard-summary">
+            <div class="dashboard-summary ui-grid ui-grid-4">
               <div class="dashboard-stat-card">
                 <div class="dashboard-stat-label">Completed tests</div>
                 <div class="dashboard-stat-value" id="dashboardStatTests">0</div>
@@ -521,7 +543,7 @@
               </div>
             </div>
 
-            <div class="dashboard-analytics-grid">
+            <div class="dashboard-analytics-grid ui-grid ui-grid-2">
               <div class="dashboard-chart-card">
                 <div class="dashboard-card-topline">Score trend</div>
                 <div class="dashboard-chart-header">
@@ -546,9 +568,9 @@
                 </div>
               </div>
 
-              <div class="dashboard-insights-card">
+              <div class="dashboard-insights-card ui-panel">
                 <div class="dashboard-card-topline">Performance insights</div>
-                <div class="dashboard-insights-grid">
+                <div class="dashboard-insights-grid ui-grid ui-grid-2">
                   <div class="dashboard-insight-tile">
                     <span class="dashboard-goal-label">Strongest skill</span>
                     <strong id="dashboardInsightStrongest">Build your baseline</strong>
@@ -573,9 +595,9 @@
               </div>
             </div>
 
-            <div class="dashboard-goals-card">
+            <div class="dashboard-goals-card ui-panel">
               <div class="dashboard-card-topline">Progress at a glance</div>
-              <div class="dashboard-goals-grid">
+              <div class="dashboard-goals-grid ui-grid ui-grid-4">
                 <div class="dashboard-goal-tile">
                   <span class="dashboard-goal-label">Target band</span>
                   <strong id="dashboardGoalTarget">Not set</strong>
@@ -601,7 +623,7 @@
           </div>
 
           <div class="dashboard-panel hidden" data-dashboard-panel="activity">
-            <div class="dashboard-activity-card">
+            <div class="dashboard-activity-card ui-panel">
               <div class="dashboard-card-topline">Recent activity</div>
               <div class="dashboard-activity-empty hidden" id="dashboardActivityEmpty">No synced attempts yet. Your dashboard will populate after your first completed mock.</div>
               <div class="dashboard-activity-list" id="dashboardActivityList"></div>
@@ -609,9 +631,9 @@
           </div>
 
           <div class="dashboard-panel hidden" data-dashboard-panel="settings">
-            <div class="dashboard-settings-card">
+            <div class="dashboard-settings-card ui-panel">
               <div class="dashboard-card-topline">Profile settings</div>
-              <div class="dashboard-settings-grid">
+              <div class="dashboard-settings-grid ui-grid ui-grid-2">
                 <label class="dashboard-field" for="dashboardUsernameInput">
                   <span>Username</span>
                   <input id="dashboardUsernameInput" type="text" placeholder="Pick a profile username">
@@ -723,9 +745,9 @@
           </div>
 
           <div class="dashboard-panel hidden" data-dashboard-panel="goals">
-            <div class="dashboard-goals-card">
+            <div class="dashboard-goals-card ui-panel">
               <div class="dashboard-card-topline">Goal tracker</div>
-              <div class="dashboard-goals-grid dashboard-goals-grid-expanded">
+              <div class="dashboard-goals-grid dashboard-goals-grid-expanded ui-grid ui-grid-4">
                 <div class="dashboard-goal-tile">
                   <span class="dashboard-goal-label">Current average</span>
                   <strong id="dashboardGoalsAverage">0.0</strong>
@@ -755,7 +777,7 @@
   </div>
 </section>
 
-<section id="historySection" class="history-screen hidden" aria-label="My History">
+<section id="historySection" class="history-screen hidden ui-page" aria-label="My History">
   <div class="history-shell">
     <div class="history-header">
       <div>
@@ -769,7 +791,7 @@
       </div>
     </div>
 
-    <div class="workspace-banner history-banner">
+    <div class="workspace-banner history-banner ui-panel ui-panel-hero">
       <div class="workspace-banner-copy">
         <span class="workspace-banner-kicker">Progress overview</span>
         <strong>Review your completed mocks like a training log, not a plain results table.</strong>
@@ -777,7 +799,7 @@
       </div>
     </div>
 
-    <div class="admin-results-controls history-results-controls">
+    <div class="admin-results-controls history-results-controls ui-panel ui-toolbar-grid">
       <label class="admin-field">
         <span>Search</span>
         <input id="historySearch" type="search" placeholder="Test name or reason">
@@ -823,7 +845,7 @@
       </label>
     </div>
 
-    <div class="history-summary">
+    <div class="history-summary ui-panel ui-grid ui-grid-6">
       <div class="history-stat-card">
         <div class="history-stat-label">Completed tests</div>
         <div class="history-stat-value" id="historyStatCount">0</div>
@@ -850,7 +872,7 @@
       </div>
     </div>
 
-    <div class="history-table-wrap">
+    <div class="history-table-wrap ui-panel">
       <div class="history-empty hidden" id="historyEmpty">No completed tests yet.</div>
       <table class="history-table">
         <thead>
@@ -869,7 +891,7 @@
       </table>
     </div>
 
-    <div class="history-detail hidden" id="historyDetail">
+    <div class="history-detail hidden ui-panel" id="historyDetail">
       <div class="history-detail-top">
         <h2 id="historyDetailTitle">Attempt details</h2>
         <button class="btn secondary" type="button" id="historyDetailCloseBtn">Close</button>
@@ -921,7 +943,7 @@
   </div>
 </section>
 
-<section id="adminResultsSection" class="admin-results-screen hidden" aria-label="Admin results">
+<section id="adminResultsSection" class="admin-results-screen hidden ui-page" aria-label="Admin results">
   <div class="admin-results-shell">
     <div class="admin-results-header">
       <div>
@@ -940,14 +962,17 @@
     <div class="home-segmented" id="adminResultsModeBar" style="margin-bottom:16px;">
       <button class="btn" type="button" id="adminResultsModeFullBtn" aria-pressed="true">Full tests</button>
       <button class="btn secondary" type="button" id="adminResultsModePracticeBtn" aria-pressed="false">Practice</button>
+      <button class="btn secondary" type="button" id="adminResultsModeDiagnosticBtn" aria-pressed="false">Diagnostic</button>
     </div>
 
     <div class="home-segmented admin-page-nav" id="adminPageNav" style="margin-bottom:16px;">
       <button class="btn" type="button" id="adminPageResultsBtn" aria-pressed="true">Results</button>
       <button class="btn secondary" type="button" id="adminPageClassroomsBtn" aria-pressed="false">Classrooms</button>
+      <button class="btn secondary" type="button" id="adminPageAssignmentsBtn" aria-pressed="false">Assignments</button>
+      <button class="btn secondary" type="button" id="adminPageQuestionsBtn" aria-pressed="false">Questions</button>
     </div>
 
-    <div class="workspace-banner admin-banner" id="adminResultsBanner">
+    <div class="workspace-banner admin-banner ui-panel ui-panel-hero" id="adminResultsBanner">
       <div class="workspace-banner-copy">
         <span class="workspace-banner-kicker">Cohort view</span>
         <strong>Inspect performance trends, submission activity, and writing outcomes without losing context.</strong>
@@ -955,8 +980,8 @@
       </div>
     </div>
 
-    <div class="hidden" id="adminClassroomsPage">
-    <div class="admin-result-detail" id="adminClassroomProgressPanel">
+    <div class="hidden ui-stack" id="adminClassroomsPage">
+    <div class="admin-result-detail ui-panel" id="adminClassroomProgressPanel">
       <div class="admin-result-detail-top">
         <h2>Classroom register</h2>
         <div class="admin-row-actions">
@@ -965,7 +990,7 @@
       </div>
       <p class="small" id="adminClassroomProgressStatus">Choose a class to review current performance, monthly movement, and each student's full attempt history.</p>
 
-      <div class="admin-results-summary">
+      <div class="admin-results-summary ui-grid ui-grid-6">
         <div class="admin-stat-card">
           <div class="admin-stat-label">Classes</div>
           <div class="admin-stat-value" id="adminClassProgressClassrooms">0</div>
@@ -992,7 +1017,7 @@
         </div>
       </div>
 
-      <div class="admin-results-toolbar admin-classroom-selector-bar">
+      <div class="admin-results-toolbar admin-classroom-selector-bar ui-panel ui-toolbar-grid">
         <label class="admin-field">
           <span>Classroom</span>
           <select id="adminClassroomSelect">
@@ -1009,7 +1034,7 @@
         </label>
       </div>
 
-      <div class="admin-classroom-register-layout">
+      <div class="admin-classroom-register-layout ui-layout-shell">
         <aside class="admin-detail-card admin-classroom-directory-card">
           <div class="admin-result-detail-top admin-classroom-directory-top">
             <div>
@@ -1021,7 +1046,7 @@
           <div class="admin-classroom-directory-list" id="adminClassroomDirectory"></div>
         </aside>
 
-        <div class="admin-classroom-register-main">
+        <div class="admin-classroom-register-main ui-stack">
           <div class="admin-detail-card admin-classroom-focus-card">
             <div class="admin-result-detail-top admin-classroom-focus-top">
               <div>
@@ -1059,7 +1084,7 @@
             </div>
           </div>
 
-          <div class="admin-detail-grid admin-classroom-register-grid">
+          <div class="admin-detail-grid admin-classroom-register-grid ui-grid ui-grid-2">
             <div class="admin-detail-card admin-classroom-chart-card">
               <div class="admin-detail-label">Recent monthly trend</div>
               <div class="admin-classroom-chart" id="adminClassroomOverviewChart"></div>
@@ -1110,12 +1135,12 @@
             </div>
           </div>
 
-          <div class="admin-result-detail hidden" id="adminStudentProgressDetail">
+          <div class="admin-result-detail hidden ui-panel" id="adminStudentProgressDetail">
             <div class="admin-result-detail-top">
               <h2 id="adminStudentProgressTitle">Student progress</h2>
               <button class="btn secondary" type="button" id="adminStudentProgressCloseBtn">Close</button>
             </div>
-            <div class="admin-results-summary">
+            <div class="admin-results-summary ui-grid ui-grid-6">
               <div class="admin-stat-card">
                 <div class="admin-stat-label">Attempts</div>
                 <div class="admin-stat-value" id="adminStudentProgressAttempts">0</div>
@@ -1163,14 +1188,14 @@
       </div>
     </div>
 
-      <details class="admin-result-detail admin-classroom-management-panel" id="adminClassroomManagementPanel">
+      <details class="admin-result-detail admin-classroom-management-panel ui-panel" id="adminClassroomManagementPanel">
         <summary>Manage classrooms and student IDs</summary>
         <div class="admin-classroom-management-body">
           <div class="admin-result-detail-top">
             <h2>Classrooms and Student IDs</h2>
             <button class="btn secondary" type="button" id="adminClassroomsRefreshBtn">Refresh classrooms</button>
           </div>
-          <div class="admin-detail-grid">
+          <div class="admin-detail-grid ui-grid ui-grid-2">
             <div class="admin-detail-card">
               <div class="admin-detail-label">Create classroom</div>
               <label class="admin-field"><span>Classroom name</span><input id="adminClassroomNameInput" type="text" placeholder="e.g. IELTS 11A"></label>
@@ -1193,11 +1218,13 @@
               <label class="admin-field"><span>Official results email</span><input id="adminStudentOfficialEmailInput" type="email" placeholder="student.official@example.com"></label>
               <label class="admin-field"><span>Classroom</span><select id="adminStudentClassroomSelect"><option value="">No classroom</option></select></label>
               <button class="btn" type="button" id="adminSaveStudentBtn">Save student</button>
+              <button class="btn secondary" type="button" id="adminMoveStudentClassroomBtn">Move to selected classroom</button>
+              <button class="btn secondary" type="button" id="adminRemoveStudentClassroomBtn">Remove from classroom</button>
               <button class="btn secondary" type="button" id="adminResetStudentLinkBtn">Reset linked account</button>
               <p class="small" id="adminClassroomsStatus"></p>
             </div>
           </div>
-          <div class="admin-results-toolbar">
+          <div class="admin-results-toolbar ui-panel ui-toolbar-grid">
             <label class="admin-field">
               <span>Search students</span>
               <input type="text" id="adminStudentSearchInput" placeholder="Student ID, name, email, classroom">
@@ -1224,8 +1251,100 @@
 
     </div>
 
-    <div id="adminResultsContent">
-    <div class="admin-results-toolbar">
+    <!-- ─── Assignments page ─── -->
+    <div class="hidden" id="adminAssignmentsPage">
+
+      <div class="admin-result-detail ui-panel" style="margin-bottom:16px;">
+        <div class="admin-result-detail-top">
+          <h2>Assignments</h2>
+          <div class="admin-row-actions">
+            <button class="btn" type="button" id="adminAssignmentNewBtn">New assignment</button>
+          </div>
+        </div>
+        <p class="small" id="adminAssignmentsStatus">Loading…</p>
+
+        <div class="assignments-toolbar">
+          <select id="adminAssignmentsClassroomFilter">
+            <option value="">All classrooms</option>
+          </select>
+        </div>
+
+        <!-- Edit / create form -->
+        <div class="assignment-edit-panel hidden" id="adminAssignmentEditPanel">
+          <h3 id="adminAssignmentEditTitle">New assignment</h3>
+          <div class="assignment-form-row">
+            <label>Title<input type="text" id="adminAssignmentTitleInput" placeholder="e.g. Homework – Test 3"></label>
+            <label>Activity type
+              <select id="adminAssignmentTypeSelect">
+                <option value="test">Full mock test</option>
+                <option value="practice">Practice test</option>
+                <option value="reading_task">Reading task type</option>
+              </select>
+            </label>
+          </div>
+          <div class="assignment-form-row">
+            <label style="flex:2">Select activity
+              <input type="text" id="adminAssignmentTargetSearchInput" placeholder="Search by test name, test id, or task type">
+              <div id="adminAssignmentTargetResults" class="assignment-target-results"></div>
+              <input type="hidden" id="adminAssignmentTargetValue">
+              <p class="small" id="adminAssignmentTargetSelected" style="margin-top:6px;color:var(--text-muted,#667085)">No activity selected.</p>
+            </label>
+          </div>
+          <div class="assignment-form-row">
+            <label>Classroom
+              <select id="adminAssignmentClassroomSelect"><option value="">— No classroom —</option></select>
+            </label>
+            <label>Due date (optional)<input type="datetime-local" id="adminAssignmentDueDateInput"></label>
+          </div>
+          <div class="assignment-form-row">
+            <label style="flex:2">Note for students (optional)
+              <textarea id="adminAssignmentNoteInput" placeholder="e.g. Focus on Task 2 timing"></textarea>
+            </label>
+          </div>
+          <p class="small hidden" id="adminAssignmentEditError" style="color:var(--danger,#c00)"></p>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <button class="btn" type="button" id="adminAssignmentSaveBtn">Save</button>
+            <button class="btn secondary hidden" type="button" id="adminAssignmentDeleteBtn">Delete</button>
+            <button class="btn secondary" type="button" id="adminAssignmentCancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Manage students sub-panel -->
+        <div class="assignment-students-panel hidden" id="adminAssignmentStudentsPanel">
+          <h4 id="adminAssignmentStudentsTitle">Manage students</h4>
+          <p class="small" id="adminAssignmentStudentsStatus"></p>
+          <input type="text" id="adminAssignmentStudentsSearchInput" placeholder="Search by name or Student ID" style="margin:8px 0 10px;width:100%;">
+          <div class="assignment-student-checklist" id="adminAssignmentStudentsBody"></div>
+          <p class="small hidden" id="adminAssignmentStudentsError" style="color:var(--danger,#c00);margin-top:6px;"></p>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn" type="button" id="adminAssignmentStudentsSaveBtn">Save</button>
+            <button class="btn secondary" type="button" id="adminAssignmentStudentsCancelBtn">Cancel</button>
+          </div>
+        </div>
+
+        <!-- List of assignments -->
+        <div class="assignments-list" id="adminAssignmentsList"></div>
+      </div>
+
+    </div>
+    <!-- ─── End Assignments page ─── -->
+
+    <div class="hidden" id="adminQuestionsPage">
+      <div class="admin-result-detail ui-panel" style="margin-bottom:16px;">
+        <div class="admin-result-detail-top">
+          <h2>Forum moderation</h2>
+          <div class="admin-row-actions">
+            <button class="btn secondary" type="button" id="adminQuestionsRefreshBtn">Refresh</button>
+          </div>
+        </div>
+        <p class="small" id="adminQuestionsStatus">Loading pending questions…</p>
+        <div id="adminQuestionsList"></div>
+      </div>
+    </div>
+    <!-- ─── End Questions page ─── -->
+
+    <div id="adminResultsContent" class="ui-stack">
+    <div class="admin-results-toolbar ui-panel ui-toolbar-grid">
       <label class="admin-field">
         <span>Search</span>
         <input type="text" id="adminResultsSearch" placeholder="Student name or reason">
@@ -1280,7 +1399,7 @@
       </label>
     </div>
 
-    <div class="admin-results-summary">
+    <div class="admin-results-summary ui-grid ui-grid-6">
       <div class="admin-stat-card">
         <div class="admin-stat-label">Submissions</div>
         <div class="admin-stat-value" id="adminStatSubmissions">0</div>
@@ -1311,7 +1430,7 @@
       </div>
     </div>
 
-    <div class="admin-results-table-wrap">
+    <div class="admin-results-table-wrap ui-panel">
       <div class="admin-results-empty hidden" id="adminResultsEmpty">No results found.</div>
       <table class="admin-results-table">
         <thead>
@@ -1383,6 +1502,75 @@
           <div id="adminDetailWritingEditor" class="admin-detail-meta-block" style="margin-top:16px;"></div>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GRAMMAR ================= -->
+<section id="grammarSection" class="pp-screen hidden" aria-label="Grammar hub">
+  <div class="pp-shell">
+    <div class="pp-topbar">
+      <div class="pp-brand">
+        <span class="pp-kicker">Learn</span>
+        <h1 class="pp-title">Grammar Hub</h1>
+      </div>
+      <button class="btn secondary" type="button" id="grammarHomeBtn">← Home</button>
+    </div>
+    <div class="pp-hero">
+      <div class="pp-badge">IELTS Writing &amp; Speaking</div>
+      <h2 class="pp-hero-title">Master the grammar that earns band scores</h2>
+      <p class="pp-hero-sub">Structured grammar lessons targeting every IELTS-relevant structure — from basic tense accuracy to complex sentences for band 7+.</p>
+    </div>
+    <div class="pp-grid" id="grammarGrid">
+      <!-- populated by grammar.js -->
+    </div>
+  </div>
+</section>
+
+<!-- ================= PLACEMENT TEST ================= -->
+<section id="placementTestSection" class="pp-screen hidden" aria-label="Placement test">
+  <div class="pp-shell">
+    <div class="pp-topbar">
+      <div class="pp-brand">
+        <span class="pp-kicker">Tools</span>
+        <h1 class="pp-title">Placement Test</h1>
+      </div>
+      <button class="btn secondary" type="button" id="placementHomeBtn">← Home</button>
+    </div>
+    <div id="placementTestContainer">
+      <!-- populated by placement-test.js -->
+    </div>
+  </div>
+</section>
+
+<!-- ================= RECENT IELTS QUESTIONS ================= -->
+<section id="recentQuestionsSection" class="pp-screen hidden" aria-label="Recent IELTS questions">
+  <div class="pp-shell">
+    <div class="pp-topbar">
+      <div class="pp-brand">
+        <span class="pp-kicker">Community</span>
+        <h1 class="pp-title">Recent IELTS Questions</h1>
+      </div>
+      <button class="btn secondary" type="button" id="recentQuestionsHomeBtn">← Home</button>
+    </div>
+    <div id="recentQuestionsContainer">
+      <!-- populated by recent-questions.js -->
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESOURCES ================= -->
+<section id="resourcesSection" class="pp-screen hidden" aria-label="Study resources">
+  <div class="pp-shell">
+    <div class="pp-topbar">
+      <div class="pp-brand">
+        <span class="pp-kicker">Support</span>
+        <h1 class="pp-title">Study Resources</h1>
+      </div>
+      <button class="btn secondary" type="button" id="resourcesHomeBtn">← Home</button>
+    </div>
+    <div id="resourcesContainer">
+      <!-- populated by resources-page.js -->
     </div>
   </div>
 </section>
@@ -1471,7 +1659,7 @@
       </div>
 
       <!-- Hidden audio (no controls) -->
-      <audio id="listeningAudio" preload="auto">
+      <audio id="listeningAudio" preload="none">
         <source
           src="https://audio.ieltsmock.org/listening_tp_part1.mp3"
           type="audio/mpeg"
@@ -2006,26 +2194,31 @@
     </div>
   </div>
 
-<script src="assets/js/storage.js"></script>
-<script src="assets/js/tests/registry.js?v=20260405"></script>
-<script src="assets/js/access.js"></script>
-<script src="assets/js/ui.js?v=20260428"></script>
-<script src="assets/js/router.js"></script>
-<script src="assets/js/modal.js"></script>
-<script src="assets/js/highlighting.js"></script>
+<script src="/assets/js/storage.js"></script>
+<script src="/assets/js/tests/registry.js?v=20260405"></script>
+<script src="/assets/js/access.js"></script>
+<script src="/assets/js/ui.js?v=20260509d"></script>
+<script src="/assets/js/router.js?v=20260509d"></script>
+<script src="/assets/js/modal.js"></script>
+<script src="/assets/js/highlighting.js"></script>
 
-<script src="assets/js/engines/listeningEngine.js"></script>
-<script src="assets/js/engines/readingEngine.js"></script>
-<script src="assets/js/engines/writingEngine.js"></script>
+<script src="/assets/js/engines/listeningEngine.js"></script>
+<script src="/assets/js/engines/readingEngine.js"></script>
+<script src="/assets/js/engines/writingEngine.js"></script>
 
-<script type="module" src="assets/js/auth.js?v=20260428"></script>
-<script src="assets/js/dashboard.js?v=20260405"></script>
-<script src="assets/js/history.js"></script>
-<script src="assets/js/vocabulary/sample-data.js?v=20260428"></script>
-<script src="assets/js/vocabulary/vocabulary.js?v=20260428"></script>
-<script src="assets/js/engines/speakingEngine.js"></script>
-<script src="assets/js/app.js?v=20260428"></script>
-<script src="assets/js/bootstrap-init.js"></script>
+<script type="module" src="/assets/js/auth.js?v=20260509h"></script>
+<script src="/assets/js/dashboard.js?v=20260405"></script>
+<script src="/assets/js/history.js"></script>
+<script src="/assets/js/vocabulary/sample-data.js?v=20260428"></script>
+<script src="/assets/js/vocabulary/vocabulary.js?v=20260428"></script>
+<script src="/assets/js/engines/speakingEngine.js"></script>
+<script src="/assets/js/assignments.js?v=20260508g"></script>
+<script src="/assets/js/grammar.js"></script>
+<script src="/assets/js/placement-test.js"></script>
+<script src="/assets/js/resources-page.js"></script>
+<script src="/assets/js/recent-questions.js"></script>
+<script src="/assets/js/app.js?v=20260509j"></script>
+<script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">
   <div class="speaking-shell">

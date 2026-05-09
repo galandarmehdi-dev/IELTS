@@ -738,10 +738,30 @@ function clearAuthCallbackArtifacts() {
   } catch (e) {}
 }
 
+function getCleanHubViewFromPathname() {
+  try {
+    const path = String(window.location?.pathname || "").trim();
+    if (path === "/mock-tests/") return "fullExamHub";
+    if (path === "/listening/") return "listeningHub";
+    if (path === "/reading/") return "readingHub";
+    if (path === "/writing/") return "writingHub";
+    if (path === "/speaking/") return "speakingHub";
+    if (path === "/placement-test/") return "placementTest";
+    if (path === "/vocabulary/") return "vocabulary";
+    if (path === "/recent-questions/") return "recentQuestions";
+  } catch (e) {}
+  return "";
+}
+
 function getDesiredView() {
   try {
     const hashRoute = window.IELTS?.Router?.parseHashRoute?.();
     if (hashRoute?.view) return String(hashRoute.view);
+  } catch (e) {}
+
+  try {
+    const cleanPathView = getCleanHubViewFromPathname();
+    if (cleanPathView) return cleanPathView;
   } catch (e) {}
 
   try {
@@ -750,6 +770,23 @@ function getDesiredView() {
   } catch (e) {}
 
   return "home";
+}
+
+function isPublicToolOrHubView(view) {
+  const normalized = String(view || "").trim();
+  return [
+    "fullExamHub",
+    "listeningHub",
+    "readingHub",
+    "writingHub",
+    "speakingHub",
+    "listening",
+    "reading",
+    "writing",
+    "placementTest",
+    "vocabulary",
+    "recentQuestions",
+  ].includes(normalized);
 }
 
 function hasResumableStoredAttempt(activeTestId) {
@@ -806,7 +843,7 @@ function hasResumableStoredAttempt(activeTestId) {
 function sanitizeDesiredView(view, activeTestId) {
   const raw = String(view || "").trim();
   const normalized = raw === "results" ? "adminResults" : raw;
-  const allowedViews = new Set(["home", "dashboard", "history", "vocabulary", "listening", "reading", "writing", "speaking", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
+  const allowedViews = new Set(["home", "dashboard", "history", "vocabulary", "recentQuestions", "grammar", "resources", "listening", "reading", "writing", "speaking", "placementTest", "adminResults", "fullExamHub", "readingHub", "listeningHub", "writingHub", "writingTask1SamplesHub", "writingTask2SamplesHub", "speakingHub", "contactHub"]);
   const launchContext = window.IELTS?.Registry?.getLaunchContext?.() || null;
 
   if (!allowedViews.has(normalized)) return "home";
@@ -815,6 +852,12 @@ function sanitizeDesiredView(view, activeTestId) {
     if (window.IELTS?.Access?.isAdmin?.() === true) return normalized;
     if (launchContext?.mode === "section" && launchContext?.section === normalized) return normalized;
     if (launchContext?.mode === "practice" && launchContext?.skill === normalized) return normalized;
+    try {
+      const examStartedKey = window.IELTS?.Registry?.KEYS?.EXAM_STARTED || "IELTS:EXAM:started";
+      const examStarted = localStorage.getItem(examStartedKey) === "true";
+      const activeView = String(document.body?.dataset?.activeView || "").trim();
+      if (examStarted || activeView === normalized) return normalized;
+    } catch (e) {}
     if (!hasResumableStoredAttempt(activeTestId)) return "home";
   }
   return normalized;
@@ -858,6 +901,10 @@ function restoreViewAfterAuth() {
     reading: "readingControls",
     writing: "writingSection",
     speaking: "speakingSection",
+    placementTest: "placementTestSection",
+    recentQuestions: "recentQuestionsSection",
+    grammar: "grammarSection",
+    resources: "resourcesSection",
     adminResults: "adminResultsSection",
     vocabulary: "vocabularySection",
     history: "historySection"
@@ -914,10 +961,12 @@ function routeHomeAfterLogin() {
     return "";
   };
 
-  const resumeView = getResumeView();
+  // Do not auto-route into unfinished sections on login.
+  // We always land on home first and let app.js show the explicit
+  // "Resume or Go to homepage" prompt.
   try {
-    writeSessionString("IELTS:HOME:lastView", resumeView || "home");
-    writeSessionString("IELTS:EXAM:started", resumeView ? "true" : "false");
+    writeSessionString("IELTS:HOME:lastView", "home");
+    writeSessionString("IELTS:EXAM:started", "false");
   } catch (e) {}
 
   hideBlockingModals();
@@ -925,38 +974,13 @@ function routeHomeAfterLogin() {
 
   try {
     if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute(activeTestId, resumeView || "home");
+      window.IELTS.Router.setHashRoute(activeTestId, "home");
     } else {
-      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/${resumeView || "home"}`);
+      history.replaceState({}, "", `${location.pathname}#/${activeTestId}/home`);
     }
   } catch (e) {}
 
   try {
-    if (resumeView === "listening") {
-      window.__IELTS_LISTENING_INIT__ = false;
-      window.IELTS?.UI?.showOnly?.("listening");
-      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Listening");
-      window.IELTS?.UI?.setExamStarted?.(true);
-      window.IELTS?.Engines?.Listening?.initListeningSystem?.();
-      return;
-    }
-    if (resumeView === "reading") {
-      window.__IELTS_READING_INIT__ = false;
-      window.IELTS?.UI?.showOnly?.("reading");
-      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Reading");
-      window.IELTS?.UI?.setExamStarted?.(true);
-      window.IELTS?.Engines?.Reading?.startReadingSystem?.();
-      return;
-    }
-    if (resumeView === "writing") {
-      window.__IELTS_WRITING_INIT__ = false;
-      window.IELTS?.UI?.showOnly?.("writing");
-      window.IELTS?.UI?.setExamNavStatus?.("Status: Resuming Writing");
-      window.IELTS?.UI?.setExamStarted?.(true);
-      window.IELTS?.Engines?.Writing?.startWritingSystem?.();
-      return;
-    }
-
     window.IELTS?.UI?.showOnly?.("home");
     window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
     window.IELTS?.UI?.updateHomeStatusLine?.("Status: Signed in");
@@ -967,7 +991,7 @@ function routeHomeAfterLogin() {
       reading: "readingControls",
       writing: "writingSection",
     };
-    const home = getEl(fallbackIdMap[resumeView || "home"] || "homeSection");
+    const home = getEl(fallbackIdMap.home || "homeSection");
     if (home) home.classList.remove("hidden");
   }
 }
@@ -1063,14 +1087,37 @@ async function refreshAuthUI({ forceHome = false } = {}) {
   clearAuthFlowModes();
   try {
     const activeTestId = window.IELTS?.Registry?.getActiveTestId?.() || "ielts1";
-    if (window.IELTS?.Router?.setHashRoute) {
-      window.IELTS.Router.setHashRoute(activeTestId, "home");
+    const cleanPathView = getCleanHubViewFromPathname();
+    const hashRouteView = String(window.IELTS?.Router?.parseHashRoute?.()?.view || "").trim();
+    if (isPublicToolOrHubView(hashRouteView)) {
+      writeSessionString("IELTS:HOME:lastView", hashRouteView);
+      writeSessionString("IELTS:EXAM:started", "false");
+      window.IELTS?.UI?.showOnly?.(hashRouteView);
+      if (["listening", "reading", "writing"].includes(hashRouteView)) {
+        window.IELTS?.UI?.setExamNavStatus?.("Status: Ready to start");
+      }
+      if (hashRouteView === "vocabulary") {
+        try { window.IELTS?.Vocabulary?.open?.("dashboard"); } catch (e) {}
+      }
+      if (hashRouteView === "recentQuestions") {
+        try { window.IELTS?.RecentQuestions?.render?.(); } catch (e) {}
+      }
+      return false;
     }
-    writeSessionString("IELTS:HOME:lastView", "home");
-    writeSessionString("IELTS:EXAM:started", "false");
-    window.IELTS?.UI?.showOnly?.("home");
-    window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
-    window.IELTS?.UI?.updateHomeStatusLine?.("Status: Browse the platform or log in to start a test");
+    if (cleanPathView) {
+      writeSessionString("IELTS:HOME:lastView", cleanPathView);
+      writeSessionString("IELTS:EXAM:started", "false");
+      window.IELTS?.UI?.showOnly?.(cleanPathView);
+    } else {
+      if (window.IELTS?.Router?.setHashRoute) {
+        window.IELTS.Router.setHashRoute(activeTestId, "home");
+      }
+      writeSessionString("IELTS:HOME:lastView", "home");
+      writeSessionString("IELTS:EXAM:started", "false");
+      window.IELTS?.UI?.showOnly?.("home");
+      window.IELTS?.UI?.setExamNavStatus?.("Status: Ready");
+      window.IELTS?.UI?.updateHomeStatusLine?.("Status: Browse the platform or log in to start a test");
+    }
   } catch (e) {}
   notifyAuthChanged();
   return false;

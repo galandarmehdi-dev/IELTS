@@ -40,6 +40,7 @@
 
   function examLabel(row) {
     const examId = String(row.exam_id || row.examId || row.active_test_id || "");
+    if (examId.toLowerCase() === "placement-diagnostic") return "Placement Diagnostic";
     if (/^ielts-practice-/i.test(examId)) {
       return String(row?.final_payload?.practiceLabel || examId).replace(/^ielts-/, "").trim() || "Practice";
     }
@@ -49,6 +50,18 @@
 
   function totalWords(row) {
     return Number(row.task1_words || 0) + Number(row.task2_words || 0);
+  }
+
+  function isDiagnosticHistoryRow(row) {
+    return String(row?.exam_id || row?.examId || "").toLowerCase() === "placement-diagnostic" || row?.final_payload?.attemptKind === "diagnostic";
+  }
+
+  function parseDiagnosticBandMidpoint(value) {
+    const text = String(value || "").trim();
+    if (!text) return null;
+    const parts = text.split("-").map((part) => nullableNumber(part));
+    if (parts.length >= 2 && parts[0] !== null && parts[1] !== null) return (parts[0] + parts[1]) / 2;
+    return nullableNumber(text);
   }
 
   function nullableNumber(value) {
@@ -236,6 +249,7 @@
     const tbody = document.createElement("tbody");
     rows.forEach((item) => {
       const tr = document.createElement("tr");
+      tr.className = "ui-data-row";
       [String(item.q ?? "—"), String(item.student || "—"), String(item.correct || "—")].forEach((value) => {
         const td = document.createElement("td");
         td.textContent = value;
@@ -254,6 +268,7 @@
   }
 
   async function fetchObjectiveDetailForRow(row) {
+    if (isDiagnosticHistoryRow(row)) return null;
     const payload = row?.final_payload || {};
     if (payload?.attemptKind === "practice" && ["listening", "reading"].includes(String(payload?.practiceSection || ""))) {
       const url = Registry()?.buildAdminApiUrl?.({
@@ -448,6 +463,7 @@
   }
 
   async function fetchStudentBundleForRow(row) {
+    if (isDiagnosticHistoryRow(row)) return null;
     const url = Registry()?.buildAdminApiUrl?.({
       action: "studentResultBundle",
       submittedAt: row.submitted_at || "",
@@ -690,6 +706,12 @@
       overall_feedback: row.overallFeedback ?? null,
       listening_total_questions: row.listeningTotalQuestions ?? null,
       reading_total_questions: row.readingTotalQuestions ?? null,
+      diagnostic_percentage: row.diagnosticPercentage ?? row.overallPercentage ?? null,
+      diagnostic_band_range: row.diagnosticBandRange ?? row.estimatedIeltsBandRange ?? "",
+      diagnostic_cefr_level: row.diagnosticCefrLevel ?? row.estimatedCefrLevel ?? "",
+      diagnostic_strength: row.diagnosticStrength ?? row.strengths ?? "",
+      diagnostic_weakness: row.diagnosticWeakness ?? row.weaknesses ?? "",
+      diagnostic_deadline: row.diagnosticDeadline ?? row.deadlineSelected ?? "",
     };
   }
 
@@ -792,6 +814,46 @@
       const practiceData = await practiceRes?.json?.().catch(() => null);
       if (practiceRes?.ok && practiceData?.ok === true && Array.isArray(practiceData.results)) {
         rows = mergeRowsByMatchKey(rows, practiceData.results.map(normalizeHistoryRow));
+      }
+    }
+    const diagnosticEndpoint = Registry()?.buildAdminApiUrl?.({
+      action: "studentDiagnosticResults",
+      ...(options.forceRefresh ? { refresh: "1", t: Date.now() } : {}),
+    });
+    if (diagnosticEndpoint) {
+      const token = await window.IELTS?.Auth?.getAccessToken?.();
+      const diagRes = await fetch(diagnosticEndpoint.toString(), {
+        method: "GET",
+        cache: "no-store",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      }).catch(() => null);
+      const diagData = await diagRes?.json?.().catch(() => null);
+      if (diagRes?.ok && diagData?.ok === true && Array.isArray(diagData.results)) {
+        const mapped = diagData.results.map((row) => normalizeHistoryRow({
+          id: row.id || "",
+          organizationId: row.organizationId || "",
+          studentFullName: row.studentFullName || "",
+          studentEmail: row.studentEmail || "",
+          examId: "placement-diagnostic",
+          activeTestId: "placement-diagnostic",
+          submittedAt: row.submittedAt || "",
+          reason: row.reason || "Placement diagnostic",
+          overallBand: parseDiagnosticBandMidpoint(row.estimatedIeltsBandRange),
+          finalPayload: {
+            attemptKind: "diagnostic",
+            examId: "placement-diagnostic",
+            submittedAt: row.submittedAt || "",
+            studentFullName: row.studentFullName || "",
+            reason: row.reason || "Placement diagnostic",
+          },
+          diagnosticPercentage: row.overallPercentage ?? null,
+          diagnosticBandRange: row.estimatedIeltsBandRange || "",
+          diagnosticCefrLevel: row.estimatedCefrLevel || "",
+          diagnosticStrength: row.strengths || "",
+          diagnosticWeakness: row.weaknesses || "",
+          diagnosticDeadline: row.deadlineSelected || "",
+        }));
+        rows = mergeRowsByMatchKey(rows, mapped);
       }
     }
     if (email) saveRemoteHistoryCache(email, rows);
@@ -1069,6 +1131,7 @@
 
     empty.classList.add("hidden");
     rows.forEach((row, idx) => {
+      const isDiagnostic = isDiagnosticHistoryRow(row);
       const listeningStatus = objectiveSectionStatus(row, "listening");
       const readingStatus = objectiveSectionStatus(row, "reading");
       const writing = writingStatus(row);
@@ -1087,33 +1150,41 @@
       tr.appendChild(examTd);
 
       const listeningTd = document.createElement("td");
-      listeningTd.textContent = listeningStatus.listText;
+      listeningTd.textContent = isDiagnostic
+        ? (nullableNumber(row?.diagnostic_percentage) === null ? "null" : `${Number(row.diagnostic_percentage).toFixed(1)}%`)
+        : listeningStatus.listText;
       tr.appendChild(listeningTd);
 
       const readingTd = document.createElement("td");
-      readingTd.textContent = readingStatus.listText;
+      readingTd.textContent = isDiagnostic ? (row?.diagnostic_cefr_level || "—") : readingStatus.listText;
       tr.appendChild(readingTd);
 
       const writingTd = document.createElement("td");
-      writingTd.append(writing.text);
-      writingTd.appendChild(document.createElement("br"));
-      const small = document.createElement("span");
-      small.className = "small";
-      small.textContent = `T1: ${writingWordText(row.task1_words, row.writing_task1)} · T2: ${writingWordText(row.task2_words, row.writing_task2)}`;
-      writingTd.appendChild(small);
+      if (isDiagnostic) {
+        writingTd.textContent = row?.diagnostic_weakness || "—";
+      } else {
+        writingTd.append(writing.text);
+        writingTd.appendChild(document.createElement("br"));
+        const small = document.createElement("span");
+        small.className = "small";
+        small.textContent = `T1: ${writingWordText(row.task1_words, row.writing_task1)} · T2: ${writingWordText(row.task2_words, row.writing_task2)}`;
+        writingTd.appendChild(small);
+      }
       tr.appendChild(writingTd);
 
       const speakingTd = document.createElement("td");
-      speakingTd.textContent = speakingDisplayText(row);
+      speakingTd.textContent = isDiagnostic ? (row?.diagnostic_strength || "—") : speakingDisplayText(row);
       tr.appendChild(speakingTd);
 
       const overallTd = document.createElement("td");
-      overallTd.textContent = overall === null ? "null" : `Band ${overall.toFixed(1)}`;
+      overallTd.textContent = isDiagnostic
+        ? (row?.diagnostic_band_range ? `Band ${row.diagnostic_band_range}` : (overall === null ? "null" : `Band ${overall.toFixed(1)}`))
+        : (overall === null ? "null" : `Band ${overall.toFixed(1)}`);
       tr.appendChild(overallTd);
 
       const actionTd = document.createElement("td");
       const btn = document.createElement("button");
-      btn.className = "btn secondary";
+      btn.className = "btn secondary ui-row-action";
       btn.type = "button";
       btn.setAttribute("data-history-view", String(idx));
       btn.setAttribute("data-history-row-id", rowId);
@@ -1127,6 +1198,7 @@
   }
 
   function renderDetailFromRow(row) {
+    const isDiagnostic = isDiagnosticHistoryRow(row);
     const payload = row.final_payload || {};
     const listeningStatus = objectiveSectionStatus(row, "listening");
     const readingStatus = objectiveSectionStatus(row, "reading");
@@ -1142,6 +1214,30 @@
 
     const scoresEl = $("historyDetailScores");
     clearElement(scoresEl);
+    if (isDiagnostic) {
+      const pct = nullableNumber(row?.diagnostic_percentage);
+      appendLabeledLine(scoresEl, "Diagnostic score", pct === null ? "null" : `${pct.toFixed(1)}%`);
+      appendLabeledLine(scoresEl, "Estimated IELTS", row?.diagnostic_band_range ? `Band ${row.diagnostic_band_range}` : "Band null");
+      appendLabeledLine(scoresEl, "Estimated CEFR", row?.diagnostic_cefr_level || "—");
+      appendLabeledLine(scoresEl, "Strongest area", row?.diagnostic_strength || "—");
+      appendLabeledLine(scoresEl, "Weakest area", row?.diagnostic_weakness || "—");
+      appendLabeledLine(scoresEl, "Deadline", row?.diagnostic_deadline || "Not specified");
+      const setScore = (id, label, value) => {
+        const el = $(id);
+        clearElement(el);
+        appendLabeledLine(el, label, value);
+      };
+      setScore("historyDetailTask1Score", "Diagnostic", "No writing task in this attempt.");
+      setScore("historyDetailTask2Score", "Diagnostic", "No writing task in this attempt.");
+      const overallFeedbackEl = $("historyDetailOverallFeedback");
+      clearElement(overallFeedbackEl);
+      appendTextBlock(overallFeedbackEl, "Placement diagnostic result. Use it to guide your study plan.");
+      $("historyDetailTask1").textContent = "";
+      $("historyDetailTask2").textContent = "";
+      $("historyDetailTask1Feedback").textContent = "";
+      $("historyDetailTask2Feedback").textContent = "";
+      return;
+    }
     appendLabeledLine(scoresEl, "Exam ID", row.exam_id || row.active_test_id || payload?.examId || "—");
     appendLabeledLine(scoresEl, "Listening", listeningStatus.detailText);
     appendLabeledLine(scoresEl, "Reading", readingStatus.detailText);
@@ -1221,6 +1317,10 @@
     try {
       let activeRow = row;
       let immediateObjective = options.objectiveResult || null;
+      if (isDiagnosticHistoryRow(row)) {
+        renderObjectiveReview("historyDetail", null);
+        return;
+      }
       if (!options.skipBundleFetch) {
         const bundleData = await fetchStudentBundleForRow(row).catch(() => null);
         if (bundleData?.result) {
@@ -1276,7 +1376,7 @@
         fillHistoryMonthYearFilters(state.rows);
         applyHistoryFilters();
       } else if ($("historyTbody")) {
-        $("historyTbody").innerHTML = '<tr><td colspan="8">Loading history...</td></tr>';
+        $("historyTbody").innerHTML = '<tr class="ui-table-state-row"><td colspan="8">Loading history...</td></tr>';
       }
       const shouldForceRefresh = !!pendingOpenKey || !!window.IELTS?.Storage?.getJSON?.(window.IELTS?.Registry?.EXAM?.keys?.finalSubmission || "IELTS:EXAM:finalSubmission", null);
       let rows = await prefetchHistoryRows({ forceRefresh: shouldForceRefresh });
@@ -1302,7 +1402,7 @@
         if (lastLocal?.submittedAt) {
           const tbody = $("historyTbody");
           if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
+            tbody.innerHTML = '<tr class="ui-table-state-row"><td colspan="8">No synced history yet. Your latest submission is saved locally and may appear here after the next refresh.</td></tr>';
           }
         }
       }
@@ -1329,7 +1429,7 @@
       }).catch(() => {});
     } catch (err) {
       const tbody = $("historyTbody");
-      if (tbody) tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
+      if (tbody) tbody.innerHTML = `<tr class="ui-table-state-row"><td colspan="8">${escapeHtml(err.message || "Could not load history.")}</td></tr>`;
     }
   }
 

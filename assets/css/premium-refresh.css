@@ -1124,13 +1124,21 @@ select:focus {
 }
 
 .hero-assignment-inline .student-assignment-card {
-  border: 1px solid rgba(219, 234, 254, 0.24);
-  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(219, 234, 254, 0.34);
+  background: rgba(255, 255, 255, 0.16);
   box-shadow: none;
 }
 
+.hero-assignment-inline .student-assignment-title {
+  color: #f8fbff;
+}
+
 .hero-assignment-inline .student-assignment-meta {
-  color: rgba(235, 244, 255, 0.83);
+  color: rgba(241, 247, 255, 0.94);
+}
+
+.hero-assignment-inline .student-assignment-meta span {
+  color: inherit;
 }
 
 .hero-assignment-inline .student-assignment-btn {

@@ -227,6 +227,26 @@
     }).join("");
   }
 
+  function showAssignmentEmailSummary(title, data) {
+    const summary = data?.emailSummary || null;
+    if (!summary) return;
+    const sent = Number(data?.emailsSent ?? summary.sent ?? 0);
+    const failed = Number(data?.failed ?? summary.failed ?? 0);
+    const missing = Number(data?.missingEmails ?? summary.skippedNoEmail ?? 0);
+    const duplicate = Number(data?.duplicateSkipped ?? summary.skippedDuplicate ?? 0);
+    const failures = Array.isArray(data?.failures) ? data.failures : (Array.isArray(summary.failures) ? summary.failures : []);
+    const failureLines = failures
+      .slice(0, 6)
+      .map((f) => `• ${f.fullName || f.studentIdCode || f.recipient || "Student"}: ${f.error || "send failed"}`)
+      .join("\n");
+    const details = failureLines ? `\n\nFailures:\n${failureLines}` : "";
+    window.IELTS?.Modal?.showModal?.(
+      title,
+      `Emails sent: ${sent}\nFailed: ${failed}\nMissing emails: ${missing}\nDuplicate-skipped: ${duplicate}${details}`,
+      { mode: "confirm" }
+    );
+  }
+
   function deriveAssignmentTypeFromTarget(target) {
     const value = String(target || "").trim();
     if (!value) return "test";
@@ -350,12 +370,14 @@
     };
 
     try {
+      let response;
       if (state.editingAssignment?.id) {
         body.id = state.editingAssignment.id;
-        await apiPost("updateAssignment", body);
+        response = await apiPost("updateAssignment", body);
       } else {
-        await apiPost("createAssignment", body);
+        response = await apiPost("createAssignment", body);
       }
+      showAssignmentEmailSummary("Assignment saved", response);
       closeEditPanel();
       await loadAndRenderAssignments();
     } catch (e) {

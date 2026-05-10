@@ -19,6 +19,51 @@
   }
 
   const PATH_TO_VIEW = {
+    "/mock-tests/": () => {
+      try {
+        if (typeof window.IELTS?.App?.openResourceHub === "function") {
+          window.IELTS.App.openResourceHub("fullExam");
+        } else {
+          window.IELTS?.UI?.showOnly?.("fullExamHub");
+        }
+      } catch (e) {}
+    },
+    "/listening/": () => {
+      try {
+        if (typeof window.IELTS?.App?.openResourceHub === "function") {
+          window.IELTS.App.openResourceHub("listening");
+        } else {
+          window.IELTS?.UI?.showOnly?.("listeningHub");
+        }
+      } catch (e) {}
+    },
+    "/reading/": () => {
+      try {
+        if (typeof window.IELTS?.App?.openResourceHub === "function") {
+          window.IELTS.App.openResourceHub("reading");
+        } else {
+          window.IELTS?.UI?.showOnly?.("readingHub");
+        }
+      } catch (e) {}
+    },
+    "/writing/": () => {
+      try {
+        if (typeof window.IELTS?.App?.openResourceHub === "function") {
+          window.IELTS.App.openResourceHub("writing");
+        } else {
+          window.IELTS?.UI?.showOnly?.("writingHub");
+        }
+      } catch (e) {}
+    },
+    "/speaking/": () => {
+      try {
+        if (typeof window.IELTS?.App?.openResourceHub === "function") {
+          window.IELTS.App.openResourceHub("speaking");
+        } else {
+          window.IELTS?.UI?.showOnly?.("speakingHub");
+        }
+      } catch (e) {}
+    },
     "/dashboard/": () => { try { window.IELTS?.UI?.showOnly?.("dashboard"); } catch (e) {} },
     "/history/": () => { try { window.IELTS?.UI?.showOnly?.("history"); } catch (e) {} },
     "/assignments/": () => { setTimeout(() => { window.IELTS?.Assignments?.openAssignmentsPage?.(); }, 200); },

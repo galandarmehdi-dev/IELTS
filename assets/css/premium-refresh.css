@@ -1673,3 +1673,49 @@ textarea:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+
+/* =========================================================
+   UNIFIED PAGE CANVAS — hero → placement visual bridge
+   Replaces the flat home-screen background with a flowing
+   gradient so hero and placement feel like one surface,
+   not two separate pages.
+   ========================================================= */
+
+/* 1. Flowing gradient canvas — white at top, cool blue-grey
+      through the placement zone, lighter again for features */
+.home-screen {
+  background:
+    radial-gradient(1100px 520px at 68% 0%, rgba(42, 102, 173, .08), transparent 54%),
+    radial-gradient(600px 460px at -4% 44%, rgba(21, 52, 98, .05), transparent 64%),
+    linear-gradient(
+      175deg,
+      #ffffff    0%,
+      #f8fbff   12%,
+      #f0f5fc   26%,
+      #e7edf9   40%,
+      #edf2fa   56%,
+      #f3f7fd  100%
+    ) !important;
+}
+
+/* 2. Tighten hero bottom — reduce the blank void before placement */
+.home-hero {
+  padding-bottom: 28px !important;
+}
+
+/* 3. Placement band: upward glow bridges hero → band.
+      box-shadow with negative y-offset bleeds softly into
+      the canvas above. Also slightly lighter top gradient
+      so the jump from the cooler background above is gentler. */
+.home-placement-band {
+  background: linear-gradient(
+    155deg,
+    #162e5a  0%,
+    #0f2345 28%,
+    #153870 62%,
+    #1c4a88 100%
+  ) !important;
+  box-shadow:
+    0 -36px 90px rgba(21, 52, 98, .16),
+    0 20px 56px rgba(11, 31, 66, .22) !important;
+}

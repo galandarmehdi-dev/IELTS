@@ -221,7 +221,9 @@
 </section>
 <!-- ================= HOME / PUBLIC EXPERIENCE ================= -->
 <section id="homeSection" class="home-screen" aria-label="Home">
-  <header class="home-header">
+
+  <!-- ══ STICKY NAVIGATION ══ -->
+  <header class="home-header hs-nav-only">
     <div class="home-topbar">
       <div class="home-brand">
         <div class="home-wordmark" aria-label="IELTS Mock Practice Portal">
@@ -230,11 +232,9 @@
         </div>
         <div class="home-nav-divider" aria-hidden="true"></div>
       </div>
-
       <nav class="home-primary-nav" aria-label="Primary navigation">
         <div class="home-explore-menus home-explore-menus-top" id="homeExploreMenus"></div>
       </nav>
-
       <div class="home-top-actions">
         <button class="home-btn ghost hidden" type="button" id="homeAdminResultsBtn">Admin results</button>
         <button class="home-btn ghost hidden" type="button" id="openSpeakingExamBtn">IELTS Speaking Exam</button>
@@ -258,45 +258,68 @@
         </div>
       </div>
     </div>
+  </header>
 
-    <div class="home-hero">
-      <div class="home-hero-left">
-        <div class="home-hero-eyebrow">IELTS Preparation Platform</div>
-        <h1 class="home-title">The complete IELTS preparation platform</h1>
-        <p class="home-subtitle">Full mock exams, skill practice, grammar, vocabulary, and AI-graded writing — all in one place.</p>
-        <div class="home-hero-cta" aria-label="Primary actions">
-          <a class="home-btn" id="homeStartFullMockBtn" href="/mock-tests/">Start a full mock test</a>
-          <button class="home-btn ghost" type="button" id="homeOpenHistoryQuickBtn">View recent results</button>
+  <!-- ══ HERO ══ -->
+  <section class="hs-hero">
+    <div class="hs-container">
+      <div class="hs-hero-grid">
+        <div class="hs-hero-copy">
+          <div class="hs-eyebrow">Free IELTS Preparation Platform</div>
+          <h1 class="hs-hero-h1">Score higher on IELTS — <span class="hs-hero-accent">or know exactly why you didn't</span></h1>
+          <p class="hs-hero-sub">Full mock exams, AI writing feedback, skill practice, grammar, vocabulary, and a free placement test. Everything in one place — no subscription needed.</p>
+          <div class="hs-hero-actions">
+            <a class="hs-btn hs-btn-primary" id="homeStartFullMockBtn" href="/mock-tests/">Start a full mock exam</a>
+            <button class="hs-btn hs-btn-ghost" type="button" id="homeOpenHistoryQuickBtn">View my results</button>
+          </div>
+          <div class="hs-hero-trust-row">
+            <span class="hs-trust-pill">✓ Free to use</span>
+            <span class="hs-trust-pill">✓ No signup required</span>
+            <span class="hs-trust-pill">✓ AI-graded writing</span>
+          </div>
         </div>
-        <div class="home-hero-proof" aria-hidden="true">
-          <span class="home-hero-proof-item"><span class="home-hero-proof-dot"></span>Free placement test</span>
-          <span class="home-hero-proof-item"><span class="home-hero-proof-dot"></span>AI writing feedback</span>
-          <span class="home-hero-proof-item"><span class="home-hero-proof-dot"></span>Exam-realistic mocks</span>
-        </div>
-      </div>
 
-      <div class="home-hero-right">
-        <div class="home-rail-panel home-command-panel home-focus-card">
-          <div class="home-card-topline">At a glance</div>
-          <div class="command-title">Continue your training</div>
-
-          <section id="studentAssignmentsSection" class="hidden hero-assignment-inline" aria-label="Your assignments">
-            <div class="student-assignments-heading hero-assignment-heading">
-              <span>📋</span> Assigned task
+        <div class="hs-hero-card-wrap" aria-hidden="true">
+          <div class="hs-product-card">
+            <div class="hs-product-card-chrome">
+              <div class="hs-chrome-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span class="hs-chrome-label">ieltsmock · Training hub</span>
             </div>
-            <div class="student-assignments-list" id="studentAssignmentsList"></div>
-          </section>
-
-          <div class="hero-focus-fallback" id="homeHeroFocusFallback">
-            <div class="hero-focus-title">Continue full mock path</div>
-            <div class="hero-focus-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</div>
-            <button class="home-btn hero-focus-btn" type="button" id="homeHeroFocusStartBtn">Continue</button>
+            <div class="hs-product-card-body">
+              <section id="studentAssignmentsSection" class="hidden hero-assignment-inline" aria-label="Your assignments">
+                <div class="student-assignments-heading hero-assignment-heading">
+                  <span>📋</span> Assigned task
+                </div>
+                <div class="student-assignments-list" id="studentAssignmentsList"></div>
+              </section>
+              <div class="hero-focus-fallback" id="homeHeroFocusFallback">
+                <div class="hero-focus-title">Continue full mock path</div>
+                <div class="hero-focus-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</div>
+                <button class="home-btn hero-focus-btn" type="button" id="homeHeroFocusStartBtn">Continue</button>
+              </div>
+            </div>
+          </div>
+          <div class="hs-float-badge hs-float-badge--tl">
+            <div class="hs-float-icon">🎯</div>
+            <div class="hs-float-text">
+              <strong>Band 7.5</strong>
+              <span>Writing score</span>
+            </div>
+          </div>
+          <div class="hs-float-badge hs-float-badge--br">
+            <div class="hs-float-icon">✅</div>
+            <div class="hs-float-text">
+              <strong>Mock complete</strong>
+              <span>2h 45m timed</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- hidden elements still needed by JS -->
+    <!-- JS-required hidden elements -->
     <div class="home-notes hidden" id="homeStatusLine" aria-hidden="true"></div>
     <div class="home-resume-action hidden" id="homeResumeAction" aria-hidden="true"></div>
     <select id="fontSizeSelect" class="hidden" aria-hidden="true">
@@ -304,157 +327,235 @@
       <option value="medium" selected>Medium</option>
       <option value="large">Large</option>
     </select>
-  </header>
+  </section>
+
+  <!-- ══ STATS STRIP ══ -->
+  <div class="hs-stats-strip">
+    <div class="hs-container">
+      <div class="hs-stats-grid">
+        <div class="hs-stat-item">
+          <div class="hs-stat-val">4</div>
+          <div class="hs-stat-desc">Core IELTS skill modules</div>
+        </div>
+        <div class="hs-stat-divider" aria-hidden="true"></div>
+        <div class="hs-stat-item">
+          <div class="hs-stat-val">AI</div>
+          <div class="hs-stat-desc">Writing feedback &amp; scoring</div>
+        </div>
+        <div class="hs-stat-divider" aria-hidden="true"></div>
+        <div class="hs-stat-item">
+          <div class="hs-stat-val">15 min</div>
+          <div class="hs-stat-desc">Free placement test</div>
+        </div>
+        <div class="hs-stat-divider" aria-hidden="true"></div>
+        <div class="hs-stat-item">
+          <div class="hs-stat-val">Free</div>
+          <div class="hs-stat-desc">No subscription needed</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <main class="home-main" id="homeHowItWorks">
 
-    <!-- ── Value strip ── -->
-    <div class="home-value-strip" aria-hidden="true">
-      <div class="home-value-strip-inner">
-        <div class="home-value-item">
-          <div class="home-value-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div class="home-value-text">
-            <span class="home-value-label">Free 15-min placement</span>
-            <span class="home-value-sub">Pinpoint your current IELTS band instantly</span>
-          </div>
+    <!-- ══ PRACTICE MODULES ══ -->
+    <section class="hs-section hs-modules-section">
+      <div class="hs-container">
+        <div class="hs-section-header">
+          <div class="hs-section-eyebrow">Practice by skill</div>
+          <h2 class="hs-section-h2">Six ways to prepare for IELTS</h2>
+          <p class="hs-section-sub">Target your weakest area or run a complete timed exam — whichever you need today.</p>
         </div>
-        <div class="home-value-item">
-          <div class="home-value-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          </div>
-          <div class="home-value-text">
-            <span class="home-value-label">AI writing feedback</span>
-            <span class="home-value-sub">Band score on every Task 1 &amp; Task 2 submission</span>
-          </div>
-        </div>
-        <div class="home-value-item">
-          <div class="home-value-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
-          </div>
-          <div class="home-value-text">
-            <span class="home-value-label">Exam-realistic mocks</span>
-            <span class="home-value-sub">Timed Listening, Reading &amp; Writing in sequence</span>
-          </div>
+        <div class="hs-modules-grid" id="homeFeaturesGrid">
+          <a class="hs-module-card" href="/mock-tests/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Full Mock Exam</div>
+              <p class="hs-module-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
+          <a class="hs-module-card" href="/listening/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Listening</div>
+              <p class="hs-module-copy">Section-by-section listening practice with real exam question types.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
+          <a class="hs-module-card" href="/reading/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Reading</div>
+              <p class="hs-module-copy">Full passages with all question types — including True/False/Not Given.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
+          <a class="hs-module-card" href="/writing/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Writing</div>
+              <p class="hs-module-copy">Task 1 and Task 2 practice with AI band scoring and feedback.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
+          <a class="hs-module-card" href="/speaking/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Speaking</div>
+              <p class="hs-module-copy">Part 1, 2, and 3 cue cards with topic bank from recent exams.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
+          <a class="hs-module-card" href="/grammar/">
+            <div class="hs-module-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="7" height="7" rx="1"/><rect x="15" y="3" width="7" height="7" rx="1"/><rect x="2" y="14" width="7" height="7" rx="1"/><rect x="15" y="14" width="7" height="7" rx="1"/></svg>
+            </div>
+            <div class="hs-module-body">
+              <div class="hs-module-title">Grammar &amp; Vocabulary</div>
+              <p class="hs-module-copy">12 grammar topics and themed word banks with flashcards.</p>
+            </div>
+            <div class="hs-module-arrow" aria-hidden="true">→</div>
+          </a>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ── Placement test panel ── -->
-    <div class="home-placement-band">
-      <div class="home-placement-inner">
-        <div class="home-placement-left">
-          <div class="home-placement-kicker">Free · 15 minutes</div>
-          <h2 class="home-placement-title">Identify your level.<br>Get a personalised plan.</h2>
-          <p class="home-placement-copy">Answer 15 carefully selected questions across Grammar, Vocabulary, and Reading. We'll pinpoint your current IELTS band and recommend exactly where to focus next.</p>
-          <div class="home-placement-levels" aria-label="Level bands">
-            <span class="home-placement-level">B1</span>
-            <span class="home-placement-level-arrow">→</span>
-            <span class="home-placement-level">B2</span>
-            <span class="home-placement-level-arrow">→</span>
-            <span class="home-placement-level active">C1</span>
-            <span class="home-placement-level-arrow">→</span>
-            <span class="home-placement-level">C2</span>
-          </div>
-          <a class="home-btn home-placement-cta" id="homePlacementStartBtn" href="/placement-test/">Take the placement test</a>
-        </div>
-        <div class="home-placement-right" aria-hidden="true">
-          <div class="home-placement-card-preview">
-            <div class="home-placement-preview-label">Your result</div>
-            <div class="home-placement-preview-band" id="homePlacementPreviewBand">—</div>
-            <div class="home-placement-preview-sub" id="homePlacementPreviewSub">Complete a scored test to see your average overall band.</div>
-            <div class="home-placement-preview-bar">
-              <div class="home-placement-preview-fill" id="homePlacementPreviewFill" style="width:0%"></div>
+    <!-- ══ PLACEMENT SECTION ══ -->
+    <section class="hs-section hs-placement-section">
+      <div class="hs-container">
+        <div class="hs-placement-grid">
+          <div class="hs-placement-copy">
+            <div class="hs-section-eyebrow">Free · 15 minutes</div>
+            <h2 class="hs-placement-h2">Find your starting point</h2>
+            <p class="hs-placement-body">Answer 15 questions across Grammar, Vocabulary, and Reading. We'll pinpoint your current IELTS band and show you exactly where to focus first.</p>
+            <div class="hs-placement-levels" aria-label="IELTS level bands">
+              <span class="hs-level">B1</span>
+              <span class="hs-level-sep" aria-hidden="true">→</span>
+              <span class="hs-level">B2</span>
+              <span class="hs-level-sep" aria-hidden="true">→</span>
+              <span class="hs-level hs-level-active">C1</span>
+              <span class="hs-level-sep" aria-hidden="true">→</span>
+              <span class="hs-level">C2</span>
             </div>
-            <div class="home-placement-preview-next" id="homePlacementPreviewNext">Recommended: complete one full mock test to unlock your personalised plan.</div>
+            <a class="hs-btn hs-btn-primary" id="homePlacementStartBtn" href="/placement-test/">Take the free placement test →</a>
+          </div>
+          <div class="hs-placement-preview" aria-hidden="true">
+            <div class="hs-preview-card">
+              <div class="hs-preview-label">Your estimated band</div>
+              <div class="hs-preview-band" id="homePlacementPreviewBand">—</div>
+              <div class="hs-preview-sub" id="homePlacementPreviewSub">Complete the placement test to see your starting band.</div>
+              <div class="hs-preview-bar">
+                <div class="hs-preview-fill" id="homePlacementPreviewFill" style="width:0%"></div>
+              </div>
+              <div class="hs-preview-next" id="homePlacementPreviewNext">Take the placement test to unlock your personalised study plan.</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- ── Feature cards ── -->
-    <div class="home-features-band" id="homeFeaturesGrid">
-      <div class="home-features-inner">
-        <div class="home-features-heading">
-          <h2 class="home-features-title">Everything you need to reach your target band</h2>
+    <!-- ══ HOW IT WORKS ══ -->
+    <section class="hs-section hs-steps-section">
+      <div class="hs-container">
+        <div class="hs-section-header">
+          <div class="hs-section-eyebrow">How it works</div>
+          <h2 class="hs-section-h2">From first test to target band</h2>
         </div>
-        <div class="home-features-grid">
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">Full Mock Exams</div>
-              <p class="home-feature-card-copy">Timed Listening, Reading, and Writing in the exact IELTS sequence.</p>
-            </div>
+        <div class="hs-steps-grid">
+          <div class="hs-step">
+            <div class="hs-step-num">01</div>
+            <h3 class="hs-step-title">Take the placement test</h3>
+            <p class="hs-step-copy">15 questions. 15 minutes. We identify your current band and weak spots instantly.</p>
           </div>
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">Skill Practice</div>
-              <p class="home-feature-card-copy">Target Reading, Listening, Writing, or Speaking individually.</p>
-            </div>
+          <div class="hs-step">
+            <div class="hs-step-num">02</div>
+            <h3 class="hs-step-title">Practice targeted skills</h3>
+            <p class="hs-step-copy">Drill Listening, Reading, Writing, or Speaking based on your gaps — not randomly.</p>
           </div>
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">AI Writing Feedback</div>
-              <p class="home-feature-card-copy">Get a band score and detailed feedback on Task 1 &amp; Task 2.</p>
-            </div>
+          <div class="hs-step">
+            <div class="hs-step-num">03</div>
+            <h3 class="hs-step-title">Sit a timed mock exam</h3>
+            <p class="hs-step-copy">Full Listening + Reading + Writing in one session, just like the real IELTS day.</p>
           </div>
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">Grammar Hub</div>
-              <p class="home-feature-card-copy">12 structured grammar topics for IELTS Writing and Speaking.</p>
-            </div>
-          </div>
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="7" height="7" rx="1"/><rect x="15" y="3" width="7" height="7" rx="1"/><rect x="2" y="14" width="7" height="7" rx="1"/><rect x="15" y="14" width="7" height="7" rx="1"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">Vocabulary Hub</div>
-              <p class="home-feature-card-copy">IELTS word banks by topic with flashcards and practice.</p>
-            </div>
-          </div>
-          <div class="home-feature-card">
-            <div class="home-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-            <div class="home-feature-card-body">
-              <div class="home-feature-card-title">Real Exam Questions</div>
-              <p class="home-feature-card-copy">Students share recent exam topics — stay ahead of what's coming.</p>
-            </div>
+          <div class="hs-step">
+            <div class="hs-step-num">04</div>
+            <h3 class="hs-step-title">Review AI feedback</h3>
+            <p class="hs-step-copy">Get a band estimate and actionable Writing feedback. Know what to fix before your real test.</p>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Trust signals -->
-    <div class="home-trust-section">
-      <div class="home-trust-grid">
-        <div class="home-trust-card">
-          <div class="home-trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></div>
-          <div class="home-trust-title">Exam-realistic tests</div>
-          <p class="home-trust-copy">Timed modules follow real IELTS structure and question types.</p>
+    <!-- ══ PROOF / FEATURES ══ -->
+    <section class="hs-section hs-proof-section">
+      <div class="hs-container">
+        <div class="hs-section-header">
+          <div class="hs-section-eyebrow">Built for serious preparation</div>
+          <h2 class="hs-section-h2 hs-light">Why students use ieltsmock</h2>
         </div>
-        <div class="home-trust-card">
-          <div class="home-trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-          <div class="home-trust-title">AI writing feedback</div>
-          <p class="home-trust-copy">Band estimates and detailed suggestions on every writing submission.</p>
-        </div>
-        <div class="home-trust-card">
-          <div class="home-trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-          <div class="home-trust-title">Teacher tools</div>
-          <p class="home-trust-copy">Classrooms, assignments, and student progress tracking built in.</p>
-        </div>
-        <div class="home-trust-card">
-          <div class="home-trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-          <div class="home-trust-title">Secure &amp; private</div>
-          <p class="home-trust-copy">Your results and progress are stored securely and never sold.</p>
+        <div class="hs-proof-grid">
+          <div class="hs-proof-card">
+            <div class="hs-proof-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+            </div>
+            <h3 class="hs-proof-title">Exam-realistic structure</h3>
+            <p class="hs-proof-copy">Timed mock exams follow the exact IELTS format — same sections, same question types, same time pressure.</p>
+          </div>
+          <div class="hs-proof-card">
+            <div class="hs-proof-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <h3 class="hs-proof-title">AI writing evaluation</h3>
+            <p class="hs-proof-copy">Every Task 1 and Task 2 gets an estimated band score plus criterion-by-criterion feedback.</p>
+          </div>
+          <div class="hs-proof-card">
+            <div class="hs-proof-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3 class="hs-proof-title">Teacher &amp; classroom tools</h3>
+            <p class="hs-proof-copy">Assign mock tests, track individual progress, and review writing — all from one dashboard.</p>
+          </div>
+          <div class="hs-proof-card">
+            <div class="hs-proof-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h3 class="hs-proof-title">Private &amp; secure</h3>
+            <p class="hs-proof-copy">Your progress, results, and writing are stored securely. We never sell or share your data.</p>
+          </div>
         </div>
       </div>
-      <p class="home-disclaimer">ieltsmock.org is an independent IELTS practice platform and is not affiliated with IELTS, British Council, IDP Education, or Cambridge Assessment English.</p>
-    </div>
+    </section>
+
+    <!-- ══ FINAL CTA ══ -->
+    <section class="hs-cta-section">
+      <div class="hs-container">
+        <div class="hs-cta-inner">
+          <h2 class="hs-cta-h2">Ready to find your IELTS band?</h2>
+          <p class="hs-cta-sub">Start with a free placement test — no account, no subscription required.</p>
+          <div class="hs-cta-actions">
+            <a class="hs-btn hs-btn-white" href="/placement-test/">Take the free placement test</a>
+            <a class="hs-btn hs-btn-ghost-light" href="/mock-tests/">Or start a full mock exam</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="hs-disclaimer">ieltsmock.org is an independent IELTS practice platform and is not affiliated with IELTS, British Council, IDP Education, or Cambridge Assessment English.</p>
 
   </main>
 
+  <!-- ══ FOOTER ══ -->
   <footer class="home-footer premium-footer">
     <div class="home-footer-inner premium-footer-inner">
       <div>

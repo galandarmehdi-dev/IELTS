@@ -621,32 +621,14 @@
 .home-skill-item{
   width:100%;
   text-align:left;
-  min-height:50px;
+  min-height:42px;
   padding:10px 12px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
   background:transparent;
   color:var(--ink);
+  font-weight:800;
   cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  gap:2px;
-  text-decoration:none;
-}
-.home-skill-item strong{
-  display:block;
-  font-size:14px;
-  font-weight:700;
-  color:var(--ink);
-  line-height:1.3;
-}
-.home-skill-item span{
-  display:block;
-  font-size:12px;
-  font-weight:500;
-  color:var(--muted);
-  line-height:1.4;
 }
 .home-skill-item:hover{
   background:rgba(23,50,77,.06);

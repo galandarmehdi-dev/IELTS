@@ -66,10 +66,42 @@ export default {
       return handleAdminApi(request, env);
     }
 
+    if (shouldServeAppShell(url.pathname, request.method)) {
+      const appShellUrl = new URL("/", url.origin);
+      const appShellRequest = new Request(appShellUrl.toString(), request);
+      const response = await env.ASSETS.fetch(appShellRequest);
+      return applyDocumentSecurityHeaders(response);
+    }
+
     const response = await env.ASSETS.fetch(request);
     return applyDocumentSecurityHeaders(response);
   },
 };
+
+function shouldServeAppShell(pathname = "", method = "GET") {
+  const normalizedPath = String(pathname || "").trim().toLowerCase();
+  if (!["get", "head"].includes(String(method || "").toLowerCase())) return false;
+  const appShellPaths = new Set([
+    "/",
+    "/mock-tests/",
+    "/listening/",
+    "/reading/",
+    "/writing/",
+    "/speaking/",
+    "/placement-test/",
+    "/vocabulary/",
+    "/recent-questions/",
+    "/admin/",
+    "/admin/results/",
+    "/admin/classes/",
+    "/admin/assignments/",
+    "/admin/questions/",
+    "/dashboard/",
+    "/history/",
+    "/assignments/",
+  ]);
+  return appShellPaths.has(normalizedPath);
+}
 
 function isSensitiveAssetPath(pathname = "") {
   const path = String(pathname || "").trim().toLowerCase();

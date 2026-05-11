@@ -1978,53 +1978,263 @@ async function handleAdminApi(request, env) {
   const assignmentPostAdminActions = new Set(["createAssignment", "updateAssignment", "deleteAssignment", "assignmentStudentsBulk"]);
   const assignmentPostStudentActions = new Set(["markAssignmentStarted", "markAssignmentComplete"]);
 
+  function deriveAssignmentTypeFields(testId) {
+    const v = String(testId || "");
+    if (v.startsWith("practice|reading|")) return { assignmentType: "reading_task", taskId: v.split("|")[2] || null };
+    return { assignmentType: "test", taskId: null };
+  }
+  function normalizeAssignmentRow(row) {
+    if (!row || typeof row !== "object") return row;
+    const { assignmentType, taskId } = deriveAssignmentTypeFields(row.test_id);
+    return { ...row, assignmentType, taskId };
+  }
+
   if (request.method === "GET" && assignmentGetAdminActions.has(action)) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+    const organizationId = getActorOrganizationId(auth) || "ieltsmock";
+
+    if (action === "listAssignments") {
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignments", {
+        query: { select: "*", organization_id: `eq.${organizationId}`, order: "created_at.desc", limit: "200" },
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to load assignments." });
+      const assignments = (Array.isArray(res.data) ? res.data : []).map(normalizeAssignmentRow);
+      return json(200, { ok: true, assignments });
+    }
+
+    if (action === "assignmentStudents") {
+      const assignmentId = oneLine(url.searchParams.get("assignmentId") || "");
+      if (!assignmentId) return json(400, { ok: false, error: "assignmentId is required." });
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        query: {
+          select: "*, student_profiles(*)",
+          assignment_id: `eq.${assignmentId}`,
+          organization_id: `eq.${organizationId}`,
+        },
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to load assignment students." });
+      return json(200, { ok: true, students: Array.isArray(res.data) ? res.data : [] });
+    }
+
+    return json(400, { ok: false, error: "Unknown assignment action." });
   }
 
   if (request.method === "GET" && assignmentGetStudentActions.has(action)) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    await appendAssignmentIdentityToSearchParams(backendUrl.searchParams, auth, env);
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+    const organizationId = getActorOrganizationId(auth) || "ieltsmock";
+    const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
+
+    if (action === "studentAssignments") {
+      if (!profile?.id) return json(200, { ok: true, assignments: [] });
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        query: {
+          select: "*, assignments(*)",
+          student_profile_id: `eq.${profile.id}`,
+          organization_id: `eq.${organizationId}`,
+        },
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to load assignments." });
+      const rows = Array.isArray(res.data) ? res.data : [];
+      const assignments = rows
+        .filter((r) => r.assignments?.status === "published")
+        .map((r) => {
+          const a = r.assignments || {};
+          const { assignmentType, taskId } = deriveAssignmentTypeFields(a.test_id);
+          return {
+            ...a,
+            assignmentType,
+            taskId,
+            testId: a.test_id || null,
+            completed: !!r.completed,
+            completed_at: r.completed_at || null,
+            attempted: false,
+            studentRecordId: r.id,
+          };
+        });
+      return json(200, { ok: true, assignments });
+    }
+
+    if (action === "assignmentAccess") {
+      const testId = oneLine(url.searchParams.get("testId") || "");
+      if (!testId || !profile?.id) return json(200, { ok: true, access: false });
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        query: {
+          select: "id, assignment_id, completed, completed_at, assignments(id, test_id, status, due_date)",
+          student_profile_id: `eq.${profile.id}`,
+          organization_id: `eq.${organizationId}`,
+        },
+      });
+      if (!res.ok) return json(200, { ok: true, access: false });
+      const rows = Array.isArray(res.data) ? res.data : [];
+      const match = rows.find(
+        (r) => r.assignments?.test_id === testId && r.assignments?.status === "published"
+      );
+      if (!match) return json(200, { ok: true, access: false });
+      const completed = !!match.completed;
+      return json(200, {
+        ok: true,
+        access: !completed,
+        assignmentId: match.assignment_id || null,
+        dueDate: match.assignments?.due_date || null,
+        completed,
+        attempted: false,
+        attemptedAt: null,
+      });
+    }
+
+    return json(400, { ok: false, error: "Unknown assignment action." });
   }
 
   if (request.method === "POST" && assignmentPostAdminActions.has(action)) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+    const organizationId = getActorOrganizationId(auth) || "ieltsmock";
+    const rawBody = await request.clone().text().catch(() => "");
+    let body = {};
+    try { body = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { body = {}; }
+
+    if (action === "createAssignment") {
+      const title = oneLine(body.title || "");
+      const testId = oneLine(body.testId || "");
+      if (!title) return json(400, { ok: false, error: "title is required." });
+      if (!testId) return json(400, { ok: false, error: "testId is required." });
+      const row = {
+        organization_id: organizationId,
+        classroom_id: body.classroomId || null,
+        title,
+        test_id: testId,
+        due_date: body.dueDate || null,
+        note: body.note ? oneLine(String(body.note)) : null,
+        status: "draft",
+        created_by_email: normalizeEmail(auth?.user?.email || ""),
+      };
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignments", {
+        method: "POST",
+        query: { select: "*" },
+        headers: { Prefer: "return=representation" },
+        body: row,
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to create assignment." });
+      const created = Array.isArray(res.data) ? res.data[0] : res.data;
+      return json(200, { ok: true, assignment: normalizeAssignmentRow(created) });
+    }
+
+    if (action === "updateAssignment") {
+      const id = oneLine(body.id || "");
+      if (!id) return json(400, { ok: false, error: "id is required." });
+      const patch = { updated_at: new Date().toISOString() };
+      if (body.title !== undefined) patch.title = oneLine(String(body.title || ""));
+      if (body.testId !== undefined) patch.test_id = oneLine(String(body.testId || ""));
+      if (body.classroomId !== undefined) patch.classroom_id = body.classroomId || null;
+      if (body.dueDate !== undefined) patch.due_date = body.dueDate || null;
+      if (body.note !== undefined) patch.note = body.note ? oneLine(String(body.note)) : null;
+      if (body.status !== undefined) patch.status = oneLine(String(body.status || ""));
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignments", {
+        method: "PATCH",
+        query: { id: `eq.${id}`, organization_id: `eq.${organizationId}`, select: "*" },
+        headers: { Prefer: "return=representation" },
+        body: patch,
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to update assignment." });
+      const updated = Array.isArray(res.data) ? res.data[0] : res.data;
+      return json(200, { ok: true, assignment: normalizeAssignmentRow(updated) });
+    }
+
+    if (action === "deleteAssignment") {
+      const id = oneLine(body.id || "");
+      if (!id) return json(400, { ok: false, error: "id is required." });
+      await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        method: "DELETE",
+        query: { assignment_id: `eq.${id}`, organization_id: `eq.${organizationId}` },
+      });
+      const res = await supabaseServiceRequest(env, "/rest/v1/assignments", {
+        method: "DELETE",
+        query: { id: `eq.${id}`, organization_id: `eq.${organizationId}` },
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to delete assignment." });
+      return json(200, { ok: true });
+    }
+
+    if (action === "assignmentStudentsBulk") {
+      const assignmentId = oneLine(body.assignmentId || "");
+      if (!assignmentId) return json(400, { ok: false, error: "assignmentId is required." });
+      const toAdd = Array.isArray(body.add) ? body.add.map((id) => oneLine(String(id || ""))).filter(Boolean) : [];
+      const toRemove = Array.isArray(body.remove) ? body.remove.map((id) => oneLine(String(id || ""))).filter(Boolean) : [];
+      if (toAdd.length > 0) {
+        const rows = toAdd.map((spId) => ({
+          assignment_id: assignmentId,
+          student_profile_id: spId,
+          organization_id: organizationId,
+        }));
+        await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+          method: "POST",
+          query: { on_conflict: "assignment_id,student_profile_id" },
+          headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+          body: rows,
+        });
+      }
+      if (toRemove.length > 0) {
+        for (const spId of toRemove) {
+          await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+            method: "DELETE",
+            query: {
+              assignment_id: `eq.${assignmentId}`,
+              student_profile_id: `eq.${spId}`,
+              organization_id: `eq.${organizationId}`,
+            },
+          });
+        }
+      }
+      return json(200, {
+        ok: true,
+        added: toAdd.length,
+        removed: toRemove.length,
+        emailSummary: { sent: 0, failed: 0, skippedNoEmail: 0, skippedDuplicate: 0, failures: [] },
+      });
+    }
+
+    return json(400, { ok: false, error: "Unknown assignment action." });
   }
 
   if (request.method === "POST" && assignmentPostStudentActions.has(action)) {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
+    const organizationId = getActorOrganizationId(auth) || "ieltsmock";
     const rawBody = await request.clone().text().catch(() => "");
     let payload = {};
     try { payload = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { payload = {}; }
-    const profile = await getLinkedPublicProfileForAuth(env, auth, getActorOrganizationId(auth)).catch(() => null);
-    const authEmail = normalizeEmail(auth?.user?.email || "");
-    payload.studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
-    payload.studentIdCode = oneLine(payload.studentIdCode || profile?.studentIdCode || "");
-    payload.officialEmail = normalizeEmail(payload.officialEmail || profile?.officialEmail || "");
-    payload.loginEmail = normalizeEmail(payload.loginEmail || authEmail || "");
-    payload.email = normalizeEmail(payload.email || authEmail || "");
-    payload.studentName = oneLine(payload.studentName || profile?.fullName || "");
-    const bodyText = JSON.stringify(payload);
-    return proxyAssignmentActionBody(request, backendUrl.toString(), env, action, bodyText);
+    const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
+    const studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
+    const assignmentId = oneLine(payload.assignmentId || "");
+    if (!studentProfileId) return json(400, { ok: false, error: "Student profile not found." });
+    if (!assignmentId) return json(400, { ok: false, error: "assignmentId is required." });
+
+    if (action === "markAssignmentStarted") {
+      await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        method: "POST",
+        query: { on_conflict: "assignment_id,student_profile_id" },
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: { assignment_id: assignmentId, student_profile_id: studentProfileId, organization_id: organizationId },
+      });
+      return json(200, { ok: true });
+    }
+
+    if (action === "markAssignmentComplete") {
+      await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+        method: "PATCH",
+        query: {
+          assignment_id: `eq.${assignmentId}`,
+          student_profile_id: `eq.${studentProfileId}`,
+          organization_id: `eq.${organizationId}`,
+        },
+        body: { completed: true, completed_at: new Date().toISOString() },
+      });
+      return json(200, { ok: true });
+    }
+
+    return json(400, { ok: false, error: "Unknown assignment action." });
   }
 
   if (request.method === "POST") {

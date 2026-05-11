@@ -1291,8 +1291,6 @@ export const OBJECTIVE_ANSWER_KEYS = {
     "39": "D",
     "40": "C"
   }
-  }
-};
   },
   "ielts16": {
     "listening": {

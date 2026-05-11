@@ -2340,6 +2340,10 @@ async function handleAdminApi(request, env) {
               sheet_last_error: oneLine(data?.error || bodyTextResponse || `HTTP ${upstream.status}`),
             }).catch(() => null);
       }
+      if (action === "submitExam" && okResponse) {
+        const emailResult = await sendExamReportEmail(env, parsedSubmissionPayload, data).catch(() => ({ ok: false, error: "threw" }));
+        console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
+      }
     }
     return upstream;
   }
@@ -6243,22 +6247,24 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-async function sendViaResend(env, { to, subject, text }) {
+async function sendViaResend(env, { to, subject, text, html }) {
   const apiKey = String(env?.RESEND_API_KEY || "").trim();
   if (!apiKey) return { ok: false, error: "RESEND_API_KEY not configured" };
   try {
+    const body = {
+      from: "IELTS Mock <no-reply@ieltsmock.org>",
+      to: [String(to || "")],
+      subject: String(subject || ""),
+      text: String(text || ""),
+    };
+    if (html) body.html = String(html);
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "IELTS Mock <no-reply@ieltsmock.org>",
-        to: [String(to || "")],
-        subject: String(subject || ""),
-        text: String(text || ""),
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
@@ -6314,6 +6320,210 @@ async function sendAssignmentEmails(env, profiles, assignment) {
     }
   }
   return { attempted: sent + failed, sent, failed, skippedNoEmail, skippedDuplicate, failures };
+}
+
+function escHtml(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function fetchExamResultForEmail(env, { submittedAt, studentFullName, examId, reason }) {
+  const backendBase = String(env?.ADMIN_BACKEND_URL || "").trim();
+  if (!backendBase) return { result: null, objective: null };
+  try {
+    const resultUrl = new URL(backendBase);
+    resultUrl.searchParams.set("action", "studentResult");
+    resultUrl.searchParams.set("submittedAt", submittedAt || "");
+    resultUrl.searchParams.set("studentFullName", studentFullName || "");
+    resultUrl.searchParams.set("examId", examId || "");
+    resultUrl.searchParams.set("reason", reason || "");
+    const signedResultUrl = await buildSignedAppsScriptUrl(resultUrl.toString(), "GET", "", env);
+
+    const objectiveUrl = new URL(backendBase);
+    objectiveUrl.searchParams.set("action", "studentObjectiveDetail");
+    objectiveUrl.searchParams.set("submittedAt", submittedAt || "");
+    objectiveUrl.searchParams.set("studentFullName", studentFullName || "");
+    objectiveUrl.searchParams.set("examId", examId || "");
+    objectiveUrl.searchParams.set("reason", reason || "");
+    const signedObjectiveUrl = await buildSignedAppsScriptUrl(objectiveUrl.toString(), "GET", "", env);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const [resultRes, objectiveRes] = await Promise.all([
+      fetch(signedResultUrl, { method: "GET", signal: controller.signal }).catch(() => null),
+      fetch(signedObjectiveUrl, { method: "GET", signal: controller.signal }).catch(() => null),
+    ]);
+    clearTimeout(timeoutId);
+    const resultData = await resultRes?.json?.().catch(() => null);
+    const objectiveData = await objectiveRes?.json?.().catch(() => null);
+    return {
+      result: resultRes?.ok && resultData?.ok === true ? (resultData.result || null) : null,
+      objective: objectiveRes?.ok && objectiveData?.ok === true ? (objectiveData.result || null) : null,
+    };
+  } catch (e) {
+    return { result: null, objective: null };
+  }
+}
+
+function buildExamAnswerTableHtml(title, rows) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return `<h3 style="margin:24px 0 8px;">${escHtml(title)}</h3><p style="color:#666;">Not available.</p>`;
+  }
+  const bodyRows = rows.map((item) => {
+    const markColor = item.mark ? "#1f845a" : "#c44536";
+    const markText = item.mark ? "Correct" : "Wrong";
+    return `<tr>
+      <td style="padding:5px 8px;border:1px solid #ccc;">${escHtml(String(item.q || ""))}</td>
+      <td style="padding:5px 8px;border:1px solid #ccc;">${escHtml(String(item.student || "—"))}</td>
+      <td style="padding:5px 8px;border:1px solid #ccc;">${escHtml(String(item.correct || "—"))}</td>
+      <td style="padding:5px 8px;border:1px solid #ccc;color:${markColor};font-weight:700;">${markText}</td>
+    </tr>`;
+  }).join("");
+  return `<h3 style="margin:24px 0 8px;">${escHtml(title)}</h3>
+<table style="border-collapse:collapse;width:100%;font-size:14px;">
+  <thead><tr>
+    <th style="padding:5px 8px;border:1px solid #ccc;text-align:left;">Q#</th>
+    <th style="padding:5px 8px;border:1px solid #ccc;text-align:left;">Student</th>
+    <th style="padding:5px 8px;border:1px solid #ccc;text-align:left;">Correct</th>
+    <th style="padding:5px 8px;border:1px solid #ccc;text-align:left;">Mark</th>
+  </tr></thead>
+  <tbody>${bodyRows}</tbody>
+</table>`;
+}
+
+function buildExamAnswerTableText(title, rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return `${title}\n  Not available.\n`;
+  const lines = rows.map((item) =>
+    `  Q${String(item.q || "").padStart(2, " ")} | ${String(item.student || "—").padEnd(20)} | ${String(item.correct || "—").padEnd(20)} | ${item.mark ? "Correct" : "Wrong"}`
+  );
+  return `${title}\n  Q#  | Student              | Correct              | Mark\n${lines.join("\n")}\n`;
+}
+
+function buildExamReportEmailHtml({ payload, result, objective }, targetEmail) {
+  const p = payload || {};
+  const r = result || {};
+  const obj = objective || {};
+  const nl2br = (s) => escHtml(String(s || "")).replace(/\n/g, "<br>");
+  const band = (v) => (v !== undefined && v !== null && String(v).trim() !== "") ? escHtml(String(v)) : "Pending";
+  const score = (v) => (v !== undefined && v !== null && String(v).trim() !== "") ? escHtml(String(v)) : "—";
+  const t1Words = r.task1Words ?? p.writing?.wordCount?.task1 ?? 0;
+  const t2Words = r.task2Words ?? p.writing?.wordCount?.task2 ?? 0;
+  const t1Essay = r.writingTask1 || p.writing?.answers?.task1 || "";
+  const t2Essay = r.writingTask2 || p.writing?.answers?.task2 || "";
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;line-height:1.55;color:#1b1f23;max-width:900px;margin:0 auto;padding:20px;">
+<h1 style="margin-bottom:6px;">${escHtml(r.studentFullName || p.studentFullName || "")}</h1>
+
+<h2 style="margin-top:0;">Submission</h2>
+<p>
+  <b>Email:</b> ${escHtml(targetEmail)}<br>
+  <b>Test:</b> ${escHtml(r.examId || p.examId || "")}<br>
+  <b>Submitted:</b> ${escHtml(r.submittedAt || p.submittedAt || "")}<br>
+  <b>Reason:</b> ${escHtml(r.reason || p.reason || "")}<br>
+  <b>Organization:</b> ${escHtml(r.organizationId || p.organizationId || "")}
+</p>
+
+<h2>Scores</h2>
+<p>
+  <b>Listening:</b> ${score(r.listeningTotal)} / 40 (Band ${band(r.listeningBand)})<br>
+  <b>Reading:</b> ${score(r.readingTotal)} / 40 (Band ${band(r.readingBand)})<br>
+  <b>Overall Writing:</b> Band ${band(r.finalWritingBand)}<br>
+  <b>Writing words:</b> ${escHtml(String(t1Words))} / ${escHtml(String(t2Words))}
+</p>
+
+${buildExamAnswerTableHtml("Listening answer review", obj.listening)}
+${buildExamAnswerTableHtml("Reading answer review", obj.reading)}
+
+<h2 style="margin-top:28px;">Writing Task 1</h2>
+<p><b>Band:</b> ${band(r.task1Band)}</p>
+<p><b>Breakdown:</b><br>${nl2br(r.task1Breakdown)}</p>
+<p><b>Essay:</b><br>${nl2br(t1Essay)}</p>
+<p><b>Feedback:</b><br>${nl2br(r.task1Feedback)}</p>
+
+<h2 style="margin-top:28px;">Writing Task 2</h2>
+<p><b>Band:</b> ${band(r.task2Band)}</p>
+<p><b>Breakdown:</b><br>${nl2br(r.task2Breakdown)}</p>
+<p><b>Essay:</b><br>${nl2br(t2Essay)}</p>
+<p><b>Feedback:</b><br>${nl2br(r.task2Feedback)}</p>
+
+<h2 style="margin-top:28px;">Overall Writing Feedback</h2>
+<p>${nl2br(r.overallFeedback)}</p>
+</body></html>`;
+}
+
+function buildExamReportEmailText({ payload, result, objective }, targetEmail) {
+  const p = payload || {};
+  const r = result || {};
+  const obj = objective || {};
+  const band = (v) => (v !== undefined && v !== null && String(v).trim() !== "") ? String(v) : "Pending";
+  const score = (v) => (v !== undefined && v !== null && String(v).trim() !== "") ? String(v) : "—";
+  const t1Words = r.task1Words ?? p.writing?.wordCount?.task1 ?? 0;
+  const t2Words = r.task2Words ?? p.writing?.wordCount?.task2 ?? 0;
+  const t1Essay = r.writingTask1 || p.writing?.answers?.task1 || "";
+  const t2Essay = r.writingTask2 || p.writing?.answers?.task2 || "";
+
+  return [
+    r.studentFullName || p.studentFullName || "",
+    "",
+    "Submission",
+    `Email: ${targetEmail}`,
+    `Test: ${r.examId || p.examId || ""}`,
+    `Submitted: ${r.submittedAt || p.submittedAt || ""}`,
+    `Reason: ${r.reason || p.reason || ""}`,
+    `Organization: ${r.organizationId || p.organizationId || ""}`,
+    "",
+    "Scores",
+    `Listening: ${score(r.listeningTotal)} / 40 (Band ${band(r.listeningBand)})`,
+    `Reading: ${score(r.readingTotal)} / 40 (Band ${band(r.readingBand)})`,
+    `Overall Writing: Band ${band(r.finalWritingBand)}`,
+    `Writing words: ${t1Words} / ${t2Words}`,
+    "",
+    buildExamAnswerTableText("Listening answer review", obj.listening),
+    buildExamAnswerTableText("Reading answer review", obj.reading),
+    "Writing Task 1",
+    `Band: ${band(r.task1Band)}`,
+    `Breakdown: ${r.task1Breakdown || ""}`,
+    `Essay: ${t1Essay}`,
+    `Feedback: ${r.task1Feedback || ""}`,
+    "",
+    "Writing Task 2",
+    `Band: ${band(r.task2Band)}`,
+    `Breakdown: ${r.task2Breakdown || ""}`,
+    `Essay: ${t2Essay}`,
+    `Feedback: ${r.task2Feedback || ""}`,
+    "",
+    "Overall Writing Feedback",
+    r.overallFeedback || "",
+  ].join("\n");
+}
+
+async function sendExamReportEmail(env, payload, appsResponse) {
+  const p = payload || {};
+  const targetEmail = normalizeEmail(p.studentEmail || p.officialEmail || p.loginEmail || "");
+  if (!targetEmail || !isValidEmail(targetEmail)) {
+    return { ok: false, error: "no-email", recipient: "" };
+  }
+  const examId = oneLine(p.examId || "");
+  const studentFullName = oneLine(p.studentFullName || "");
+  const subject = `IELTS Mock Report - ${examId} - ${studentFullName}`;
+
+  const { result, objective } = await fetchExamResultForEmail(env, {
+    submittedAt: oneLine(p.submittedAt || ""),
+    studentFullName,
+    examId,
+    reason: oneLine(p.reason || p.writing?.reason || ""),
+  }).catch(() => ({ result: null, objective: null }));
+
+  const ctx = { payload: p, result, objective };
+  const html = buildExamReportEmailHtml(ctx, targetEmail);
+  const text = buildExamReportEmailText(ctx, targetEmail);
+
+  const sendResult = await sendViaResend(env, { to: targetEmail, subject, html, text });
+  return { ...sendResult, recipient: targetEmail };
 }
 
 function json(status, payload, extraHeaders = {}) {

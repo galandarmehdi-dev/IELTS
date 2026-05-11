@@ -2023,7 +2023,153 @@ async function handleAdminApi(request, env) {
     return upstream;
   }
 
+  const assignmentGetAdminActions = new Set(["listAssignments", "assignmentStudents"]);
+  const assignmentGetStudentActions = new Set(["studentAssignments", "assignmentAccess"]);
+  const assignmentPostAdminActions = new Set(["createAssignment", "updateAssignment", "deleteAssignment", "assignmentStudentsBulk"]);
+  const assignmentPostStudentActions = new Set(["markAssignmentStarted", "markAssignmentComplete"]);
+
+  if (request.method === "GET" && assignmentGetAdminActions.has(action)) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "GET" && assignmentGetStudentActions.has(action)) {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    await appendAssignmentIdentityToSearchParams(backendUrl.searchParams, auth, env);
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "POST" && assignmentPostAdminActions.has(action)) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "POST" && assignmentPostStudentActions.has(action)) {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    const rawBody = await request.clone().text().catch(() => "");
+    let payload = {};
+    try { payload = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { payload = {}; }
+    const profile = await getLinkedPublicProfileForAuth(env, auth, getActorOrganizationId(auth)).catch(() => null);
+    const authEmail = normalizeEmail(auth?.user?.email || "");
+    payload.studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
+    payload.studentIdCode = oneLine(payload.studentIdCode || profile?.studentIdCode || "");
+    payload.officialEmail = normalizeEmail(payload.officialEmail || profile?.officialEmail || "");
+    payload.loginEmail = normalizeEmail(payload.loginEmail || authEmail || "");
+    payload.email = normalizeEmail(payload.email || authEmail || "");
+    payload.studentName = oneLine(payload.studentName || profile?.fullName || "");
+    const bodyText = JSON.stringify(payload);
+    return proxyAssignmentActionBody(request, backendUrl.toString(), env, action, bodyText);
+  }
+
   return json(405, { ok: false, error: "Method not allowed." });
+}
+
+async function appendAssignmentIdentityToSearchParams(searchParams, auth, env) {
+  if (!searchParams || !auth || !env) return;
+  const organizationId = getActorOrganizationId(auth);
+  const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
+  const authEmail = normalizeEmail(auth?.user?.email || "");
+  if (profile?.id) searchParams.set("studentProfileId", oneLine(profile.id));
+  if (profile?.studentIdCode) searchParams.set("studentIdCode", oneLine(profile.studentIdCode));
+  if (profile?.officialEmail) searchParams.set("officialEmail", normalizeEmail(profile.officialEmail));
+  if (authEmail) {
+    searchParams.set("email", authEmail);
+    searchParams.set("loginEmail", authEmail);
+  }
+  if (profile?.fullName) searchParams.set("studentName", oneLine(profile.fullName));
+}
+
+async function proxyAssignmentActionBody(request, backendUrl, env, action, bodyText) {
+  const method = String(request.method || "POST").toUpperCase();
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl, method, bodyText, env);
+  const upstream = await fetch(signedUrl, {
+    method,
+    headers: await buildAppsScriptHeaders(request, env, signedUrl, bodyText),
+    body: bodyText,
+  });
+  return proxyAssignmentActionPayloadFromUpstream(upstream, action);
+}
+
+function looksLikeAssignmentSuccessPayload(action, data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  if (Array.isArray(data.assignments)) return true;
+  if (Array.isArray(data.students)) return true;
+  if (Object.prototype.hasOwnProperty.call(data, "access")) return true;
+  if (Object.prototype.hasOwnProperty.call(data, "assignmentId")) return true;
+  if (Object.prototype.hasOwnProperty.call(data, "assignment")) return true;
+  if (action === "markAssignmentStarted" || action === "markAssignmentComplete") return true;
+  return false;
+}
+
+async function proxyAssignmentActionPayloadFromUpstream(upstream, action) {
+  const status = upstream.status;
+  const contentType = String(upstream.headers.get("content-type") || "").toLowerCase();
+  const raw = await upstream.text().catch(() => "");
+
+  let parsed = null;
+  try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
+
+  if (!parsed || typeof parsed !== "object") {
+    return {
+      status: status >= 400 ? status : 200,
+      data: {
+        ok: false,
+        error: "Assignment backend returned a non-JSON response. Apps Script action may be missing or returning HTML/text.",
+        action,
+        upstreamStatus: status,
+        upstreamContentType: contentType || "unknown",
+      },
+    };
+  }
+
+  if (parsed.ok === true) return { status, data: parsed };
+
+  if (parsed.ok === false) {
+    return {
+      status: status >= 400 ? status : 200,
+      data: { ...parsed, ok: false, action, upstreamStatus: status },
+    };
+  }
+
+  if (looksLikeAssignmentSuccessPayload(action, parsed)) {
+    return { status, data: { ok: true, ...parsed } };
+  }
+
+  return {
+    status: status >= 400 ? status : 200,
+    data: {
+      ok: false,
+      error: oneLine(parsed.error || parsed.message || "Assignment backend returned an unexpected response shape."),
+      action,
+      upstreamStatus: status,
+    },
+  };
+}
+
+async function proxyAssignmentActionPayload(request, backendUrl, env, action) {
+  const upstream = await proxy(request, backendUrl, env);
+  return proxyAssignmentActionPayloadFromUpstream(upstream, action);
+}
+
+async function proxyAssignmentAction(request, backendUrl, env, action) {
+  const normalized = await proxyAssignmentActionPayload(request, backendUrl, env, action);
+  return json(normalized.status, normalized.data);
 }
 
 async function authenticateAdmin(request, env) {

@@ -5127,7 +5127,7 @@
       { key: "og", label: "OG", testNumbers: [3, 4, 5, 6, 7] },
       { key: "collins", label: "Collins", testNumbers: [8] },
       { key: "cambridge", label: "Cambridge", testNumbers: [9, 15] },
-      { key: "irp", label: "IRP", testNumbers: [10, 11, 12, 13, 14, 16] },
+      { key: "irp", label: "IRP", testNumbers: [10, 11, 12, 13, 14, 16, ] },
     ];
 
     function getExamNumberFromId(testId) {

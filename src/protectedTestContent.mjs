@@ -7151,342 +7151,47 @@ I am firmly of the opinion that most of us, Wegener included, are not in any rea
     ]
   }
 };
-const readingLegacyFactory16 = function (H) {
-  const {
-    renderTFNGBlock,
-    renderSentenceGapsBlock,
-    renderEndingsMatchBlock,
-    renderSummarySelectBlock
-  } = H;
-
-  const PART1_PASSAGE_TEXT = `
-MARTELLO TOWERS
-
-In February 1794, two Royal Navy warships - HMS Fortitude and HMS Juno - were ordered to attack a Genoese defensive tower at Mortella Point, Corsica. After two and a half hours constant shelling, the coastal tower proved impenetrable. Indeed, thanks to the tower’s two 18-pounder guns, the ships were sufficiently damaged to force a retreat.
-
-The tower eventually fell to British land forces two days later. Nevertheless, its relative success at resisting attack from the sea was noted by British commanders, leading to the Mortella Point tower speedily inspiring a whole new breed of gun placements that would be built by the British Army up to the 1860s. However, while the design of the Mortella Point tower was adopted by the British quite closely, the name was not - “Mortella” was misspelled “Martello”, coincidentally meaning “hammer” in Italian.
-
-While local variations inevitably occurred, the British Martello Towers did follow a similar, distinctive design. Standing about 12m tall, they were noted for their thick stone walls, usually about 2.4m thick, though the rooms were often built off-centre, towards the landside of the tower, meaning the sea-facing walls were thicker. This was done when attacks were only expected by ship. Tower entry was through a door about 3m from the base, via a ladder which could be pulled up by the occupants to deter attackers. Above this was located a machicolated - or slotted - platform allowing for downward fire on attackers who might attempt to enter. The most visually distinctive feature of the Towers were their flat roofs, or terrepleins. Enclosed by a high parapet to protect from enemy fire, these contained a central raised platform on which a large cannon—very occasionally two—would be attached on a pivot, enabling the weapon to be turned and fired in any direction 360 degrees around the tower.
-
-The interior of the towers normally consisted of two storeys, although local conditions might allow for the addition of a separate basement if feasible. The ground floors generally comprised two storerooms, the larger holding ammunition, the other containing water and provisions. Above this, the first floor was subdivided into several quarters in which the garrison—consisting of one officer and up to 24 men—would live, eat and sleep. The soldiers were generally housed separately to their commander.
-
-More than one hundred Martello Towers were built by the British government between 1804 and 1812 to defend England’s south and east coasts, the east coast of Ireland, and the Channel Islands. Dymchurch, for example, on the south coast of England, is located only twenty-two miles from the French coast across the English Channel, and was therefore one of the areas most at risk from invasion from a nation then controlled by a belligerent Napoleon Bonaparte. Along three miles of coastline, six towers and one redoubt - a supplementary fortification - were built. This redoubt, sixty-eight metres in diameter, standing twelve metres and incorporating a nine-metre-wide dry moat, supported a chain of twenty-one towers stretching across the southern coastline. Acting mainly as a supply depot, it could also accommodate up to 350 men, who could enter via a wooden footbridge.
-
-Ironically, however, none of these towers were ever tested in combat; many of the initial towers were still being constructed when Napoleon was defeated at the Battle of Waterloo in 1815, bringing decades of European conflict to a sudden conclusion. Nevertheless, even during the following years of relative peace, there were other perceived dangers in the world; not least the threat to British shipping and trade posed by French, Dutch and American privateers.
-
-This helped ensure later tower construction after 1830; as late as 1866, the northernmost British Martello Tower—at Crockness, in Orkney—saw its battery upgraded due to a potential threat from the American Fenian Brotherhood during the civil war. Afterwards, however, the Tower was effectively left to ruin, with only two artillerymen remaining to look after the guns and powder magazine. It never saw the military action for which it had been designed.
-
-Other Martello Towers were eventually completed long after any potential military role had been ended by international treaties or advances in military technology. For example, the tower intended to guard Leith Harbour, near Edinburgh, although commissioned around 1808, wasn’t “in good order and fit to receive troops” until 1853. Problems with its cost and construction meant it lay idle as a stone shell that filled with water at every tide for the first forty years, after which its construction was completed. Even during the Second World War, the nearest thing to military service any of the Martello Towers on England’s south coast came was as observation platforms, or bases for anti-aircraft searchlights.
-
-Superseded by events, many of England’s Martello Towers were initially taken over by the Coastguard in an ongoing battle against smugglers. At least fifteen were soon demolished in order to recycle the stone used in their construction. Others were deliberately blown up - by the British Army experimenting with new rifled artillery - although the Martello Tower at L’Etacq in Jersey was deliberately destroyed by occupying German forces during the Second World War. Sadly, some thirty Towers were simply washed away by the sea, an unfortunate consequence of their coastal positions.
-
-Today many Martello Towers, especially those now privately owned, have fallen into disuse and disrepair, despite their status as historic monuments. Others, however, have found new uses: as the ultimate in “secure” private residences; quirky holiday homes with uniquely clear coastal views; or—as with the Towers at Seaford in East Sussex, Pembroke Dock in Wales, and Hackness in Orkney—uniquely distinctive museums.
-`.trim();
-
-  const PART2_PASSAGE_TEXT = `
-THE STORY OF PAPRIKA
-
-A
-A versatile seasoning, paprika is used to add deep red hues to pale food or a subtle spiciness to dishes from paella to goulash. Although a distinct strand of paprika cultivation and preparation has emerged in Spain, it is most famously associated with the cuisine of Hungary. Curiously, though, the pepper plant from which paprika is derived, capsicum annuum, is native to lands on the far side of the Atlantic and was completely unknown to Europeans little more than 500 years ago. So, how did this spice come to be so entwined with the culture of a landlocked country more than 10,000 kilometres away?
-
-Paprika’s story begins together with that of its close relatives - the tomato, the potato and tobacco - with Columbus’ voyages to Central America at the turn of the sixteenth century. For thousands of years, the fields of southern Mexico had been scattered with plants whose fruits the Spanish visitors soon witnessed being used for medicinal purposes by natives in the region. Unsurprisingly, they joined the range of exotic goods exported to Spain, although demand paled in comparison to luxury items like chocolate and coffee. From Spain, traders took the plants further into the Mediterranean and eventually to the vast Ottoman Empire, on whose northern frontier sat a vassal state which consisted of much of modern Hungary.
-
-B
-For some time, the people of Hungary had little interest in the alimentary value of the plant’s fruit, which at that time was much spicier than the bell peppers and paprika powder we now know, but the plant itself became highly prized by the aristocracy for aesthetic reasons. The most notable example of this is in the late sixteenth century accounts of a member of the Hungarian royal family, Margit Széchy, who decorated her garden with a plant described as “red Turkish pepper”, assumed to be the earliest example of Hungary’s most famous ingredient. The fruit’s first practical use in Hungary was as a cure for intermittent fever, for which it proved effective. It took quite some time before its culinary potential was discovered, although it is believed that shepherds and other inhabitants of rural areas began adding the fiery powder to their food by at least 1748. Word spread to peasants in more urban areas and finally the spice went full circle as the aristocrats themselves took to using it in their food having found the peasant foods flavoured by paprika, such as goulash, particularly flavoursome.
-
-C
-By the end of the 18th century, two towns - Szeged and Kalocsa - had emerged to compete for the title of ‘paprika capital’ of Hungary, the reason for their monopoly being the amount of sunshine required for the plants to thrive, which their location in the south of the country was famed for. The continued traditions of paprika preparation established at this time can be noticed in villages across the south, where masses of harvested peppers threaded onto long pieces of string are hung from houses and along garden fences to dry. In certain areas, this process would have taken place in a beehive oven - a small domed hut with an internal heat source - in which the pepper pods would remain until they ‘rattled’, at which point they would be ground by pestle and mortar.
-
-D
-Around the turn of the nineteenth century, a külü - a larger grinding tool activated by a pedal and originally used for hemp processing - began to be used. As demand for greater quality increased, so the process became more refined with crushing stages being repeated numerous times, creating a finer powder. This led to the Pálffy brothers technique - the so-called ‘splitting process’ - involving the removal of stalks and seeds from the pods, leaving a semi-sweet paprika. The reason for this change in flavour is that the seeds contain capsaicin, the component which gives peppers their piquancy (and which is even more plentiful in chili peppers). This breakthrough ultimately led to the prevailing arrangement of paprika into six classes ranging from delicate to hot.
-
-E
-Further developments in grinding occurred over the second half of the nineteenth century. Steam and electrically-powered mills began to be used in order to meet growing interest beyond Hungary’s borders, due in part to celebrated French chef Auguste Escoffier’s use of the spice in his Parisian restaurants. By 1950, the entire process, including plowing, cultivating, harvesting and drying had been mechanised as large-scale production of the spice began, although by the end of the century demand had begun to subside, resulting in a decline of mechanical harvesting and a return to manual picking on some farms.
-
-F
-With an increase of public awareness of the nutritional value of ingredients, it is of comfort to learn that paprika has much to offer in this capacity. Dr. Szent Gyorgyi’s 1937 Nobel Prize-winning inquiry into the vitamin C content of pepper pods revealed they contain approximately seven times the immunity-boosting compound of oranges, although much of this is destroyed as the peppers are processed. It is nonetheless an excellent source of beta-carotene and potassium, which can be used to fight cholesterol, and the potential of creams containing capsaicin to aid in the reduction of joint pain and muscle stiffness has also led some nutritionists to suggest to elderly patients the use of the spice as a seasoning.
-`.trim();
-
-  const PART3_PASSAGE_TEXT = `
-CREATIVE WRITING: FROM MIND TO PAGE
-
-A
-A common phenomenon in literature, writer's block might be regarded as a dead-end for the creative mind. A psychological condition meaning writers are unable to create new work, writer’s block is historically well-documented through a plethora of famous creative minds whose pools of inspiration dried up suddenly and, seemingly, inexplicably. Few are the writers - professional or otherwise - who can profess to never having suffered from it, yet the causes and possible treatments of this affliction are far from clear-cut.
-
-B
-Western understanding of creativity and what it encompasses has changed over the centuries. In Ancient Greece, art was concerned with imitating something already in existence, hence adhering to rules rather than freedoms. No term existed then for our modern-day understanding of creativity. However, the poet was considered an exception to these 'rules' and later, in Roman times, imagination and inspiration came to be viewed as shared traits among visual artists as well as poets. Throughout the Renaissance, creativity continued its struggle for recognition and was first applied in a modern day context in the seventeenth century. Although this instance only related to poetry, throughout the nineteenth and twentieth centuries the concept developed into what we recognise it as today: the use of imagination and original ideas in the creation of new things. In short, it is inventiveness.
-
-C
-The term ‘writer’s block’ was originally coined in 1947 by Edmund Bergler, a Freudian psychoanalyst, who believed it to be a psychological block requiring therapy to recover from, considered by many a rather vague conclusion. However, empirical research in the seventies and eighties by Yale psychologists Jerome Singer and Michael Barrios supported his conclusions. Singer and Barrios took a diverse group of writers both ‘blocked’ and not, who underwent a series of psychological tests. They discovered four groups among the blocked writers, their main common factor being unhappiness and depression. Of the four groups, the first were overly self-critical leading to a lack of motivation to put pen to paper, whereas the second displayed concern about being compared to and criticised by others. A third group were found to lack originality and suffered from feeling constrained by the rules to which they felt they must adhere. The final group showed narcissistic tendencies, extrinsically motivated and craving admiration and recognition. Although the research unearthed fresh data, its conclusion was less so: keep writing, doodling, putting anything on paper to prove the talent still exists and waiting for inspiration - the muse - to strike.
-
-D
-This echoes a quote of Picasso’s, that ‘Inspiration exists, but it has to find us working’, a concept introduced by Graham Wallas years prior to Singer and Barrio’s research. Inspiration, or 'illumination' as Wallas terms it, is outlined as the third of a four-stage creative process model in his 1926 publication The Art of Thought, preceded by 'preparation' and 'incubation', and followed by 'verification'. Based on empirical research of inventors and polymaths, this model was later paralleled by Michael Cowley in his 1958 model of the four stages of writing. Both agree that 'illumination' is only possible after the preceding two stages. According to Wallas, the preparation stage concerns research and planning, after which 'incubation' occurs. Wallas describes this as 'voluntary abstention from conscious thought' about the issue at hand while one patiently waits for a 'flash' or 'click' of inspiration, admitting that forcing the muse's hand is not possible. After this finally arrives, 'verification' takes place, which, in the writer's context, concerns the editing and re-editing process.
-
-E
-Yet to get to that stage, the writer’s block, or the stress causing it, has to be removed. Under stress, the human brain puts the limbic system rather than the cerebral cortex in control. The former is responsible for emotion, behaviour and the 'fight or flight' response and better deals with stress than the latter, which plays a key role in cognition, awareness, thought and language. The result of this change is a shift in brain function away from creativity and the arrival of the long-awaited inspiration. Suggested coping strategies range from meditation and group discussion, to free writing and brainstorming, techniques suggested by the aforementioned researchers, psychologists and creative geniuses.
-
-F
-Some historical cases of writer's block exemplify its debilitating nature. Eighteenth-century poet Samuel Taylor Coleridge produced his best work during his twenties, after which he resorted to opium and became deeply depressed at the loss of his literary 'gift', whereas American novelist Truman Capote is believed to have had a nervous breakdown later in life, contributing to the perpetual 'unfinished' status of his masterpiece Answered Prayers. Horror novelist Stephen King suffered a four-month bout while attending university during which he took to alcohol and soap operas, while English musician Sting was unable to write songs for almost a decade, eventually finding his cure by revisiting his childhood hometown. It would appear, therefore, that each case of writer's block is as individual and unique as the work created in its absence. The only real way to overcome it, as Picasso believed, is to keep working until inspiration finds us.
-`.trim();
-
-  const PART1 = {
-    renderQuestions: (answers) => {
-      const wrap = document.createElement("div");
-
-      wrap.appendChild(renderTFNGBlock({
-        title: "Questions 1–5",
-        instructions: [
-          "Do the statements agree with the information given in Reading Passage 1, Martello Towers?",
-          "Choose TRUE / FALSE / NOT GIVEN.",
-          "Write your answers in the gaps."
-        ],
-        items: [
-          { q: 1, text: "The Royal Navy's attack at Mortella Point occurred early in the morning." },
-          { q: 2, text: "The tower at Mortella Point was the basis for towers constructed by the British." },
-          { q: 3, text: "The entrance to a Martello tower is above ground level." },
-          { q: 4, text: "Troops were provided with residence near to the tower." },
-          { q: 5, text: "Towers along the south coast of England were vital in defending against attacks by the French navy." }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderSentenceGapsBlock({
-        title: "Questions 6–9",
-        instructions: [
-          "Complete the diagram.",
-          "Use NO MORE THAN ONE WORD from Reading Passage 1, Martello Towers.",
-          "Write your answers in the gaps."
-        ],
-        items: [
-          { q: 6, text: "Large gun on", tail: "allowing defence of all sides." },
-          { q: 7, text: "Raised", tail: "to defend gunners from attacks." },
-          { q: 8, text: "Sleeping", tail: "for soldiers - commanders in separate room." },
-          { q: 9, text: "Powder store for", tail: "." }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderEndingsMatchBlock({
-        title: "Questions 10–14",
-        instructions: [
-          "Look at statements 10–14 and the list of locations.",
-          "Match each statement with the correct location.",
-          "Write the appropriate letter in the gaps."
-        ],
-        endings: {
-          A: "Crockness",
-          B: "Leith Harbour",
-          C: "L'Etacq",
-          D: "Seaford",
-          E: "Dymchurch"
-        },
-        items: [
-          { q: 10, text: "It took a long time for the tower here to be built." },
-          { q: 11, text: "This was the site of multiple towers." },
-          { q: 12, text: "The tower here is now a tourist attraction." },
-          { q: 13, text: "The tower here was eventually used as a storage facility." },
-          { q: 14, text: "The tower here was demolished by soldiers." }
-        ]
-      }, answers));
-
-      return wrap;
-    }
-  };
-
-  const PART2 = {
-    renderQuestions: (answers) => {
-      const wrap = document.createElement("div");
-
-      wrap.appendChild(renderEndingsMatchBlock({
-        title: "Questions 15–19",
-        instructions: [
-          "Reading Passage 2, The Story of Paprika has six parts, A–F.",
-          "Which part contains the following information?",
-          "Write the appropriate letters, A–F, in the gaps.",
-          "NB You will not need to use all the letters."
-        ],
-        endings: {
-          A: "Part A",
-          B: "Part B",
-          C: "Part C",
-          D: "Part D",
-          E: "Part E",
-          F: "Part F"
-        },
-        items: [
-          { q: 15, text: "A reference to climatic and geographical conditions for the successful growth of paprika." },
-          { q: 16, text: "Examples of historical usage of paprika and crops similar to it." },
-          { q: 17, text: "Mention of a revival of traditional practices of paprika production." },
-          { q: 18, text: "A change in the way Hungarian social classes used paprika." },
-          { q: 19, text: "Examples of specific applications of paprika for medicinal purposes." }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderEndingsMatchBlock({
-        title: "Questions 20–25",
-        instructions: [
-          "Complete each sentence with the correct ending, A–K.",
-          "Write the appropriate letters, A–K, in the gaps."
-        ],
-        endings: {
-          A: "... adapted to meet foreign demand caused in part by a Frenchman.",
-          B: "... came from France.",
-          C: "... cooked with a wide range of spices.",
-          D: "... exported paprika to Europe.",
-          E: "... had diminished in favour of older techniques by the end of the twentieth century.",
-          F: "... had to change because of international regulations.",
-          G: "... involved two possible ways to dry the peppers.",
-          H: "... resulted from a multiple-stage process involving the grinding of the paprika.",
-          I: "... understood the financial possibilities in growing the spice.",
-          J: "... valued the pepper plant highly due to its physical appearance.",
-          K: "... were the first to use paprika in cooking."
-        },
-        items: [
-          { q: 20, text: "A technique allowing for the grouping of paprika varieties" },
-          { q: 21, text: "Hungarian citizens in largely agricultural regions" },
-          { q: 22, text: "Later production of paprika in Hungary" },
-          { q: 23, text: "Paprika preparation techniques in Hungary from the late 1700s" },
-          { q: 24, text: "Spanish explorers" },
-          { q: 25, text: "The Hungarian nobility" }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderSentenceGapsBlock({
-        title: "Questions 26–27",
-        instructions: [
-          "Complete the sentences.",
-          "Use NO MORE THAN ONE WORD from Reading Passage 2, The Story of Paprika, for each answer.",
-          "Write your answers in the gaps."
-        ],
-        items: [
-          { q: 26, text: "The intensity of some types of paprika differs because of varying amounts of", tail: "in the powder." },
-          { q: 27, text: "Paprika is known to have", tail: "effects, as well as being able to combat cholesterol and alleviate muscle and joint complaints." }
-        ]
-      }, answers));
-
-      return wrap;
-    }
-  };
-
-  const PART3 = {
-    renderQuestions: (answers) => {
-      const wrap = document.createElement("div");
-
-      wrap.appendChild(renderEndingsMatchBlock({
-        title: "Questions 28–32",
-        instructions: [
-          "Reading Passage 3, Creative Writing: From Mind to Page has six paragraphs, A–F.",
-          "Which paragraph contains the following information?",
-          "Write the appropriate letters, A–F, in the gaps.",
-          "NB You do not need to use all of the letters."
-        ],
-        endings: {
-          A: "Paragraph A",
-          B: "Paragraph B",
-          C: "Paragraph C",
-          D: "Paragraph D",
-          E: "Paragraph E",
-          F: "Paragraph F"
-        },
-        items: [
-          { q: 28, text: "A distinction between the roles of artists and writers." },
-          { q: 29, text: "Documented accounts of writer's block." },
-          { q: 30, text: "A possible biological explanation for writer's block." },
-          { q: 31, text: "The frequency of documented cases of writer's block." },
-          { q: 32, text: "Defense of an earlier-criticised theory." }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderSummarySelectBlock({
-        title: "Questions 33–37",
-        instructions: [
-          "Choose words from the list in the box to complete the summary.",
-          "Write the appropriate letters, A–H, in the gaps."
-        ],
-        summaryTitle: "Creative Writing",
-        summaryLines: [
-          { text: "The current Western understanding of creativity had no concrete label until the 1600s, although this only encompassed one discipline of", blankQ: 33, tail: "." },
-          { text: "Before this time, creativity's limitations were due to established", blankQ: 34, tail: "until individual vision became a recognised" },
-          { text: "", blankQ: 35, before: "", after: "of the concept." },
-          { text: "Writer's block is an obstruction to this", blankQ: 36, tail: "of inspiration, which some experts believe requires" },
-          { text: "", blankQ: 37, before: "", after: "to overcome. Others, however, believe that continuing to write despite the block is key to the flair for words returning." }
-        ],
-        optionsTitle: "List of Words",
-        options: [
-          { letter: "A", word: "characteristic" },
-          { letter: "B", word: "insight" },
-          { letter: "C", word: "citation" },
-          { letter: "D", word: "artistic expression" },
-          { letter: "E", word: "standards" },
-          { letter: "F", word: "procedure" },
-          { letter: "G", word: "flow" },
-          { letter: "H", word: "treatment" }
-        ]
-      }, answers));
-
-      wrap.appendChild(renderTFNGBlock({
-        title: "Questions 38–40",
-        instructions: [
-          "Do the statements agree with the information given in Reading Passage 3, Creative Writing: From Mind to Page?",
-          "Choose TRUE / FALSE / NOT GIVEN.",
-          "Write your answers in the gaps."
-        ],
-        items: [
-          { q: 38, text: "Wallas was the first researcher to suggest writing as a cure to writer's block." },
-          { q: 39, text: "Wallas suggests a technique for speeding up the moment inspiration arrives." },
-          { q: 40, text: "Both Wallas and Cowley admit the completion of the four stages of their models are lengthy processes." }
-        ]
-      }, answers));
-
-      return wrap;
-    }
-  };
-
-  return {
-    parts: [
-      { id: "part1", passageText: PART1_PASSAGE_TEXT, renderQuestions: PART1.renderQuestions },
-      { id: "part2", passageText: PART2_PASSAGE_TEXT, renderQuestions: PART2.renderQuestions },
-      { id: "part3", passageText: PART3_PASSAGE_TEXT, renderQuestions: PART3.renderQuestions }
-    ]
-  };
-};
-
 const test16 = {
   listening: {
     audioSrc: "https://audio.ieltsmock.org/TEST16.mp3",
     html: `
 <div class="listen-page" id="listenSec1">
   <div class="listen-block">
-    <div class="listen-h">PART 1 — Questions 1–10</div>
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 1–5</div>
+      <div class="listen-card-title">Questions 1-5</div>
       <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
       <div class="listen-card-title">Lost / Stolen Passport Details</div>
+
       <div class="listen-notes">
         <div class="note-row"><b>Customer details</b></div>
         <div class="note-row">Surname: Walsh</div>
         <div class="note-row">Forename: Chloe</div>
-        <div class="note-row">Date of birth: <span class="qnum">1</span> <input class="l-input small" data-lq="1"> 1987</div>
-        <div class="note-row">Place of birth (City): <span class="qnum">2</span> <input class="l-input" data-lq="2"></div>
-        <div class="note-row">Passport number (if known): <span class="qnum">3</span> <input class="l-input" data-lq="3"></div>
-        <div class="note-row"><b>CONTACT DETAILS</b></div>
-        <div class="note-row">Phone number: <span class="qnum">4</span> <input class="l-input" data-lq="4"></div>
+        <div class="note-row">Date of birth: <span class="qnum">1</span> <input data-lq="1" class="l-input small"> 1987</div>
+        <div class="note-row">Place of birth (City): <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+        <div class="note-row">Passport number (if known): <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>CONTACT DETAILS</b></div>
+        <div class="note-row">Phone number: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
         <div class="note-row">Email address: chloe.walsh@email.com</div>
         <div class="note-row">Address: 97 East Street, Brighton</div>
-        <div class="note-row">Postcode: <span class="qnum">5</span> <input class="l-input small" data-lq="5"></div>
+        <div class="note-row">Postcode: <span class="qnum">5</span> <input data-lq="5" class="l-input small"></div>
       </div>
     </div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 6–10</div>
+      <div class="listen-card-title">Questions 6-10</div>
       <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
       <div class="listen-card-title">Details Of What Happened To The Passport</div>
+
       <div class="listen-notes">
-        <div class="note-row">Passport was in the pocket of Ms Walsh's <span class="qnum">6</span> <input class="l-input" data-lq="6">.</div>
-        <div class="note-row">Date when passport was lost: Wednesday <span class="qnum">7</span> <input class="l-input" data-lq="7">.</div>
-        <div class="note-row">She knows she had the passport when she was in a <span class="qnum">8</span> <input class="l-input" data-lq="8"> with a friend.</div>
-        <div class="note-row">She then travelled home by <span class="qnum">9</span> <input class="l-input" data-lq="9">.</div>
+        <div class="note-row">Passport was in the pocket of Ms Walsh's <span class="qnum">6</span> <input data-lq="6" class="l-input">.</div>
+        <div class="note-row">Date when passport was lost: Wednesday <span class="qnum">7</span> <input data-lq="7" class="l-input">.</div>
+        <div class="note-row">She knows she had the passport when she was in a <span class="qnum">8</span> <input data-lq="8" class="l-input"> with a friend.</div>
+        <div class="note-row">She then travelled home by <span class="qnum">9</span> <input data-lq="9" class="l-input">.</div>
         <div class="note-row">When she arrived home, she realised that she didn’t have the passport any more.</div>
-        <div class="note-row">Crime reference number: A <span class="qnum">10</span> <input class="l-input" data-lq="10">.</div>
+        <div class="note-row">Crime reference number: A <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
       </div>
     </div>
   </div>
@@ -7494,103 +7199,108 @@ const test16 = {
 
 <div class="listen-page hidden" id="listenSec2">
   <div class="listen-block">
-    <div class="listen-h">PART 2 — Questions 11–20</div>
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 11–15</div>
+      <div class="listen-card-title">Questions 11-15</div>
       <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">11</span> What is the advantage of the boats which are being used today?</div>
-        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A They can go fast.</label>
-        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B They are comfortable to sit in.</label>
-        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C They are easy to get in and out of.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) They can go fast.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) They are comfortable to sit in.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) They are easy to get in and out of.</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">12</span> If anyone falls out of their boat, they should</div>
-        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A swim to the shore.</label>
-        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B get back into the boat.</label>
-        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C wait in the water for help.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) swim to the shore.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) get back into the boat.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) wait in the water for help.</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">13</span> What does the speaker suggest people should do with their phones during their trip?</div>
-        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A leave them in their car</label>
-        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B use them to take photos</label>
-        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C keep them in a container</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) leave them in their car</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) use them to take photos</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) keep them in a container</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">14</span> The speaker recommends coming back to River Avon Adventures another time in order to</div>
-        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A hire other kinds of equipment.</label>
-        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B learn more about the local wildlife.</label>
-        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C experience the river in different seasons.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) hire other kinds of equipment.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) learn more about the local wildlife.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) experience the river in different seasons.</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">15</span> What does a person need to do in order to save money on their next visit?</div>
-        <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A write a review of River Avon Adventures</label>
-        <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B follow River Avon Adventures on social media</label>
-        <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C recommend River Avon Adventures to another person</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) write a review of River Avon Adventures</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) follow River Avon Adventures on social media</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) recommend River Avon Adventures to another person</label>
       </div>
     </div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 16–20</div>
-      <div class="listen-inst">Label the map below. Write the correct letter, <b>A–H</b>, next to each question.</div>
+      <div class="listen-card-title">Questions 16-20</div>
+      <div class="listen-inst">Label the map below. Write the correct letter, <b>A-H</b>, next to each question.</div>
       <div class="listen-card-title">Avon River</div>
-      <p><img src="https://audio.ieltsmock.org/TEST16%20LP.png" alt="Avon River map for Questions 16 to 20" style="max-width:100%;height:auto;border:1px solid var(--border,#ddd);border-radius:8px;"></p>
-      <div class="note-row"><span class="qnum">16</span> campsite <input class="l-input tiny" data-lq="16"></div>
-      <div class="note-row"><span class="qnum">17</span> fish restaurant <input class="l-input tiny" data-lq="17"></div>
-      <div class="note-row"><span class="qnum">18</span> picnic site <input class="l-input tiny" data-lq="18"></div>
-      <div class="note-row"><span class="qnum">19</span> toilets <input class="l-input tiny" data-lq="19"></div>
-      <div class="note-row"><span class="qnum">20</span> Frog Rock <input class="l-input tiny" data-lq="20"></div>
+
+      <p>
+        <img src="https://audio.ieltsmock.org/TEST16%20LP.png" alt="Avon River map for Questions 16 to 20" style="max-width:100%;height:auto;border:1px solid var(--border,#ddd);border-radius:8px;">
+      </p>
+
+      <div class="note-row"><span class="qnum">16</span> campsite <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> fish restaurant <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> picnic site <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> toilets <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Frog Rock <input data-lq="20" class="l-input tiny"></div>
     </div>
   </div>
 </div>
 
 <div class="listen-page hidden" id="listenSec3">
   <div class="listen-block">
-    <div class="listen-h">PART 3 — Questions 21–30</div>
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 21–24</div>
+      <div class="listen-card-title">Questions 21-24</div>
       <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">21</span> What do Paul and Sue agree makes Cotman’s paintings easy to identify?</div>
-        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A his signature</label>
-        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B the subject matter</label>
-        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C the style of painting</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) his signature</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) the subject matter</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) the style of painting</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">22</span> Sue compares Cotman to the artist Van Gogh in order to suggest that</div>
-        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A the other students may not know much about Cotman.</label>
-        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B Cotman influenced some of the world’s greatest artists.</label>
-        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C the presentation should focus on similarities between the two painters.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) the other students may not know much about Cotman.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) Cotman influenced some of the world’s greatest artists.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) the presentation should focus on similarities between the two painters.</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">23</span> Paul says that Cotman visited his friends in Brandsby many times in order to</div>
-        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A find new clients.</label>
-        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B buy a place to live.</label>
-        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C paint pictures for them.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) find new clients.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) buy a place to live.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) paint pictures for them.</label>
       </div>
 
       <div class="mcq">
         <div class="mcq-q"><span class="qnum">24</span> Why is Paul against Sue’s idea of including Cotman’s personal life in their presentation?</div>
-        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A It would be irrelevant to the task.</label>
-        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B The other students may find it dull.</label>
-        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C There is too little information about it.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) It would be irrelevant to the task.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) The other students may find it dull.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) There is too little information about it.</label>
       </div>
     </div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 25–30</div>
-      <div class="listen-inst">What do the students want to find out about each of the following paintings? Write the appropriate letter, <b>A–H</b>, for each question.</div>
-      <div class="endings-box">
+      <div class="listen-card-title">Questions 25-30</div>
+      <div class="listen-inst">What do the students want to find out about each of the following paintings? Write the appropriate letter, <b>A-H</b>, for each question.</div>
+
+      <div class="people-box">
         <div><b>A</b> which year it was painted</div>
         <div><b>B</b> who the people in the painting are</div>
         <div><b>C</b> whether the painting was completed</div>
@@ -7600,45 +7310,70 @@ const test16 = {
         <div><b>G</b> whether Cotman painted other scenes like this</div>
         <div><b>H</b> what happened while Cotman was working on it</div>
       </div>
-      <div class="note-row"><span class="qnum">25</span> Chirk Aqueduct <input class="l-input tiny" data-lq="25"></div>
-      <div class="note-row"><span class="qnum">26</span> In Rokeby Park <input class="l-input tiny" data-lq="26"></div>
-      <div class="note-row"><span class="qnum">27</span> Bedlam Furnace <input class="l-input tiny" data-lq="27"></div>
-      <div class="note-row"><span class="qnum">28</span> Croyland Abbey <input class="l-input tiny" data-lq="28"></div>
-      <div class="note-row"><span class="qnum">29</span> The Kitchen <input class="l-input tiny" data-lq="29"></div>
-      <div class="note-row"><span class="qnum">30</span> Doorway at Rievaulx <input class="l-input tiny" data-lq="30"></div>
+
+      <div class="note-row"><span class="qnum">25</span> Chirk Aqueduct
+        <select class="l-select" data-lq="25">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">26</span> In Rokeby Park
+        <select class="l-select" data-lq="26">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">27</span> Bedlam Furnace
+        <select class="l-select" data-lq="27">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">28</span> Croyland Abbey
+        <select class="l-select" data-lq="28">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">29</span> The Kitchen
+        <select class="l-select" data-lq="29">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">30</span> Doorway at Rievaulx
+        <select class="l-select" data-lq="30">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="listen-page hidden" id="listenSec4">
   <div class="listen-block">
-    <div class="listen-h">PART 4 — Questions 31–40</div>
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
 
     <div class="listen-card">
-      <div class="listen-card-title">Questions 31–40</div>
+      <div class="listen-card-title">Questions 31-40</div>
       <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
       <div class="listen-card-title">Greek fire</div>
 
       <div class="listen-notes">
         <div class="note-row">Greek fire = a chemical weapon developed in the 7th century by the Byzantines (who lived around modern-day Istanbul)</div>
 
-        <div class="note-row"><b>Fighting with Greek fire</b></div>
-        <div class="note-row">Byzantine armies used Greek fire to burn their enemies’ <span class="qnum">31</span> <input class="l-input" data-lq="31">.</div>
-        <div class="note-row">Greek fire was able to burn on <span class="qnum">32</span> <input class="l-input" data-lq="32">.</div>
-        <div class="note-row">One of the few things that could stop Greek fire from burning was <span class="qnum">33</span> <input class="l-input" data-lq="33">.</div>
-        <div class="note-row">To make Greek fire, the inflammable liquid was put into <span class="qnum">34</span> <input class="l-input" data-lq="34">, which were fired at the enemy.</div>
+        <div class="note-row" style="margin-top:12px;"><b>Fighting with Greek fire</b></div>
+        <div class="note-row">Byzantine armies used Greek fire to burn their enemies’ <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+        <div class="note-row">Greek fire was able to burn on <span class="qnum">32</span> <input data-lq="32" class="l-input">.</div>
+        <div class="note-row">One of the few things that could stop Greek fire from burning was <span class="qnum">33</span> <input data-lq="33" class="l-input">.</div>
+        <div class="note-row">To make Greek fire, the inflammable liquid was put into <span class="qnum">34</span> <input data-lq="34" class="l-input">, which were fired at the enemy.</div>
 
-        <div class="note-row"><b>Making Greek fire</b></div>
-        <div class="note-row">The process of making Greek fire was a <span class="qnum">35</span> <input class="l-input" data-lq="35">.</div>
+        <div class="note-row" style="margin-top:12px;"><b>Making Greek fire</b></div>
+        <div class="note-row">The process of making Greek fire was a <span class="qnum">35</span> <input data-lq="35" class="l-input">.</div>
         <div class="note-row">Likely ingredients of Greek fire:</div>
-        <div class="note-row bullet">• resin from <span class="qnum">36</span> <input class="l-input" data-lq="36"> trees (which made Greek fire sticky)</div>
-        <div class="note-row bullet">• sulphur</div>
-        <div class="note-row bullet">• <span class="qnum">37</span> <input class="l-input" data-lq="37"></div>
-        <div class="note-row">A ninth-century Bulgarian army tried to <span class="qnum">38</span> <input class="l-input" data-lq="38"> Greek fire, but were unsuccessful.</div>
+        <div class="note-row bullet">● resin from <span class="qnum">36</span> <input data-lq="36" class="l-input"> trees (which made Greek fire sticky)</div>
+        <div class="note-row bullet">● sulphur</div>
+        <div class="note-row bullet">● <span class="qnum">37</span> <input data-lq="37" class="l-input"></div>
+        <div class="note-row">A ninth-century Bulgarian army tried to <span class="qnum">38</span> <input data-lq="38" class="l-input"> Greek fire, but were unsuccessful.</div>
 
-        <div class="note-row"><b>How Greek fire was described in contemporary reports</b></div>
-        <div class="note-row">Byzantine Emperor Leo the Sixth said that using Greek fire caused a lot of <span class="qnum">39</span> <input class="l-input" data-lq="39">.</div>
-        <div class="note-row">Lord of Joinville described the sudden <span class="qnum">40</span> <input class="l-input" data-lq="40"> that accompanied Greek fire.</div>
+        <div class="note-row" style="margin-top:12px;"><b>How Greek fire was described in contemporary reports</b></div>
+        <div class="note-row">Byzantine Emperor Leo the Sixth said that using Greek fire caused a lot of <span class="qnum">39</span> <input data-lq="39" class="l-input">.</div>
+        <div class="note-row">Lord of Joinville described the sudden <span class="qnum">40</span> <input data-lq="40" class="l-input"> that accompanied Greek fire.</div>
       </div>
     </div>
   </div>
@@ -7661,9 +7396,278 @@ const test16 = {
     task2Html: "You should spend about 40 minutes on this task.Write about the following topic:<br/><br/>Many believe that modern technology has brought people together, but others say that it has driven us apart.<br/><br/><b>Discuss both viewpoints and give your own opinion.</b><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words</b>"
   },
 
-  reading: { legacyFactory: readingLegacyFactory16 }
-};
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `MARTELLO TOWERS
 
+In February 1794, two Royal Navy warships - HMS Fortitude and HMS Juno - were ordered to attack a Genoese defensive tower at Mortella Point, Corsica. After two and a half hours constant shelling, the coastal tower proved impenetrable. Indeed, thanks to the tower’s two 18-pounder guns, the ships were sufficiently damaged to force a retreat.
+
+The tower eventually fell to British land forces two days later. Nevertheless, its relative success at resisting attack from the sea was noted by British commanders, leading to the Mortella Point tower speedily inspiring a whole new breed of gun placements that would be built by the British Army up to the 1860s. However, while the design of the Mortella Point tower was adopted by the British quite closely, the name was not - “Mortella” was misspelled “Martello”, coincidentally meaning “hammer” in Italian.
+
+While local variations inevitably occurred, the British Martello Towers did follow a similar, distinctive design. Standing about 12m tall, they were noted for their thick stone walls, usually about 2.4m thick, though the rooms were often built off-centre, towards the landside of the tower, meaning the sea-facing walls were thicker. This was done when attacks were only expected by ship. Tower entry was through a door about 3m from the base, via a ladder which could be pulled up by the occupants to deter attackers. Above this was located a machicolated - or slotted - platform allowing for downward fire on attackers who might attempt to enter. The most visually distinctive feature of the Towers were their flat roofs, or terrepleins. Enclosed by a high parapet to protect from enemy fire, these contained a central raised platform on which a large cannon—very occasionally two—would be attached on a pivot, enabling the weapon to be turned and fired in any direction 360 degrees around the tower.
+
+The interior of the towers normally consisted of two storeys, although local conditions might allow for the addition of a separate basement if feasible. The ground floors generally comprised two storerooms, the larger holding ammunition, the other containing water and provisions. Above this, the first floor was subdivided into several quarters in which the garrison—consisting of one officer and up to 24 men—would live, eat and sleep. The soldiers were generally housed separately to their commander.
+
+More than one hundred Martello Towers were built by the British government between 1804 and 1812 to defend England’s south and east coasts, the east coast of Ireland, and the Channel Islands. Dymchurch, for example, on the south coast of England, is located only twenty-two miles from the French coast across the English Channel, and was therefore one of the areas most at risk from invasion from a nation then controlled by a belligerent Napoleon Bonaparte. Along three miles of coastline, six towers and one redoubt - a supplementary fortification - were built. This redoubt, sixty-eight metres in diameter, standing twelve metres and incorporating a nine-metre-wide dry moat, supported a chain of twenty-one towers stretching across the southern coastline. Acting mainly as a supply depot, it could also accommodate up to 350 men, who could enter via a wooden footbridge.
+
+Ironically, however, none of these towers were ever tested in combat; many of the initial towers were still being constructed when Napoleon was defeated at the Battle of Waterloo in 1815, bringing decades of European conflict to a sudden conclusion. Nevertheless, even during the following years of relative peace, there were other perceived dangers in the world; not least the threat to British shipping and trade posed by French, Dutch and American privateers.
+
+This helped ensure later tower construction after 1830; as late as 1866, the northernmost British Martello Tower—at Crockness, in Orkney—saw its battery upgraded due to a potential threat from the American Fenian Brotherhood during the civil war. Afterwards, however, the Tower was effectively left to ruin, with only two artillerymen remaining to look after the guns and powder magazine. It never saw the military action for which it had been designed.
+
+Other Martello Towers were eventually completed long after any potential military role had been ended by international treaties or advances in military technology. For example, the tower intended to guard Leith Harbour, near Edinburgh, although commissioned around 1808, wasn’t “in good order and fit to receive troops” until 1853. Problems with its cost and construction meant it lay idle as a stone shell that filled with water at every tide for the first forty years, after which its construction was completed. Even during the Second World War, the nearest thing to military service any of the Martello Towers on England’s south coast came was as observation platforms, or bases for anti-aircraft searchlights.
+
+Superseded by events, many of England’s Martello Towers were initially taken over by the Coastguard in an ongoing battle against smugglers. At least fifteen were soon demolished in order to recycle the stone used in their construction. Others were deliberately blown up - by the British Army experimenting with new rifled artillery - although the Martello Tower at L’Etacq in Jersey was deliberately destroyed by occupying German forces during the Second World War. Sadly, some thirty Towers were simply washed away by the sea, an unfortunate consequence of their coastal positions.
+
+Today many Martello Towers, especially those now privately owned, have fallen into disuse and disrepair, despite their status as historic monuments. Others, however, have found new uses: as the ultimate in “secure” private residences; quirky holiday homes with uniquely clear coastal views; or—as with the Towers at Seaford in East Sussex, Pembroke Dock in Wales, and Hackness in Orkney—uniquely distinctive museums.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1 - 5",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 1, Martello Towers?",
+              "In answer boxes 1 - 5, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 1, text: "The Royal Navy's attack at Mortella Point occurred early in the morning." },
+              { q: 2, text: "The tower at Mortella Point was the basis for towers constructed by the British." },
+              { q: 3, text: "The entrance to a Martello tower is above ground level." },
+              { q: 4, text: "Troops were provided with residence near to the tower." },
+              { q: 5, text: "Towers along the south coast of England were vital in defending against attacks by the French navy." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 6 - 9",
+            instructions: [
+              "Complete the diagram.",
+              "Use NO MORE THAN ONE WORD from Reading Passage 1, Martello Towers.",
+              "Write them in answer boxes 6 - 9."
+            ],
+            items: [
+              { q: 6, text: "Large gun on", tail: "allowing defence of all sides." },
+              { q: 7, text: "Raised", tail: "to defend gunners from attacks." },
+              { q: 8, text: "Sleeping", tail: "for soldiers - commanders in separate room." },
+              { q: 9, text: "Powder store for", tail: "." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 10 - 14",
+            instructions: [
+              "Look at statements 10 - 14 and the list of locations.",
+              "Match each statement with the correct location.",
+              "Write the appropriate letter in answer boxes 10 - 14."
+            ],
+            endings: {
+              A: "Crockness",
+              B: "Leith Harbour",
+              C: "L'Etacq",
+              D: "Seaford",
+              E: "Dymchurch"
+            },
+            items: [
+              { q: 10, text: "It took a long time for the tower here to be built." },
+              { q: 11, text: "This was the site of multiple towers." },
+              { q: 12, text: "The tower here is now a tourist attraction." },
+              { q: 13, text: "The tower here was eventually used as a storage facility." },
+              { q: 14, text: "The tower here was demolished by soldiers." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `THE STORY OF PAPRIKA
+
+A
+A versatile seasoning, paprika is used to add deep red hues to pale food or a subtle spiciness to dishes from paella to goulash. Although a distinct strand of paprika cultivation and preparation has emerged in Spain, it is most famously associated with the cuisine of Hungary. Curiously, though, the pepper plant from which paprika is derived, capsicum annuum, is native to lands on the far side of the Atlantic and was completely unknown to Europeans little more than 500 years ago. So, how did this spice come to be so entwined with the culture of a landlocked country more than 10,000 kilometres away?
+
+Paprika’s story begins together with that of its close relatives - the tomato, the potato and tobacco - with Columbus’ voyages to Central America at the turn of the sixteenth century. For thousands of years, the fields of southern Mexico had been scattered with plants whose fruits the Spanish visitors soon witnessed being used for medicinal purposes by natives in the region. Unsurprisingly, they joined the range of exotic goods exported to Spain, although demand paled in comparison to luxury items like chocolate and coffee. From Spain, traders took the plants further into the Mediterranean and eventually to the vast Ottoman Empire, on whose northern frontier sat a vassal state which consisted of much of modern Hungary.
+
+B
+For some time, the people of Hungary had little interest in the alimentary value of the plant’s fruit, which at that time was much spicier than the bell peppers and paprika powder we now know, but the plant itself became highly prized by the aristocracy for aesthetic reasons. The most notable example of this is in the late sixteenth century accounts of a member of the Hungarian royal family, Margit Széchy, who decorated her garden with a plant described as “red Turkish pepper”, assumed to be the earliest example of Hungary’s most famous ingredient. The fruit’s first practical use in Hungary was as a cure for intermittent fever, for which it proved effective. It took quite some time before its culinary potential was discovered, although it is believed that shepherds and other inhabitants of rural areas began adding the fiery powder to their food by at least 1748. Word spread to peasants in more urban areas and finally the spice went full circle as the aristocrats themselves took to using it in their food having found the peasant foods flavoured by paprika, such as goulash, particularly flavoursome.
+
+C
+By the end of the 18th century, two towns - Szeged and Kalocsa - had emerged to compete for the title of ‘paprika capital’ of Hungary, the reason for their monopoly being the amount of sunshine required for the plants to thrive, which their location in the south of the country was famed for. The continued traditions of paprika preparation established at this time can be noticed in villages across the south, where masses of harvested peppers threaded onto long pieces of string are hung from houses and along garden fences to dry. In certain areas, this process would have taken place in a beehive oven - a small domed hut with an internal heat source - in which the pepper pods would remain until they ‘rattled’, at which point they would be ground by pestle and mortar.
+
+D
+Around the turn of the nineteenth century, a külü - a larger grinding tool activated by a pedal and originally used for hemp processing - began to be used. As demand for greater quality increased, so the process became more refined with crushing stages being repeated numerous times, creating a finer powder. This led to the Pálffy brothers technique - the so-called ‘splitting process’ - involving the removal of stalks and seeds from the pods, leaving a semi-sweet paprika. The reason for this change in flavour is that the seeds contain capsaicin, the component which gives peppers their piquancy (and which is even more plentiful in chili peppers). This breakthrough ultimately led to the prevailing arrangement of paprika into six classes ranging from delicate to hot.
+
+E
+Further developments in grinding occurred over the second half of the nineteenth century. Steam and electrically-powered mills began to be used in order to meet growing interest beyond Hungary’s borders, due in part to celebrated French chef Auguste Escoffier’s use of the spice in his Parisian restaurants. By 1950, the entire process, including plowing, cultivating, harvesting and drying had been mechanised as large-scale production of the spice began, although by the end of the century demand had begun to subside, resulting in a decline of mechanical harvesting and a return to manual picking on some farms.
+
+F
+With an increase of public awareness of the nutritional value of ingredients, it is of comfort to learn that paprika has much to offer in this capacity. Dr. Szent Gyorgyi’s 1937 Nobel Prize-winning inquiry into the vitamin C content of pepper pods revealed they contain approximately seven times the immunity-boosting compound of oranges, although much of this is destroyed as the peppers are processed. It is nonetheless an excellent source of beta-carotene and potassium, which can be used to fight cholesterol, and the potential of creams containing capsaicin to aid in the reduction of joint pain and muscle stiffness has also led some nutritionists to suggest to elderly patients the use of the spice as a seasoning.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 15 - 19",
+            instructions: [
+              "Reading Passage 2, The Story of Paprika has six parts, A - F.",
+              "Which part contains the following information?",
+              "Write the appropriate letters, A - F, in answer boxes 15 - 19.",
+              "NB You will not need to use all the letters."
+            ],
+            endings: {
+              A: "Part A",
+              B: "Part B",
+              C: "Part C",
+              D: "Part D",
+              E: "Part E",
+              F: "Part F"
+            },
+            items: [
+              { q: 15, text: "A reference to climatic and geographical conditions for the successful growth of paprika." },
+              { q: 16, text: "Examples of historical usage of paprika and crops similar to it." },
+              { q: 17, text: "Mention of a revival of traditional practices of paprika production." },
+              { q: 18, text: "A change in the way Hungarian social classes used paprika." },
+              { q: 19, text: "Examples of specific applications of paprika for medicinal purposes." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 20 - 25",
+            instructions: [
+              "Complete each sentence with the correct ending, A - K.",
+              "Write the appropriate letters, A - K, in answer boxes 20 - 25."
+            ],
+            endings: {
+              A: "... adapted to meet foreign demand caused in part by a Frenchman.",
+              B: "... came from France.",
+              C: "... cooked with a wide range of spices.",
+              D: "... exported paprika to Europe.",
+              E: "... had diminished in favour of older techniques by the end of the twentieth century.",
+              F: "... had to change because of international regulations.",
+              G: "... involved two possible ways to dry the peppers.",
+              H: "... resulted from a multiple-stage process involving the grinding of the paprika.",
+              I: "... understood the financial possibilities in growing the spice.",
+              J: "... valued the pepper plant highly due to its physical appearance.",
+              K: "... were the first to use paprika in cooking."
+            },
+            items: [
+              { q: 20, text: "A technique allowing for the grouping of paprika varieties ..." },
+              { q: 21, text: "Hungarian citizens in largely agricultural regions ..." },
+              { q: 22, text: "Later production of paprika in Hungary ..." },
+              { q: 23, text: "Paprika preparation techniques in Hungary from the late 1700s ..." },
+              { q: 24, text: "Spanish explorers ..." },
+              { q: 25, text: "The Hungarian nobility ..." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 26 - 27",
+            instructions: [
+              "Complete the sentences.",
+              "Use NO MORE THAN ONE WORD from Reading Passage 2, The Story of Paprika, for each answer.",
+              "Write them in answer boxes 26 - 27."
+            ],
+            items: [
+              { q: 26, text: "The intensity of some types of paprika differs because of varying amounts of", tail: "in the powder." },
+              { q: 27, text: "Paprika is known to have", tail: "effects, as well as being able to combat cholesterol and alleviate muscle and joint complaints." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `CREATIVE WRITING: FROM MIND TO PAGE
+
+A
+A common phenomenon in literature, writer's block might be regarded as a dead-end for the creative mind. A psychological condition meaning writers are unable to create new work, writer’s block is historically well-documented through a plethora of famous creative minds whose pools of inspiration dried up suddenly and, seemingly, inexplicably. Few are the writers - professional or otherwise - who can profess to never having suffered from it, yet the causes and possible treatments of this affliction are far from clear-cut.
+
+B
+Western understanding of creativity and what it encompasses has changed over the centuries. In Ancient Greece, art was concerned with imitating something already in existence, hence adhering to rules rather than freedoms. No term existed then for our modern-day understanding of creativity. However, the poet was considered an exception to these 'rules' and later, in Roman times, imagination and inspiration came to be viewed as shared traits among visual artists as well as poets. Throughout the Renaissance, creativity continued its struggle for recognition and was first applied in a modern day context in the seventeenth century. Although this instance only related to poetry, throughout the nineteenth and twentieth centuries the concept developed into what we recognise it as today: the use of imagination and original ideas in the creation of new things. In short, it is inventiveness.
+
+C
+The term ‘writer’s block’ was originally coined in 1947 by Edmund Bergler, a Freudian psychoanalyst, who believed it to be a psychological block requiring therapy to recover from, considered by many a rather vague conclusion. However, empirical research in the seventies and eighties by Yale psychologists Jerome Singer and Michael Barrios supported his conclusions. Singer and Barrios took a diverse group of writers both ‘blocked’ and not, who underwent a series of psychological tests. They discovered four groups among the blocked writers, their main common factor being unhappiness and depression. Of the four groups, the first were overly self-critical leading to a lack of motivation to put pen to paper, whereas the second displayed concern about being compared to and criticised by others. A third group were found to lack originality and suffered from feeling constrained by the rules to which they felt they must adhere. The final group showed narcissistic tendencies, extrinsically motivated and craving admiration and recognition. Although the research unearthed fresh data, its conclusion was less so: keep writing, doodling, putting anything on paper to prove the talent still exists and waiting for inspiration - the muse - to strike.
+
+D
+This echoes a quote of Picasso’s, that ‘Inspiration exists, but it has to find us working’, a concept introduced by Graham Wallas years prior to Singer and Barrio’s research. Inspiration, or 'illumination' as Wallas terms it, is outlined as the third of a four-stage creative process model in his 1926 publication The Art of Thought, preceded by 'preparation' and 'incubation', and followed by 'verification'. Based on empirical research of inventors and polymaths, this model was later paralleled by Michael Cowley in his 1958 model of the four stages of writing. Both agree that 'illumination' is only possible after the preceding two stages. According to Wallas, the preparation stage concerns research and planning, after which 'incubation' occurs. Wallas describes this as 'voluntary abstention from conscious thought' about the issue at hand while one patiently waits for a 'flash' or 'click' of inspiration, admitting that forcing the muse's hand is not possible. After this finally arrives, 'verification' takes place, which, in the writer's context, concerns the editing and re-editing process.
+
+E
+Yet to get to that stage, the writer’s block, or the stress causing it, has to be removed. Under stress, the human brain puts the limbic system rather than the cerebral cortex in control. The former is responsible for emotion, behaviour and the 'fight or flight' response and better deals with stress than the latter, which plays a key role in cognition, awareness, thought and language. The result of this change is a shift in brain function away from creativity and the arrival of the long-awaited inspiration. Suggested coping strategies range from meditation and group discussion, to free writing and brainstorming, techniques suggested by the aforementioned researchers, psychologists and creative geniuses.
+
+F
+Some historical cases of writer's block exemplify its debilitating nature. Eighteenth-century poet Samuel Taylor Coleridge produced his best work during his twenties, after which he resorted to opium and became deeply depressed at the loss of his literary 'gift', whereas American novelist Truman Capote is believed to have had a nervous breakdown later in life, contributing to the perpetual 'unfinished' status of his masterpiece Answered Prayers. Horror novelist Stephen King suffered a four-month bout while attending university during which he took to alcohol and soap operas, while English musician Sting was unable to write songs for almost a decade, eventually finding his cure by revisiting his childhood hometown. It would appear, therefore, that each case of writer's block is as individual and unique as the work created in its absence. The only real way to overcome it, as Picasso believed, is to keep working until inspiration finds us.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 28 - 32",
+            instructions: [
+              "Reading Passage 3, Creative Writing: From Mind to Page has six paragraphs, A - F.",
+              "Which paragraph contains the following information?",
+              "Write the appropriate letters, A - F, in answer boxes 28 - 32.",
+              "NB You do not need to use all of the letters."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F"
+            },
+            items: [
+              { q: 28, text: "A distinction between the roles of artists and writers." },
+              { q: 29, text: "Documented accounts of writer's block." },
+              { q: 30, text: "A possible biological explanation for writer's block." },
+              { q: 31, text: "The frequency of documented cases of writer's block." },
+              { q: 32, text: "Defense of an earlier-criticised theory." }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 33 - 37",
+            instructions: [
+              "Choose words from the list in the box to complete the summary.",
+              "Write the appropriate letters, A - H, in answer boxes 33 - 37."
+            ],
+            summaryTitle: "Creative Writing",
+            summaryLines: [
+              { text: "The current Western understanding of creativity had no concrete label until the 1600s, although this only encompassed one discipline of", blankQ: 33, tail: "." },
+              { text: "Before this time, creativity's limitations were due to established", blankQ: 34, tail: "until individual vision became a recognised" },
+              { text: "", blankQ: 35, before: "", after: "of the concept." },
+              { text: "Writer's block is an obstruction to this", blankQ: 36, tail: "of inspiration, which some experts believe requires" },
+              { text: "", blankQ: 37, before: "", after: "to overcome. Others, however, believe that continuing to write despite the block is key to the flair for words returning." }
+            ],
+            optionsTitle: "A - H",
+            options: [
+              { letter: "A", word: "characteristic" },
+              { letter: "B", word: "insight" },
+              { letter: "C", word: "citation" },
+              { letter: "D", word: "artistic expression" },
+              { letter: "E", word: "standards" },
+              { letter: "F", word: "procedure" },
+              { letter: "G", word: "flow" },
+              { letter: "H", word: "treatment" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 38 - 40",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 3, Creative Writing: From Mind to Page?",
+              "In answer boxes 38 - 40, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 38, text: "Wallas was the first researcher to suggest writing as a cure to writer's block." },
+              { q: 39, text: "Wallas suggests a technique for speeding up the moment inspiration arrives." },
+              { q: 40, text: "Both Wallas and Cowley admit the completion of the four stages of their models are lengthy processes." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,

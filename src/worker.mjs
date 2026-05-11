@@ -1973,6 +1973,60 @@ async function handleAdminApi(request, env) {
     return json(200, { ok: true, results: rows });
   }
 
+  const assignmentGetAdminActions = new Set(["listAssignments", "assignmentStudents"]);
+  const assignmentGetStudentActions = new Set(["studentAssignments", "assignmentAccess"]);
+  const assignmentPostAdminActions = new Set(["createAssignment", "updateAssignment", "deleteAssignment", "assignmentStudentsBulk"]);
+  const assignmentPostStudentActions = new Set(["markAssignmentStarted", "markAssignmentComplete"]);
+
+  if (request.method === "GET" && assignmentGetAdminActions.has(action)) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "GET" && assignmentGetStudentActions.has(action)) {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    await appendAssignmentIdentityToSearchParams(backendUrl.searchParams, auth, env);
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "POST" && assignmentPostAdminActions.has(action)) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
+  }
+
+  if (request.method === "POST" && assignmentPostStudentActions.has(action)) {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+    backendUrl.search = url.search;
+    backendUrl.searchParams.set("t", String(Date.now()));
+    const rawBody = await request.clone().text().catch(() => "");
+    let payload = {};
+    try { payload = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { payload = {}; }
+    const profile = await getLinkedPublicProfileForAuth(env, auth, getActorOrganizationId(auth)).catch(() => null);
+    const authEmail = normalizeEmail(auth?.user?.email || "");
+    payload.studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
+    payload.studentIdCode = oneLine(payload.studentIdCode || profile?.studentIdCode || "");
+    payload.officialEmail = normalizeEmail(payload.officialEmail || profile?.officialEmail || "");
+    payload.loginEmail = normalizeEmail(payload.loginEmail || authEmail || "");
+    payload.email = normalizeEmail(payload.email || authEmail || "");
+    payload.studentName = oneLine(payload.studentName || profile?.fullName || "");
+    const bodyText = JSON.stringify(payload);
+    return proxyAssignmentActionBody(request, backendUrl.toString(), env, action, bodyText);
+  }
+
   if (request.method === "POST") {
     const auth = await authenticateUser(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -2053,60 +2107,6 @@ async function handleAdminApi(request, env) {
       }
     }
     return upstream;
-  }
-
-  const assignmentGetAdminActions = new Set(["listAssignments", "assignmentStudents"]);
-  const assignmentGetStudentActions = new Set(["studentAssignments", "assignmentAccess"]);
-  const assignmentPostAdminActions = new Set(["createAssignment", "updateAssignment", "deleteAssignment", "assignmentStudentsBulk"]);
-  const assignmentPostStudentActions = new Set(["markAssignmentStarted", "markAssignmentComplete"]);
-
-  if (request.method === "GET" && assignmentGetAdminActions.has(action)) {
-    const auth = await authenticateAdmin(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
-  }
-
-  if (request.method === "GET" && assignmentGetStudentActions.has(action)) {
-    const auth = await authenticateUser(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    await appendAssignmentIdentityToSearchParams(backendUrl.searchParams, auth, env);
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
-  }
-
-  if (request.method === "POST" && assignmentPostAdminActions.has(action)) {
-    const auth = await authenticateAdmin(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
-  }
-
-  if (request.method === "POST" && assignmentPostStudentActions.has(action)) {
-    const auth = await authenticateUser(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    const rawBody = await request.clone().text().catch(() => "");
-    let payload = {};
-    try { payload = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { payload = {}; }
-    const profile = await getLinkedPublicProfileForAuth(env, auth, getActorOrganizationId(auth)).catch(() => null);
-    const authEmail = normalizeEmail(auth?.user?.email || "");
-    payload.studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
-    payload.studentIdCode = oneLine(payload.studentIdCode || profile?.studentIdCode || "");
-    payload.officialEmail = normalizeEmail(payload.officialEmail || profile?.officialEmail || "");
-    payload.loginEmail = normalizeEmail(payload.loginEmail || authEmail || "");
-    payload.email = normalizeEmail(payload.email || authEmail || "");
-    payload.studentName = oneLine(payload.studentName || profile?.fullName || "");
-    const bodyText = JSON.stringify(payload);
-    return proxyAssignmentActionBody(request, backendUrl.toString(), env, action, bodyText);
   }
 
   return json(405, { ok: false, error: "Method not allowed." });

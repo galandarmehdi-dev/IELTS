@@ -2139,7 +2139,20 @@ async function handleAdminApi(request, env) {
       });
       if (!res.ok) return json(500, { ok: false, error: res.error || "Failed to update assignment." });
       const updated = Array.isArray(res.data) ? res.data[0] : res.data;
-      return json(200, { ok: true, assignment: normalizeAssignmentRow(updated) });
+      let emailSummary = null;
+      if (patch.status === "published") {
+        const studentsRes = await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+          query: {
+            select: "student_profiles(id,name,surname,official_email,student_id_code)",
+            assignment_id: `eq.${id}`,
+            organization_id: `eq.${organizationId}`,
+          },
+        });
+        const rows = studentsRes.ok && Array.isArray(studentsRes.data) ? studentsRes.data : [];
+        const profiles = rows.map((r) => r.student_profiles).filter(Boolean);
+        emailSummary = await sendAssignmentEmails(env, profiles, updated || {});
+      }
+      return json(200, { ok: true, assignment: normalizeAssignmentRow(updated), ...(emailSummary ? { emailSummary } : {}) });
     }
 
     if (action === "deleteAssignment") {
@@ -2187,12 +2200,24 @@ async function handleAdminApi(request, env) {
           });
         }
       }
-      return json(200, {
-        ok: true,
-        added: toAdd.length,
-        removed: toRemove.length,
-        emailSummary: { sent: 0, failed: 0, skippedNoEmail: 0, skippedDuplicate: 0, failures: [] },
-      });
+      let emailSummary = { attempted: 0, sent: 0, failed: 0, skippedNoEmail: 0, skippedDuplicate: 0, failures: [] };
+      if (toAdd.length > 0) {
+        const [profilesRes, assignmentRes] = await Promise.all([
+          supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+            query: {
+              select: "id,name,surname,official_email,student_id_code",
+              id: `in.(${toAdd.join(",")})`,
+            },
+          }),
+          supabaseServiceRequest(env, "/rest/v1/assignments", {
+            query: { select: "id,title,due_date", id: `eq.${assignmentId}` },
+          }),
+        ]);
+        const profiles = profilesRes.ok && Array.isArray(profilesRes.data) ? profilesRes.data : [];
+        const assignment = assignmentRes.ok && Array.isArray(assignmentRes.data) ? assignmentRes.data[0] : null;
+        emailSummary = await sendAssignmentEmails(env, profiles, assignment || {});
+      }
+      return json(200, { ok: true, added: toAdd.length, removed: toRemove.length, emailSummary });
     }
 
     return json(400, { ok: false, error: "Unknown assignment action." });
@@ -6216,6 +6241,79 @@ function normalizeMessage(value) {
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+async function sendViaResend(env, { to, subject, text }) {
+  const apiKey = String(env?.RESEND_API_KEY || "").trim();
+  if (!apiKey) return { ok: false, error: "RESEND_API_KEY not configured" };
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "IELTS Mock <no-reply@ieltsmock.org>",
+        to: [String(to || "")],
+        subject: String(subject || ""),
+        text: String(text || ""),
+      }),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      return { ok: false, error: `Resend HTTP ${res.status}: ${errBody.slice(0, 200)}` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e?.message || "Network error") };
+  }
+}
+
+function buildAssignmentEmailText(fullName, title, dueDate, studentIdCode) {
+  const due = oneLine(dueDate || "") || "Not specified";
+  return [
+    `Dear ${oneLine(fullName || "Student")},`,
+    "",
+    "A new task has been assigned to you on IELTS Mock.",
+    "",
+    `Task: ${oneLine(title || "")}`,
+    `Due date: ${due}`,
+    `Student ID: ${oneLine(studentIdCode || "")}`,
+    "",
+    "Please log in to start your task:",
+    "https://ieltsmock.org",
+    "",
+    "Best regards,",
+    "IELTS Mock Team",
+  ].join("\n");
+}
+
+async function sendAssignmentEmails(env, profiles, assignment) {
+  const title = oneLine(assignment?.title || "");
+  const dueDate = assignment?.due_date || null;
+  const seen = new Set();
+  let sent = 0, failed = 0, skippedNoEmail = 0, skippedDuplicate = 0;
+  const failures = [];
+  for (const p of (profiles || [])) {
+    const email = normalizeEmail(p?.official_email || "");
+    const fullName = oneLine(`${p?.name || ""} ${p?.surname || ""}`.trim()) || "Student";
+    const studentIdCode = oneLine(p?.student_id_code || "");
+    if (!email || !isValidEmail(email)) { skippedNoEmail++; continue; }
+    if (seen.has(email)) { skippedDuplicate++; continue; }
+    seen.add(email);
+    const text = buildAssignmentEmailText(fullName, title, dueDate, studentIdCode);
+    const result = await sendViaResend(env, {
+      to: email,
+      subject: "New task assigned on IELTS Mock",
+      text,
+    });
+    if (result.ok) { sent++; } else {
+      failed++;
+      failures.push({ recipient: email, fullName, studentIdCode, error: result.error || "send failed" });
+    }
+  }
+  return { attempted: sent + failed, sent, failed, skippedNoEmail, skippedDuplicate, failures };
 }
 
 function json(status, payload, extraHeaders = {}) {

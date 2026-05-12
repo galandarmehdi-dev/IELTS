@@ -1290,8 +1290,10 @@ export const OBJECTIVE_ANSWER_KEYS = {
     "38": "A",
     "39": "D",
     "40": "C"
+    }
   }
-  },
+};
+
   "ielts16": {
     "listening": {
       "1": "5th July / 5 July",

@@ -255,6 +255,7 @@ function applyDocumentSecurityHeaders(response) {
 
   if (isHtml) {
     headers.set("Content-Security-Policy", buildContentSecurityPolicy());
+    headers.set("Cache-Control", "no-store");
   }
 
   return new Response(response.body, {
@@ -271,7 +272,7 @@ function buildContentSecurityPolicy() {
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    "script-src 'self' https://esm.sh",
+    "script-src 'self' 'unsafe-inline' https://esm.sh",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com https://bgujwyknnszwborgbkxq.supabase.co",

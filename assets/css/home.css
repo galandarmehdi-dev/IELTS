@@ -2408,6 +2408,74 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
 }
 .hs-nav-only .home-account-item:hover { background: #f8fafc; }
 
+/* ── Nav account — guest/not-logged-in state (.is-login = JS guest flag) ── */
+/* JS adds .is-login when the user is NOT logged in (sign-in CTA state)      */
+.hs-nav-only .home-account-trigger.is-login {
+  background: #0f1b2d;
+  border-color: #0f1b2d;
+  padding: 0 18px;
+  color: #fff;
+  gap: 0;
+  box-shadow: 0 1px 4px rgba(15,23,42,.2);
+}
+.hs-nav-only .home-account-trigger.is-login:hover {
+  background: #162540;
+  border-color: #162540;
+  box-shadow: 0 2px 8px rgba(15,23,42,.3);
+}
+.hs-nav-only .home-account-trigger.is-login .home-account-avatar {
+  display: none;
+}
+.hs-nav-only .home-account-trigger.is-login .home-account-label {
+  display: none;
+}
+.hs-nav-only .home-account-trigger.is-login .home-account-copy {
+  flex-direction: row;
+  align-items: center;
+}
+.hs-nav-only .home-account-trigger.is-login .home-account-copy strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ── Nav account — logged-in state (no .is-login) ─────────── */
+.hs-nav-only .home-account-trigger:not(.is-login) {
+  background: #fff;
+  border-color: var(--hs-border);
+  color: var(--hs-text);
+  padding: 0 14px 0 7px;
+  box-shadow: 0 1px 4px rgba(15,23,42,.07);
+}
+.hs-nav-only .home-account-trigger:not(.is-login):hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(15,23,42,.1);
+}
+.hs-nav-only .home-account-trigger:not(.is-login) .home-account-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  background: linear-gradient(135deg, #1e40af, #3b82f6);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1.5px #d4dce8;
+  color: #fff;
+}
+.hs-nav-only .home-account-trigger:not(.is-login) .home-account-label {
+  display: none;
+}
+.hs-nav-only .home-account-trigger:not(.is-login) .home-account-copy {
+  flex-direction: row;
+  align-items: center;
+}
+.hs-nav-only .home-account-trigger:not(.is-login) .home-account-copy strong {
+  color: var(--hs-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ── Hero ───────────────────────────────────────────────────── */
 .hs-hero {
   background: var(--hs-ink);
@@ -2495,65 +2563,46 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   padding: 24px 28px 28px;
 }
 .hs-product-card {
-  background: #111c30;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 20px;
+  background: #0d1b2e;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
   overflow: hidden;
   box-shadow:
-    0 40px 80px rgba(0,0,0,.55),
-    0 0 0 1px rgba(255,255,255,.05),
-    inset 0 1px 0 rgba(255,255,255,.06);
+    0 48px 96px rgba(0,0,0,.6),
+    0 0 0 1px rgba(255,255,255,.04),
+    inset 0 1px 0 rgba(255,255,255,.05);
 }
 .hs-product-card-chrome {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
-  background: rgba(255,255,255,.04);
-  border-bottom: 1px solid rgba(255,255,255,.07);
+  gap: 8px;
+  padding: 10px 16px;
+  background: #0a1525;
+  border-bottom: 1px solid rgba(255,255,255,.06);
 }
 .hs-chrome-dots {
   display: flex;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
 }
 .hs-chrome-dots span {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
 }
 .hs-chrome-dots span:nth-child(1) { background: #ff5f57; }
 .hs-chrome-dots span:nth-child(2) { background: #febc2e; }
 .hs-chrome-dots span:nth-child(3) { background: #28c840; }
 .hs-chrome-label {
-  font-size: 12px;
-  color: rgba(255,255,255,.38);
-  font-weight: 600;
-  letter-spacing: .02em;
-  margin-left: 4px;
+  font-size: 11px;
+  color: rgba(255,255,255,.28);
+  font-weight: 500;
+  letter-spacing: .01em;
+  margin-left: 6px;
 }
 .hs-product-card-body {
-  padding: 22px 22px 24px;
-  min-height: 260px;
+  padding: 24px 24px 26px;
 }
-/* Float badges */
-.hs-float-badge {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 16px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 12px 36px rgba(0,0,0,.22), 0 2px 8px rgba(0,0,0,.1);
-  min-width: 148px;
-  pointer-events: none;
-}
-.hs-float-badge--tl { top: 4px; left: 0; }
-.hs-float-badge--br { bottom: 4px; right: 0; }
-.hs-float-icon { font-size: 20px; flex-shrink: 0; }
-.hs-float-text { min-width: 0; }
-.hs-float-text strong { display: block; font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.2; }
-.hs-float-text span  { display: block; font-size: 11px; color: #64748b; margin-top: 1px; }
 
 /* ── Stats strip ────────────────────────────────────────────── */
 .hs-stats-strip {
@@ -2975,33 +3024,77 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   white-space: nowrap;
 }
 .hs-product-card-body .student-assignment-btn:hover { background: rgba(37,99,235,.9) !important; }
-.hs-product-card-body .hero-focus-fallback { padding: 16px 0 0; }
-.hs-product-card-body .hero-focus-title {
-  font-size: 15px;
+.hs-product-card-body .hero-focus-fallback {
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Simple skill list (guest state) ─────────────────────── */
+.hs-product-card-body .hpc-label {
+  font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: rgba(255,255,255,.3);
+  margin-bottom: 18px;
 }
-.hs-product-card-body .hero-focus-copy {
-  font-size: 13px;
-  color: rgba(255,255,255,.52);
-  line-height: 1.62;
-  margin-bottom: 16px;
+.hs-product-card-body .hpc-skills-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+  margin-bottom: 20px;
 }
+.hs-product-card-body .hpc-skill-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.hs-product-card-body .hpc-skill-tag {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255,255,255,.06);
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,.5);
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+.hs-product-card-body .hpc-skill-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255,255,255,.7);
+}
+.hs-product-card-body .hpc-cta,
 .hs-product-card-body .hero-focus-btn,
 .hs-product-card-body .home-btn.hero-focus-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  height: 38px;
-  padding: 0 18px;
-  border-radius: 9px;
+  justify-content: center;
+  width: 100%;
+  height: 42px;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
   font-size: 14px;
   font-weight: 700;
-  background: var(--hs-blue-m);
-  color: #fff;
   border: none;
   cursor: pointer;
   font-family: inherit;
+  letter-spacing: -.01em;
+  transition: background .15s;
+}
+.hs-product-card-body .hpc-cta:hover,
+.hs-product-card-body .hero-focus-btn:hover {
+  background: #1d4ed8;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */

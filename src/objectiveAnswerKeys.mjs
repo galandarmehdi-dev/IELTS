@@ -1380,7 +1380,6 @@ export const OBJECTIVE_ANSWER_KEYS = {
   }
 };
 
-  },
   "ielts17": {
     "listening": {
       "1": "Connor",

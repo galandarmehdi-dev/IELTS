@@ -256,6 +256,8 @@ function applyDocumentSecurityHeaders(response) {
   if (isHtml) {
     headers.set("Content-Security-Policy", buildContentSecurityPolicy());
     headers.set("Cache-Control", "no-store");
+    headers.set("CDN-Cache-Control", "no-store");
+    headers.set("Surrogate-Control", "no-store");
   }
 
   return new Response(response.body, {

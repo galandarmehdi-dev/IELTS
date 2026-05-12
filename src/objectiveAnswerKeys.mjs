@@ -1119,8 +1119,9 @@ export const OBJECTIVE_ANSWER_KEYS = {
     "39": "YES",
     "40": "NOT GIVEN"
   }
-  },
-  "ielts14": {
+}
+
+,"ielts14": {
   "listening": {
     "1": "6 / six",
     "2": "magazine",
@@ -1205,8 +1206,9 @@ export const OBJECTIVE_ANSWER_KEYS = {
     "39": "B",
     "40": "C"
   }
-},
-  "ielts15": {
+}
+
+,"ielts15": {
   "listening": {
     "1": "receptionist",
     "2": "medical",
@@ -1290,11 +1292,10 @@ export const OBJECTIVE_ANSWER_KEYS = {
     "38": "A",
     "39": "D",
     "40": "C"
-    }
   }
-};
+}
 
-  "ielts16": {
+,"ielts16": {
     "listening": {
       "1": "5th July / 5 July",
       "2": "Dublin",
@@ -1378,11 +1379,10 @@ export const OBJECTIVE_ANSWER_KEYS = {
       "38": "TRUE",
       "39": "FALSE",
       "40": "NOT GIVEN"
-    }
   }
-};
+}
 
-  "ielts17": {
+,"ielts17": {
     "listening": {
       "1": "Connor",
       "2": "28th June / 28 June",

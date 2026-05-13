@@ -7151,7 +7151,1011 @@ I am firmly of the opinion that most of us, Wegener included, are not in any rea
     ]
   }
 };
+const test16 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/TEST16.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
 
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Lost / Stolen Passport Details</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Customer details</b></div>
+        <div class="note-row">Surname: Walsh</div>
+        <div class="note-row">Forename: Chloe</div>
+        <div class="note-row">Date of birth: <span class="qnum">1</span> <input data-lq="1" class="l-input small"> 1987</div>
+        <div class="note-row">Place of birth (City): <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+        <div class="note-row">Passport number (if known): <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>CONTACT DETAILS</b></div>
+        <div class="note-row">Phone number: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">Email address: chloe.walsh@email.com</div>
+        <div class="note-row">Address: 97 East Street, Brighton</div>
+        <div class="note-row">Postcode: <span class="qnum">5</span> <input data-lq="5" class="l-input small"></div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 6-10</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Details Of What Happened To The Passport</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Passport was in the pocket of Ms Walsh's <span class="qnum">6</span> <input data-lq="6" class="l-input">.</div>
+        <div class="note-row">Date when passport was lost: Wednesday <span class="qnum">7</span> <input data-lq="7" class="l-input">.</div>
+        <div class="note-row">She knows she had the passport when she was in a <span class="qnum">8</span> <input data-lq="8" class="l-input"> with a friend.</div>
+        <div class="note-row">She then travelled home by <span class="qnum">9</span> <input data-lq="9" class="l-input">.</div>
+        <div class="note-row">When she arrived home, she realised that she didn’t have the passport any more.</div>
+        <div class="note-row">Crime reference number: A <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-15</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">11</span> What is the advantage of the boats which are being used today?</div>
+        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) They can go fast.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) They are comfortable to sit in.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) They are easy to get in and out of.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">12</span> If anyone falls out of their boat, they should</div>
+        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) swim to the shore.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) get back into the boat.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) wait in the water for help.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">13</span> What does the speaker suggest people should do with their phones during their trip?</div>
+        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) leave them in their car</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) use them to take photos</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) keep them in a container</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">14</span> The speaker recommends coming back to River Avon Adventures another time in order to</div>
+        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) hire other kinds of equipment.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) learn more about the local wildlife.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) experience the river in different seasons.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">15</span> What does a person need to do in order to save money on their next visit?</div>
+        <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) write a review of River Avon Adventures</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) follow River Avon Adventures on social media</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) recommend River Avon Adventures to another person</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 16-20</div>
+      <div class="listen-inst">Label the map below. Write the correct letter, <b>A-H</b>, next to each question.</div>
+      <div class="listen-card-title">Avon River</div>
+
+      <p>
+        <img src="https://audio.ieltsmock.org/TEST16%20LP.png" alt="Avon River map for Questions 16 to 20" style="max-width:100%;height:auto;border:1px solid var(--border,#ddd);border-radius:8px;">
+      </p>
+
+      <div class="note-row"><span class="qnum">16</span> campsite <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> fish restaurant <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> picnic site <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> toilets <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Frog Rock <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-24</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> What do Paul and Sue agree makes Cotman’s paintings easy to identify?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) his signature</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) the subject matter</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) the style of painting</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> Sue compares Cotman to the artist Van Gogh in order to suggest that</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) the other students may not know much about Cotman.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) Cotman influenced some of the world’s greatest artists.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) the presentation should focus on similarities between the two painters.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> Paul says that Cotman visited his friends in Brandsby many times in order to</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) find new clients.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) buy a place to live.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) paint pictures for them.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> Why is Paul against Sue’s idea of including Cotman’s personal life in their presentation?</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) It would be irrelevant to the task.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) The other students may find it dull.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) There is too little information about it.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 25-30</div>
+      <div class="listen-inst">What do the students want to find out about each of the following paintings? Write the appropriate letter, <b>A-H</b>, for each question.</div>
+
+      <div class="people-box">
+        <div><b>A</b> which year it was painted</div>
+        <div><b>B</b> who the people in the painting are</div>
+        <div><b>C</b> whether the painting was completed</div>
+        <div><b>D</b> what Cotman thought of the painting</div>
+        <div><b>E</b> why Cotman decided to paint this scene</div>
+        <div><b>F</b> whether the title of the painting is accurate</div>
+        <div><b>G</b> whether Cotman painted other scenes like this</div>
+        <div><b>H</b> what happened while Cotman was working on it</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">25</span> Chirk Aqueduct
+        <select class="l-select" data-lq="25">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">26</span> In Rokeby Park
+        <select class="l-select" data-lq="26">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">27</span> Bedlam Furnace
+        <select class="l-select" data-lq="27">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">28</span> Croyland Abbey
+        <select class="l-select" data-lq="28">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">29</span> The Kitchen
+        <select class="l-select" data-lq="29">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+      <div class="note-row"><span class="qnum">30</span> Doorway at Rievaulx
+        <select class="l-select" data-lq="30">
+          <option value=""></option><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Greek fire</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Greek fire = a chemical weapon developed in the 7th century by the Byzantines (who lived around modern-day Istanbul)</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Fighting with Greek fire</b></div>
+        <div class="note-row">Byzantine armies used Greek fire to burn their enemies’ <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+        <div class="note-row">Greek fire was able to burn on <span class="qnum">32</span> <input data-lq="32" class="l-input">.</div>
+        <div class="note-row">One of the few things that could stop Greek fire from burning was <span class="qnum">33</span> <input data-lq="33" class="l-input">.</div>
+        <div class="note-row">To make Greek fire, the inflammable liquid was put into <span class="qnum">34</span> <input data-lq="34" class="l-input">, which were fired at the enemy.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Making Greek fire</b></div>
+        <div class="note-row">The process of making Greek fire was a <span class="qnum">35</span> <input data-lq="35" class="l-input">.</div>
+        <div class="note-row">Likely ingredients of Greek fire:</div>
+        <div class="note-row bullet">● resin from <span class="qnum">36</span> <input data-lq="36" class="l-input"> trees (which made Greek fire sticky)</div>
+        <div class="note-row bullet">● sulphur</div>
+        <div class="note-row bullet">● <span class="qnum">37</span> <input data-lq="37" class="l-input"></div>
+        <div class="note-row">A ninth-century Bulgarian army tried to <span class="qnum">38</span> <input data-lq="38" class="l-input"> Greek fire, but were unsuccessful.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>How Greek fire was described in contemporary reports</b></div>
+        <div class="note-row">Byzantine Emperor Leo the Sixth said that using Greek fire caused a lot of <span class="qnum">39</span> <input data-lq="39" class="l-input">.</div>
+        <div class="note-row">Lord of Joinville described the sudden <span class="qnum">40</span> <input data-lq="40" class="l-input"> that accompanied Greek fire.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Pie charts",
+    task2Type: "Discussion essay",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The two pie charts below show total world energy consumption and electricity generation for last year.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/TEST%2016%20WT1.png",
+    task2Html: "You should spend about 40 minutes on this task.Write about the following topic:<br/><br/>Many believe that modern technology has brought people together, but others say that it has driven us apart.<br/><br/><b>Discuss both viewpoints and give your own opinion.</b><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `MARTELLO TOWERS
+
+In February 1794, two Royal Navy warships - HMS Fortitude and HMS Juno - were ordered to attack a Genoese defensive tower at Mortella Point, Corsica. After two and a half hours constant shelling, the coastal tower proved impenetrable. Indeed, thanks to the tower’s two 18-pounder guns, the ships were sufficiently damaged to force a retreat.
+
+The tower eventually fell to British land forces two days later. Nevertheless, its relative success at resisting attack from the sea was noted by British commanders, leading to the Mortella Point tower speedily inspiring a whole new breed of gun placements that would be built by the British Army up to the 1860s. However, while the design of the Mortella Point tower was adopted by the British quite closely, the name was not - “Mortella” was misspelled “Martello”, coincidentally meaning “hammer” in Italian.
+
+While local variations inevitably occurred, the British Martello Towers did follow a similar, distinctive design. Standing about 12m tall, they were noted for their thick stone walls, usually about 2.4m thick, though the rooms were often built off-centre, towards the landside of the tower, meaning the sea-facing walls were thicker. This was done when attacks were only expected by ship. Tower entry was through a door about 3m from the base, via a ladder which could be pulled up by the occupants to deter attackers. Above this was located a machicolated - or slotted - platform allowing for downward fire on attackers who might attempt to enter. The most visually distinctive feature of the Towers were their flat roofs, or terrepleins. Enclosed by a high parapet to protect from enemy fire, these contained a central raised platform on which a large cannon—very occasionally two—would be attached on a pivot, enabling the weapon to be turned and fired in any direction 360 degrees around the tower.
+
+The interior of the towers normally consisted of two storeys, although local conditions might allow for the addition of a separate basement if feasible. The ground floors generally comprised two storerooms, the larger holding ammunition, the other containing water and provisions. Above this, the first floor was subdivided into several quarters in which the garrison—consisting of one officer and up to 24 men—would live, eat and sleep. The soldiers were generally housed separately to their commander.
+
+More than one hundred Martello Towers were built by the British government between 1804 and 1812 to defend England’s south and east coasts, the east coast of Ireland, and the Channel Islands. Dymchurch, for example, on the south coast of England, is located only twenty-two miles from the French coast across the English Channel, and was therefore one of the areas most at risk from invasion from a nation then controlled by a belligerent Napoleon Bonaparte. Along three miles of coastline, six towers and one redoubt - a supplementary fortification - were built. This redoubt, sixty-eight metres in diameter, standing twelve metres and incorporating a nine-metre-wide dry moat, supported a chain of twenty-one towers stretching across the southern coastline. Acting mainly as a supply depot, it could also accommodate up to 350 men, who could enter via a wooden footbridge.
+
+Ironically, however, none of these towers were ever tested in combat; many of the initial towers were still being constructed when Napoleon was defeated at the Battle of Waterloo in 1815, bringing decades of European conflict to a sudden conclusion. Nevertheless, even during the following years of relative peace, there were other perceived dangers in the world; not least the threat to British shipping and trade posed by French, Dutch and American privateers.
+
+This helped ensure later tower construction after 1830; as late as 1866, the northernmost British Martello Tower—at Crockness, in Orkney—saw its battery upgraded due to a potential threat from the American Fenian Brotherhood during the civil war. Afterwards, however, the Tower was effectively left to ruin, with only two artillerymen remaining to look after the guns and powder magazine. It never saw the military action for which it had been designed.
+
+Other Martello Towers were eventually completed long after any potential military role had been ended by international treaties or advances in military technology. For example, the tower intended to guard Leith Harbour, near Edinburgh, although commissioned around 1808, wasn’t “in good order and fit to receive troops” until 1853. Problems with its cost and construction meant it lay idle as a stone shell that filled with water at every tide for the first forty years, after which its construction was completed. Even during the Second World War, the nearest thing to military service any of the Martello Towers on England’s south coast came was as observation platforms, or bases for anti-aircraft searchlights.
+
+Superseded by events, many of England’s Martello Towers were initially taken over by the Coastguard in an ongoing battle against smugglers. At least fifteen were soon demolished in order to recycle the stone used in their construction. Others were deliberately blown up - by the British Army experimenting with new rifled artillery - although the Martello Tower at L’Etacq in Jersey was deliberately destroyed by occupying German forces during the Second World War. Sadly, some thirty Towers were simply washed away by the sea, an unfortunate consequence of their coastal positions.
+
+Today many Martello Towers, especially those now privately owned, have fallen into disuse and disrepair, despite their status as historic monuments. Others, however, have found new uses: as the ultimate in “secure” private residences; quirky holiday homes with uniquely clear coastal views; or—as with the Towers at Seaford in East Sussex, Pembroke Dock in Wales, and Hackness in Orkney—uniquely distinctive museums.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1 - 5",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 1, Martello Towers?",
+              "In answer boxes 1 - 5, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 1, text: "The Royal Navy's attack at Mortella Point occurred early in the morning." },
+              { q: 2, text: "The tower at Mortella Point was the basis for towers constructed by the British." },
+              { q: 3, text: "The entrance to a Martello tower is above ground level." },
+              { q: 4, text: "Troops were provided with residence near to the tower." },
+              { q: 5, text: "Towers along the south coast of England were vital in defending against attacks by the French navy." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 6 - 9",
+            instructions: [
+              "Complete the diagram.",
+              "Use NO MORE THAN ONE WORD from Reading Passage 1, Martello Towers.",
+              "Write them in answer boxes 6 - 9."
+            ],
+            items: [
+              { q: 6, text: "Large gun on", tail: "allowing defence of all sides." },
+              { q: 7, text: "Raised", tail: "to defend gunners from attacks." },
+              { q: 8, text: "Sleeping", tail: "for soldiers - commanders in separate room." },
+              { q: 9, text: "Powder store for", tail: "." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 10 - 14",
+            instructions: [
+              "Look at statements 10 - 14 and the list of locations.",
+              "Match each statement with the correct location.",
+              "Write the appropriate letter in answer boxes 10 - 14."
+            ],
+            endings: {
+              A: "Crockness",
+              B: "Leith Harbour",
+              C: "L'Etacq",
+              D: "Seaford",
+              E: "Dymchurch"
+            },
+            items: [
+              { q: 10, text: "It took a long time for the tower here to be built." },
+              { q: 11, text: "This was the site of multiple towers." },
+              { q: 12, text: "The tower here is now a tourist attraction." },
+              { q: 13, text: "The tower here was eventually used as a storage facility." },
+              { q: 14, text: "The tower here was demolished by soldiers." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `THE STORY OF PAPRIKA
+
+A
+A versatile seasoning, paprika is used to add deep red hues to pale food or a subtle spiciness to dishes from paella to goulash. Although a distinct strand of paprika cultivation and preparation has emerged in Spain, it is most famously associated with the cuisine of Hungary. Curiously, though, the pepper plant from which paprika is derived, capsicum annuum, is native to lands on the far side of the Atlantic and was completely unknown to Europeans little more than 500 years ago. So, how did this spice come to be so entwined with the culture of a landlocked country more than 10,000 kilometres away?
+
+Paprika’s story begins together with that of its close relatives - the tomato, the potato and tobacco - with Columbus’ voyages to Central America at the turn of the sixteenth century. For thousands of years, the fields of southern Mexico had been scattered with plants whose fruits the Spanish visitors soon witnessed being used for medicinal purposes by natives in the region. Unsurprisingly, they joined the range of exotic goods exported to Spain, although demand paled in comparison to luxury items like chocolate and coffee. From Spain, traders took the plants further into the Mediterranean and eventually to the vast Ottoman Empire, on whose northern frontier sat a vassal state which consisted of much of modern Hungary.
+
+B
+For some time, the people of Hungary had little interest in the alimentary value of the plant’s fruit, which at that time was much spicier than the bell peppers and paprika powder we now know, but the plant itself became highly prized by the aristocracy for aesthetic reasons. The most notable example of this is in the late sixteenth century accounts of a member of the Hungarian royal family, Margit Széchy, who decorated her garden with a plant described as “red Turkish pepper”, assumed to be the earliest example of Hungary’s most famous ingredient. The fruit’s first practical use in Hungary was as a cure for intermittent fever, for which it proved effective. It took quite some time before its culinary potential was discovered, although it is believed that shepherds and other inhabitants of rural areas began adding the fiery powder to their food by at least 1748. Word spread to peasants in more urban areas and finally the spice went full circle as the aristocrats themselves took to using it in their food having found the peasant foods flavoured by paprika, such as goulash, particularly flavoursome.
+
+C
+By the end of the 18th century, two towns - Szeged and Kalocsa - had emerged to compete for the title of ‘paprika capital’ of Hungary, the reason for their monopoly being the amount of sunshine required for the plants to thrive, which their location in the south of the country was famed for. The continued traditions of paprika preparation established at this time can be noticed in villages across the south, where masses of harvested peppers threaded onto long pieces of string are hung from houses and along garden fences to dry. In certain areas, this process would have taken place in a beehive oven - a small domed hut with an internal heat source - in which the pepper pods would remain until they ‘rattled’, at which point they would be ground by pestle and mortar.
+
+D
+Around the turn of the nineteenth century, a külü - a larger grinding tool activated by a pedal and originally used for hemp processing - began to be used. As demand for greater quality increased, so the process became more refined with crushing stages being repeated numerous times, creating a finer powder. This led to the Pálffy brothers technique - the so-called ‘splitting process’ - involving the removal of stalks and seeds from the pods, leaving a semi-sweet paprika. The reason for this change in flavour is that the seeds contain capsaicin, the component which gives peppers their piquancy (and which is even more plentiful in chili peppers). This breakthrough ultimately led to the prevailing arrangement of paprika into six classes ranging from delicate to hot.
+
+E
+Further developments in grinding occurred over the second half of the nineteenth century. Steam and electrically-powered mills began to be used in order to meet growing interest beyond Hungary’s borders, due in part to celebrated French chef Auguste Escoffier’s use of the spice in his Parisian restaurants. By 1950, the entire process, including plowing, cultivating, harvesting and drying had been mechanised as large-scale production of the spice began, although by the end of the century demand had begun to subside, resulting in a decline of mechanical harvesting and a return to manual picking on some farms.
+
+F
+With an increase of public awareness of the nutritional value of ingredients, it is of comfort to learn that paprika has much to offer in this capacity. Dr. Szent Gyorgyi’s 1937 Nobel Prize-winning inquiry into the vitamin C content of pepper pods revealed they contain approximately seven times the immunity-boosting compound of oranges, although much of this is destroyed as the peppers are processed. It is nonetheless an excellent source of beta-carotene and potassium, which can be used to fight cholesterol, and the potential of creams containing capsaicin to aid in the reduction of joint pain and muscle stiffness has also led some nutritionists to suggest to elderly patients the use of the spice as a seasoning.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 15 - 19",
+            instructions: [
+              "Reading Passage 2, The Story of Paprika has six parts, A - F.",
+              "Which part contains the following information?",
+              "Write the appropriate letters, A - F, in answer boxes 15 - 19.",
+              "NB You will not need to use all the letters."
+            ],
+            endings: {
+              A: "Part A",
+              B: "Part B",
+              C: "Part C",
+              D: "Part D",
+              E: "Part E",
+              F: "Part F"
+            },
+            items: [
+              { q: 15, text: "A reference to climatic and geographical conditions for the successful growth of paprika." },
+              { q: 16, text: "Examples of historical usage of paprika and crops similar to it." },
+              { q: 17, text: "Mention of a revival of traditional practices of paprika production." },
+              { q: 18, text: "A change in the way Hungarian social classes used paprika." },
+              { q: 19, text: "Examples of specific applications of paprika for medicinal purposes." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 20 - 25",
+            instructions: [
+              "Complete each sentence with the correct ending, A - K.",
+              "Write the appropriate letters, A - K, in answer boxes 20 - 25."
+            ],
+            endings: {
+              A: "... adapted to meet foreign demand caused in part by a Frenchman.",
+              B: "... came from France.",
+              C: "... cooked with a wide range of spices.",
+              D: "... exported paprika to Europe.",
+              E: "... had diminished in favour of older techniques by the end of the twentieth century.",
+              F: "... had to change because of international regulations.",
+              G: "... involved two possible ways to dry the peppers.",
+              H: "... resulted from a multiple-stage process involving the grinding of the paprika.",
+              I: "... understood the financial possibilities in growing the spice.",
+              J: "... valued the pepper plant highly due to its physical appearance.",
+              K: "... were the first to use paprika in cooking."
+            },
+            items: [
+              { q: 20, text: "A technique allowing for the grouping of paprika varieties ..." },
+              { q: 21, text: "Hungarian citizens in largely agricultural regions ..." },
+              { q: 22, text: "Later production of paprika in Hungary ..." },
+              { q: 23, text: "Paprika preparation techniques in Hungary from the late 1700s ..." },
+              { q: 24, text: "Spanish explorers ..." },
+              { q: 25, text: "The Hungarian nobility ..." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 26 - 27",
+            instructions: [
+              "Complete the sentences.",
+              "Use NO MORE THAN ONE WORD from Reading Passage 2, The Story of Paprika, for each answer.",
+              "Write them in answer boxes 26 - 27."
+            ],
+            items: [
+              { q: 26, text: "The intensity of some types of paprika differs because of varying amounts of", tail: "in the powder." },
+              { q: 27, text: "Paprika is known to have", tail: "effects, as well as being able to combat cholesterol and alleviate muscle and joint complaints." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `CREATIVE WRITING: FROM MIND TO PAGE
+
+A
+A common phenomenon in literature, writer's block might be regarded as a dead-end for the creative mind. A psychological condition meaning writers are unable to create new work, writer’s block is historically well-documented through a plethora of famous creative minds whose pools of inspiration dried up suddenly and, seemingly, inexplicably. Few are the writers - professional or otherwise - who can profess to never having suffered from it, yet the causes and possible treatments of this affliction are far from clear-cut.
+
+B
+Western understanding of creativity and what it encompasses has changed over the centuries. In Ancient Greece, art was concerned with imitating something already in existence, hence adhering to rules rather than freedoms. No term existed then for our modern-day understanding of creativity. However, the poet was considered an exception to these 'rules' and later, in Roman times, imagination and inspiration came to be viewed as shared traits among visual artists as well as poets. Throughout the Renaissance, creativity continued its struggle for recognition and was first applied in a modern day context in the seventeenth century. Although this instance only related to poetry, throughout the nineteenth and twentieth centuries the concept developed into what we recognise it as today: the use of imagination and original ideas in the creation of new things. In short, it is inventiveness.
+
+C
+The term ‘writer’s block’ was originally coined in 1947 by Edmund Bergler, a Freudian psychoanalyst, who believed it to be a psychological block requiring therapy to recover from, considered by many a rather vague conclusion. However, empirical research in the seventies and eighties by Yale psychologists Jerome Singer and Michael Barrios supported his conclusions. Singer and Barrios took a diverse group of writers both ‘blocked’ and not, who underwent a series of psychological tests. They discovered four groups among the blocked writers, their main common factor being unhappiness and depression. Of the four groups, the first were overly self-critical leading to a lack of motivation to put pen to paper, whereas the second displayed concern about being compared to and criticised by others. A third group were found to lack originality and suffered from feeling constrained by the rules to which they felt they must adhere. The final group showed narcissistic tendencies, extrinsically motivated and craving admiration and recognition. Although the research unearthed fresh data, its conclusion was less so: keep writing, doodling, putting anything on paper to prove the talent still exists and waiting for inspiration - the muse - to strike.
+
+D
+This echoes a quote of Picasso’s, that ‘Inspiration exists, but it has to find us working’, a concept introduced by Graham Wallas years prior to Singer and Barrio’s research. Inspiration, or 'illumination' as Wallas terms it, is outlined as the third of a four-stage creative process model in his 1926 publication The Art of Thought, preceded by 'preparation' and 'incubation', and followed by 'verification'. Based on empirical research of inventors and polymaths, this model was later paralleled by Michael Cowley in his 1958 model of the four stages of writing. Both agree that 'illumination' is only possible after the preceding two stages. According to Wallas, the preparation stage concerns research and planning, after which 'incubation' occurs. Wallas describes this as 'voluntary abstention from conscious thought' about the issue at hand while one patiently waits for a 'flash' or 'click' of inspiration, admitting that forcing the muse's hand is not possible. After this finally arrives, 'verification' takes place, which, in the writer's context, concerns the editing and re-editing process.
+
+E
+Yet to get to that stage, the writer’s block, or the stress causing it, has to be removed. Under stress, the human brain puts the limbic system rather than the cerebral cortex in control. The former is responsible for emotion, behaviour and the 'fight or flight' response and better deals with stress than the latter, which plays a key role in cognition, awareness, thought and language. The result of this change is a shift in brain function away from creativity and the arrival of the long-awaited inspiration. Suggested coping strategies range from meditation and group discussion, to free writing and brainstorming, techniques suggested by the aforementioned researchers, psychologists and creative geniuses.
+
+F
+Some historical cases of writer's block exemplify its debilitating nature. Eighteenth-century poet Samuel Taylor Coleridge produced his best work during his twenties, after which he resorted to opium and became deeply depressed at the loss of his literary 'gift', whereas American novelist Truman Capote is believed to have had a nervous breakdown later in life, contributing to the perpetual 'unfinished' status of his masterpiece Answered Prayers. Horror novelist Stephen King suffered a four-month bout while attending university during which he took to alcohol and soap operas, while English musician Sting was unable to write songs for almost a decade, eventually finding his cure by revisiting his childhood hometown. It would appear, therefore, that each case of writer's block is as individual and unique as the work created in its absence. The only real way to overcome it, as Picasso believed, is to keep working until inspiration finds us.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 28 - 32",
+            instructions: [
+              "Reading Passage 3, Creative Writing: From Mind to Page has six paragraphs, A - F.",
+              "Which paragraph contains the following information?",
+              "Write the appropriate letters, A - F, in answer boxes 28 - 32.",
+              "NB You do not need to use all of the letters."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F"
+            },
+            items: [
+              { q: 28, text: "A distinction between the roles of artists and writers." },
+              { q: 29, text: "Documented accounts of writer's block." },
+              { q: 30, text: "A possible biological explanation for writer's block." },
+              { q: 31, text: "The frequency of documented cases of writer's block." },
+              { q: 32, text: "Defense of an earlier-criticised theory." }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 33 - 37",
+            instructions: [
+              "Choose words from the list in the box to complete the summary.",
+              "Write the appropriate letters, A - H, in answer boxes 33 - 37."
+            ],
+            summaryTitle: "Creative Writing",
+            summaryLines: [
+              { text: "The current Western understanding of creativity had no concrete label until the 1600s, although this only encompassed one discipline of", blankQ: 33, tail: "." },
+              { text: "Before this time, creativity's limitations were due to established", blankQ: 34, tail: "until individual vision became a recognised" },
+              { text: "", blankQ: 35, before: "", after: "of the concept." },
+              { text: "Writer's block is an obstruction to this", blankQ: 36, tail: "of inspiration, which some experts believe requires" },
+              { text: "", blankQ: 37, before: "", after: "to overcome. Others, however, believe that continuing to write despite the block is key to the flair for words returning." }
+            ],
+            optionsTitle: "A - H",
+            options: [
+              { letter: "A", word: "characteristic" },
+              { letter: "B", word: "insight" },
+              { letter: "C", word: "citation" },
+              { letter: "D", word: "artistic expression" },
+              { letter: "E", word: "standards" },
+              { letter: "F", word: "procedure" },
+              { letter: "G", word: "flow" },
+              { letter: "H", word: "treatment" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 38 - 40",
+            instructions: [
+              "Do the statements agree with the information given in Reading Passage 3, Creative Writing: From Mind to Page?",
+              "In answer boxes 38 - 40, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 38, text: "Wallas was the first researcher to suggest writing as a cure to writer's block." },
+              { q: 39, text: "Wallas suggests a technique for speeding up the moment inspiration arrives." },
+              { q: 40, text: "Both Wallas and Cowley admit the completion of the four stages of their models are lengthy processes." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
+const test17 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Test17.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-6</div>
+      <div class="listen-inst">Complete the form below. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Holiday Plus Hotel, Easthaven - CHANGE OF BOOKING</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Customer details</b></div>
+        <div class="note-row">Surname: <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+        <div class="note-row">First name: Susan</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Existing booking details</b></div>
+        <div class="note-row">Check-in date: <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+        <div class="note-row">Number of nights: <span class="qnum">3</span> <input data-lq="3" class="l-input small"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>New booking</b></div>
+        <div class="note-row">What the customer wants to do: book a <span class="qnum">4</span> <input data-lq="4" class="l-input"> room instead of the single</div>
+        <div class="note-row">Accommodation offered to customer: <span class="qnum">5</span> <input data-lq="5" class="l-input"> suite, consisting of:</div>
+        <div class="note-row bullet">● two bedrooms (as requested)</div>
+        <div class="note-row bullet">● living room</div>
+        <div class="note-row bullet">● <span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 7-10</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Further details</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Additional cost for new booking: <span class="qnum">7</span> £<input data-lq="7" class="l-input small"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Special requirements</b></div>
+        <div class="note-row">Customer is bringing a <span class="qnum">8</span> <input data-lq="8" class="l-input">.</div>
+        <div class="note-row">One of the group is allergic to <span class="qnum">9</span> <input data-lq="9" class="l-input">.</div>
+        <div class="note-row">Phone number of customer’s husband: <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-12</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">According to the guide, for which TWO reasons was the museum established?</div>
+
+      <div class="people-box">
+        <div><b>A</b> to earn money for the town</div>
+        <div><b>B</b> to exhibit some local discoveries</div>
+        <div><b>C</b> to show that history can be fun</div>
+        <div><b>D</b> to make use of an empty building</div>
+        <div><b>E</b> to bring more visitors to the area</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">11</span> First answer <input data-lq="11" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">12</span> Second answer <input data-lq="12" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 13-14</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO things will visitors be able to do if they visit the museum again?</div>
+
+      <div class="people-box">
+        <div><b>A</b> learn new things</div>
+        <div><b>B</b> visit the new cafe</div>
+        <div><b>C</b> see different exhibitions</div>
+        <div><b>D</b> get cheaper entrance tickets</div>
+        <div><b>E</b> have the chance to win a prize</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">13</span> First answer <input data-lq="13" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">14</span> Second answer <input data-lq="14" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-20</div>
+      <div class="listen-inst">What does the speaker say that visitors can do in each of the following places in the museum? Write the correct letter, <b>A-D</b>, next to each question.</div>
+
+      <div class="people-box">
+        <div><b>A</b> watch a film</div>
+        <div><b>B</b> buy something</div>
+        <div><b>C</b> listen to a live talk</div>
+        <div><b>D</b> learn a practical skill</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">15</span> forge <input data-lq="15" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">16</span> market <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> bakery <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> building zone <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> hall <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> basement <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-26</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> According to Anna, why is Humboldt now largely forgotten?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) Many of his theories have been disproved.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) His ideas just seem like common sense these days.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) Some of the behaviours he advocated are damaging to the environment.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> How does Martin summarise Humboldt's thinking about the natural world?</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) It is driven by animals' quest for food.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) It is a system in which things affect each other.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) It is always changing in ways that are difficult to predict.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> What do Martin and Anna agree was the main reason that Humboldt was so famous in his lifetime?</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) He was often seen with other famous people.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) He became an expert in many different fields.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) His research was relevant to ordinary people.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> Anna says that Humboldt's books were popular because</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) they were an appealing mixture of science and literature.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) they explained complex ideas in an accessible way.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) they contained practical advice that people could use.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">25</span> Martin and Anna compare Humboldt's books to Wikipedia to make the point that</div>
+        <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) they were regularly updated.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) they contained an enormous amount of detail.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) many different contributors helped to write them.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">26</span> What is Martin doing when he mentions President Jefferson?</div>
+        <label class="mcq-opt"><input type="radio" name="q26" value="A" data-lq-radio="26"> A) explaining how Humboldt formed his views on slavery</label>
+        <label class="mcq-opt"><input type="radio" name="q26" value="B" data-lq-radio="26"> B) demonstrating how influential Humboldt was in America</label>
+        <label class="mcq-opt"><input type="radio" name="q26" value="C" data-lq-radio="26"> C) criticising Humboldt for not challenging Jefferson's behaviour</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 27-30</div>
+      <div class="listen-inst">What do the students say were Humboldt's achievements when he visited the following places? Write the appropriate letter, <b>E-I</b>, for each question.</div>
+
+      <div class="people-box">
+        <div><b>E</b> worked out what caused a particular illness</div>
+        <div><b>F</b> discovered several previously unknown species</div>
+        <div><b>G</b> advised on how the economy could be developed</div>
+        <div><b>H</b> realised that human activities were altering the climate</div>
+        <div><b>I</b> confirmed the presence of an unusual geographical feature</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">27</span> Lake Valencia <input data-lq="27" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">28</span> Mount Chimborazo <input data-lq="28" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">29</span> Cuba <input data-lq="29" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">30</span> Venezuela <input data-lq="30" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Predicting volcanic disasters</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Indicator / Monitoring technique</b></div>
+        <div class="note-row">Hundreds of earthquakes caused by magma colliding with <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+        <div class="note-row">Seismometers - small devices to detect the <span class="qnum">32</span> <input data-lq="32" class="l-input"> of the ground and record the frequency of earthquakes.</div>
+        <div class="note-row">Spikes in <span class="qnum">33</span> <input data-lq="33" class="l-input"> could warn of worrying levels of volcanic activity.</div>
+        <div class="note-row">Visual information is normally collected by <span class="qnum">34</span> <input data-lq="34" class="l-input">.</div>
+        <div class="note-row">Changes in atmospheric <span class="qnum">35</span> <input data-lq="35" class="l-input">, especially rises in gases, e.g. CO2 or sulphur.</div>
+        <div class="note-row">Gas samples are collected and analysed using a type of <span class="qnum">36</span> <input data-lq="36" class="l-input"> detector.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Preparing for disaster</b></div>
+        <div class="note-row">Create a large enough <span class="qnum">37</span> <input data-lq="37" class="l-input"> zone around the volcano.</div>
+        <div class="note-row">Prepare for large-scale evacuation, bearing in mind that important roads and railway lines may become <span class="qnum">38</span> <input data-lq="38" class="l-input">.</div>
+        <div class="note-row">Have the funds put aside to deal with the emergency.</div>
+        <div class="note-row">Ensure there’s a sophisticated way to inform people about:</div>
+        <div class="note-row bullet">● the <span class="qnum">39</span> <input data-lq="39" class="l-input"> they face</div>
+        <div class="note-row bullet">● the response</div>
+        <div class="note-row">People whose homes are at risk from eruptions need to know:</div>
+        <div class="note-row bullet">● what to do in an emergency</div>
+        <div class="note-row bullet">● what essential <span class="qnum">40</span> <input data-lq="40" class="l-input"> to store in their homes in case of disaster</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Line graphs",
+    task2Type: "Two-part question",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The two line graphs below show New Zealand import figures from Australia and Japan in the years 1994 - 2004.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/WT1%20T17.png",
+    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>It can be difficult for small local shops to compete with large supermarkets and with on-line shops. How does this affect local communities? What could be done to improve this situation?<br/><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words.</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `CENTRAL HEATING
+
+Central heating refers to any system which warms a building by circulating heated fluid — most often air, water or steam — through its rooms, usually via piping or ducts. Throughout history, most central heating systems have used a fundamentally similar principle. The technology has advanced over time and some modern systems are impressively sophisticated, but essentially still work in the same way. Most modern central heating systems work by blowing hot air through ducts or pumping hot water through pipes.
+
+The first evidence of humans controlling home temperatures dates as far back as 3000 BC. Egyptologist Bob Briar notes that temperatures in Egypt are extreme due to a lack of humidity in arid desert regions, ranging from 0°C at night to 50°C at noon. Ancient Egyptians employed clever architectural design techniques to regulate this, incorporating pools of water into their homes which helped to channel the cool desert breeze inside during the day, while storing daytime heat to create a comfortably habitable climate at night.
+
+Central heating systems as we would recognise them today were invented in Ancient Greece around 350 BCE. These early designs were fuelled by a central furnace, from which hot air was circulated throughout the building via a hypocaust — a series of brick pipes built into the walls and floors. However, these systems were only found within the homes of the affluent, as well as some public buildings such as temples. Later, hypocausts were also employed by the Ancient Romans to heat their public baths, where they were used to warm the sweat rooms. In some towns, geothermal energy was also harnessed via a local system of hot springs which filled the baths to temperatures of over 70°C.
+
+Around the turn of the 19th century, another form of central heating was developed which circulated steam instead of hot air. In his home, inventor of the steam engine James Watt built the first working system in the 1790s, aided by his associate Matthew Bolton. The prototype included one of the first radiators, which was made of copper and was likely considerably smaller than modern radiators due to the high temperatures steam allows. This benefit was also one of the technology's drawbacks as it increases the chance of burning. Steam systems are considered more dangerous, complex and noisy than other types of central heating. As a result, they are rarely used to heat individual homes these days. However, they are used on larger scales, probably the most famous example being the New York City steam system in lower Manhattan. Every year, it pumps 11 million tonnes of steam from generating stations into local apartments and businesses.
+
+Hydronic heating systems are probably the most common type of heating in modern homes. They heat water in a central boiler and pump it through metal pipes to the rest of the building. One of the first examples was used in 1710 to heat the Summer Palace in St Petersburg, Russia. However, it wasn't until 1836, when an English civil engineer called Thomas Tredgold developed the technology, that these systems really took off. This was followed by rapid development of the technology and by the late 19th century low-cost radiators could be found across the USA and Europe. By 2011, at least 83% of all English and Welsh households used gas or oil boilers within hydronic central heating systems.
+
+A crucial part of these modern systems is the thermostat. This is a device containing a sensor to detect the ambient temperature of the room and is most commonly used to switch a boiler on and off. It is located far from the water heater itself, usually in the middle of the house, and the two devices are connected by two long wires. By placing it at a significant distance from any radiators, it can more accurately measure the ambient temperature. The user sets their desired temperature by turning a knob or programming a digital display via buttons. When the sensor detects that it is too cold, it connects the two wires together, activating the boiler. After the heat has risen to an appropriate level, it disconnects the two wires, which shuts off the heat.
+
+So-called smart thermostats have entered the market recently and allow homeowners to control the temperature of their houses more precisely by incorporating smart phone apps and advanced timers. Some can also even learn homeowners’ habits and adapt automatically to suit their needs. They can be easily retrofitted to many existing central heating systems thanks to the fact that even the most advanced models function in essentially the same way — they simply turn the boiler on when it is too cold and off when it is too hot. Fitting one is often simple, involving removal of the old thermostat using a screwdriver and attachment of the new, smart model into the same socket.
+
+Modern central heating systems are much more efficient than ever before. Because it is only activated when necessary, the boiler consumes less energy overall. Some smart heating systems even have the ability to detect which rooms are occupied and operate radiators to ensure only those which are in use are heated. Efficiency will continue to be a driving force in the improvement of system designs, as energy prices continue to rise. While looking for ways to reduce energy bills and the cost of the technology decreases, consumers will turn to smart central heating systems to meet their heating needs.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 1 - 6",
+            instructions: [
+              "Look at statements 1 - 6 and the list of central heating systems below.",
+              "Match each statement with the correct system.",
+              "Write the appropriate letter in answer boxes 1 - 6.",
+              "NB There are more questions than letters."
+            ],
+            endings: {
+              A: "Egyptian system",
+              B: "Greek system",
+              C: "Roman system",
+              D: "Steam system",
+              E: "Hydronic system"
+            },
+            items: [
+              { q: 1, text: "It was only found in religious buildings and homes of the wealthy." },
+              { q: 2, text: "It was unsafe because parts of it were incredibly hot." },
+              { q: 3, text: "It utilised the earth’s natural supply of warm water." },
+              { q: 4, text: "It used the sun to heat water for warmth at night." },
+              { q: 5, text: "Nowadays, it is generally only used to heat large buildings or urban areas, not single buildings." },
+              { q: 6, text: "It was the first to carry hot water through pipes." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 7 - 9",
+            instructions: [
+              "Complete the diagram.",
+              "Use NO MORE THAN TWO WORDS from Reading Passage 1, Central Heating.",
+              "Write them in answer boxes 7 - 9."
+            ],
+            imageSrc: "https://audio.ieltsmock.org/Test17%207-9D%20R.png",
+            imageAlt: "Central heating thermostat diagram for Questions 7 to 9",
+            items: [
+              { q: 7, text: "Because of its location, the sensor only measures", tail: "." },
+              { q: 8, text: "If room is warm enough,", tail: "will disengage." },
+              { q: 9, text: "Radiators are located far from", tail: "." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 10 - 13",
+            instructions: [
+              "Complete the notes.",
+              "Use NO MORE THAN THREE WORDS from Reading Passage 1, Central Heating.",
+              "Write them in answer boxes 10 - 13."
+            ],
+            items: [
+              { q: 10, text: "Integration with", tail: "allows more exact temperature control." },
+              { q: 11, text: "Smart thermostats can easily be fitted to older systems using a", tail: "to replace the redundant model." },
+              { q: 12, text: "Only heats rooms which are", tail: "." },
+              { q: 13, text: "", tail: "of modern central heating has greatly increased." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `THE ISLAND OF SKYE
+
+Skye is truly a landscape fashioned by geology. Renowned for its ancient formations, this rugged island is home to some of the oldest rocks on Earth. The sheer variety of life demonstrated by these fossils can be explained by the different climatic conditions which Scotland underwent as a result of the movement of huge tectonic plates, causing this country to drift northwards from an original position near the South Pole to the equator, and beyond. Over huge periods of time, the island endured everything from arctic conditions to a tropical climate and even hot deserts, resulting in some of Scotland’s most dramatic scenery, with towering pinnacles looking out over the Atlantic.
+
+The island’s oldest rocks are the Lewisian gneisses of the Sleat Peninsula, formed underground 2.8 billion years ago from a variety of even older rocks. These were forced to the surface about 1.1 billion years ago before being buried by several thousand metres of gritty and pebbly sandstones from fast-flowing rivers. Looking down upon the island from above, large extinct volcanoes - now much eroded - can be seen forcing their way through the centre of this ancient mass, forming the island’s lofty Cuillin hills. From their famous jagged peaks, peregrines and golden eagles watch over the lands below. Apart from these raptors and the occasional rock climber, these heights are devoid of life. It is necessary to descend a little in order to reach the first upland inhabitants of the island, the abundant red deer, which thrive here thanks to Skye’s distinctive geology.
+
+Towards the end of Scotland’s last glacial period, approximately 15,000 years ago, a huge sheet of ice completely covering the island began to melt, exposing stony soils. This, combined with the island’s position on the exposed west coast of Britain, notable for its above-average rainfall, resulted in extremely boggy terrain. Plants attracted to the resulting acidic conditions - such as sedges and lichens - began to colonise the landscape, followed by scattered alpines and a variety of rare plants including butterwort, notable for its unusual method of trapping and consuming insects on its sticky leaves. These prove ineffective against larger herbivores though, including the aforementioned deer who feed indiscriminately. Interestingly, perhaps due to the red deer’s dominance, there are relatively few other established land mammal populations on the island. However, with the recent opening of the Skye Bridge, connecting the island to the mainland, further species - most notably pine martens, elusive woodland creatures similar to large weasels - have also arrived and settled permanently.
+
+Although the distance from the northernmost point of Skye to its southernmost is a mere 65 miles, the island’s coastline amounts to an extraordinary 456 miles. This gives some idea of the intricate coastline and all the bays and headlands that surround Skye and harbour the majority of its unique ecosystems. Fishermen, as well as otters and mink, are attracted to the rich abundance of shellfish to be found in the island’s coastal inlets and reefs. Above these, the high columnal cliffs provide nesting spots and lookouts for white-tailed sea eagles which take fish and the aforementioned small mammals directly from the sea. Below these cliffs, Skye’s numerous grey and common seals can be spotted entering and exiting the sea from their bases on the many flat islets around the southern and western coast, which mirror a geological feature of particular note known as ‘MacLeod’s tables’ - flat-topped hills formed by the erosion of paleocene lavas. One further feature of Skye’s coastal geology is that the sheltered inlets provide an ideal refuge for groups of dolphins and porpoises, away from the storm of the Atlantic.
+
+Further out towards this oceanic expanse, a wealth of species take advantage of the nutrient-rich waters typical of the Sea of the Hebrides. The first benefactors are plankton, which bloom each Spring and attract a host of predators including forage fish, such as herring. The most renowned visitor to the island’s waters, the colossal basking shark, also feasts during these springtime occurrences and can often be spotted from island viewpoints doing so. Vast kelp forests, which thrive in such waters, especially on relatively shallow bedrock to which they can easily anchor, dominate the seabed further out to sea and play a vital role in maintaining the nutrient quota. The plant’s incredible height - up to thirty metres - also provides living space for a number of species. In addition, when the vegetation eventually dies, it produces flakes of plant material which break down and dissolve, in the process providing food for single-celled animals.
+
+The vast windy open waters to the south-west of Skye mean it has great potential as a base for wind farms and the harvesting of renewable energy, though this is not the only example of Skye’s inhabitants benefitting from their host’s billion-year history. Land in the east of the island, where limestones created a smooth well-drained area of grassy slopes, were long ago found to be particularly fertile and continue to be farmed. Nowadays it is wildlife and outdoor tourism that form the main economy of the island. In recent years, tourism itself has been boosted thanks to the featuring of the island in films, such as Prometheus which prominently featured the striking blocks and pinnacles of the Trotternish peninsula, the result of basalt lava landslides around fifty million years ago.`,
+        blocks: [
+          {
+            type: "sentenceGaps",
+            title: "Questions 14 - 16",
+            instructions: [
+              "Complete the sentences.",
+              "Use NO MORE THAN TWO WORDS AND / OR A NUMBER from Reading Passage 2, The Island of Skye, for each answer.",
+              "Write them in answer boxes 14 - 16."
+            ],
+            items: [
+              { q: 14, text: "The first geological formations appeared on Skye approximately", tail: "ago." },
+              { q: 15, text: "One of the stranger organisms on the island is", tail: ", which is a carnivorous plant." },
+              { q: 16, text: "", tail: "has contributed to the introduction of new mammals to the island." }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 17 - 20",
+            instructions: [
+              "Do the statements below agree with the information given in Reading Passage 2, The Island of Skye?",
+              "In answer boxes 17 - 20, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 17, text: "The changing location of Skye has allowed a diverse range of organisms to inhabit the island over history." },
+              { q: 18, text: "The highest volcanic terrains of Skye are unable to support life." },
+              { q: 19, text: "The flat-topped hills near the coast provide a habitat for marine mammals." },
+              { q: 20, text: "Visitors to the island provide a greater source of income than fishing or energy production." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 21 - 27",
+            instructions: [
+              "Complete the table.",
+              "Use NO MORE THAN THREE WORDS from Reading Passage 2, The Island of Skye.",
+              "Write them in answer boxes 21 - 27."
+            ],
+            items: [
+              { q: 21, text: "The shifting of tectonic plates forced Scotland past the equator, so Skye experienced a range of", tail: "." },
+              { q: 22, text: "Exposure of stony soil by melting glacier and high", tail: "created boggy, acidic terrain and growth of plant life." },
+              { q: 23, text: "Very extensive coastline and sheltered bays provide food for marine mammals such as", tail: "." },
+              { q: 24, text: "Waters are protected from the effect of the", tail: ", allowing the appearance of dolphins and porpoises." },
+              { q: 25, text: "Shallow ocean bedrock creates ideal conditions for the growth of", tail: "." },
+              { q: 26, text: "Large stretches of", tail: "allow construction of wind farms." },
+              { q: 27, text: "Dramatic landscapes formed over millions of years led to the appearance of the island in several", tail: "." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `RATIONALITY COMMUNITIES
+
+A
+Rationality is defined as the quality or state of being reasonable. Being a "rational person" involves basing one’s decisions on consideration of facts and logical thinking, rather than on intuition, belief and emotion as is the natural tendency of human beings. The study of rationality is a blend of philosophy, economics, sociology, psychology, evolutionary biology and political science. People who identify as "rationalists" strive to improve their critical thinking and decision-making skills in order to live in a more rational manner.
+
+B
+Since the turn of the 21st century, rationality has experienced a rising popularity and several devoted online communities have formed to champion and teach rational thinking. Perhaps the most notable of these is Less Wrong, a community started in 2006 by artificial intelligence researcher Eliezer Yudkowsky and economist Robin Hanson. Any community member can participate by attending regular 'physical' meetups in different cities around the globe or spark debate by posting on its website or forum. User Raemon attempts to define what “the rationalist community” consists of. He outlines two levels of the community as he sees it: the ‘Rationalsphere’, comprising everyone with an interest in rationality, regardless of their interest in joining a community; and the ‘Rationality Community’, containing those who want to connect over their interest.
+
+C
+He goes on to define features of those two levels. In reference to the ‘Rationalsphere’, he adds 'overlapping patterns of thought', stating that, although there is no one feature to define people in this camp, they share some habits and patterns, such as being attentive to the unreliability of one’s mind or being willing to change one’s preconceived ideas. He further highlights three focus areas: truthseeking, impact and what he simply terms as ‘human’. The first deals with aiming to improve our thinking and applying that knowledge to better understand the world, while the next concerns applying that new mindset to make a real difference in the world. The final focus area relates to one's own life and how it can be improved along with the lives of those close to us through the application of rationality techniques. The 'Rationality Community' is still centred on these same ideals, yet is able to focus on them more intensely due to being directly involved with a like-minded set of others. The two aforementioned camps along with the focus areas mentioned are active rationality community examples of Yudkowsky’s theory that it is possible to improve the quality of our decision-making processes by applying logic and understanding of probability to our day to day lives.
+
+D
+The standard process for debate on Less Wrong involves community-generated articles prompting responses from other community members through the Less Wrong voting system. Readers can award points for the usefulness or not of the piece, from which users are awarded 'karma'. The higher this is, the more respected and valued a user’s contributions are deemed to be. Through this system on its website and forum, Less Wrong community members debate concepts such as decision making and economic theory, for example, as well as training each other in practical techniques. The project has spawned other rationality communities, including the Center for Applied Rationality, a non-profit organisation in Berkeley, California which runs workshops on critical thinking and setting goals, and offline clubs, such as the New York City Sceptics and Bay Area Rationalist Community.
+
+E
+One motivation for the study of rationality techniques is the view that humans are naturally irrational creatures. Science writer David Berreby notes that people generally cannot tell when they are being rational, cannot become more so by willpower alone and often believe their behaviour is rational when, in fact, it is not. He raises the example of court judges, whose remit is to be unbiased authorities of the law. In a research study conducted by German psychologists Englich, Mussweiler and Strack, it was found that judges who rolled a die before adjudicating a case would give a longer sentence if a higher number came up than those who rolled a lower number. This demonstrates that even trained rational thinkers — and judges surely fall into this category — are influenced by natural irrational tendencies.
+
+F
+However, not everyone thinks that people are naturally irrational and require “fixing”. Dr Steven Mazie, a correspondent for The Economist, believes this idea stems from what he calls a "faddish denial that human beings can think straight". He is of the opinion that humans are rational creatures, despite the current trend to cast them in the opposite light. Other commentators have also called into question the fundamental basis of rationality communities such as Less Wrong — that being irrational is a bad thing. Henry Brighton, professor of computer science at Tilburg University, explains that objective data is a rarity in most real-world situations. As a result, logical formulations are an inappropriate method of decision-making and most important decisions rely, at least partially, on a person's subjective preferences.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 28 - 31",
+            instructions: [
+              "Reading Passage 3, Rationality Communities has six paragraphs, A - F.",
+              "Which paragraph contains the following information?",
+              "Write the appropriate letters, A - F, in answer boxes 28 - 31.",
+              "NB There are more options than answers."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F"
+            },
+            items: [
+              { q: 28, text: "A reference to people in positions of authority acting irrationally." },
+              { q: 29, text: "A reference to the idea that thinking rationally will improve the choices a person makes." },
+              { q: 30, text: "A reference to the factors that may negatively affect people's decisions." },
+              { q: 31, text: "A reference to people not having sufficient information to make rational decisions." }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 32 - 33",
+            instructions: [
+              "Which TWO of the following statements are true of the Rationality Community?",
+              "Choose TWO letters, A-E. Type one letter in each box."
+            ],
+            choices: [
+              { letter: "A", text: "Its active members are known as the 'Rationalsphere'." },
+              { letter: "B", text: "Its members must be focused on understanding and correcting their own thoughts and prejudices." },
+              { letter: "C", text: "It is interested in the practical application of rationalist theory." },
+              { letter: "D", text: "Its goals are rendered more easily attainable thanks to its cooperative nature." },
+              { letter: "E", text: "It originated from Eliezer Yudkowsky's ideas about the potential use of logic to guide daily life." }
+            ],
+            items: [
+              { q: 32, text: "First answer" },
+              { q: 33, text: "Second answer" }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 34 - 35",
+            instructions: [
+              "Which TWO of the following statements are true of Less Wrong?",
+              "Choose TWO letters, A-E. Type one letter in each box."
+            ],
+            choices: [
+              { letter: "A", text: "It expanded from a real world community into a global online network." },
+              { letter: "B", text: "Its interaction centres around the analysis of thoughts and theories written by the site's users." },
+              { letter: "C", text: "Active users are paid a fee for their contributions to the site." },
+              { letter: "D", text: "The site has implemented features which allow members to predict the quality of other users' output." },
+              { letter: "E", text: "The community has recently begun working with others to reach a common goal." }
+            ],
+            items: [
+              { q: 34, text: "First answer" },
+              { q: 35, text: "Second answer" }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 36 - 40",
+            instructions: [
+              "Look at statements 36 - 40 and the list of people below.",
+              "Match each statement with the correct person.",
+              "Write the appropriate initials of the person in answer boxes 36 - 40."
+            ],
+            endings: {
+              EY: "Eliezer Yudkowsky",
+              DB: "David Berreby",
+              EMS: "Englich, Mussweiler and Strack",
+              SM: "Steven Mazie",
+              HB: "Henry Brighton"
+            },
+            items: [
+              { q: 36, text: "Believes it is currently fashionable to negatively portray the rationality of people." },
+              { q: 37, text: "Regards rationality as something beyond human control." },
+              { q: 38, text: "Revealed the ease with which decision-making can be distorted." },
+              { q: 39, text: "Believes there is sometimes a benefit to thinking irrationally." },
+              { q: 40, text: "Collaborated with an academic from a different field of study." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -7169,6 +8173,8 @@ export const PROTECTED_TEST_CONTENT = {
   ielts13: test13,
   ielts14: test14,
   ielts15: test15,
+  ielts16: test16,
+  ielts17: test17,
 };
 
 export function getProtectedTestContent(testId) {

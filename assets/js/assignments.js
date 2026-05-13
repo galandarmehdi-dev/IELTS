@@ -566,7 +566,7 @@
         const attempted = Number(summary.attempted || 0);
         const skippedNoEmail = Number(summary.skippedNoEmail || 0);
         const skippedDuplicate = Number(summary.skippedDuplicate || 0);
-        if (attempted > 0) {
+        if (attempted > 0 || skippedNoEmail > 0 || skippedDuplicate > 0) {
           let message = `Emails sent: ${sent}\nFailed: ${failed}\nMissing emails: ${skippedNoEmail}\nDuplicate-skipped: ${skippedDuplicate}`;
           if (failed > 0) {
             const failures = Array.isArray(summary.failures) ? summary.failures : [];

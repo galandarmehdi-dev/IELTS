@@ -258,15 +258,6 @@
     setTimeout(updateExamNavHeightVar, 0);
   } catch (e) {}
 
-  try {
-    const __header = document.querySelector(".home-header");
-    if (__header) {
-      window.addEventListener("scroll", () => {
-        __header.classList.toggle("is-scrolled", window.scrollY > 4);
-      }, { passive: true });
-    }
-  } catch (e) {}
-
   window.IELTS = window.IELTS || {};
   window.IELTS.UI = {
     $,

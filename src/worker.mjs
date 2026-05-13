@@ -909,11 +909,6 @@ async function handleContactApi(request, env) {
 async function handleAdminApi(request, env) {
   const url = new URL(request.url);
   const action = String(url.searchParams.get("action") || "").trim();
-  const assignmentGetAdminActions = new Set(["listAssignments", "assignmentStudents"]);
-  const assignmentGetStudentActions = new Set(["studentAssignments", "assignmentAccess"]);
-  const assignmentPostAdminActions = new Set(["createAssignment", "updateAssignment", "deleteAssignment", "assignmentStudentsBulk"]);
-  const assignmentPostStudentActions = new Set(["markAssignmentStarted", "markAssignmentComplete"]);
-
   if (request.method === "GET" && action === "session") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error, authorized: false });
@@ -934,68 +929,6 @@ async function handleAdminApi(request, env) {
       ok: true,
       tenant,
     });
-  }
-
-  if (request.method === "GET" && assignmentGetAdminActions.has(action)) {
-    const auth = await authenticateAdmin(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
-  }
-
-  if (request.method === "GET" && assignmentGetStudentActions.has(action)) {
-    const auth = await authenticateUser(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    await appendAssignmentIdentityToSearchParams(backendUrl.searchParams, auth, env);
-    return proxyAssignmentAction(request, backendUrl.toString(), env, action);
-  }
-
-  if (request.method === "POST" && assignmentPostAdminActions.has(action)) {
-    const auth = await authenticateAdmin(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    const proxied = await proxyAssignmentActionPayload(request, backendUrl.toString(), env, action);
-    if (!proxied?.data || proxied.data.ok !== true) {
-      return json(proxied?.status || 200, proxied?.data || { ok: false, error: "Assignment backend request failed." });
-    }
-    if (action === "createAssignment" || action === "assignmentStudentsBulk" || action === "updateAssignment") {
-      const summary = await sendAssignmentNotificationsViaResend(env, proxied.data);
-      proxied.data.emailSummary = summary;
-      proxied.data.emailsSent = Number(summary.sent || 0);
-      proxied.data.failed = Number(summary.failed || 0);
-      proxied.data.missingEmails = Number(summary.skippedNoEmail || 0);
-      proxied.data.duplicateSkipped = Number(summary.skippedDuplicate || 0);
-      proxied.data.failures = Array.isArray(summary.failures) ? summary.failures : [];
-    }
-    return json(proxied.status, proxied.data);
-  }
-
-  if (request.method === "POST" && assignmentPostStudentActions.has(action)) {
-    const auth = await authenticateUser(request, env);
-    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
-    const backendUrl = new URL(env.ADMIN_BACKEND_URL);
-    backendUrl.search = url.search;
-    backendUrl.searchParams.set("t", String(Date.now()));
-    const rawBody = await request.clone().text().catch(() => "");
-    let payload = {};
-    try { payload = rawBody ? JSON.parse(rawBody) : {}; } catch (e) { payload = {}; }
-    const profile = await getLinkedPublicProfileForAuth(env, auth, getActorOrganizationId(auth)).catch(() => null);
-    const authEmail = normalizeEmail(auth?.user?.email || "");
-    payload.studentProfileId = oneLine(payload.studentProfileId || profile?.id || "");
-    payload.studentIdCode = oneLine(payload.studentIdCode || profile?.studentIdCode || "");
-    payload.officialEmail = normalizeEmail(payload.officialEmail || profile?.officialEmail || "");
-    payload.loginEmail = normalizeEmail(payload.loginEmail || authEmail || "");
-    payload.email = normalizeEmail(payload.email || authEmail || "");
-    payload.studentName = oneLine(payload.studentName || profile?.fullName || "");
-    const bodyText = JSON.stringify(payload);
-    return proxyAssignmentActionBody(request, backendUrl.toString(), env, action, bodyText);
   }
 
   if (request.method === "GET" && action === "classroomStudents") {
@@ -2419,98 +2352,6 @@ async function handleAdminApi(request, env) {
   }
 
   return json(405, { ok: false, error: "Method not allowed." });
-}
-
-async function appendAssignmentIdentityToSearchParams(searchParams, auth, env) {
-  if (!searchParams || !auth || !env) return;
-  const organizationId = getActorOrganizationId(auth);
-  const profile = await getLinkedPublicProfileForAuth(env, auth, organizationId).catch(() => null);
-  const authEmail = normalizeEmail(auth?.user?.email || "");
-  if (profile?.id) searchParams.set("studentProfileId", oneLine(profile.id));
-  if (profile?.studentIdCode) searchParams.set("studentIdCode", oneLine(profile.studentIdCode));
-  if (profile?.officialEmail) searchParams.set("officialEmail", normalizeEmail(profile.officialEmail));
-  if (authEmail) {
-    searchParams.set("email", authEmail);
-    searchParams.set("loginEmail", authEmail);
-  }
-  if (profile?.fullName) searchParams.set("studentName", oneLine(profile.fullName));
-}
-
-async function proxyAssignmentActionBody(request, backendUrl, env, action, bodyText) {
-  const method = String(request.method || "POST").toUpperCase();
-  const signedUrl = await buildSignedAppsScriptUrl(backendUrl, method, bodyText, env);
-  const upstream = await fetch(signedUrl, {
-    method,
-    headers: await buildAppsScriptHeaders(request, env, signedUrl, bodyText),
-    body: bodyText,
-  });
-  return proxyAssignmentActionPayloadFromUpstream(upstream, action);
-}
-
-function looksLikeAssignmentSuccessPayload(action, data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
-  if (Array.isArray(data.assignments)) return true;
-  if (Array.isArray(data.students)) return true;
-  if (Object.prototype.hasOwnProperty.call(data, "access")) return true;
-  if (Object.prototype.hasOwnProperty.call(data, "assignmentId")) return true;
-  if (Object.prototype.hasOwnProperty.call(data, "assignment")) return true;
-  if (action === "markAssignmentStarted" || action === "markAssignmentComplete") return true;
-  return false;
-}
-
-async function proxyAssignmentActionPayloadFromUpstream(upstream, action) {
-  const status = upstream.status;
-  const contentType = String(upstream.headers.get("content-type") || "").toLowerCase();
-  const raw = await upstream.text().catch(() => "");
-
-  let parsed = null;
-  try { parsed = JSON.parse(raw); } catch (e) { parsed = null; }
-
-  if (!parsed || typeof parsed !== "object") {
-    return {
-      status: status >= 400 ? status : 200,
-      data: {
-        ok: false,
-        error: "Assignment backend returned a non-JSON response. Apps Script action may be missing or returning HTML/text.",
-        action,
-        upstreamStatus: status,
-        upstreamContentType: contentType || "unknown",
-      },
-    };
-  }
-
-  if (parsed.ok === true) return { status, data: parsed };
-
-  if (parsed.ok === false) {
-    return {
-      status: status >= 400 ? status : 200,
-      data: { ...parsed, ok: false, action, upstreamStatus: status },
-    };
-  }
-
-  if (looksLikeAssignmentSuccessPayload(action, parsed)) {
-    return { status, data: { ok: true, ...parsed } };
-  }
-
-  return {
-    status: status >= 400 ? status : 200,
-    data: {
-      ok: false,
-      error: oneLine(parsed.error || parsed.message || "Assignment backend returned an unexpected response shape."),
-      action,
-      upstreamStatus: status,
-    },
-  };
-}
-
-async function proxyAssignmentActionPayload(request, backendUrl, env, action) {
-  const upstream = await proxy(request, backendUrl, env);
-  return proxyAssignmentActionPayloadFromUpstream(upstream, action);
-}
-
-async function proxyAssignmentAction(request, backendUrl, env, action) {
-  const normalized = await proxyAssignmentActionPayload(request, backendUrl, env, action);
-  return json(normalized.status, normalized.data);
 }
 
 async function authenticateAdmin(request, env) {
@@ -6584,35 +6425,6 @@ function normalizeMessage(value) {
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
-}
-
-async function sendViaResend(env, { to, subject, text, html }) {
-  const apiKey = String(env?.RESEND_API_KEY || "").trim();
-  if (!apiKey) return { ok: false, error: "RESEND_API_KEY not configured" };
-  try {
-    const body = {
-      from: "IELTS Mock <no-reply@ieltsmock.org>",
-      to: [String(to || "")],
-      subject: String(subject || ""),
-      text: String(text || ""),
-    };
-    if (html) body.html = String(html);
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => "");
-      return { ok: false, error: `Resend HTTP ${res.status}: ${errBody.slice(0, 200)}` };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: String(e?.message || "Network error") };
-  }
 }
 
 function buildAssignmentEmailText(fullName, title, dueDate, studentIdCode) {

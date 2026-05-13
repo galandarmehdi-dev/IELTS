@@ -3096,6 +3096,25 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
 .hs-product-card-body .hero-focus-btn:hover {
   background: #1d4ed8;
 }
+.hs-product-card-body .hpc-load-btn {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  height: 32px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255,255,255,.3);
+  letter-spacing: .01em;
+  transition: color .15s;
+}
+.hs-product-card-body .hpc-load-btn:hover {
+  color: rgba(255,255,255,.6);
+}
 
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 1024px) {

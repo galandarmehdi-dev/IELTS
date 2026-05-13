@@ -1,6 +1,5 @@
 .DS_Store
 assets/.DS_Store
-.DS_Store
 
 # wrangler files
 .wrangler
@@ -9,3 +8,9 @@ assets/.DS_Store
 .env*
 !.env.example
 node_modules/
+
+# local tooling / drafts
+.claude/
+src/appsscript.txt
+wrangler.staging.jsonc
+.tmp_*

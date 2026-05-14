@@ -3204,6 +3204,7 @@
       UI().setExamNavStatus("Status: Classroom analytics");
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "classrooms"); } catch (e) {}
       await loadClassroomProgressData(forceRefresh);
+      await loadClassroomCoverageData(forceRefresh);
       if ($("adminClassroomManagementPanel")?.open) {
         await loadClassroomAdminData(forceRefresh);
       }
@@ -3355,6 +3356,8 @@
     const adminStudentSearchInput = $("adminStudentSearchInput");
     const adminClassroomSelect = $("adminClassroomSelect");
     const adminClassroomStudentSearchInput = $("adminClassroomStudentSearchInput");
+    const adminClassCoverageTestFilter = $("adminClassCoverageTestFilter");
+    const adminClassCoverageScopeFilter = $("adminClassCoverageScopeFilter");
     const adminExistingAccountSearch = $("adminExistingAccountSearch");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
     const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
@@ -3485,6 +3488,7 @@
 
     const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [], loaded: false, loading: false };
     const classroomProgressState = { summary: null, classrooms: [], studentAttemptsByCode: new Map(), selectedStudentId: "", selectedClassroomId: "" };
+    const classroomCoverageState = { tests: [], classrooms: [], students: [], selectedTestId: "", scope: "all", selectedClassroomId: "" };
 
     function setClassroomStatus(message, tone = "") {
       const el = $("adminClassroomsStatus");
@@ -3773,6 +3777,156 @@
       if ($("adminClassProgressLatest")) $("adminClassProgressLatest").textContent = fmtDate(safe.latestSubmittedAt);
     }
 
+    function setClassCoverageStatus(message, tone = "") {
+      const el = $("adminClassCoverageStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = tone === "error" ? "#991b1b" : tone === "success" ? "#166534" : "";
+    }
+
+    function populateCoverageFilters() {
+      const selectedClassroomId = String(classroomProgressState.selectedClassroomId || classroomCoverageState.selectedClassroomId || "");
+      const selectedRoom = (classroomCoverageState.classrooms || []).find(
+        (room) => String(room?.id || "") === selectedClassroomId
+      ) || null;
+      const takenTestsForSelectedClass = selectedRoom
+        ? (classroomCoverageState.tests || []).filter((testId) => {
+            const stats = selectedRoom?.coverageByTest?.[testId] || {};
+            const fullAttempted = Number(stats.fullAttemptedStudents || 0);
+            const practiceAttempted = Number(stats.practiceAttemptedStudents || 0);
+            return (fullAttempted + practiceAttempted) > 0;
+          })
+        : [];
+
+      if (adminClassCoverageTestFilter) {
+        const current = String(classroomCoverageState.selectedTestId || "");
+        adminClassCoverageTestFilter.innerHTML = `<option value="">Select taken test</option>` +
+          takenTestsForSelectedClass
+            .map((testId) => `<option value="${escapeHtml(testId)}">${escapeHtml(String(testId || "").toUpperCase())}</option>`)
+            .join("");
+        if (current && takenTestsForSelectedClass.includes(current)) {
+          adminClassCoverageTestFilter.value = current;
+        } else if (takenTestsForSelectedClass[0]) {
+          classroomCoverageState.selectedTestId = String(takenTestsForSelectedClass[0]);
+          adminClassCoverageTestFilter.value = classroomCoverageState.selectedTestId;
+        } else {
+          classroomCoverageState.selectedTestId = "";
+          adminClassCoverageTestFilter.value = "";
+        }
+      }
+      if (adminClassCoverageScopeFilter) {
+        adminClassCoverageScopeFilter.value = classroomCoverageState.scope === "untaken" ? "untaken" : "all";
+      }
+    }
+
+    function renderClassCoverageSummaryTable() {
+      const tbody = $("adminClassCoverageSummaryTbody");
+      if (!tbody) return;
+      const selectedTestId = String(classroomCoverageState.selectedTestId || "");
+      const selectedClassroomId = String(classroomProgressState.selectedClassroomId || classroomCoverageState.selectedClassroomId || "");
+      const rows = [];
+      (classroomCoverageState.classrooms || []).forEach((room) => {
+        if (selectedClassroomId && String(room?.id || "") !== selectedClassroomId) return;
+        const testIds = selectedTestId ? [selectedTestId] : (classroomCoverageState.tests || []);
+        testIds.forEach((testId) => {
+          if (!testId) return;
+          const stats = room?.coverageByTest?.[testId] || {
+            fullAttemptedStudents: 0,
+            fullSubmittedStudents: 0,
+            practiceAttemptedStudents: 0,
+            practiceSubmittedStudents: 0,
+          };
+          const fullAttempted = Number(stats.fullAttemptedStudents || 0);
+          const fullSubmitted = Number(stats.fullSubmittedStudents || 0);
+          const practiceAttempted = Number(stats.practiceAttemptedStudents || 0);
+          const practiceSubmitted = Number(stats.practiceSubmittedStudents || 0);
+          const totalAttempted = fullAttempted + practiceAttempted;
+          if (totalAttempted <= 0) return;
+          const studentCount = Number(room?.studentCount || 0);
+          const untaken = Math.max(0, studentCount - Math.max(fullAttempted, practiceAttempted));
+          rows.push({
+            classroomName: room?.name || "Classroom",
+            testId,
+            attemptedText: `F:${fullAttempted} / P:${practiceAttempted}`,
+            submittedText: `F:${fullSubmitted} / P:${practiceSubmitted}`,
+            untaken,
+          });
+        });
+      });
+
+      tbody.innerHTML = rows.map((row) => `
+        <tr class="ui-data-row">
+          <td>${escapeHtml(row.classroomName)}</td>
+          <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
+          <td>${escapeHtml(row.attemptedText)}</td>
+          <td>${escapeHtml(row.submittedText)}</td>
+          <td>${escapeHtml(String(row.untaken))}</td>
+        </tr>
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="5">No coverage data available yet.</td></tr>`;
+    }
+
+    function renderStudentCoverageTable() {
+      const tbody = $("adminClassCoverageStudentTbody");
+      if (!tbody) return;
+      const selectedTestId = String(classroomCoverageState.selectedTestId || "");
+      const scope = classroomCoverageState.scope === "untaken" ? "untaken" : "all";
+      const selectedClassroomId = String(classroomProgressState.selectedClassroomId || classroomCoverageState.selectedClassroomId || "");
+
+      if (!selectedTestId) {
+        tbody.innerHTML = `<tr class="ui-table-state-row"><td colspan="6">Select a taken test to see students.</td></tr>`;
+        return;
+      }
+
+      const rows = [];
+      (classroomCoverageState.students || []).forEach((student) => {
+        if (selectedClassroomId && String(student?.classroomId || "") !== selectedClassroomId) return;
+        const tests = [selectedTestId];
+        tests.forEach((testId) => {
+          const status = student?.tests?.[testId] || null;
+          const fullAttempted = !!status?.fullAttempted;
+          const practiceAttempted = !!status?.practiceAttempted;
+          const attempted = fullAttempted || practiceAttempted;
+          if (!attempted) return;
+          if (scope === "untaken" && attempted) return;
+          const fullSubmitted = !!status?.fullSubmitted;
+          const practiceSubmitted = !!status?.practiceSubmitted;
+          const modeLabel = fullAttempted && practiceAttempted
+            ? "Full + Practice"
+            : (fullAttempted ? "Full mock" : (practiceAttempted ? "Practice" : "—"));
+          const statusLabel = attempted
+            ? (fullSubmitted || practiceSubmitted ? "Submitted" : "Attempted")
+            : "Not taken";
+          const submittedAt = status?.fullLastSubmittedAt || status?.practiceLastSubmittedAt || "";
+          rows.push({
+            studentIdCode: student?.studentIdCode || "—",
+            name: student?.name || "Student",
+            classroomName: student?.classroomName || "—",
+            testId,
+            status: `${modeLabel} · ${statusLabel}`,
+            submittedAt,
+          });
+        });
+      });
+
+      tbody.innerHTML = rows.map((row) => `
+        <tr class="ui-data-row">
+          <td>${escapeHtml(row.studentIdCode)}</td>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${escapeHtml(row.classroomName)}</td>
+          <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
+          <td>${escapeHtml(row.status)}</td>
+          <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
+        </tr>
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="6">No student coverage rows match this filter.</td></tr>`;
+    }
+
+    function renderClassroomCoverageWorkspace() {
+      classroomCoverageState.selectedClassroomId = String(classroomProgressState.selectedClassroomId || classroomCoverageState.selectedClassroomId || "");
+      populateCoverageFilters();
+      renderClassCoverageSummaryTable();
+      renderStudentCoverageTable();
+    }
+
     function renderClassroomDirectory() {
       const wrap = $("adminClassroomDirectory");
       if (!wrap) return;
@@ -3896,6 +4050,7 @@
       if ($("adminSelectedClassroomPreviousMonthActive")) $("adminSelectedClassroomPreviousMonthActive").textContent = `Active students: ${Number(selected?.previousMonth?.activeStudentCount || 0)}`;
       renderClassroomOverviewChart(selected?.monthlySeries || []);
       renderSelectedClassroomStudents(selected);
+      renderClassroomCoverageWorkspace();
     }
 
     function renderStudentProgressDetail(data) {
@@ -3958,6 +4113,24 @@
       setClassroomProgressSummary(classroomProgressState.summary || {});
       renderSelectedClassroomWorkspace();
       setClassroomProgressStatus(`Loaded progress for ${Number(classroomProgressState.classrooms.length || 0)} classrooms.`, "success");
+    }
+
+    async function loadClassroomCoverageData(forceRefresh = false) {
+      if (!isAdminView()) return;
+      setClassCoverageStatus("Loading class exam coverage...");
+      const url = R()?.buildAdminApiUrl?.({ action: "classroomCoverage", refresh: forceRefresh ? "1" : "" });
+      if (!url) return;
+      const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassCoverageStatus(data?.error || "Could not load class exam coverage.", "error");
+        return;
+      }
+      classroomCoverageState.tests = Array.isArray(data.tests) ? data.tests : [];
+      classroomCoverageState.classrooms = Array.isArray(data.classrooms) ? data.classrooms : [];
+      classroomCoverageState.students = Array.isArray(data.students) ? data.students : [];
+      renderClassroomCoverageWorkspace();
+      setClassCoverageStatus(`Coverage loaded for ${classroomCoverageState.classrooms.length} classrooms across ${classroomCoverageState.tests.length} tests.`, "success");
     }
 
     async function openStudentProgressFromClassroom(studentIdCode) {
@@ -5856,7 +6029,13 @@ function startFreshExam() {
       else openAdminClassroomsView().catch((e) => setClassroomProgressStatus(e?.message || "Could not open classrooms.", "error"));
     };
     if (adminClassroomsRefreshBtn) adminClassroomsRefreshBtn.onclick = () => loadClassroomAdminData(true).catch(() => null);
-    if (adminClassroomProgressRefreshBtn) adminClassroomProgressRefreshBtn.onclick = () => loadClassroomProgressData(true).catch((e) => setClassroomProgressStatus(e?.message || "Could not load class progress.", "error"));
+    if (adminClassroomProgressRefreshBtn) {
+      adminClassroomProgressRefreshBtn.onclick = () =>
+        Promise.all([
+          loadClassroomProgressData(true),
+          loadClassroomCoverageData(true),
+        ]).catch((e) => setClassroomProgressStatus(e?.message || "Could not load class progress.", "error"));
+    }
     if (adminClassroomManagementPanel) {
       adminClassroomManagementPanel.addEventListener("toggle", () => {
         if (adminClassroomManagementPanel.open) {
@@ -5876,6 +6055,14 @@ function startFreshExam() {
       classroomProgressState.selectedClassroomId = String(adminClassroomSelect.value || "");
       renderSelectedClassroomWorkspace();
       $("adminStudentProgressDetail")?.classList.add("hidden");
+    });
+    if (adminClassCoverageTestFilter) adminClassCoverageTestFilter.addEventListener("change", () => {
+      classroomCoverageState.selectedTestId = String(adminClassCoverageTestFilter.value || "");
+      renderClassroomCoverageWorkspace();
+    });
+    if (adminClassCoverageScopeFilter) adminClassCoverageScopeFilter.addEventListener("change", () => {
+      classroomCoverageState.scope = String(adminClassCoverageScopeFilter.value || "") === "untaken" ? "untaken" : "all";
+      renderClassroomCoverageWorkspace();
     });
     if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {

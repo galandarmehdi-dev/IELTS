@@ -1288,6 +1288,69 @@
             </div>
           </div>
 
+          <div class="admin-detail-card">
+            <div class="admin-result-detail-top">
+              <div>
+                <div class="admin-detail-label">Exam coverage</div>
+                <h3 class="admin-classroom-section-title">Class exam coverage matrix</h3>
+              </div>
+            </div>
+            <p class="small" id="adminClassCoverageStatus">Coverage will show how many students in each class attempted/submitted each IELTS test.</p>
+            <div class="admin-results-toolbar ui-toolbar-grid">
+              <label class="admin-field">
+                <span>Test filter</span>
+                <select id="adminClassCoverageTestFilter">
+                  <option value="">All tests</option>
+                </select>
+              </label>
+              <label class="admin-field">
+                <span>Scope</span>
+                <select id="adminClassCoverageScopeFilter">
+                  <option value="all">All students</option>
+                  <option value="untaken">Only not taken</option>
+                </select>
+              </label>
+            </div>
+            <div class="admin-results-table-wrap">
+              <table class="admin-results-table">
+                <thead>
+                  <tr>
+                    <th>Classroom</th>
+                    <th>Test</th>
+                    <th>Attempted</th>
+                    <th>Submitted</th>
+                    <th>Untaken</th>
+                  </tr>
+                </thead>
+                <tbody id="adminClassCoverageSummaryTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="admin-detail-card">
+            <div class="admin-result-detail-top">
+              <div>
+                <div class="admin-detail-label">Student exam coverage</div>
+                <h3 class="admin-classroom-section-title">Students by test status</h3>
+              </div>
+            </div>
+            <div class="admin-results-table-wrap">
+              <table class="admin-results-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Classroom</th>
+                    <th>Test</th>
+                    <th>Status</th>
+                    <th>Last submitted</th>
+                  </tr>
+                </thead>
+                <tbody id="adminClassCoverageStudentTbody"></tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="admin-result-detail hidden ui-panel" id="adminStudentProgressDetail">
             <div class="admin-result-detail-top">
               <h2 id="adminStudentProgressTitle">Student progress</h2>

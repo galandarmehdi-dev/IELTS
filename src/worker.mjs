@@ -943,6 +943,12 @@ async function handleAdminApi(request, env) {
     return handleAdminClassroomProgress(request, env, auth);
   }
 
+  if (request.method === "GET" && action === "classroomCoverage") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminClassroomCoverage(request, env, auth);
+  }
+
   if (request.method === "GET" && action === "classroomStudentProgress") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -4906,6 +4912,170 @@ async function handleAdminClassroomProgress(request, env, auth) {
     });
   } catch (error) {
     return json(500, { ok: false, error: error?.message || "Could not load classroom progress." });
+  }
+}
+
+function normalizeCoverageTestId(value) {
+  const raw = oneLine(value || "").toLowerCase();
+  if (!raw) return "";
+  const fullMock = raw.match(/^ielts-full-(\d{1,3})$/i);
+  if (fullMock) return `ielts${Number(fullMock[1])}`;
+  const scoped = raw.match(/(?:ielts-reading-3parts|ielts-writing|ielts-listening)-0*(\d{1,3})$/i);
+  if (scoped) return `ielts${Number(scoped[1])}`;
+  const exact = raw.match(/^ielts(\d{1,3})$/i);
+  if (exact) return `ielts${Number(exact[1])}`;
+  const embedded = raw.match(/ielts(\d{1,3})/i);
+  if (embedded) return `ielts${Number(embedded[1])}`;
+  return "";
+}
+
+function extractCoverageTestIdFromAttempt(row) {
+  const inferred = inferObjectiveTestId(row || {}, row?.finalPayload || null);
+  return (
+    normalizeCoverageTestId(inferred) ||
+    normalizeCoverageTestId(row?.activeTestId) ||
+    normalizeCoverageTestId(row?.examId) ||
+    normalizeCoverageTestId(row?.exam_id) ||
+    ""
+  );
+}
+
+function buildClassroomCoveragePayload(progressPayload) {
+  const classrooms = Array.isArray(progressPayload?.classrooms) ? progressPayload.classrooms : [];
+  const attemptsByProfileId = progressPayload?.attemptsByProfileId instanceof Map
+    ? progressPayload.attemptsByProfileId
+    : new Map();
+
+  const testIds = new Set();
+  const studentRows = [];
+  const classroomRows = [];
+
+  classrooms.forEach((room) => {
+    const students = Array.isArray(room?.students) ? room.students : [];
+    const studentCount = students.length;
+    const perTestCounts = new Map();
+
+    students.forEach((student) => {
+      const profileId = oneLine(student?.studentProfileId || "");
+      const attempts = (attemptsByProfileId.get(profileId) || [])
+        .slice()
+        .sort((a, b) => Date.parse(String(b?.submittedAt || "")) - Date.parse(String(a?.submittedAt || "")));
+
+      const tests = {};
+      const seenByTest = new Set();
+      attempts.forEach((attempt) => {
+        const testId = extractCoverageTestIdFromAttempt(attempt);
+        if (!testId) return;
+        testIds.add(testId);
+        const mode = isPracticeExamId(attempt?.examId) ? "practice" : "full";
+        const seenKey = `${testId}:${mode}`;
+        if (seenByTest.has(seenKey)) return;
+        seenByTest.add(seenKey);
+        const submittedAt = oneLine(attempt?.submittedAt || "");
+        const submitted = !!submittedAt;
+        const existing = tests[testId] || {
+          fullAttempted: false,
+          fullSubmitted: false,
+          fullLastSubmittedAt: "",
+          practiceAttempted: false,
+          practiceSubmitted: false,
+          practiceLastSubmittedAt: "",
+          overallBand: null,
+        };
+        if (mode === "practice") {
+          existing.practiceAttempted = true;
+          existing.practiceSubmitted = existing.practiceSubmitted || submitted;
+          if (submittedAt && (!existing.practiceLastSubmittedAt || Date.parse(submittedAt) > Date.parse(existing.practiceLastSubmittedAt || ""))) {
+            existing.practiceLastSubmittedAt = submittedAt;
+          }
+        } else {
+          existing.fullAttempted = true;
+          existing.fullSubmitted = existing.fullSubmitted || submitted;
+          if (submittedAt && (!existing.fullLastSubmittedAt || Date.parse(submittedAt) > Date.parse(existing.fullLastSubmittedAt || ""))) {
+            existing.fullLastSubmittedAt = submittedAt;
+          }
+        }
+        existing.overallBand = toNullableBand(attempt?.overallBand);
+        tests[testId] = existing;
+
+        const bucket = perTestCounts.get(testId) || {
+          fullAttemptedStudents: 0,
+          fullSubmittedStudents: 0,
+          practiceAttemptedStudents: 0,
+          practiceSubmittedStudents: 0,
+        };
+        if (mode === "practice") {
+          bucket.practiceAttemptedStudents += 1;
+          if (submitted) bucket.practiceSubmittedStudents += 1;
+        } else {
+          bucket.fullAttemptedStudents += 1;
+          if (submitted) bucket.fullSubmittedStudents += 1;
+        }
+        perTestCounts.set(testId, bucket);
+      });
+
+      studentRows.push({
+        id: profileId,
+        studentIdCode: oneLine(student?.studentIdCode || ""),
+        name: oneLine(student?.fullName || "Student"),
+        officialEmail: normalizeEmail(student?.officialEmail || ""),
+        classroomId: oneLine(room?.id || ""),
+        classroomName: oneLine(room?.name || ""),
+        tests,
+      });
+    });
+
+    const coverageByTest = {};
+    Array.from(perTestCounts.keys()).forEach((testId) => {
+      const value = perTestCounts.get(testId) || {
+        fullAttemptedStudents: 0,
+        fullSubmittedStudents: 0,
+        practiceAttemptedStudents: 0,
+        practiceSubmittedStudents: 0,
+      };
+      coverageByTest[testId] = {
+        fullAttemptedStudents: Number(value.fullAttemptedStudents || 0),
+        fullSubmittedStudents: Number(value.fullSubmittedStudents || 0),
+        practiceAttemptedStudents: Number(value.practiceAttemptedStudents || 0),
+        practiceSubmittedStudents: Number(value.practiceSubmittedStudents || 0),
+      };
+    });
+
+    classroomRows.push({
+      id: oneLine(room?.id || ""),
+      name: oneLine(room?.name || "Classroom"),
+      studentCount: Number(studentCount || 0),
+      coverageByTest,
+    });
+  });
+
+  const sortedTestIds = Array.from(testIds).sort((a, b) => {
+    const ax = Number(String(a).replace(/[^\d]/g, "")) || 0;
+    const bx = Number(String(b).replace(/[^\d]/g, "")) || 0;
+    return ax - bx;
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    tests: sortedTestIds,
+    classrooms: classroomRows,
+    students: studentRows,
+  };
+}
+
+async function handleAdminClassroomCoverage(request, env, auth) {
+  try {
+    const payload = await buildClassroomProgressPayload(env, auth);
+    const coverage = buildClassroomCoveragePayload(payload);
+    return json(200, {
+      ok: true,
+      generatedAt: coverage.generatedAt,
+      tests: coverage.tests,
+      classrooms: coverage.classrooms,
+      students: coverage.students,
+    });
+  } catch (error) {
+    return json(500, { ok: false, error: error?.message || "Could not load classroom coverage." });
   }
 }
 

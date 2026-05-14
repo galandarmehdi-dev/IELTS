@@ -18,11 +18,11 @@
 .assignments-toolbar input[type="text"] {
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--neutral-200, #e5ecf6);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  background: #fff;
-  color: var(--neutral-900, #0f172a);
+  background: var(--surface-2);
+  color: var(--text);
   min-width: 160px;
 }
 
@@ -33,19 +33,20 @@
 }
 
 .assignment-card {
-  border: 1px solid var(--neutral-200, #e5ecf6);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface-1);
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  box-shadow: var(--shadow-sm);
   transition: box-shadow .15s;
 }
 
 .assignment-card:hover {
-  box-shadow: 0 4px 12px rgba(15,23,42,.08);
+  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
 }
 
 .assignment-card-header {
@@ -59,13 +60,13 @@
 .assignment-card-title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--neutral-900, #0f172a);
+  color: var(--text);
   flex: 1;
 }
 
 .assignment-card-meta {
   font-size: 13px;
-  color: var(--neutral-500, #5f6f88);
+  color: var(--text-sub);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -84,18 +85,18 @@
 }
 
 .assignment-badge.draft {
-  background: var(--neutral-100, #f1f5fb);
-  color: var(--neutral-600, #4b5f7f);
+  background: var(--surface-3);
+  color: var(--text-sub);
 }
 
 .assignment-badge.published {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(16,185,129,.12);
+  color: #10B981;
 }
 
 .assignment-badge.archived {
-  background: #fef3c7;
-  color: #92400e;
+  background: rgba(245,158,11,.10);
+  color: #F59E0B;
 }
 
 .assignment-card-actions {
@@ -107,19 +108,19 @@
 /* ─── Assignment Edit Panel ─── */
 
 .assignment-edit-panel {
-  border: 1px solid var(--neutral-200, #e5ecf6);
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--surface-1);
   padding: 20px 22px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .assignment-edit-panel h3 {
   font-size: 16px;
   font-weight: 700;
   margin: 0 0 16px;
-  color: var(--neutral-900, #0f172a);
+  color: var(--text);
 }
 
 .assignment-form-row {
@@ -135,7 +136,7 @@
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--neutral-500, #5f6f88);
+  color: var(--text-sub);
   flex: 1;
   min-width: 140px;
 }
@@ -145,11 +146,11 @@
 .assignment-form-row textarea {
   height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--neutral-200, #e5ecf6);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  background: #fff;
-  color: var(--neutral-900, #0f172a);
+  background: var(--surface-2);
+  color: var(--text);
   font-family: inherit;
 }
 
@@ -163,19 +164,20 @@
   margin-top: 8px;
   max-height: 220px;
   overflow: auto;
-  border: 1px solid rgba(16, 24, 40, 0.12);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface-2);
 }
 
 .assignment-target-item {
   width: 100%;
   border: 0;
-  border-bottom: 1px solid rgba(16, 24, 40, 0.08);
-  background: #fff;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
   text-align: left;
   padding: 10px 12px;
   cursor: pointer;
+  color: var(--text);
 }
 
 .assignment-target-item:last-child {
@@ -184,18 +186,18 @@
 
 .assignment-target-item:hover,
 .assignment-target-item.active {
-  background: #f1f5ff;
+  background: var(--surface-3);
 }
 
 .assignment-target-item-title {
   font-weight: 700;
-  color: #1f2937;
+  color: var(--text);
   font-size: 14px;
 }
 
 .assignment-target-item-meta {
   margin-top: 2px;
-  color: #667085;
+  color: var(--text-sub);
   font-size: 12px;
 }
 
@@ -203,7 +205,7 @@
 
 .assignment-students-panel {
   margin-top: 14px;
-  border-top: 1px solid var(--neutral-200, #e5ecf6);
+  border-top: 1px solid var(--border);
   padding-top: 14px;
 }
 
@@ -211,7 +213,7 @@
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 10px;
-  color: var(--neutral-900, #0f172a);
+  color: var(--text);
 }
 
 .assignment-student-checklist {
@@ -220,10 +222,10 @@
   gap: 6px;
   max-height: 280px;
   overflow-y: auto;
-  border: 1px solid var(--neutral-200, #e5ecf6);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--surface-2);
 }
 
 .assignment-student-check {
@@ -244,10 +246,11 @@
 
 .assignment-student-check-name {
   font-weight: 600;
+  color: var(--text);
 }
 
 .assignment-student-check-code {
-  color: var(--text-muted, #888);
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -264,6 +267,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  color: rgba(255,255,255,.70);
 }
 
 .student-assignments-list {
@@ -273,24 +277,25 @@
 }
 
 .student-assignment-card {
-  border: 1px solid rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: 12px;
-  background: rgba(255,255,255,.07);
+  background: rgba(255,255,255,.05);
   padding: 13px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  transition: background .12s;
+  transition: background .12s, border-color .12s;
 }
 
 .student-assignment-card:hover {
-  background: rgba(255,255,255,.13);
+  background: rgba(255,255,255,.09);
+  border-color: rgba(255,255,255,.16);
 }
 
 .student-assignment-card.completed {
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .student-assignment-info {
@@ -310,7 +315,7 @@
 
 .student-assignment-meta {
   font-size: 12px;
-  color: rgba(255,255,255,.6);
+  color: rgba(255,255,255,.52);
 }
 
 .student-assignment-due {

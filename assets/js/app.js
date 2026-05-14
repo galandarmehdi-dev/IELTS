@@ -3262,7 +3262,7 @@
       const options = (Array.isArray(classroomProgressState.classrooms) ? classroomProgressState.classrooms : [])
         .map((room) => `<option value="${escapeHtml(String(room.id || ""))}">${escapeHtml(String(room.name || "Classroom"))}</option>`)
         .join("");
-      select.innerHTML = `<option value="">Selected class</option>${options}`;
+      select.innerHTML = `<option value="__all__">All classrooms</option><option value="">Selected class</option>${options}`;
       if (current) select.value = current;
     }
 
@@ -3284,7 +3284,10 @@
           await loadClassroomProgressData(forceRefresh).catch(() => null);
         }
         populateQuestionAnalyticsClassroomFilter();
-        const selectedClassroomId = String($("qaClassroomFilter")?.value || classroomProgressState.selectedClassroomId || "");
+        const classroomFilterValue = String($("qaClassroomFilter")?.value || "");
+        const selectedClassroomId = classroomFilterValue === "__all__"
+          ? ""
+          : (classroomFilterValue || classroomProgressState.selectedClassroomId || "");
         const section = String($("qaSectionFilter")?.value || "all");
         const testId = String($("qaTestFilter")?.value || "");
         const minAttempts = Number($("qaMinAttemptsFilter")?.value || 1);

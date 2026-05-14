@@ -749,6 +749,7 @@ function getCleanHubViewFromPathname() {
     if (path === "/placement-test/") return "placementTest";
     if (path === "/vocabulary/") return "vocabulary";
     if (path === "/recent-questions/") return "recentQuestions";
+    if (path.startsWith("/admin/") || path === "/admin") return "adminResults";
   } catch (e) {}
   return "";
 }

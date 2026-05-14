@@ -1123,6 +1123,7 @@
       <button class="btn secondary" type="button" id="adminPageClassroomsBtn" aria-pressed="false">Classrooms</button>
       <button class="btn secondary" type="button" id="adminPageAssignmentsBtn" aria-pressed="false">Assignments</button>
       <button class="btn secondary" type="button" id="adminPageQuestionsBtn" aria-pressed="false">Questions</button>
+      <button class="btn secondary" type="button" id="adminPageQuestionAnalyticsBtn" aria-pressed="false">Question Analytics</button>
     </div>
 
     <div class="workspace-banner admin-banner ui-panel ui-panel-hero" id="adminResultsBanner">
@@ -1557,6 +1558,71 @@
       </div>
     </div>
     <!-- ─── End Questions page ─── -->
+
+    <div class="hidden" id="adminQuestionAnalyticsPage">
+      <div class="admin-result-detail ui-panel" style="margin-bottom:16px;">
+        <div class="admin-result-detail-top">
+          <h2>Question Analytics</h2>
+          <div class="admin-row-actions">
+            <button class="btn secondary" type="button" id="adminQuestionAnalyticsRefreshBtn">Refresh</button>
+          </div>
+        </div>
+        <p class="small" id="adminQuestionAnalyticsStatus">Loading question analytics…</p>
+
+        <div class="admin-results-summary ui-grid ui-grid-6">
+          <div class="admin-stat-card"><div class="admin-stat-label">Attempts analyzed</div><div class="admin-stat-value" id="qaSummaryAttempts">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Tests analyzed</div><div class="admin-stat-value" id="qaSummaryTests">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Questions analyzed</div><div class="admin-stat-value" id="qaSummaryQuestions">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Average wrong rate</div><div class="admin-stat-value" id="qaSummaryWrongRate">0%</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Hardest exam</div><div class="admin-stat-value admin-stat-small" id="qaSummaryHardestExam">—</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Most missed question</div><div class="admin-stat-value admin-stat-small" id="qaSummaryMostMissed">—</div></div>
+        </div>
+
+        <div class="admin-results-toolbar ui-toolbar-grid">
+          <label class="admin-field"><span>Section</span>
+            <select id="qaSectionFilter">
+              <option value="all">Both</option>
+              <option value="listening">Listening</option>
+              <option value="reading">Reading</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Classroom</span><select id="qaClassroomFilter"><option value="">Selected class</option></select></label>
+          <label class="admin-field"><span>Test</span><select id="qaTestFilter"><option value="">All taken tests</option></select></label>
+          <label class="admin-field"><span>Min attempts</span><input id="qaMinAttemptsFilter" type="number" min="0" step="1" value="1"></label>
+          <label class="admin-field"><span>Difficulty</span>
+            <select id="qaDifficultyFilter">
+              <option value="">All</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="very-hard">Very hard</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Question #</span><input id="qaQuestionFilter" type="number" min="1" max="40" step="1" placeholder="Any"></label>
+        </div>
+
+        <div class="admin-results-table-wrap">
+          <table class="admin-results-table">
+            <thead>
+              <tr>
+                <th>Test</th>
+                <th>Section</th>
+                <th>Q#</th>
+                <th>Attempts</th>
+                <th>Correct %</th>
+                <th>Wrong %</th>
+                <th>Blank %</th>
+                <th>Difficulty</th>
+                <th>Answer key</th>
+                <th>Common wrong answers</th>
+              </tr>
+            </thead>
+            <tbody id="qaRowsTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- ─── End Question Analytics page ─── -->
 
     <div id="adminResultsContent" class="ui-stack">
     <div class="admin-results-toolbar ui-panel ui-toolbar-grid">

@@ -949,6 +949,12 @@ async function handleAdminApi(request, env) {
     return handleAdminClassroomCoverage(request, env, auth);
   }
 
+  if (request.method === "GET" && action === "questionAnalytics") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminQuestionAnalytics(request, env, auth);
+  }
+
   if (request.method === "GET" && action === "classroomStudentProgress") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -5076,6 +5082,416 @@ async function handleAdminClassroomCoverage(request, env, auth) {
     });
   } catch (error) {
     return json(500, { ok: false, error: error?.message || "Could not load classroom coverage." });
+  }
+}
+
+function toDifficultyLabelFromWrongRate(wrongRate) {
+  const value = Number(wrongRate || 0);
+  if (value < 25) return "Easy";
+  if (value < 50) return "Medium";
+  if (value < 75) return "Hard";
+  return "Very hard";
+}
+
+function formatQuestionAnalyticsAnswerLabel(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "blank";
+  return raw.toUpperCase();
+}
+
+function extractObjectiveAnswersForSection(finalPayload, section) {
+  if (!finalPayload || typeof finalPayload !== "object") return {};
+  const bucket = finalPayload?.[section];
+  if (!bucket || typeof bucket !== "object") return {};
+  const answers = bucket?.answers;
+  return answers && typeof answers === "object" ? answers : {};
+}
+
+function buildQuestionAnalyticsRecordKey(testId, section, questionNumber) {
+  return `${String(testId || "").toLowerCase()}::${String(section || "").toLowerCase()}::${Number(questionNumber || 0)}`;
+}
+
+async function getObjectiveAttemptsForQuestionAnalytics(env, actor, options = {}) {
+  const serviceRoleKey = oneLine(env?.SUPABASE_SERVICE_ROLE_KEY || "");
+  const supabaseUrl = oneLine(env?.SUPABASE_URL || "").replace(/\/$/, "");
+  if (!serviceRoleKey || !supabaseUrl) {
+    throw new Error("Supabase service role is not configured.");
+  }
+
+  const endpoint = new URL(`${supabaseUrl}/rest/v1/exam_attempts`);
+  endpoint.searchParams.set("select", [
+    "submitted_at",
+    "exam_id",
+    "active_test_id",
+    "organization_id",
+    "classroom_id",
+    "student_profile_id",
+    "student_id_code",
+    "student_full_name",
+    "final_payload",
+  ].join(","));
+  const actorOrganizationId = getActorOrganizationId(actor || null);
+  if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+    endpoint.searchParams.set("organization_id", `eq.${actorOrganizationId}`);
+  }
+  if (options?.classroomId) {
+    endpoint.searchParams.set("classroom_id", `eq.${oneLine(options.classroomId)}`);
+  }
+  endpoint.searchParams.set("order", "submitted_at.desc");
+  endpoint.searchParams.set("limit", String(Math.max(1, Number(options?.limit || 2000))));
+
+  const response = await fetch(endpoint.toString(), {
+    method: "GET",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+  });
+  const rows = await response.json().catch(() => null);
+  if (!response.ok || !Array.isArray(rows)) {
+    throw new Error("Could not load objective attempts for analytics.");
+  }
+  return rows;
+}
+
+async function getPracticeAttemptsForQuestionAnalytics(env, actor, options = {}) {
+  const actorOrganizationId = getActorOrganizationId(actor || null);
+  const query = {
+    select: "submission_key,submitted_at,student_full_name,student_id_code,classroom_id,exam_id,active_test_id,practice_section,summary,organization_id",
+    attempt_kind: "eq.practice",
+    order: "submitted_at.desc",
+    limit: "3000",
+  };
+  if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+    query.organization_id = `eq.${actorOrganizationId}`;
+  }
+  if (options?.classroomId) {
+    query.classroom_id = `eq.${oneLine(options.classroomId)}`;
+  }
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, { query });
+  if (!res.ok || !Array.isArray(res.data)) return [];
+  return res.data;
+}
+
+function shouldIncludeSectionForAnalytics(sectionFilter, section) {
+  const wanted = String(sectionFilter || "all").toLowerCase();
+  if (wanted === "all") return true;
+  return wanted === String(section || "").toLowerCase();
+}
+
+function applyQuestionAnalyticsAttempt({
+  targetMap,
+  testId,
+  section,
+  mode,
+  studentName,
+  studentIdCode,
+  submittedAt,
+  answers,
+}) {
+  const answerMap = buildObjectiveAnswerMap(testId, section);
+  const questions = Object.keys(answerMap)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .sort((a, b) => a - b);
+  if (!questions.length) return;
+
+  questions.forEach((q) => {
+    const key = buildQuestionAnalyticsRecordKey(testId, section, q);
+    const existing = targetMap.get(key) || {
+      testId,
+      section,
+      questionNumber: q,
+      attempts: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      blankCount: 0,
+      fullMockAttempts: 0,
+      practiceAttempts: 0,
+      correctAnswer: String(answerMap[q] || "").trim(),
+      wrongAnswerCounts: new Map(),
+      lastSubmittedAt: "",
+      students: new Map(),
+    };
+    existing.attempts += 1;
+    if (mode === "practice") existing.practiceAttempts += 1;
+    else existing.fullMockAttempts += 1;
+
+    const rawStudentAnswer = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
+    const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
+    const isBlank = !rawStudentAnswer;
+    const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, existing.correctAnswer);
+
+    if (isBlank) {
+      existing.blankCount += 1;
+      existing.wrongCount += 1;
+    } else if (isCorrect) {
+      existing.correctCount += 1;
+    } else {
+      existing.wrongCount += 1;
+      existing.wrongAnswerCounts.set(
+        answerLabel,
+        Number(existing.wrongAnswerCounts.get(answerLabel) || 0) + 1
+      );
+    }
+
+    const studentKey = oneLine(studentIdCode || studentName || "");
+    if (studentKey) {
+      const prev = existing.students.get(studentKey) || {
+        name: oneLine(studentName || "Student"),
+        studentIdCode: oneLine(studentIdCode || ""),
+        fullMock: false,
+        practice: false,
+        submitted: false,
+        submittedAt: "",
+      };
+      if (mode === "practice") prev.practice = true;
+      else prev.fullMock = true;
+      prev.submitted = prev.submitted || !!oneLine(submittedAt || "");
+      if (submittedAt && (!prev.submittedAt || Date.parse(submittedAt) > Date.parse(prev.submittedAt || ""))) {
+        prev.submittedAt = submittedAt;
+      }
+      existing.students.set(studentKey, prev);
+    }
+
+    if (submittedAt && (!existing.lastSubmittedAt || Date.parse(submittedAt) > Date.parse(existing.lastSubmittedAt || ""))) {
+      existing.lastSubmittedAt = submittedAt;
+    }
+    targetMap.set(key, existing);
+  });
+}
+
+function serializeQuestionAnalyticsRows(records, filters = {}) {
+  const minAttempts = Math.max(0, Number(filters.minAttempts || 0));
+  const difficultyFilter = String(filters.difficulty || "").trim().toLowerCase();
+  const questionFilter = Number(filters.questionNumber || 0);
+
+  const rows = Array.from(records.values())
+    .map((row) => {
+      const attempts = Number(row.attempts || 0);
+      const correctCount = Number(row.correctCount || 0);
+      const wrongCount = Number(row.wrongCount || 0);
+      const blankCount = Number(row.blankCount || 0);
+      const correctRate = attempts > 0 ? (correctCount / attempts) * 100 : 0;
+      const wrongRate = attempts > 0 ? (wrongCount / attempts) * 100 : 0;
+      const blankRate = attempts > 0 ? (blankCount / attempts) * 100 : 0;
+      const difficulty = toDifficultyLabelFromWrongRate(wrongRate);
+      const commonWrongAnswers = Array.from(row.wrongAnswerCounts.entries())
+        .map(([answer, count]) => ({
+          answer,
+          count: Number(count || 0),
+          rate: attempts > 0 ? (Number(count || 0) / attempts) * 100 : 0,
+        }))
+        .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+        .slice(0, 5);
+      const needsReview = wrongRate >= 60 && attempts >= 5;
+      return {
+        testId: row.testId,
+        section: row.section,
+        questionNumber: row.questionNumber,
+        attempts,
+        fullMockAttempts: Number(row.fullMockAttempts || 0),
+        practiceAttempts: Number(row.practiceAttempts || 0),
+        correctCount,
+        wrongCount,
+        blankCount,
+        correctRate: Number(correctRate.toFixed(1)),
+        wrongRate: Number(wrongRate.toFixed(1)),
+        blankRate: Number(blankRate.toFixed(1)),
+        difficulty,
+        correctAnswer: row.correctAnswer || "",
+        commonWrongAnswers,
+        needsReview,
+        studentRows: Array.from(row.students.values()),
+      };
+    })
+    .filter((row) => (minAttempts ? row.attempts >= minAttempts : true))
+    .filter((row) => (questionFilter > 0 ? row.questionNumber === questionFilter : true))
+    .filter((row) => {
+      if (!difficultyFilter) return true;
+      return String(row.difficulty || "").toLowerCase().replace(/\s+/g, "-") === difficultyFilter;
+    })
+    .sort((a, b) => {
+      const wrongDelta = Number(b.wrongRate || 0) - Number(a.wrongRate || 0);
+      if (wrongDelta) return wrongDelta;
+      return Number(b.attempts || 0) - Number(a.attempts || 0);
+    });
+
+  return rows;
+}
+
+function buildQuestionAnalyticsExamSummary(rows) {
+  const grouped = new Map();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const key = `${String(row.testId || "").toLowerCase()}::${String(row.section || "").toLowerCase()}`;
+    const bucket = grouped.get(key) || {
+      testId: row.testId,
+      section: row.section,
+      attempts: 0,
+      questionCount: 0,
+      wrongRateSum: 0,
+      correctRateSum: 0,
+      hardestQuestion: null,
+      easiestQuestion: null,
+    };
+    bucket.attempts = Math.max(bucket.attempts, Number(row.attempts || 0));
+    bucket.questionCount += 1;
+    bucket.wrongRateSum += Number(row.wrongRate || 0);
+    bucket.correctRateSum += Number(row.correctRate || 0);
+    if (!bucket.hardestQuestion || Number(row.wrongRate || 0) > Number(bucket.hardestQuestion.wrongRate || 0)) {
+      bucket.hardestQuestion = { questionNumber: row.questionNumber, wrongRate: row.wrongRate };
+    }
+    if (!bucket.easiestQuestion || Number(row.wrongRate || 0) < Number(bucket.easiestQuestion.wrongRate || 0)) {
+      bucket.easiestQuestion = { questionNumber: row.questionNumber, wrongRate: row.wrongRate };
+    }
+    grouped.set(key, bucket);
+  });
+
+  return Array.from(grouped.values()).map((bucket) => {
+    const avgWrongRate = bucket.questionCount > 0 ? bucket.wrongRateSum / bucket.questionCount : 0;
+    const avgCorrectRate = bucket.questionCount > 0 ? bucket.correctRateSum / bucket.questionCount : 0;
+    return {
+      testId: bucket.testId,
+      section: bucket.section,
+      attempts: bucket.attempts,
+      averageWrongRate: Number(avgWrongRate.toFixed(1)),
+      averageCorrectRate: Number(avgCorrectRate.toFixed(1)),
+      hardestQuestion: bucket.hardestQuestion,
+      easiestQuestion: bucket.easiestQuestion,
+      difficulty: toDifficultyLabelFromWrongRate(avgWrongRate),
+    };
+  }).sort((a, b) => Number(b.averageWrongRate || 0) - Number(a.averageWrongRate || 0));
+}
+
+async function handleAdminQuestionAnalytics(request, env, auth) {
+  try {
+    const url = new URL(request.url);
+    const section = String(url.searchParams.get("section") || "all").trim().toLowerCase();
+    const testIdFilter = normalizeCoverageTestId(url.searchParams.get("testId") || "");
+    const classroomId = oneLine(url.searchParams.get("classroomId") || "");
+    const minAttempts = Number(url.searchParams.get("minAttempts") || 0);
+    const difficulty = String(url.searchParams.get("difficulty") || "").trim();
+    const questionNumber = Number(url.searchParams.get("questionNumber") || 0);
+
+    const records = new Map();
+
+    const fullRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
+    fullRows.forEach((row) => {
+      const finalPayload = row?.final_payload && typeof row.final_payload === "object" ? row.final_payload : {};
+      const testId = normalizeCoverageTestId(
+        inferObjectiveTestId(row, finalPayload) ||
+        row?.active_test_id ||
+        row?.exam_id ||
+        finalPayload?.examId
+      );
+      if (!testId) return;
+      if (testIdFilter && testId !== testIdFilter) return;
+      if (shouldIncludeSectionForAnalytics(section, "listening")) {
+        const listeningAnswers = extractObjectiveAnswersForSection(finalPayload, "listening");
+        if (listeningAnswers && Object.keys(listeningAnswers).length) {
+          applyQuestionAnalyticsAttempt({
+            targetMap: records,
+            testId,
+            section: "listening",
+            mode: "full",
+            studentName: oneLine(row?.student_full_name || ""),
+            studentIdCode: oneLine(row?.student_id_code || ""),
+            submittedAt: oneLine(row?.submitted_at || ""),
+            answers: listeningAnswers,
+          });
+        }
+      }
+      if (shouldIncludeSectionForAnalytics(section, "reading")) {
+        const readingAnswers = extractObjectiveAnswersForSection(finalPayload, "reading");
+        if (readingAnswers && Object.keys(readingAnswers).length) {
+          applyQuestionAnalyticsAttempt({
+            targetMap: records,
+            testId,
+            section: "reading",
+            mode: "full",
+            studentName: oneLine(row?.student_full_name || ""),
+            studentIdCode: oneLine(row?.student_id_code || ""),
+            submittedAt: oneLine(row?.submitted_at || ""),
+            answers: readingAnswers,
+          });
+        }
+      }
+    });
+
+    const practiceRows = await getPracticeAttemptsForQuestionAnalytics(env, auth, { classroomId });
+    practiceRows.forEach((row) => {
+      const practiceSection = String(row?.practice_section || row?.practiceSection || "").toLowerCase();
+      if (!["listening", "reading"].includes(practiceSection)) return;
+      if (!shouldIncludeSectionForAnalytics(section, practiceSection)) return;
+      const testId = normalizeCoverageTestId(
+        oneLine(row?.active_test_id || row?.exam_id || row?.examId || "")
+      );
+      if (!testId) return;
+      if (testIdFilter && testId !== testIdFilter) return;
+      const review = Array.isArray(row?.summary?.review) ? row.summary.review : [];
+      if (!review.length) return;
+      const answers = {};
+      review.forEach((item) => {
+        const q = Number(item?.q || 0);
+        if (!Number.isFinite(q) || q <= 0) return;
+        answers[q] = oneLine(item?.student || "");
+      });
+      applyQuestionAnalyticsAttempt({
+        targetMap: records,
+        testId,
+        section: practiceSection,
+        mode: "practice",
+        studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+        studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+        submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+        answers,
+      });
+    });
+
+    const rows = serializeQuestionAnalyticsRows(records, {
+      minAttempts,
+      difficulty,
+      questionNumber,
+    });
+    const examSummary = buildQuestionAnalyticsExamSummary(rows);
+    const tests = Array.from(new Set(rows.map((row) => String(row.testId || "")))).sort((a, b) => {
+      const ax = Number(String(a).replace(/[^\d]/g, "")) || 0;
+      const bx = Number(String(b).replace(/[^\d]/g, "")) || 0;
+      return ax - bx;
+    });
+    const mostMissed = rows[0] || null;
+    const hardestExam = examSummary[0] || null;
+    const averageWrongRate = rows.length
+      ? Number((rows.reduce((sum, row) => sum + Number(row.wrongRate || 0), 0) / rows.length).toFixed(1))
+      : 0;
+
+    return json(200, {
+      ok: true,
+      summary: {
+        totalAttempts: rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0),
+        testsAnalyzed: tests.length,
+        questionsAnalyzed: rows.length,
+        hardestExam,
+        mostMissedQuestion: mostMissed
+          ? {
+              testId: mostMissed.testId,
+              section: mostMissed.section,
+              questionNumber: mostMissed.questionNumber,
+              wrongRate: mostMissed.wrongRate,
+              attempts: mostMissed.attempts,
+            }
+          : null,
+        averageWrongRate,
+      },
+      tests,
+      examSummary,
+      rows,
+      generatedAt: new Date().toISOString(),
+    }, {
+      "Cache-Control": "private, no-store",
+    });
+  } catch (error) {
+    return json(500, { ok: false, error: error?.message || "Could not load question analytics." });
   }
 }
 

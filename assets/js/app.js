@@ -3106,7 +3106,7 @@
     }
 
     function setAdminPage(page) {
-      const validPages = ["results", "classrooms", "assignments", "questions"];
+      const validPages = ["results", "classrooms", "assignments", "questions", "questionAnalytics"];
       const nextPage = validPages.includes(page) ? page : "results";
       adminState.page = nextPage;
       $("adminResultsBanner")?.classList.toggle("hidden", nextPage !== "results");
@@ -3114,10 +3114,12 @@
       $("adminClassroomsPage")?.classList.toggle("hidden", nextPage !== "classrooms");
       $("adminAssignmentsPage")?.classList.toggle("hidden", nextPage !== "assignments");
       $("adminQuestionsPage")?.classList.toggle("hidden", nextPage !== "questions");
+      $("adminQuestionAnalyticsPage")?.classList.toggle("hidden", nextPage !== "questionAnalytics");
       const resultsBtn = $("adminPageResultsBtn");
       const classroomsBtn = $("adminPageClassroomsBtn");
       const assignmentsBtn = $("adminPageAssignmentsBtn");
       const questionsBtn = $("adminPageQuestionsBtn");
+      const analyticsBtn = $("adminPageQuestionAnalyticsBtn");
       const toggleBtn = $("adminClassroomsToggleBtn");
       if (resultsBtn) {
         resultsBtn.className = nextPage === "results" ? "btn" : "btn secondary";
@@ -3134,6 +3136,10 @@
       if (questionsBtn) {
         questionsBtn.className = nextPage === "questions" ? "btn" : "btn secondary";
         questionsBtn.setAttribute("aria-pressed", nextPage === "questions" ? "true" : "false");
+      }
+      if (analyticsBtn) {
+        analyticsBtn.className = nextPage === "questionAnalytics" ? "btn" : "btn secondary";
+        analyticsBtn.setAttribute("aria-pressed", nextPage === "questionAnalytics" ? "true" : "false");
       }
       if (toggleBtn) toggleBtn.textContent = nextPage === "classrooms" ? "Results" : "Classrooms";
       if (nextPage !== "classrooms") {
@@ -3195,6 +3201,132 @@
       } catch (e) {
         if (status) status.textContent = e.message || "Could not load questions.";
       }
+    }
+
+    function setQuestionAnalyticsStatus(message, tone = "") {
+      const el = $("adminQuestionAnalyticsStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = tone === "error" ? "#991b1b" : tone === "success" ? "#166534" : "";
+    }
+
+    function renderQuestionAnalyticsSummary(summary) {
+      const safe = summary || {};
+      if ($("qaSummaryAttempts")) $("qaSummaryAttempts").textContent = String(safe.totalAttempts || 0);
+      if ($("qaSummaryTests")) $("qaSummaryTests").textContent = String(safe.testsAnalyzed || 0);
+      if ($("qaSummaryQuestions")) $("qaSummaryQuestions").textContent = String(safe.questionsAnalyzed || 0);
+      if ($("qaSummaryWrongRate")) $("qaSummaryWrongRate").textContent = `${Number(safe.averageWrongRate || 0).toFixed(1)}%`;
+      if ($("qaSummaryHardestExam")) {
+        const hardest = safe.hardestExam || null;
+        $("qaSummaryHardestExam").textContent = hardest
+          ? `${String(hardest.testId || "").toUpperCase()} · ${String(hardest.section || "").toUpperCase()} · ${Number(hardest.averageWrongRate || 0).toFixed(1)}%`
+          : "—";
+      }
+      if ($("qaSummaryMostMissed")) {
+        const top = safe.mostMissedQuestion || null;
+        $("qaSummaryMostMissed").textContent = top
+          ? `${String(top.testId || "").toUpperCase()} ${String(top.section || "").toUpperCase()} Q${top.questionNumber} · ${Number(top.wrongRate || 0).toFixed(1)}%`
+          : "—";
+      }
+    }
+
+    function renderQuestionAnalyticsRows(rows) {
+      const tbody = $("qaRowsTbody");
+      if (!tbody) return;
+      const safeRows = Array.isArray(rows) ? rows : [];
+      tbody.innerHTML = safeRows.map((row) => {
+        const commonWrong = (Array.isArray(row.commonWrongAnswers) ? row.commonWrongAnswers : [])
+          .map((item) => `${item.answer}: ${item.count}`)
+          .join(" · ") || "—";
+        return `
+          <tr class="ui-data-row">
+            <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
+            <td>${escapeHtml(String(row.section || "").toUpperCase())}</td>
+            <td>${escapeHtml(String(row.questionNumber || ""))}</td>
+            <td>${escapeHtml(`${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}</td>
+            <td>${escapeHtml(`${Number(row.correctRate || 0).toFixed(1)}%`)}</td>
+            <td>${escapeHtml(`${Number(row.wrongRate || 0).toFixed(1)}%`)}</td>
+            <td>${escapeHtml(`${Number(row.blankRate || 0).toFixed(1)}%`)}</td>
+            <td>${escapeHtml(row.difficulty || "—")}${row.needsReview ? ` <span class="badge badge-warning">Needs review</span>` : ""}</td>
+            <td>${escapeHtml(row.correctAnswer || "—")}</td>
+            <td>${escapeHtml(commonWrong)}</td>
+          </tr>
+        `;
+      }).join("") || `<tr class="ui-table-state-row"><td colspan="10">No analytics rows matched these filters.</td></tr>`;
+    }
+
+    function populateQuestionAnalyticsClassroomFilter() {
+      const select = $("qaClassroomFilter");
+      if (!select) return;
+      const current = String(select.value || classroomProgressState.selectedClassroomId || "");
+      const options = (Array.isArray(classroomProgressState.classrooms) ? classroomProgressState.classrooms : [])
+        .map((room) => `<option value="${escapeHtml(String(room.id || ""))}">${escapeHtml(String(room.name || "Classroom"))}</option>`)
+        .join("");
+      select.innerHTML = `<option value="">Selected class</option>${options}`;
+      if (current) select.value = current;
+    }
+
+    function populateQuestionAnalyticsTestFilter() {
+      const select = $("qaTestFilter");
+      if (!select) return;
+      const current = String(select.value || "");
+      const tests = Array.isArray(questionAnalyticsState.tests) ? questionAnalyticsState.tests : [];
+      select.innerHTML = `<option value="">All taken tests</option>${tests.map((testId) => `<option value="${escapeHtml(testId)}">${escapeHtml(String(testId || "").toUpperCase())}</option>`).join("")}`;
+      if (current && tests.includes(current)) select.value = current;
+    }
+
+    async function loadQuestionAnalytics(forceRefresh = false) {
+      if (questionAnalyticsState.loading) return;
+      questionAnalyticsState.loading = true;
+      setQuestionAnalyticsStatus("Loading question analytics...");
+      try {
+        if (!Array.isArray(classroomProgressState.classrooms) || !classroomProgressState.classrooms.length) {
+          await loadClassroomProgressData(forceRefresh).catch(() => null);
+        }
+        populateQuestionAnalyticsClassroomFilter();
+        const selectedClassroomId = String($("qaClassroomFilter")?.value || classroomProgressState.selectedClassroomId || "");
+        const section = String($("qaSectionFilter")?.value || "all");
+        const testId = String($("qaTestFilter")?.value || "");
+        const minAttempts = Number($("qaMinAttemptsFilter")?.value || 1);
+        const difficulty = String($("qaDifficultyFilter")?.value || "");
+        const questionNumber = Number($("qaQuestionFilter")?.value || 0);
+        const url = R()?.buildAdminApiUrl?.({
+          action: "questionAnalytics",
+          section,
+          testId,
+          classroomId: selectedClassroomId,
+          minAttempts: Number.isFinite(minAttempts) ? String(minAttempts) : "1",
+          difficulty,
+          questionNumber: questionNumber > 0 ? String(questionNumber) : "",
+          refresh: forceRefresh ? "1" : "",
+        });
+        if (!url) throw new Error("Could not build analytics URL.");
+        const res = await fetch(url.toString(), { headers: await getAuthHeaders() }).catch(() => null);
+        const data = res ? await res.json().catch(() => null) : null;
+        if (!res || !res.ok || !data || data.ok !== true) {
+          throw new Error(data?.error || "Could not load question analytics.");
+        }
+        questionAnalyticsState.summary = data.summary || null;
+        questionAnalyticsState.rows = Array.isArray(data.rows) ? data.rows : [];
+        questionAnalyticsState.tests = Array.isArray(data.tests) ? data.tests : [];
+        populateQuestionAnalyticsTestFilter();
+        renderQuestionAnalyticsSummary(questionAnalyticsState.summary);
+        renderQuestionAnalyticsRows(questionAnalyticsState.rows);
+        setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.`, "success");
+      } catch (error) {
+        renderQuestionAnalyticsSummary(null);
+        renderQuestionAnalyticsRows([]);
+        setQuestionAnalyticsStatus(error?.message || "Could not load question analytics.", "error");
+      } finally {
+        questionAnalyticsState.loading = false;
+      }
+    }
+
+    async function openAdminQuestionAnalyticsView(forceRefresh = false) {
+      if (!isAdminView()) return;
+      UI().showOnly("adminResults");
+      setAdminPage("questionAnalytics");
+      await loadQuestionAnalytics(forceRefresh);
     }
 
     async function openAdminClassroomsView(forceRefresh = false) {
@@ -3344,6 +3476,7 @@
     const adminPageResultsBtn = $("adminPageResultsBtn");
     const adminPageClassroomsBtn = $("adminPageClassroomsBtn");
     const adminPageAssignmentsBtn = $("adminPageAssignmentsBtn");
+    const adminPageQuestionAnalyticsBtn = $("adminPageQuestionAnalyticsBtn");
     const adminClassroomsRefreshBtn = $("adminClassroomsRefreshBtn");
     const adminClassroomManagementPanel = $("adminClassroomManagementPanel");
     const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
@@ -3358,6 +3491,13 @@
     const adminClassroomStudentSearchInput = $("adminClassroomStudentSearchInput");
     const adminClassCoverageTestFilter = $("adminClassCoverageTestFilter");
     const adminClassCoverageScopeFilter = $("adminClassCoverageScopeFilter");
+    const qaSectionFilter = $("qaSectionFilter");
+    const qaClassroomFilter = $("qaClassroomFilter");
+    const qaTestFilter = $("qaTestFilter");
+    const qaMinAttemptsFilter = $("qaMinAttemptsFilter");
+    const qaDifficultyFilter = $("qaDifficultyFilter");
+    const qaQuestionFilter = $("qaQuestionFilter");
+    const adminQuestionAnalyticsRefreshBtn = $("adminQuestionAnalyticsRefreshBtn");
     const adminExistingAccountSearch = $("adminExistingAccountSearch");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
     const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
@@ -3489,6 +3629,7 @@
     const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [], loaded: false, loading: false };
     const classroomProgressState = { summary: null, classrooms: [], studentAttemptsByCode: new Map(), selectedStudentId: "", selectedClassroomId: "" };
     const classroomCoverageState = { tests: [], classrooms: [], students: [], selectedTestId: "", scope: "all", selectedClassroomId: "" };
+    const questionAnalyticsState = { summary: null, rows: [], tests: [], loading: false };
 
     function setClassroomStatus(message, tone = "") {
       const el = $("adminClassroomsStatus");
@@ -6016,6 +6157,9 @@ function startFreshExam() {
     if (adminPageResultsBtn) adminPageResultsBtn.onclick = () => openAdminResultsView(false, adminState.mode);
     if (adminPageClassroomsBtn) adminPageClassroomsBtn.onclick = () => openAdminClassroomsView().catch((e) => setClassroomProgressStatus(e?.message || "Could not open classrooms.", "error"));
     if (adminPageAssignmentsBtn) adminPageAssignmentsBtn.onclick = () => { UI().showOnly("adminResults"); window.IELTS?.Assignments?.openAssignmentsPage?.(); };
+    if (adminPageQuestionAnalyticsBtn) adminPageQuestionAnalyticsBtn.onclick = () => {
+      openAdminQuestionAnalyticsView().catch((e) => setQuestionAnalyticsStatus(e?.message || "Could not open question analytics.", "error"));
+    };
     const adminPageQuestionsBtn = $("adminPageQuestionsBtn");
     if (adminPageQuestionsBtn) adminPageQuestionsBtn.onclick = () => { UI().showOnly("adminResults"); setAdminPage("questions"); loadAdminPendingQuestions(); };
     const adminQuestionsRefreshBtn = $("adminQuestionsRefreshBtn");
@@ -6051,6 +6195,9 @@ function startFreshExam() {
       classroomProgressState.selectedClassroomId = String(adminClassroomSelect.value || "");
       renderSelectedClassroomWorkspace();
       $("adminStudentProgressDetail")?.classList.add("hidden");
+      if (adminState.page === "questionAnalytics") {
+        loadQuestionAnalytics(false).catch(() => null);
+      }
     });
     if (adminClassCoverageTestFilter) adminClassCoverageTestFilter.addEventListener("change", () => {
       classroomCoverageState.selectedTestId = String(adminClassCoverageTestFilter.value || "");
@@ -6060,6 +6207,13 @@ function startFreshExam() {
       classroomCoverageState.scope = String(adminClassCoverageScopeFilter.value || "") === "untaken" ? "untaken" : "all";
       renderClassroomCoverageWorkspace();
     });
+    if (adminQuestionAnalyticsRefreshBtn) adminQuestionAnalyticsRefreshBtn.onclick = () => loadQuestionAnalytics(true);
+    if (qaSectionFilter) qaSectionFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (qaClassroomFilter) qaClassroomFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (qaTestFilter) qaTestFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (qaMinAttemptsFilter) qaMinAttemptsFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (qaDifficultyFilter) qaDifficultyFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (qaQuestionFilter) qaQuestionFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");

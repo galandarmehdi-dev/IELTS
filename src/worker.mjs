@@ -5107,6 +5107,20 @@ function extractObjectiveAnswersForSection(finalPayload, section) {
   return answers && typeof answers === "object" ? answers : {};
 }
 
+function parseFinalPayloadForAnalytics(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+  return {};
+}
+
 function buildQuestionAnalyticsRecordKey(testId, section, questionNumber) {
   return `${String(testId || "").toLowerCase()}::${String(section || "").toLowerCase()}::${Number(questionNumber || 0)}`;
 }
@@ -5152,6 +5166,25 @@ async function getObjectiveAttemptsForQuestionAnalytics(env, actor, options = {}
     throw new Error("Could not load objective attempts for analytics.");
   }
   return rows;
+}
+
+async function getFullAttemptsForQuestionAnalytics(env, actor, options = {}) {
+  const actorOrganizationId = getActorOrganizationId(actor || null);
+  const query = {
+    select: "submission_key,submitted_at,student_full_name,student_id_code,classroom_id,exam_id,active_test_id,final_payload,organization_id",
+    attempt_kind: "eq.full",
+    order: "submitted_at.desc",
+    limit: "3000",
+  };
+  if (actor && !actor.isSuperAdmin && actorOrganizationId) {
+    query.organization_id = `eq.${actorOrganizationId}`;
+  }
+  if (options?.classroomId) {
+    query.classroom_id = `eq.${oneLine(options.classroomId)}`;
+  }
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, { query });
+  if (!res.ok || !Array.isArray(res.data)) return [];
+  return res.data.filter((row) => !!row?.final_payload);
 }
 
 async function getPracticeAttemptsForQuestionAnalytics(env, actor, options = {}) {
@@ -5375,13 +5408,13 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
 
     const records = new Map();
 
-    const fullRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
+    const fullRows = await getFullAttemptsForQuestionAnalytics(env, auth, { classroomId });
     fullRows.forEach((row) => {
-      const finalPayload = row?.final_payload && typeof row.final_payload === "object" ? row.final_payload : {};
+      const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
       const testId = normalizeCoverageTestId(
         inferObjectiveTestId(row, finalPayload) ||
-        row?.active_test_id ||
-        row?.exam_id ||
+        row?.active_test_id || row?.activeTestId ||
+        row?.exam_id || row?.examId ||
         finalPayload?.examId
       );
       if (!testId) return;
@@ -5394,9 +5427,9 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
             testId,
             section: "listening",
             mode: "full",
-            studentName: oneLine(row?.student_full_name || ""),
-            studentIdCode: oneLine(row?.student_id_code || ""),
-            submittedAt: oneLine(row?.submitted_at || ""),
+            studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+            studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+            submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
             answers: listeningAnswers,
           });
         }
@@ -5409,14 +5442,59 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
             testId,
             section: "reading",
             mode: "full",
-            studentName: oneLine(row?.student_full_name || ""),
-            studentIdCode: oneLine(row?.student_id_code || ""),
-            submittedAt: oneLine(row?.submitted_at || ""),
+            studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+            studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+            submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
             answers: readingAnswers,
           });
         }
       }
     });
+
+    if (!fullRows.length) {
+      const legacyRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
+      legacyRows.forEach((row) => {
+        const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
+        const testId = normalizeCoverageTestId(
+          inferObjectiveTestId(row, finalPayload) ||
+          row?.active_test_id || row?.activeTestId ||
+          row?.exam_id || row?.examId ||
+          finalPayload?.examId
+        );
+        if (!testId) return;
+        if (testIdFilter && testId !== testIdFilter) return;
+        if (shouldIncludeSectionForAnalytics(section, "listening")) {
+          const listeningAnswers = extractObjectiveAnswersForSection(finalPayload, "listening");
+          if (listeningAnswers && Object.keys(listeningAnswers).length) {
+            applyQuestionAnalyticsAttempt({
+              targetMap: records,
+              testId,
+              section: "listening",
+              mode: "full",
+              studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+              studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+              submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+              answers: listeningAnswers,
+            });
+          }
+        }
+        if (shouldIncludeSectionForAnalytics(section, "reading")) {
+          const readingAnswers = extractObjectiveAnswersForSection(finalPayload, "reading");
+          if (readingAnswers && Object.keys(readingAnswers).length) {
+            applyQuestionAnalyticsAttempt({
+              targetMap: records,
+              testId,
+              section: "reading",
+              mode: "full",
+              studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+              studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+              submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+              answers: readingAnswers,
+            });
+          }
+        }
+      });
+    }
 
     const practiceRows = await getPracticeAttemptsForQuestionAnalytics(env, auth, { classroomId });
     practiceRows.forEach((row) => {

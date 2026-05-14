@@ -4306,7 +4306,7 @@ It has also been discovered that there were two dials on the back of the mechani
               B: "... to identify problems in aeronautical components.",
               C: "... to discover historical artifacts.",
               D: "... to link the ancient device to theories about extra terrestrials.",
-              E: "... to use gears to calculate astronomical movements.",
+              E: "... to repair the gears so that the mechanism could function again.",
               F: "... to discover that there was more to the mechanism than first thought.",
               G: "... to create a visual representation of the inside of the mechanism.",
               H: "... to retrieve the outstanding relics.",

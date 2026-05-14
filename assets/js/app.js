@@ -3873,7 +3873,7 @@
       const selectedClassroomId = String(classroomProgressState.selectedClassroomId || classroomCoverageState.selectedClassroomId || "");
 
       if (!selectedTestId) {
-        tbody.innerHTML = `<tr class="ui-table-state-row"><td colspan="6">Select a taken test to see students.</td></tr>`;
+        tbody.innerHTML = `<tr class="ui-table-state-row"><td colspan="5">Select a taken test to see students.</td></tr>`;
         return;
       }
 
@@ -3893,16 +3893,13 @@
           const modeLabel = fullAttempted && practiceAttempted
             ? "Full + Practice"
             : (fullAttempted ? "Full mock" : (practiceAttempted ? "Practice" : "—"));
-          const statusLabel = attempted
-            ? (fullSubmitted || practiceSubmitted ? "Submitted" : "Attempted")
-            : "Not taken";
+          const statusLabel = (fullSubmitted || practiceSubmitted) ? "Submitted" : "Attempted";
           const submittedAt = status?.fullLastSubmittedAt || status?.practiceLastSubmittedAt || "";
           rows.push({
             studentIdCode: student?.studentIdCode || "—",
             name: student?.name || "Student",
-            classroomName: student?.classroomName || "—",
-            testId,
-            status: `${modeLabel} · ${statusLabel}`,
+            modeLabel,
+            statusLabel,
             submittedAt,
           });
         });
@@ -3910,14 +3907,13 @@
 
       tbody.innerHTML = rows.map((row) => `
         <tr class="ui-data-row">
-          <td>${escapeHtml(row.studentIdCode)}</td>
           <td>${escapeHtml(row.name)}</td>
-          <td>${escapeHtml(row.classroomName)}</td>
-          <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
-          <td>${escapeHtml(row.status)}</td>
+          <td>${escapeHtml(row.studentIdCode)}</td>
+          <td>${escapeHtml(row.modeLabel)}</td>
+          <td>${escapeHtml(row.statusLabel)}</td>
           <td>${escapeHtml(fmtDate(row.submittedAt))}</td>
         </tr>
-      `).join("") || `<tr class="ui-table-state-row"><td colspan="6">No student coverage rows match this filter.</td></tr>`;
+      `).join("") || `<tr class="ui-table-state-row"><td colspan="5">No students from this class have taken the selected test yet.</td></tr>`;
     }
 
     function renderClassroomCoverageWorkspace() {

@@ -5956,10 +5956,18 @@ function matchesObjectiveAnswer(studentValue, correctValue) {
 function splitObjectiveCandidates(value) {
   const raw = String(value || "").trim();
   if (!raw) return [];
-  return raw
+  const out = new Set();
+  raw
     .split(/\s*\/\s*/)
-    .map((part) => normalizeObjectiveValue(part))
-    .filter(Boolean);
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .forEach((part) => {
+      expandOptionalObjectiveVariants(part).forEach((variant) => {
+        const normalized = normalizeObjectiveValue(variant);
+        if (normalized) out.add(normalized);
+      });
+    });
+  return Array.from(out);
 }
 
 function normalizeObjectiveValue(value) {
@@ -5969,6 +5977,32 @@ function normalizeObjectiveValue(value) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function expandOptionalObjectiveVariants(value) {
+  const source = String(value || "").trim();
+  if (!source) return [];
+  let variants = new Set([source]);
+  const optionalGroupRegex = /\(([^)]+)\)/;
+  for (let guard = 0; guard < 10; guard += 1) {
+    let expanded = false;
+    const next = new Set();
+    variants.forEach((entry) => {
+      const match = String(entry).match(optionalGroupRegex);
+      if (!match) {
+        next.add(entry);
+        return;
+      }
+      expanded = true;
+      const whole = String(match[0] || "");
+      const inner = String(match[1] || "");
+      next.add(String(entry).replace(whole, ` ${inner} `));
+      next.add(String(entry).replace(whole, " "));
+    });
+    variants = next;
+    if (!expanded) break;
+  }
+  return Array.from(variants);
 }
 
 function sanitizeObjectiveOverrideMap(value) {

@@ -8020,7 +8020,7 @@ The vast windy open waters to the south-west of Skye mean it has great potential
             items: [
               { q: 17, text: "The changing location of Skye has allowed a diverse range of organisms to inhabit the island over history." },
               { q: 18, text: "The highest volcanic terrains of Skye are unable to support life." },
-              { q: 19, text: "The flat-topped hills near the coast provide a habitat for marine mammals." },
+              { q: 19, text: "Grey and common seals live on the flat-topped hills known as MacLeod’s Tables." },
               { q: 20, text: "Visitors to the island provide a greater source of income than fishing or energy production." }
             ]
           },

@@ -1502,8 +1502,8 @@
     const adminState = { mode: "full", page: "results", rowsByMode: { full: [], practice: [], diagnostic: [] }, filtered: [] };
     const ADMIN_RESULTS_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:V4";
     const ADMIN_RESULTS_PERSISTENT_CACHE_KEY = "IELTS:ADMIN:RESULTS:CACHE:PERSISTENT:V4";
-    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;
-    const ADMIN_RESULTS_PERSISTENT_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 6;
+    const ADMIN_RESULTS_CACHE_MAX_AGE_MS = 1000 * 60 * 10;            // 10 min sessionStorage
+    const ADMIN_RESULTS_PERSISTENT_CACHE_MAX_AGE_MS = 1000 * 60 * 20; // 20 min localStorage (was 6 h)
     const adminDetailState = { sourceRowId: null, sourceScrollY: 0 };
     const adminFullResultCache = new Map();
 

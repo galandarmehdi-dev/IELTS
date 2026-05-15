@@ -3235,6 +3235,8 @@
       if (!tbody) return;
       const safeRows = Array.isArray(rows) ? rows : [];
       tbody.innerHTML = safeRows.map((row) => {
+        const solvedKey = buildQuestionAnalyticsRowSolvedKey(row);
+        const isSolved = !!questionAnalyticsState.solvedByKey?.[solvedKey];
         const commonWrong = (Array.isArray(row.commonWrongAnswers) ? row.commonWrongAnswers : [])
           .map((item) => `${item.answer}: ${item.count}`)
           .join(" · ") || "—";
@@ -3250,9 +3252,26 @@
             <td>${escapeHtml(row.difficulty || "—")}${row.needsReview ? ` <span class="badge badge-warning">Needs review</span>` : ""}</td>
             <td>${escapeHtml(row.correctAnswer || "—")}</td>
             <td>${escapeHtml(commonWrong)}</td>
+            <td>
+              <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" data-qa-solved="${escapeHtml(solvedKey)}" ${isSolved ? "checked" : ""}>
+                <span class="small">${isSolved ? "Solved" : "Mark solved"}</span>
+              </label>
+            </td>
           </tr>
         `;
-      }).join("") || `<tr class="ui-table-state-row"><td colspan="10">No analytics rows matched these filters.</td></tr>`;
+      }).join("") || `<tr class="ui-table-state-row"><td colspan="11">No analytics rows matched these filters.</td></tr>`;
+
+      Array.from(tbody.querySelectorAll("[data-qa-solved]")).forEach((input) => {
+        input.addEventListener("change", () => {
+          const key = String(input.getAttribute("data-qa-solved") || "");
+          const row = safeRows.find((item) => buildQuestionAnalyticsRowSolvedKey(item) === key);
+          if (!row) return;
+          setQuestionAnalyticsSolved(row, !!input.checked);
+          const label = input.closest("label")?.querySelector("span");
+          if (label) label.textContent = input.checked ? "Solved" : "Mark solved";
+        });
+      });
     }
 
     function populateQuestionAnalyticsClassroomFilter() {
@@ -3278,6 +3297,9 @@
     async function loadQuestionAnalytics(forceRefresh = false) {
       if (questionAnalyticsState.loading) return;
       questionAnalyticsState.loading = true;
+      if (!questionAnalyticsState.solvedByKey || typeof questionAnalyticsState.solvedByKey !== "object") {
+        questionAnalyticsState.solvedByKey = loadQuestionAnalyticsSolvedState();
+      }
       setQuestionAnalyticsStatus("Loading question analytics...");
       try {
         if (!Array.isArray(classroomProgressState.classrooms) || !classroomProgressState.classrooms.length) {
@@ -3632,7 +3654,55 @@
     const classroomAdminState = { classrooms: [], students: [], selectedStudentId: "", registryAccounts: [], loaded: false, loading: false };
     const classroomProgressState = { summary: null, classrooms: [], studentAttemptsByCode: new Map(), selectedStudentId: "", selectedClassroomId: "" };
     const classroomCoverageState = { tests: [], classrooms: [], students: [], selectedTestId: "", scope: "all", selectedClassroomId: "" };
-    const questionAnalyticsState = { summary: null, rows: [], tests: [], loading: false };
+    const QUESTION_ANALYTICS_SOLVED_STORAGE_KEY = "ielts:admin:questionAnalytics:solved";
+    const questionAnalyticsState = { summary: null, rows: [], tests: [], loading: false, solvedByKey: {} };
+
+    function getQuestionAnalyticsScopeKey() {
+      const classroomFilterValue = String($("qaClassroomFilter")?.value || "");
+      const selectedClassroomId = classroomFilterValue === "__all__"
+        ? "__all__"
+        : (classroomFilterValue || classroomProgressState.selectedClassroomId || "__selected__");
+      return `class:${selectedClassroomId}`;
+    }
+
+    function buildQuestionAnalyticsRowSolvedKey(row) {
+      if (!row || typeof row !== "object") return "";
+      const testId = String(row.testId || "").toLowerCase();
+      const section = String(row.section || "").toLowerCase();
+      const questionNumber = String(row.questionNumber || "");
+      return `${getQuestionAnalyticsScopeKey()}|${testId}|${section}|q${questionNumber}`;
+    }
+
+    function loadQuestionAnalyticsSolvedState() {
+      try {
+        const raw = localStorage.getItem(QUESTION_ANALYTICS_SOLVED_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveQuestionAnalyticsSolvedState(nextState) {
+      try {
+        localStorage.setItem(QUESTION_ANALYTICS_SOLVED_STORAGE_KEY, JSON.stringify(nextState || {}));
+      } catch (e) {}
+    }
+
+    function setQuestionAnalyticsSolved(row, solved) {
+      const key = buildQuestionAnalyticsRowSolvedKey(row);
+      if (!key) return;
+      const next = {
+        ...(questionAnalyticsState.solvedByKey && typeof questionAnalyticsState.solvedByKey === "object"
+          ? questionAnalyticsState.solvedByKey
+          : {}),
+      };
+      if (solved) next[key] = true;
+      else delete next[key];
+      questionAnalyticsState.solvedByKey = next;
+      saveQuestionAnalyticsSolvedState(next);
+    }
 
     function setClassroomStatus(message, tone = "") {
       const el = $("adminClassroomsStatus");

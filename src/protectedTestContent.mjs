@@ -7191,7 +7191,7 @@ const test16 = {
         <div class="note-row">She knows she had the passport when she was in a <span class="qnum">8</span> <input data-lq="8" class="l-input"> with a friend.</div>
         <div class="note-row">She then travelled home by <span class="qnum">9</span> <input data-lq="9" class="l-input">.</div>
         <div class="note-row">When she arrived home, she realised that she didn’t have the passport any more.</div>
-        <div class="note-row">Crime reference number: A <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+        <div class="note-row">Crime reference number: <span class="qnum">10</span> A <input data-lq="10" class="l-input"></div>
       </div>
     </div>
   </div>

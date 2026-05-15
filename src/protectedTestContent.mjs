@@ -8117,7 +8117,7 @@ However, not everyone thinks that people are naturally irrational and require â€
               "Choose TWO letters, A-E. Type one letter in each box."
             ],
             choices: [
-              { letter: "A", text: "It expanded from a real world community into a global online network." },
+              { letter: "A", text: "It began as a group of local face-to-face clubs before creating an online forum." },
               { letter: "B", text: "Its interaction centres around the analysis of thoughts and theories written by the site's users." },
               { letter: "C", text: "Active users are paid a fee for their contributions to the site." },
               { letter: "D", text: "The site has implemented features which allow members to predict the quality of other users' output." },

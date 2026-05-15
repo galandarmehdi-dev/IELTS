@@ -5107,6 +5107,35 @@ function extractObjectiveAnswersForSection(finalPayload, section) {
   return answers && typeof answers === "object" ? answers : {};
 }
 
+function extractObjectiveReviewForSection(finalPayload, section) {
+  if (!finalPayload || typeof finalPayload !== "object") return [];
+  const bucket = finalPayload?.[section];
+  if (!bucket) return [];
+  if (Array.isArray(bucket)) return bucket;
+  if (Array.isArray(bucket?.review)) return bucket.review;
+  if (Array.isArray(bucket?.rows)) return bucket.rows;
+  return [];
+}
+
+function isObjectiveReviewItemCorrect(item) {
+  if (!item || typeof item !== "object") return false;
+  if (item.mark === true) return true;
+  const raw = String(item.mark || item.status || item.result || "").trim().toLowerCase();
+  return raw === "correct" || raw === "true" || raw === "1";
+}
+
+function extractObjectiveReviewFromSummary(summary, section) {
+  if (!summary || typeof summary !== "object") return [];
+  const sectionKey = String(section || "").toLowerCase();
+  if (Array.isArray(summary?.[sectionKey])) return summary[sectionKey];
+  if (Array.isArray(summary?.[`${sectionKey}Review`])) return summary[`${sectionKey}Review`];
+  if (Array.isArray(summary?.review)) {
+    const tagged = summary.review.filter((item) => String(item?.section || "").toLowerCase() === sectionKey);
+    if (tagged.length) return tagged;
+  }
+  return [];
+}
+
 function parseFinalPayloadForAnalytics(value) {
   if (!value) return {};
   if (typeof value === "object") return value;
@@ -5171,7 +5200,7 @@ async function getObjectiveAttemptsForQuestionAnalytics(env, actor, options = {}
 async function getFullAttemptsForQuestionAnalytics(env, actor, options = {}) {
   const actorOrganizationId = getActorOrganizationId(actor || null);
   const query = {
-    select: "submission_key,submitted_at,student_full_name,student_id_code,classroom_id,exam_id,active_test_id,final_payload,organization_id",
+    select: "submission_key,submitted_at,student_full_name,student_id_code,classroom_id,exam_id,active_test_id,final_payload,summary,organization_id",
     attempt_kind: "eq.full",
     order: "submitted_at.desc",
     limit: "3000",
@@ -5254,6 +5283,91 @@ function applyQuestionAnalyticsAttempt({
     const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
     const isBlank = !rawStudentAnswer;
     const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, existing.correctAnswer);
+
+    if (isBlank) {
+      existing.blankCount += 1;
+      existing.wrongCount += 1;
+    } else if (isCorrect) {
+      existing.correctCount += 1;
+    } else {
+      existing.wrongCount += 1;
+      existing.wrongAnswerCounts.set(
+        answerLabel,
+        Number(existing.wrongAnswerCounts.get(answerLabel) || 0) + 1
+      );
+    }
+
+    const studentKey = oneLine(studentIdCode || studentName || "");
+    if (studentKey) {
+      const prev = existing.students.get(studentKey) || {
+        name: oneLine(studentName || "Student"),
+        studentIdCode: oneLine(studentIdCode || ""),
+        fullMock: false,
+        practice: false,
+        submitted: false,
+        submittedAt: "",
+      };
+      if (mode === "practice") prev.practice = true;
+      else prev.fullMock = true;
+      prev.submitted = prev.submitted || !!oneLine(submittedAt || "");
+      if (submittedAt && (!prev.submittedAt || Date.parse(submittedAt) > Date.parse(prev.submittedAt || ""))) {
+        prev.submittedAt = submittedAt;
+      }
+      existing.students.set(studentKey, prev);
+    }
+
+    if (submittedAt && (!existing.lastSubmittedAt || Date.parse(submittedAt) > Date.parse(existing.lastSubmittedAt || ""))) {
+      existing.lastSubmittedAt = submittedAt;
+    }
+    targetMap.set(key, existing);
+  });
+}
+
+function applyQuestionAnalyticsReviewAttempt({
+  targetMap,
+  testId,
+  section,
+  mode,
+  studentName,
+  studentIdCode,
+  submittedAt,
+  reviewRows,
+}) {
+  const answerMap = buildObjectiveAnswerMap(testId, section);
+  const safeReviewRows = Array.isArray(reviewRows) ? reviewRows : [];
+  if (!safeReviewRows.length) return;
+
+  safeReviewRows.forEach((item) => {
+    const q = Number(item?.q ?? item?.questionNumber ?? item?.question ?? 0);
+    if (!Number.isFinite(q) || q <= 0) return;
+
+    const key = buildQuestionAnalyticsRecordKey(testId, section, q);
+    const defaultCorrect = String(answerMap[q] || "").trim();
+    const reviewCorrect = String(item?.correct ?? item?.answerKey ?? "").trim();
+    const existing = targetMap.get(key) || {
+      testId,
+      section,
+      questionNumber: q,
+      attempts: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      blankCount: 0,
+      fullMockAttempts: 0,
+      practiceAttempts: 0,
+      correctAnswer: reviewCorrect || defaultCorrect,
+      wrongAnswerCounts: new Map(),
+      lastSubmittedAt: "",
+      students: new Map(),
+    };
+    existing.attempts += 1;
+    if (mode === "practice") existing.practiceAttempts += 1;
+    else existing.fullMockAttempts += 1;
+    if (reviewCorrect) existing.correctAnswer = reviewCorrect;
+
+    const rawStudentAnswer = String(item?.student ?? item?.studentAnswer ?? "").trim();
+    const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
+    const isBlank = !rawStudentAnswer;
+    const isCorrect = isObjectiveReviewItemCorrect(item);
 
     if (isBlank) {
       existing.blankCount += 1;
@@ -5409,7 +5523,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
     const records = new Map();
 
     const fullRows = await getFullAttemptsForQuestionAnalytics(env, auth, { classroomId });
-    fullRows.forEach((row) => {
+    for (const row of fullRows) {
       const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
       const testId = normalizeCoverageTestId(
         inferObjectiveTestId(row, finalPayload) ||
@@ -5417,12 +5531,15 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
         row?.exam_id || row?.examId ||
         finalPayload?.examId
       );
-      if (!testId) return;
-      if (testIdFilter && testId !== testIdFilter) return;
+      if (!testId) continue;
+      if (testIdFilter && testId !== testIdFilter) continue;
+
       if (shouldIncludeSectionForAnalytics(section, "listening")) {
-        const listeningAnswers = extractObjectiveAnswersForSection(finalPayload, "listening");
-        if (listeningAnswers && Object.keys(listeningAnswers).length) {
-          applyQuestionAnalyticsAttempt({
+        const listeningReview = extractObjectiveReviewForSection(finalPayload, "listening");
+        const summaryListeningReview = extractObjectiveReviewFromSummary(row?.summary, "listening");
+        const mergedListeningReview = listeningReview.length ? listeningReview : summaryListeningReview;
+        if (Array.isArray(mergedListeningReview) && mergedListeningReview.length) {
+          applyQuestionAnalyticsReviewAttempt({
             targetMap: records,
             testId,
             section: "listening",
@@ -5430,40 +5547,9 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
             studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
             studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
             submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
-            answers: listeningAnswers,
+            reviewRows: mergedListeningReview,
           });
-        }
-      }
-      if (shouldIncludeSectionForAnalytics(section, "reading")) {
-        const readingAnswers = extractObjectiveAnswersForSection(finalPayload, "reading");
-        if (readingAnswers && Object.keys(readingAnswers).length) {
-          applyQuestionAnalyticsAttempt({
-            targetMap: records,
-            testId,
-            section: "reading",
-            mode: "full",
-            studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
-            studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
-            submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
-            answers: readingAnswers,
-          });
-        }
-      }
-    });
-
-    if (!fullRows.length) {
-      const legacyRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
-      legacyRows.forEach((row) => {
-        const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
-        const testId = normalizeCoverageTestId(
-          inferObjectiveTestId(row, finalPayload) ||
-          row?.active_test_id || row?.activeTestId ||
-          row?.exam_id || row?.examId ||
-          finalPayload?.examId
-        );
-        if (!testId) return;
-        if (testIdFilter && testId !== testIdFilter) return;
-        if (shouldIncludeSectionForAnalytics(section, "listening")) {
+        } else {
           const listeningAnswers = extractObjectiveAnswersForSection(finalPayload, "listening");
           if (listeningAnswers && Object.keys(listeningAnswers).length) {
             applyQuestionAnalyticsAttempt({
@@ -5478,7 +5564,23 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
             });
           }
         }
-        if (shouldIncludeSectionForAnalytics(section, "reading")) {
+      }
+      if (shouldIncludeSectionForAnalytics(section, "reading")) {
+        const readingReview = extractObjectiveReviewForSection(finalPayload, "reading");
+        const summaryReadingReview = extractObjectiveReviewFromSummary(row?.summary, "reading");
+        const mergedReadingReview = readingReview.length ? readingReview : summaryReadingReview;
+        if (Array.isArray(mergedReadingReview) && mergedReadingReview.length) {
+          applyQuestionAnalyticsReviewAttempt({
+            targetMap: records,
+            testId,
+            section: "reading",
+            mode: "full",
+            studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+            studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+            submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+            reviewRows: mergedReadingReview,
+          });
+        } else {
           const readingAnswers = extractObjectiveAnswersForSection(finalPayload, "reading");
           if (readingAnswers && Object.keys(readingAnswers).length) {
             applyQuestionAnalyticsAttempt({
@@ -5491,6 +5593,79 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
               submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
               answers: readingAnswers,
             });
+          }
+        }
+      }
+    }
+
+    if (!fullRows.length) {
+      const legacyRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
+      legacyRows.forEach((row) => {
+        const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
+        const testId = normalizeCoverageTestId(
+          inferObjectiveTestId(row, finalPayload) ||
+          row?.active_test_id || row?.activeTestId ||
+          row?.exam_id || row?.examId ||
+          finalPayload?.examId
+        );
+        if (!testId) return;
+        if (testIdFilter && testId !== testIdFilter) return;
+        if (shouldIncludeSectionForAnalytics(section, "listening")) {
+          const listeningReview = extractObjectiveReviewForSection(finalPayload, "listening");
+          if (Array.isArray(listeningReview) && listeningReview.length) {
+            applyQuestionAnalyticsReviewAttempt({
+              targetMap: records,
+              testId,
+              section: "listening",
+              mode: "full",
+              studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+              studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+              submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+              reviewRows: listeningReview,
+            });
+          } else {
+            const listeningAnswers = extractObjectiveAnswersForSection(finalPayload, "listening");
+            if (listeningAnswers && Object.keys(listeningAnswers).length) {
+              applyQuestionAnalyticsAttempt({
+                targetMap: records,
+                testId,
+                section: "listening",
+                mode: "full",
+                studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+                studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+                submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+                answers: listeningAnswers,
+              });
+            }
+          }
+        }
+        if (shouldIncludeSectionForAnalytics(section, "reading")) {
+          const readingReview = extractObjectiveReviewForSection(finalPayload, "reading");
+          if (Array.isArray(readingReview) && readingReview.length) {
+            applyQuestionAnalyticsReviewAttempt({
+              targetMap: records,
+              testId,
+              section: "reading",
+              mode: "full",
+              studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+              studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+              submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+              reviewRows: readingReview,
+            });
+          } else {
+            const readingAnswers = extractObjectiveAnswersForSection(finalPayload, "reading");
+            if (readingAnswers && Object.keys(readingAnswers).length) {
+              applyQuestionAnalyticsAttempt({
+                targetMap: records,
+                testId,
+                section: "reading",
+                mode: "full",
+                studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
+                studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
+                submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
+                answers: readingAnswers,
+              });
+            }
           }
         }
       });
@@ -5508,13 +5683,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       if (testIdFilter && testId !== testIdFilter) return;
       const review = Array.isArray(row?.summary?.review) ? row.summary.review : [];
       if (!review.length) return;
-      const answers = {};
-      review.forEach((item) => {
-        const q = Number(item?.q || 0);
-        if (!Number.isFinite(q) || q <= 0) return;
-        answers[q] = oneLine(item?.student || "");
-      });
-      applyQuestionAnalyticsAttempt({
+      applyQuestionAnalyticsReviewAttempt({
         targetMap: records,
         testId,
         section: practiceSection,
@@ -5522,7 +5691,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
         studentName: oneLine(row?.student_full_name || row?.studentFullName || ""),
         studentIdCode: oneLine(row?.student_id_code || row?.studentIdCode || ""),
         submittedAt: oneLine(row?.submitted_at || row?.submittedAt || ""),
-        answers,
+        reviewRows: review,
       });
     });
 

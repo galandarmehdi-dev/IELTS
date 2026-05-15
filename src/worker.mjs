@@ -2358,6 +2358,9 @@ async function handleAdminApi(request, env) {
       if (action === "submitExam" && okResponse) {
         const emailResult = await sendExamReportEmail(env, parsedSubmissionPayload, data).catch(() => ({ ok: false, error: "threw" }));
         console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
+        // Clear admin results cache so the next summary fetch re-queries Supabase
+        // rather than serving the pre-submission cached list. Resend email is unaffected.
+        try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
       }
     }
     return upstream;

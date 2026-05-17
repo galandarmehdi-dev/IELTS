@@ -7552,7 +7552,7 @@ With an increase of public awareness of the nutritional value of ingredients, it
             },
             items: [
               { q: 20, text: "A technique allowing for the grouping of paprika varieties ..." },
-              { q: 21, text: "Hungarian citizens in largely agricultural regions ..." },
+              { q: 21, text: "Hungarian people in largely agricultural regions ..." },
               { q: 22, text: "Later production of paprika in Hungary ..." },
               { q: 23, text: "Paprika preparation techniques in Hungary from the late 1700s ..." },
               { q: 24, text: "Spanish explorers ..." },
@@ -7569,7 +7569,7 @@ With an increase of public awareness of the nutritional value of ingredients, it
             ],
             items: [
               { q: 26, text: "The intensity of some types of paprika differs because of varying amounts of", tail: "in the powder." },
-              { q: 27, text: "Paprika is known to have", tail: "effects, as well as being able to combat cholesterol and alleviate muscle and joint complaints." }
+              { q: 27, text: "Paprika contains an", tail: "compound, as well as being able to combat cholesterol and alleviate muscle and joint complaints." }
             ]
           }
         ]
@@ -7617,7 +7617,7 @@ Some historical cases of writer's block exemplify its debilitating nature. Eight
               { q: 28, text: "A distinction between the roles of artists and writers." },
               { q: 29, text: "Documented accounts of writer's block." },
               { q: 30, text: "A possible biological explanation for writer's block." },
-              { q: 31, text: "The frequency of documented cases of writer's block." },
+              { q: 31, text: "A reference to the widespread occurrence of writer’s block in literature." },
               { q: 32, text: "Defense of an earlier-criticised theory." }
             ]
           },
@@ -7631,7 +7631,7 @@ Some historical cases of writer's block exemplify its debilitating nature. Eight
             summaryTitle: "Creative Writing",
             summaryLines: [
               { text: "The current Western understanding of creativity had no concrete label until the 1600s, although this only encompassed one discipline of", blankQ: 33, tail: "." },
-              { text: "Before this time, creativity's limitations were due to established", blankQ: 34, tail: "until individual vision became a recognised" },
+              { text: "Before this time, creativity's limitations were due to established", blankQ: 34, tail: "until imagination and originality became recognised as a central" },
               { text: "", blankQ: 35, before: "", after: "of the concept." },
               { text: "Writer's block is an obstruction to this", blankQ: 36, tail: "of inspiration, which some experts believe requires" },
               { text: "", blankQ: 37, before: "", after: "to overcome. Others, however, believe that continuing to write despite the block is key to the flair for words returning." }
@@ -7660,7 +7660,7 @@ Some historical cases of writer's block exemplify its debilitating nature. Eight
             ],
             items: [
               { q: 38, text: "Wallas was the first researcher to suggest writing as a cure to writer's block." },
-              { q: 39, text: "Wallas suggests a technique for speeding up the moment inspiration arrives." },
+              { q: 39, text: "Wallas suggests that creativity can be encouraged through deliberate effort." },
               { q: 40, text: "Both Wallas and Cowley admit the completion of the four stages of their models are lengthy processes." }
             ]
           }

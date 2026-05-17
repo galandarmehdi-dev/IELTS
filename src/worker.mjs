@@ -274,15 +274,15 @@ function buildContentSecurityPolicy() {
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline' https://esm.sh",
+    "script-src 'self' 'unsafe-inline' https://esm.sh https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com https://bgujwyknnszwborgbkxq.supabase.co",
+    "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com https://bgujwyknnszwborgbkxq.supabase.co https://lh3.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com",
     "media-src 'self' blob: https://audio.ieltsmock.org",
     // Removed: script.google.com and script.googleusercontent.com — the frontend never
     // calls Apps Script directly (worker proxies all calls), so these entries only widen
     // the attack surface without providing any benefit.
-    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh",
+    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://static.cloudflareinsights.com",
   ].join("; ");
 }
 

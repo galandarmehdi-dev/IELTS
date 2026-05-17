@@ -8002,7 +8002,7 @@ The vast windy open waters to the south-west of Skye mean it has great potential
               "Write them in answer boxes 14 - 16."
             ],
             items: [
-              { q: 14, text: "The first geological formations appeared on Skye approximately", tail: "ago." },
+              { q: 14, text: "The first geological formations became exposed on Skye approximately", tail: "ago." },
               { q: 15, text: "One of the stranger organisms on the island is", tail: ", which is a carnivorous plant." },
               { q: 16, text: "", tail: "has contributed to the introduction of new mammals to the island." }
             ]

@@ -8035,7 +8035,7 @@ The vast windy open waters to the south-west of Skye mean it has great potential
             items: [
               { q: 21, text: "The shifting of tectonic plates forced Scotland past the equator, so Skye experienced a range of", tail: "." },
               { q: 22, text: "Exposure of stony soil by melting glacier and high", tail: "created boggy, acidic terrain and growth of plant life." },
-              { q: 23, text: "Very extensive coastline and sheltered bays provide food for marine mammals such as", tail: "." },
+              { q: 23, text: "Shellfish found in the islandâ€™s coastal waters provide food for", tail: "." },
               { q: 24, text: "Waters are protected from the effect of the", tail: ", allowing the appearance of dolphins and porpoises." },
               { q: 25, text: "Shallow ocean bedrock creates ideal conditions for the growth of", tail: "." },
               { q: 26, text: "Large stretches of", tail: "allow construction of wind farms." },
@@ -8085,7 +8085,7 @@ However, not everyone thinks that people are naturally irrational and require â€
             },
             items: [
               { q: 28, text: "A reference to people in positions of authority acting irrationally." },
-              { q: 29, text: "A reference to the idea that thinking rationally will improve the choices a person makes." },
+              { q: 29, text: "A reference to a theory that thinking rationally will improve the choices a person makes." },
               { q: 30, text: "A reference to natural human tendencies that can prevent people from making logical decisions." },
               { q: 31, text: "A reference to people not having sufficient information to make rational decisions." }
             ]
@@ -8099,7 +8099,7 @@ However, not everyone thinks that people are naturally irrational and require â€
             ],
             choices: [
               { letter: "A", text: "Its active members are known as the 'Rationalsphere'." },
-              { letter: "B", text: "Its members must be focused on understanding and correcting their own thoughts and prejudices." },
+              { letter: "B", text: "Its members are required to identify and remove all personal prejudices before joining." },
               { letter: "C", text: "It is interested in the practical application of rationalist theory." },
               { letter: "D", text: "Its goals are rendered more easily attainable thanks to its cooperative nature." },
               { letter: "E", text: "It originated from Eliezer Yudkowsky's ideas about the potential use of logic to guide daily life." }

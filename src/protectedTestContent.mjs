@@ -8086,7 +8086,7 @@ However, not everyone thinks that people are naturally irrational and require â€
             items: [
               { q: 28, text: "A reference to people in positions of authority acting irrationally." },
               { q: 29, text: "A reference to the idea that thinking rationally will improve the choices a person makes." },
-              { q: 30, text: "A reference to the factors that may negatively affect people's decisions." },
+              { q: 30, text: "A reference to natural human tendencies that can prevent people from making logical decisions." },
               { q: 31, text: "A reference to people not having sufficient information to make rational decisions." }
             ]
           },

@@ -7448,6 +7448,7 @@ Today many Martello Towers, especially those now privately owned, have fallen in
               "Use NO MORE THAN ONE WORD from Reading Passage 1, Martello Towers.",
               "Write them in answer boxes 6 - 9."
             ],
+            imageSrc: "https://audio.ieltsmock.org/TEST%2016%20R6-9.png",
             items: [
               { q: 6, text: "Large gun on", tail: "allowing defence of all sides." },
               { q: 7, text: "Raised", tail: "to defend gunners from attacks." },
@@ -7953,7 +7954,6 @@ Modern central heating systems are much more efficient than ever before. Because
               "Write them in answer boxes 7 - 9."
             ],
             imageSrc: "https://audio.ieltsmock.org/Test17%207-9D%20R.png",
-            imageAlt: "Central heating thermostat diagram for Questions 7 to 9",
             items: [
               { q: 7, text: "Because of its location, the sensor only measures", tail: "." },
               { q: 8, text: "If room is warm enough,", tail: "will disengage." },

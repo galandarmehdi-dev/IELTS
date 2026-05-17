@@ -7972,7 +7972,7 @@ Modern central heating systems are much more efficient than ever before. Because
               { q: 10, text: "Integration with", tail: "allows more exact temperature control." },
               { q: 11, text: "Smart thermostats can easily be fitted to older systems using a", tail: "to replace the redundant model." },
               { q: 12, text: "Only heats rooms which are", tail: "." },
-              { q: 13, text: "", tail: "of modern central heating has greatly increased." }
+              { q: 13, text: "Modern central heating systems now have much greater", tail: "." }
             ]
           }
         ]

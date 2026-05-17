@@ -6456,7 +6456,7 @@ If the law is written in such a way that the manufacturer is held responsible fo
             listTitle: "List of Headings",
             headings: [
               { value: "i", label: "The likely solution" },
-              { value: "ii", label: "The culpability conundrum" },
+              { value: "ii", label: "A trusted company" },
               { value: "iii", label: "Lessons from history" },
               { value: "iv", label: "Gaining public confidence" },
               { value: "v", label: "A new problem on our roads" },

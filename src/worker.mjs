@@ -1555,6 +1555,33 @@ async function handleAdminApi(request, env) {
     });
   }
 
+  if (request.method === "POST" && action === "resendExamReport") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const payload = await request.json().catch(() => null);
+    const submittedAt = oneLine(payload?.submittedAt || "");
+    const studentFullName = oneLine(payload?.studentFullName || "");
+    const examId = oneLine(payload?.examId || "");
+    const reason = oneLine(payload?.reason || "");
+    const studentEmail = oneLine(payload?.studentEmail || payload?.officialEmail || payload?.loginEmail || "");
+    if (!submittedAt || !studentFullName || !examId) {
+      return json(400, { ok: false, error: "Missing required fields: submittedAt, studentFullName, examId." });
+    }
+    if (!studentEmail || !isValidEmail(studentEmail)) {
+      return json(400, { ok: false, error: "Missing or invalid studentEmail." });
+    }
+    const emailResult = await sendExamReportEmail(env, {
+      submittedAt, studentFullName, examId, reason,
+      studentEmail, officialEmail: studentEmail, loginEmail: studentEmail,
+    }, null).catch((err) => ({ ok: false, error: String(err) }));
+    console.log("[resendExamReport]", studentFullName, emailResult.recipient || studentEmail, emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
+    return json(emailResult.ok ? 200 : 502, {
+      ok: emailResult.ok,
+      recipient: emailResult.recipient || studentEmail,
+      error: emailResult.ok ? undefined : (emailResult.error || "Send failed"),
+    });
+  }
+
   if (request.method === "GET" && action === "objectiveDetailAdmin") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });

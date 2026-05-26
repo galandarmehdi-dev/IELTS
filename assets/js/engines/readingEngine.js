@@ -1420,6 +1420,29 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
     function renderSentenceGapsBlock(cfg, answers) {
   const panel = renderPanel(cfg.title, cfg.instructions);
 
+  if (cfg?.imageSrc) {
+    const figure = document.createElement("figure");
+    figure.style.margin = "8px 0 16px";
+    figure.style.padding = "10px";
+    figure.style.border = "1px solid rgba(16,24,40,.12)";
+    figure.style.borderRadius = "14px";
+    figure.style.background = "#fff";
+
+    const img = document.createElement("img");
+    img.src = String(cfg.imageSrc);
+    img.alt = String(cfg.imageAlt || cfg.title || "Reading diagram");
+    img.loading = "lazy";
+    img.style.display = "block";
+    img.style.width = "100%";
+    img.style.maxWidth = "720px";
+    img.style.height = "auto";
+    img.style.margin = "0 auto";
+    img.style.borderRadius = "10px";
+
+    figure.appendChild(img);
+    panel.appendChild(figure);
+  }
+
   const bindGapInput = (input, q) => {
     input.className = "gapInput";
     input.type = "text";

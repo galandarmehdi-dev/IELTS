@@ -8704,6 +8704,514 @@ Brian Weeden, a technical advisor for the Secure World Foundation, has suggested
     ]
   }
 };
+const test19 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/19%20Test.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-7</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">EAST COAST RAIL COMPANY - MISSING ITEMS FORM</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>PERSONAL DETAILS</b></div>
+        <div class="note-row">Name: Mrs Helen <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+        <div class="note-row">Address: 57 The High Street, Greenside</div>
+        <div class="note-row">Postcode: <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+        <div class="note-row">Phone Number: <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>ITEM DESCRIPTION</b></div>
+        <div class="note-row">Type of item: Black shoulder bag</div>
+        <div class="note-row">Material: <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">Contents: books, papers, pens, <span class="qnum">5</span> <input data-lq="5" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>TRAIN</b></div>
+        <div class="note-row">Route: from Newcastle to Greenside</div>
+        <div class="note-row">Arrival time: <span class="qnum">6</span> <input data-lq="6" class="l-input small"> pm</div>
+        <div class="note-row">Seat details: seat number <span class="qnum">7</span> <input data-lq="7" class="l-input small"> in carriage 6</div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 8-10</div>
+      <div class="listen-inst">Complete the flow-chart. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">What to do after reporting a lost item with East Coast Rail</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Any items found are logged on the computer system within <span class="qnum">8</span> <input data-lq="8" class="l-input"> of the item being lost</div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Customer can call the rail company to get an <span class="qnum">9</span> <input data-lq="9" class="l-input"> after the following week</div>
+        <div class="note-row">↓</div>
+        <div class="note-row">In order to collect the item from the Lost Property Office, the customer must bring ID that includes a <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-12</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO events regularly take place at Larswater?</div>
+      <div class="people-box">
+        <div><b>A</b> yacht races</div>
+        <div><b>B</b> poetry festivals</div>
+        <div><b>C</b> day trips to go hunting</div>
+        <div><b>D</b> long-distance swimming</div>
+        <div><b>E</b> speedboat demonstrations</div>
+      </div>
+      <div class="note-row"><span class="qnum">11</span> First answer <input data-lq="11" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">12</span> Second answer <input data-lq="12" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 13-14</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO advantages of the Larswater Way walking route are mentioned?</div>
+      <div class="people-box">
+        <div><b>A</b> the fact that the walking there is easy</div>
+        <div><b>B</b> the opportunity it provides for making friends</div>
+        <div><b>C</b> the beautiful view from the peak</div>
+        <div><b>D</b> the chance to save money when using the ferry</div>
+        <div><b>E</b> the public transport that can be used along the route</div>
+      </div>
+      <div class="note-row"><span class="qnum">13</span> First answer <input data-lq="13" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">14</span> Second answer <input data-lq="14" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-20</div>
+      <div class="listen-inst">Label the map. Write the appropriate letter, <b>A-G</b>.</div>
+
+      <p>
+        <img src="https://audio.ieltsmock.org/19%20Listening%2017-20.png" alt="Larswater Lake map for Questions 15 to 20" style="max-width:100%;height:auto;border:1px solid var(--border,#ddd);border-radius:8px;">
+      </p>
+
+      <div class="note-row"><span class="qnum">15</span> Gowtown <input data-lq="15" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">16</span> Coyne car park <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> The Stone Circle <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> Patterdale <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> Maiden Castle <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Grisedale <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-25</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> What do George and Lisa say about the research question given by the tutor?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) They would like to change it slightly.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) They need to decide how to interpret it.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) They find it hard to be sure of the exact wording.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> How does George feel about the workload for the project?</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) anxious about meeting the deadline</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) pleased that Lisa will be contributing her ideas</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) confident that, as a small group, they will be productive</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> Lisa is against studying how people’s fitness has changed because</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) it would be irrelevant.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) the tutor has told them not to.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) getting data about this would be difficult.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> What concern does George have about conducting interviews with gym users?</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) It could take too much time.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) Their answers may not be accurate.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) They may be unwilling to be interviewed.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">25</span> When Lisa talks about the skills George has, she is trying to</div>
+        <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) reassure him that he can do well.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) advise him how to get a good mark.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) explain how she can help him.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 26-30</div>
+      <div class="listen-inst">What should the students do at each stage of the project? Write the appropriate letter, <b>A-F</b>, in the space for each answer.</div>
+
+      <div class="people-box">
+        <div><b>A</b> get permission</div>
+        <div><b>B</b> proofread carefully</div>
+        <div><b>C</b> get some advice</div>
+        <div><b>D</b> explain the purpose</div>
+        <div><b>E</b> find suitable source material</div>
+        <div><b>F</b> decide individual responsibilities</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">26</span> forming questions <input data-lq="26" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">27</span> conducting interviews <input data-lq="27" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">28</span> using surveys <input data-lq="28" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">29</span> preparing the presentation <input data-lq="29" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">30</span> writing up the findings <input data-lq="30" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">The Bosco Verticale in Milan</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Bosco Verticale: an overview</b></div>
+        <div class="note-row">‘Bosco Verticale’ = vertical forest</div>
+        <div class="note-row">The two blocks of flats are 30 minutes by foot from Milan’s <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Facts and figures</b></div>
+        <div class="note-row">The two buildings are:</div>
+        <div class="note-row bullet">● 110 metres tall with 26 floors</div>
+        <div class="note-row bullet">● 76 metres tall with 18 floors</div>
+        <div class="note-row">The balconies have been planted with:</div>
+        <div class="note-row bullet">● 900 trees</div>
+        <div class="note-row bullet">● 20,000 <span class="qnum">32</span> <input data-lq="32" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Advantages of the design</b></div>
+        <div class="note-row">The greenery:</div>
+        <div class="note-row bullet">● gives the buildings an <span class="qnum">33</span> <input data-lq="33" class="l-input"> appearance</div>
+        <div class="note-row bullet">● removes bits of <span class="qnum">34</span> <input data-lq="34" class="l-input"> from the air (pollution is bad in Milan)</div>
+        <div class="note-row bullet">● controls humidity</div>
+        <div class="note-row bullet">● provides <span class="qnum">35</span> <input data-lq="35" class="l-input"> at warmer times of the year</div>
+        <div class="note-row bullet">● reduces noise</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Design and construction</b></div>
+        <div class="note-row">Boeri Studio (architects) worked with botanists to choose the right trees and plants.</div>
+        <div class="note-row">Various species were positioned according to the amount of <span class="qnum">36</span> <input data-lq="36" class="l-input"> they require.</div>
+        <div class="note-row">The biodiversity of the ‘living walls’ should draw birds as well as <span class="qnum">37</span> <input data-lq="37" class="l-input"> to the area.</div>
+        <div class="note-row"><span class="qnum">38</span> <input data-lq="38" class="l-input"> were used to move the plants into position.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Maintenance</b></div>
+        <div class="note-row">The plants are watered using grey water (from sinks & showers); this is a sustainable solution.</div>
+        <div class="note-row">The vegetation belongs to management, who look after it (not the residents).</div>
+        <div class="note-row">To reach the plants for maintenance, gardeners can either:</div>
+        <div class="note-row bullet">● go through the flats and onto the balconies, or</div>
+        <div class="note-row bullet">● come down using <span class="qnum">39</span> <input data-lq="39" class="l-input"> connected to a structure on the roof, if access is difficult</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Responses to the building</b></div>
+        <div class="note-row">The building was well received and won prizes, but also received some <span class="qnum">40</span> <input data-lq="40" class="l-input">.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Mixed chart",
+    task2Type: "Problem and solution essay",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The line graph and pie chart below show information on crime in the UK for the last year.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/19%20T1%20Mixed.png",
+    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>In many countries, childhood obesity is a growing problem.<br/><br/>What are the reasons for this and what can individuals and governments do to tackle the problem?<br/>Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br/><b>Write at least 250 words.</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `Zebra finches
+
+Zebra finches are active, noisy, sociable little birds that live wild in Australia but are also popular cage and aviary pets all over the world. In fact, they are almost as popular pets as budgerigars and canaries. There are two subspecies. One is found throughout most of Australia, except for the very north and the very south of the country. The other is found in East Timor, parts of Indonesia, and some coastal areas of Australia. Domesticated zebra finches mostly derive from the Australian subspecies.
+
+Zebra finches may reach five years of age in their natural environment, but can live twice as long as that in captivity. In the wild, zebra finches live in groups on open grasslands where there are some bushes and trees, usually close to water. They also make use of man-made land features, such as watering holes and cultivated fields. Well-adapted to desert conditions, they do not like dense, damp woodlands or forests. They nest in low trees and bushes, in holes, on the ground, in termite hills, rabbit burrows or the nests of other birds, and in crevices and ledges on buildings.
+
+Male and female zebra finches differ in their colouration. Males have bright red beaks, orange cheek patches, black-and-white bars covering the throat down to a black breast bar (this is the pattern that gives them the ‘zebra’ element in their name), a black ‘teardrop’ extending down from each eye, chestnut-coloured flanks with white spots, and a black-and-white tail. Females are grey except for the black teardrops and black-and-white tails, and their beaks are more orange than red. When choosing a mate, hen zebra finches choose males with the reddest beaks, the most symmetrical markings, and which are the most prolific singers. Zebra finches pair for life, but high death rates do lead to frequent re-pairings.
+
+Like budgerigars, canaries and some other domesticated birds, zebra finches in captivity have developed many mutations from the original ‘normal’ form. For example, ‘fawn’ zebra finches are light brown in colour where normal birds are grey, and ‘whites’ are completely colourless, with no markings at all. ‘Chestnut-flanked whites’ are ivory white, with the same markings as on normal birds. In ‘penguin’ zebra finches, the top of the head, back and wings are the normal body colour but the underparts are white. And, as their names suggest, the cheeks of the ‘black-cheeked’ zebra finch are black instead of the usual orange, and the male ‘black-breasted’ zebra finch has a much larger than normal black bar on its breast.
+
+Male zebra finches are loud and boisterous singers, though their calls are rather squeaky and not very musical. Each bird’s song is different: although young birds generally learn their song from their father, they will change it to create their own version, incorporating other sounds they hear around them. Recently, fascinating new information about zebra finch song has been discovered: in hot weather, zebra finches sing special songs to their young in the eggs and these ‘incubation calls’ affect the chicks’ development in the egg. These calls are produced towards the end of the incubation period if the temperature rises above 26°C (78.8°F). Young birds that have listened to these calls are found to weigh less and grow more slowly than other hatchlings, and they cope better in heat. Scientists suggest that, with their smaller body size, such young are better at losing body heat in hot weather.
+
+Zebra Finches have also developed a special method of drinking water, not sucking it up but tipping their bills into the water and using their tongues to scoop it up. In this way, they can drink water quickly and so spend less time at water holes where they are vulnerable to predators. Moreover, this way of drinking allows them to exploit small quantities of water such as dew drops as well as to draw water up from places that would otherwise be difficult to drink from. Zebra finches also eat the leaves of succulent plants as a means of staying hydrated when there is no water supply nearby. Studies have shown that they can survive without water for at least a year, and probably even longer. However, they cannot survive even a day without food. Primarily seed-eaters, they are very messy in their eating habits and drop seeds all around them, which of course helps their food plants to reproduce and so provides more food for the birds. They rarely eat insects but nevertheless they can catch flying insects in mid-air.
+
+Zebra finches are not only popular pets, they are also widely used in research. In fact, they have been spoken of as the avian equivalent of laboratory rats. No other finch has been studied as closely as the zebra finch. There have been numerous studies of the birds in their natural environment and also laboratory studies of such behaviour as mate-selection and song-learning. Because zebra finches learn their songs from their surroundings, they can be used to investigate the neural bases of learning, memory, and responses to stimuli. The zebra finch genome (the complete set of the bird’s genes) was the second bird genome to be fully described, after that of the chicken.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1 - 7",
+            instructions: [
+              "Do the statements below (questions 1 - 7) agree with the information given in Reading Passage 1, Zebra Finches?",
+              "In answer boxes 1 - 7, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 1, text: "Zebra finches are the most popular birds to have as pets worldwide." },
+              { q: 2, text: "Zebra finches do not survive well in places where humans adapt the land." },
+              { q: 3, text: "Male zebra finches are more colourful than female ones." },
+              { q: 4, text: "‘Penguin’ zebra finches originated in the wild." },
+              { q: 5, text: "Every zebra finch’s song becomes unique with time." },
+              { q: 6, text: "The zebra finch has more than one method of getting water." },
+              { q: 7, text: "Some scientific studies have involved experiments on both rats and zebra finches." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 8 - 11",
+            instructions: [
+              "Complete the sentences below (questions 8 - 11).",
+              "Use NO MORE THAN ONE WORD from Reading Passage 1, Zebra finches, for each answer.",
+              "Write them in answer boxes 8 - 11."
+            ],
+            items: [
+              { q: 8, text: "Within Australia, the second subspecies of zebra finch is only present in some", tail: "regions." },
+              { q: 9, text: "Zebra finches in", tail: "are expected to live up to about ten years." },
+              { q: 10, text: "Both male and female zebra finches share the same ‘teardrop’ feature and have", tail: "of the same colour." },
+              { q: 11, text: "One mutated variety of zebra finch completely lacks any", tail: ", while another shares those of the original subspecies." }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 12 - 13",
+            instructions: [
+              "Read Passage 1, Zebra finches.",
+              "Choose the correct letter, A, B, C or D.",
+              "Write the letters in answer boxes 12 - 13."
+            ],
+            items: [
+              {
+                q: 12,
+                text: "Which of the following statements is true of zebra finch song?",
+                choices: {
+                  A: "A wild zebra finch is likely to have the same song as a domesticated one.",
+                  B: "Zebra finches have identical songs to those of their fathers.",
+                  C: "Zebra finches only sing special songs to their offspring in certain circumstances.",
+                  D: "Scientists are interested in discovering more about the unusual technique that the zebra finch uses to produce song."
+                }
+              },
+              {
+                q: 13,
+                text: "Which of the following statements is true of methods used by zebra finches to feed and remain hydrated?",
+                choices: {
+                  A: "Zebra finches' technique of taking in water with their tongues allows them to look for predators while they drink.",
+                  B: "The zebra finch gets most of its water from the leaves of plants.",
+                  C: "Zebra finches must drink more often than they eat.",
+                  D: "One feeding characteristic of the zebra finch is beneficial to them in the long-term."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `Chunking and Segmentation
+
+Chunking is a cognitive process – occurring within the human brain – to organise information for storage in the short-term memory. It involves grouping several, small items of information into a single unit, or chunk. This allows us to remember more information, as there are fewer items to memorise.
+
+The classic example of this, as used in much of the academic literature on the subject, is when memorising a number. For instance, the four-digit PIN code 1415 could be memorised as four separate chunks of information (1,4,1 and 5) but we are much more likely to group it into two chunks of information (14 and 15). This halves the number of chunks that we are required to memorise, even though the overall information is exactly the same.
+
+The concept of chunking was first introduced by psychologist George Miller. Following experiments in 1956, he concluded that the short-term memory was capable of retaining between five and nine pieces of information at any one time. More recent studies have found that we can actually remember even fewer than this: between three and five pieces of information. This is very little; in fact, it is the same amount of information that a monkey can remember. According to Cambridge neuroscientist Daniel Bor, monkeys can retain around three or four pieces of information. So, why are we better at memorisation than monkeys are? The reason is that humans are much more skilled at chunking that information. While a monkey could only remember "a bit of apple, a bit of banana, a bit of melon, and a bit of pineapple", a human could store all of these as one information chunk – a fruit salad.
+
+Chunking is a particularly important concept in language learning, as it goes some way to explaining why listening is harder in a second language. This is particularly true during the early stages of learning, when the learner is likely to store chunks containing individual words rather than larger concepts. A novice language learner might hear the phrase "the Empire State Building" and hear every word individually, resulting in four chunks of information; this would effectively fill up their entire short-term memory. A more advanced learner, or native speaker, would simply picture The Empire State Building, resulting in only one chunk of information. This leaves the language learner at a disadvantage as their memory is effectively more limited than that of a native speaker.
+
+However, chunking is not the only mental process that makes listening difficult in a second language. A second process, called segmentation, is also at work. It determines how the brain understands spoken or written language. Second language learners are not accustomed to the segmentation rules in the new language so they may struggle to understand the overall sense of what is being said, even if they are familiar with all the individual words.
+
+Segmentation involves breaking up long streams of speech into smaller, self-contained units of sense. For example, if we hear "I went to the Empire State building yesterday", our brain can segment this into the phrase "I went to the Empire State Building yesterday." However, if we are unfamiliar with the segmentation rules of the language, the brain will struggle to segment the speech correctly. To improve their listening skills, language learners should become familiar with the segmentation rules of the new language. These rules are usually learnt unconsciously so the more listening experience you get, the more familiar you will become with the rules.
+
+Segmentation and chunking processes work hand-in-hand to allow humans to understand spoken language. We use segmentation to turn speech into comprehensible units and then use chunking to store those units in our short-term memory. This process works because the memory is able to process concepts, not just individual words. The more experienced you become in a language, the more meaningful each chunk becomes; the result being that you will be able to store more information in your short-term memory.
+
+Storing information in the short-term memory is vital, as it gives the listener enough time to comprehend what is being said. Psychologist Nelson Cowan explains that the short-term memory is used as part of a larger cognitive system which is named "working memory". Working memory incorporates the short-term memory along with other cognitive processing mechanisms. It acts as a type of buffer, allowing us time to assimilate information – store it in our long-term memory – before we forget it.
+
+According to E Bruce Goldstein, the length of working memory is around ten to fifteen seconds. If we did not store spoken information in the working memory, listening would become even more difficult as we might have to rely on the echoic memory. Echoic memory is a sensory memory register which stores sound for a short period after we hear it. Even though it is the longest of the sensory memory registers, most of which hold information for under two seconds, echoic memory only lasts for three or four seconds. If you had to rely on your echoic memory for listening, you might forget what word a person had said by the time your long-term memory was able to recall what it meant.
+
+Language learners can maximise their chunking and segmentation processes by altering their learning strategies. Increased listening practice, with a variety of different voices and accents, can improve our assimilation of the segmentation rules of the language. To aid chunking, it is more effective to learn whole phrases than to learn individual words alone.`,
+        blocks: [
+          {
+            type: "multiTextChoices",
+            title: "Questions 14 - 18",
+            instructions: [
+              "Which FIVE of the following claims about chunking are made by the writer of Reading Passage 2, Chunking and Segmentation?",
+              "Choose FIVE letters (from A - J) and write them in any order in answer boxes 14 - 18."
+            ],
+            choices: [
+              { letter: "A", text: "Chunking means we can make better use of our short-term memory." },
+              { letter: "B", text: "Chunking reduces the individual pieces of information we have to remember." },
+              { letter: "C", text: "Chunking helps us to remember strings of numbers." },
+              { letter: "D", text: "Chunking increases the number of facts we can remember from five to nine." },
+              { letter: "E", text: "In the past we could remember more chunks of information than we can today." },
+              { letter: "F", text: "Humans are more capable of chunking than another animal." },
+              { letter: "G", text: "Chunking helps us to remember the names of fruit and vegetables." },
+              { letter: "H", text: "Advanced language learners can remember more individual chunks than beginners." },
+              { letter: "I", text: "Native speakers can always remember longer chunks than language learners." },
+              { letter: "J", text: "Being able to recognise chunks of language improves listening ability." }
+            ],
+            items: [
+              { q: 14, text: "First answer" },
+              { q: 15, text: "Second answer" },
+              { q: 16, text: "Third answer" },
+              { q: 17, text: "Fourth answer" },
+              { q: 18, text: "Fifth answer" }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 19 - 23",
+            instructions: [
+              "Read Passage 2, Chunking and Segmentation and complete each sentence with the correct ending.",
+              "Choose from the list, A - G, below.",
+              "Write the appropriate letters, A - G, in answer boxes 19 - 23."
+            ],
+            endings: {
+              A: "... be learnt with more exposure to spoken language.",
+              B: "... remember the rules.",
+              C: "... make it difficult for learners to listen in a foreign language.",
+              D: "... identify chunks in spoken language.",
+              E: "... struggle to understand meaning in longer speech.",
+              F: "... increase the size of your short term memory.",
+              G: "... rely on the understanding of concepts and not vocabulary items."
+            },
+            items: [
+              { q: 19, text: "Along with chunking, segmentation can" },
+              { q: 20, text: "Segmentation rules may be different to a learner’s native language so learners" },
+              { q: 21, text: "If you are familiar with segmentation rules then you can" },
+              { q: 22, text: "The rules of segmentation can" },
+              { q: 23, text: "Effective use of segmentation and chunking" }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 24 - 26",
+            instructions: [
+              "Complete the flow chart below with words from Reading Passage 2, Chunking and Segmentation.",
+              "Write NO MORE THAN THREE WORDS from the text in each answer box, 24 - 26."
+            ],
+            items: [
+              { q: 24, text: "Input held in our", tail: "for 3-4 seconds." },
+              { q: 25, text: "Working memory then functions as a kind of", tail: "to store and process the input for 10-15 seconds." },
+              { q: 26, text: "", tail: "then recovers the meaning of the input." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `Into the Unknown: The search for the Northwest Passage
+
+A
+Prior to the 19th century, the Canadian Arctic region was largely unknown to Europeans, except for a relatively few whalers and fur hunters. However, for several centuries, explorers had sought to find a passage to the East via the ice-bound waterways of the north, to avoid the long and perilous journey via Cape Horn round the tip of South America and Africa's Cape of Good Hope. The route they sought, between the Atlantic and the North Pacific, was named the Northwest Passage.
+
+B
+Following the Napoleonic Wars in the early 19th century, there were many out-of-work naval officers, looking to find employment in the expanding British Empire. One of these was the naval surgeon John Richardson, born in Dumfries, Scotland, in 1787, who became a Fellow of the London Royal College of Surgeons in 1807, following a medical apprenticeship in Edinburgh. The training of medical personnel at this time involved studying a great deal of natural history, particularly of plants and their medicinal properties, and Richardson became a keen naturalist. It was this combination of knowledge and skills which bought him to the attention of Lieutenant John Franklin, who had been commissioned to explore the Northwest Passage in 1819. Richardson enthusiastically took the opportunity to travel with him with the object of collecting geological, plant and animal specimens.
+
+C
+At this time, the northern territories of Canada were dominated by two rival companies trading in animal furs and skins, who essentially governed this vast region. Staffed mainly by Scottish workers, but employing French voyageurs* and Native American animal hunters, the violent trading war between these companies destabilised the whole of the region and the food stocks, which the expedition depended on, were simply unavailable. Nevertheless, Franklin’s men succeeded in covering well over 1,000 miles in the first year of their anticipated 2-year expedition. They reached the confluence of the Coppermine and Yellow Rivers in 1820, despite temperatures of 40 degrees below freezing, while in summer the men were plagued by hordes of mosquitoes and biting flies.
+
+D
+It was the difficulty of obtaining food which made them seriously consider ending the expedition. Travelling several hundred miles over the waterlogged bog and tundra, the hungry and exhausted travellers were forced to feed on the only plentiful plants they could find - primitive lichens covering otherwise bare rocks. George Back, a member of Richardson’s crew, showed great courage and selflessness in assisting the men stranded at Fort Enterprise, when he volunteered, together with some voyageurs, to undertake a winter journey of 500 miles to reach the camp of the Native American Chief Akaitcho. The chief immediately sent out two sledges loaded with meat to the starving explorers at Fort Enterprise.
+
+E
+Meanwhile, Richardson had agreed to stay behind with two sick members of the party, Hood and Hepburn, near the Coppermine River. The three emaciated men survived on insects and sheltered in a small tent, but continued to observe morning and evening religious prayers to maintain morale. Richardson was soon forced to make the most momentous decisions of his life when he encountered one of the Iroquois Indian guides, attached to the main party, who claimed to have lost his way. A number of incidents convinced Richardson that the well-armed guide intended to kill the weakened party of Europeans for food. One morning, one of the men, Hood, was found dead with a gunshot wound to the head. Richardson did not hesitate: he killed the guide in similar fashion.
+
+F
+When Richardson and Hepburn later reached Fort Enterprise, they found the main party near to death from starvation and thoroughly demoralised, including their leader, Lieutenant Franklin. It was Richardson who then took charge, clearing out their filthy quarters and organising the sharing of what little sustenance they had, mainly consisting of old bones and scraps found outside. It was from this time that legends of making soup from old animal skins and leather moccasins emerged. Eventually, Chief Akaitcho’s Indians arrived with their stores of food. They treated the weak and starved party with the utmost care, restoring them sufficiently to start the journey to Fort Providence on the Great Slave Lake within a week. There they stayed for five months with the Hudson’s Bay Company, who looked after them very well. They were not able to return to England till the summer of 1822, having, by then, travelled some 5,500 miles by land and sea.
+
+G
+Richardson later accompanied a second Franklin expedition in the years 1825-27, which was much better organised, enabling him to consolidate his collections and observations and forming the basis of the very first comprehensive study of the natural history of the Arctic. Following his knighthood in 1846, he led an unsuccessful search expedition to determine what had happened to John Franklin’s last Arctic expedition which had never returned and in which all died. It was not until the 1980s, when forensic science was applied to the buried corpses - perfectly intact in the ice - that it was found that theymost probably died as a result of the latest technology of the time: tinned food. It was seen as the solution to maintaining the health and wellbeing of the expedition and thousands of tins were taken. Unfortunately, the lead used to seal the tins, which were of poor quality, contaminated the food inside and the explorers probably all died of lead poisoning.
+
+*The name given to the very expert French-Canadian canoe men`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 27 - 32",
+            instructions: [
+              "Reading Passage 3, Into the Unknown: The search for the Northwest Passage, has seven paragraphs, A - G.",
+              "From the list of headings below, choose the most suitable one for each paragraph, B - G.",
+              "Write the appropriate number (i - x) in answer boxes 27 - 32.",
+              "NB There are more headings than paragraphs, so you will not use them all."
+            ],
+            listTitle: "List of Headings",
+            headings: [
+              { value: "i", label: "History of fur trading" },
+              { value: "ii", label: "Returning to Canada" },
+              { value: "iii", label: "A useful shortcut" },
+              { value: "iv", label: "Progress in the face of adversity" },
+              { value: "v", label: "Restoring order" },
+              { value: "vi", label: "A difficult decision" },
+              { value: "vii", label: "Rising unemployment" },
+              { value: "viii", label: "The right man for the job" },
+              { value: "ix", label: "Kill or be killed" },
+              { value: "x", label: "The need to seek help" }
+            ],
+            example: { paragraph: "Paragraph A", value: "iii" },
+            questions: [
+              { q: 27, paragraph: "Paragraph B" },
+              { q: 28, paragraph: "Paragraph C" },
+              { q: 29, paragraph: "Paragraph D" },
+              { q: 30, paragraph: "Paragraph E" },
+              { q: 31, paragraph: "Paragraph F" },
+              { q: 32, paragraph: "Paragraph G" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 33 - 35",
+            instructions: [
+              "Do the statements below (questions 33 - 35) agree with the information given in Reading Passage 3, Into the Unknown: The search for the Northwest Passage?",
+              "In answer boxes 33 - 35, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 33, text: "Before finding the Northwest passage, the only option to travel from the Atlantic to the Pacific was over land." },
+              { q: 34, text: "John Richardson's medical studies influenced his interest in the exploration of nature." },
+              { q: 35, text: "Conflict between rival companies led to the extinction of many species of animals in the area." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 36 - 40",
+            instructions: [
+              "Complete the summary of Reading Passage 3, Into the Unknown: The search for the Northwest Passage, below.",
+              "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+              "Write your answers in boxes 36 - 40."
+            ],
+            items: [
+              { q: 36, text: "Travelling great distances across waterlogged terrain and eating only plants, such as wild", tail: ", left the group both exhausted and desperately in need of food." },
+              { q: 37, text: "Help came in the form of", tail: "carrying food sent by Chief Akaitcho." },
+              { q: 38, text: "Richardson had to make a momentous choice to save his weakened team from a well-armed guide who had inflicted a", tail: "to his teammate's head and wished to do the same to the others." },
+              { q: 39, text: "At Fort Enterprise, Richardson found his team in an utterly", tail: "state." },
+              { q: 40, text: "Richardson went on other adventures with Franklin during which he consolidated his plant and animal specimens. However, Franklin later died from lead poisoning caused by the consumption of", tail: "." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -8724,6 +9232,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts16: test16,
   ielts17: test17,
   ielts18: test18,
+  ielts19: test19,
 };
 
 export function getProtectedTestContent(testId) {

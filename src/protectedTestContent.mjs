@@ -8156,6 +8156,554 @@ However, not everyone thinks that people are naturally irrational and require �
     ]
   }
 };
+const test18 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/Test%2018.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 - QUESTIONS 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-5</div>
+      <div class="listen-inst">Complete the notes. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Global Internet - New customer form</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Name James <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+        <div class="note-row">Address <span class="qnum">2</span> <input data-lq="2" class="l-input"> Melrose Drive</div>
+        <div class="note-row">Exeter</div>
+        <div class="note-row">Postcode <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+        <div class="note-row">Number of users in the home <span class="qnum">4</span> <input data-lq="4" class="l-input small"></div>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 6-10</div>
+      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Internet package overview</div>
+
+      <div class="listen-table-wrap">
+        <table class="listen-table">
+          <thead>
+            <tr>
+              <th>Package</th>
+              <th>Monthly cost</th>
+              <th>Download speed (*)</th>
+              <th>Download limit per month (**)</th>
+              <th>Extras</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Basic</td>
+              <td><span class="qnum">5</span> £<input data-lq="5" class="l-input tiny"></td>
+              <td>17</td>
+              <td>10</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td><span class="qnum">6</span> <input data-lq="6" class="l-input tiny"> package</td>
+              <td>£30</td>
+              <td>17</td>
+              <td>unlimited</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>Premium</td>
+              <td>£35</td>
+              <td><span class="qnum">7</span> <input data-lq="7" class="l-input tiny"></td>
+              <td>50</td>
+              <td>A <span class="qnum">8</span> <input data-lq="8" class="l-input tiny"> is provided at no charge</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="listen-notes">
+        <div class="note-row">(*): megabytes/second</div>
+        <div class="note-row">(**): gigabytes</div>
+        <div class="note-row" style="margin-top:12px;"><b>Installation arrangements</b></div>
+        <div class="note-row">Day of installation: <span class="qnum">9</span> <input data-lq="9" class="l-input"></div>
+        <div class="note-row">Start time: 9.00</div>
+        <div class="note-row">Engineer’s name: Jonathan <span class="qnum">10</span> <input data-lq="10" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 - QUESTIONS 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-12</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO things was Jodie surprised by when she started working at festivals?</div>
+      <div class="people-box">
+        <div><b>A</b> how hard she had to work</div>
+        <div><b>B</b> how much fun the work was</div>
+        <div><b>C</b> how old the other staff were</div>
+        <div><b>D</b> how much she was able to earn</div>
+        <div><b>E</b> how easy it was to make friends</div>
+      </div>
+      <div class="note-row"><span class="qnum">11</span> First answer <input data-lq="11" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">12</span> Second answer <input data-lq="12" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 13-14</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO groups does Jodie particularly want to hear from?</div>
+      <div class="people-box">
+        <div><b>A</b> those with a love of music</div>
+        <div><b>B</b> people who are willing to work late</div>
+        <div><b>C</b> anyone who has medical training</div>
+        <div><b>D</b> anyone who wants to go to a festival for free</div>
+        <div><b>E</b> people who have worked at festivals before</div>
+      </div>
+      <div class="note-row"><span class="qnum">13</span> First answer <input data-lq="13" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">14</span> Second answer <input data-lq="14" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-16</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO pieces of advice does Jodie give to people who are interested in working at festivals?</div>
+      <div class="people-box">
+        <div><b>A</b> Only apply if you really want the work.</div>
+        <div><b>B</b> Find a friend that you will enjoy working with.</div>
+        <div><b>C</b> Start off by applying to work at a large festival.</div>
+        <div><b>D</b> Apply for a job at a festival you have already attended.</div>
+        <div><b>E</b> Make sure that you know what the work involves.</div>
+      </div>
+      <div class="note-row"><span class="qnum">15</span> First answer <input data-lq="15" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">16</span> Second answer <input data-lq="16" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 17-20</div>
+      <div class="listen-inst">What work is available at each of the following festivals? Write the appropriate letter, <b>A-F</b>, for each question.</div>
+      <div class="people-box">
+        <div><b>A</b> working in the food stalls</div>
+        <div><b>B</b> collecting money for charity</div>
+        <div><b>C</b> selling tickets to the festival</div>
+        <div><b>D</b> tidying up after the festival finishes</div>
+        <div><b>E</b> encouraging people to recycle their waste</div>
+        <div><b>F</b> helping people get to where they’ll be staying</div>
+      </div>
+      <div class="note-row"><span class="qnum">17</span> KlezmerFest <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> Big Time <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> Blestival <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Smash! <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 - QUESTIONS 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-25</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B, or C</b>.</div>
+      <div class="listen-card-title">Magna Carta</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> Jess and Simon agree that King John was disliked because he</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) was blamed for the loss of territory.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) was planning to start a war against France.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) lacked the communication skills that were expected of a monarch.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> According to Jess, the main purpose of Magna Carta was to</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) enable England to win a war.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) resolve a conflict involving the king.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) improve the lives of ordinary people.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> What does Simon say he learned from the lecture?</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) who benefited most from Magna Carta</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) how significant Magna Carta has been in other countries</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) what made King John agree to the wording of Magna Carta</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> Jess feels that the fact that Magna Carta was regularly updated indicates that</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) it had been poorly written and needed to be made clearer.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) it enabled subsequent kings to be seen as great lawmakers.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) it was seen as an effective means of limiting the king’s power.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">25</span> Simon mentions other English kings in order to</div>
+        <label class="mcq-opt"><input type="radio" name="q25" value="A" data-lq-radio="25"> A) list people who were critical of John’s achievements.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="B" data-lq-radio="25"> B) explain why these monarchs were more successful than John.</label>
+        <label class="mcq-opt"><input type="radio" name="q25" value="C" data-lq-radio="25"> C) argue that rebellions like the ones John faced were common in those times.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 26-30</div>
+      <div class="listen-inst">What comment do the students make about each of the following clauses from Magna Carta? Write the appropriate letter, <b>A-G</b>, in the space for each answer.</div>
+      <div class="people-box">
+        <div><b>A</b> Many people are familiar with it.</div>
+        <div><b>B</b> It allows a person freedom of choice.</div>
+        <div><b>C</b> It helped to solve a common problem.</div>
+        <div><b>D</b> It is hard to understand the purpose of this clause.</div>
+        <div><b>E</b> When it was introduced, it is likely to have been unpopular.</div>
+        <div><b>F</b> It is one of a number of clauses that deal with a similar topic.</div>
+        <div><b>G</b> To people nowadays, it seems to be stating the obvious.</div>
+      </div>
+      <div class="note-row"><span class="qnum">26</span> Clause 40 <input data-lq="26" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">27</span> Clause 8 <input data-lq="27" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">28</span> Clause 33 <input data-lq="28" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">29</span> Clause 2 <input data-lq="29" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">30</span> Clause 35 <input data-lq="30" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 - QUESTIONS 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Invasive species</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Definition: a plant or animal living outside its usual range which causes harm in the new location</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Introducing species as food</b></div>
+        <div class="note-row"><b>European rabbits</b></div>
+        <div class="note-row bullet">● were taken from Britain to Australia as food</div>
+        <div class="note-row bullet">● were released near Melbourne by a <span class="qnum">31</span> <input data-lq="31" class="l-input"> in 1859</div>
+        <div class="note-row bullet">● had migrated right across the continent within fifty years</div>
+        <div class="note-row bullet">● were competing with <span class="qnum">32</span> <input data-lq="32" class="l-input"> for food</div>
+        <div class="note-row bullet">● prevented trees from growing</div>
+        <div class="note-row">The construction of <span class="qnum">33</span> <input data-lq="33" class="l-input"> did little to stop the spread of the rabbits.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Introducing species for business</b></div>
+        <div class="note-row">In the 1860s, Etienne Trouvelot wanted to see if the gypsy moth could be farmed in America for its <span class="qnum">34</span> <input data-lq="34" class="l-input">.</div>
+        <div class="note-row">This experiment failed, but the moths escaped.</div>
+        <div class="note-row">Gypsy moths could have spread further if the females were able to <span class="qnum">35</span> <input data-lq="35" class="l-input">.</div>
+        <div class="note-row">Gypsy moths still cause $3 billion of damage annually.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Introducing species for ‘acclimatisation’</b></div>
+        <div class="note-row">Acclimatisation: the idea that a new species can <span class="qnum">36</span> <input data-lq="36" class="l-input"> the area where it is introduced.</div>
+        <div class="note-row">In 1890, Eugene Schieffelin tried to introduce to North America every kind of <span class="qnum">37</span> <input data-lq="37" class="l-input"> mentioned in Shakespeare’s plays.</div>
+        <div class="note-row">Some of these animals destroyed many <span class="qnum">38</span> <input data-lq="38" class="l-input"> throughout North America.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Gorse</b></div>
+        <div class="note-row bullet">● is a bush with sharp leaves</div>
+        <div class="note-row bullet">● was introduced to New Zealand to be used as <span class="qnum">39</span> <input data-lq="39" class="l-input"></div>
+        <div class="note-row bullet">● didn’t respond as expected to treatment with <span class="qnum">40</span> <input data-lq="40" class="l-input"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Table",
+    task2Type: "Opinion essay",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The table below shows the world's ten most expensive countries for petrol along with other financial information.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/18%20WT1%20Table.png",
+    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>As the internet becomes more popular, newspapers are becoming a thing of the past.<br/><br/><b>To what extent do you agree or disagree with this statement?</b><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words.</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `DOGME 95
+
+Since its inception in the 1890s, cinema has seen many technical changes and advances and, as with any art form, there have been many different movements and styles associated with it. In 1995, a collective of Danish film directors wished to change the direction of filmmaking and reinforce the importance of cinematic truth. At the time, Hollywood blockbusters dominated the market. The ‘Dogme 95’ movement was created in order to prove that a big budget did not necessarily equate with quality in filmmaking.
+
+The avant-garde movement was started by directors Lars Von Trier, later known for Melancholia (2011) and Thomas Vinterberg, director of the 2015 film Far from the Madding Crowd. The two directors created a manifesto which outlined certain rules for filmmakers, with the aim of directorial and editorial simplification. These ten rules of filmmaking were later jokingly dubbed the ‘vow of chastity’ by the directors.
+
+The first rule stated that all shooting must be done on location. Furthermore, no props and sets could be brought in. If a specific prop, such as a piano, was needed in the plot, a location which already contained the said prop had to be selected.
+
+The second rule of the manifesto concerned music and sound, asserting that these should be recorded while the film was being shot. If the directors wished to have music in a particular scene, then it had to originate from the characters, such as someone singing or playing a musical instrument on screen. Sound of this type is classified as diegetic; other forms of sound, such as voiceovers, narrations or atmospheric music, are non-diegetic and were therefore not in accordance with the manifesto.
+
+The third rule stated that all filming should be done with a hand-held camera. Usually in filmmaking, cameras are placed on cranes or jibs in order to create a less shaky image and capture all angles. The fourth and fifth rules permitted only the use of colour film and natural lighting in Dogme films. Special lighting and filters were not allowed. The vow of chastity stated explicitly that should there be an unsatisfactory amount of light, a single lamp might be attached to the camera.
+
+The sixth, seventh and eighth rules related to the plot. The film had to be set in the here and now, and in the place in which the filming occurred. Genre movies were unacceptable, so the film could not be horror or fantasy, for example, and had to be realistic. Finally, the films were not allowed to contain superficial action such as murders. These rules meant that the films were concerned with everyday aspects of life such as familial relationships, friendships and so on.
+
+The ninth rule dictated only the use of the Academy 35mm format, the film gauge which is most commonly used in movies. The final rule stated that the director must not be credited. This most likely stemmed from the prevalence of high-budget films at the time, in which the popularity of the directors and actors alike was considered an important factor in choosing to go and see a film. The other aim of the final rule was to stop directors from showcasing their own personal tastes within their films and encouraging then to simply exhibit the truth about the characters and the story.
+
+With these rules in mind, the two directors each went on to make a film following the rules of the manifesto. The first film to be made in accordance to the vow of chastity was Vinterberg’s Festen (1998). The film tells the story of a family gathering celebrating the head of the family’s sixtieth birthday. Vinterberg shot the film on a digital video camera and proceeded to blow it up to fit the 35mm gauge, giving the film a very grainy effect. Furthermore, Vinterberg confessed to having covered a window during a scene in Festen. Thus two of the rules were broken in this film. Every other aspect of the film followed the rules, however, including the sound which was solely diegetic. The film went on to win many awards, including the Jury Prize in the 1998 Cannes Film Festival.
+
+The second Dogme 95 film made was Lars Von Trier’s The Idiots (1998). It portrays a group of adults who are seeking a way to display their ‘inner idiots’. Although he generally complied with the rules, Von Trier admitted to having interfered with the location by moving candles around to achieve the desired lighting. He has been chided for his use of non-diegetic music during a scene of the film, an accusation which Von Trier has rebutted, explaining that he used a harmonica player for the music, and although the player was not in the scene itself, the sound was recorded at the same time as the image.
+
+Following the creation of Festen and Idiots, further Danish directors joined the movement, forming the so-called ‘Dogme Brethren’. Filmmakers from all over the world have since attempted to follow the vow of chastity while creating Dogme 95 films, many finding it an effective way to approach making low-budget films. By 2005, over thirty Dogme 95 films had been made worldwide. Its founders terminated the movement in that year as they felt the manifesto was resulting in formulaic films. Despite this, the influence and importance of Dogme 95 in film history remains undeniable.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1 - 5",
+            instructions: [
+              "Do the statements below (questions 1 - 5) agree with the information given in Reading Passage 1, Dogme 95?",
+              "In answer boxes 1 - 5, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this in the reading passage"
+            ],
+            items: [
+              { q: 1, text: "Dogme 95 aimed to show that good films could be made without spending large sums of money." },
+              { q: 2, text: "The Dogme 95 manifesto was launched in Copenhagen in 1995." },
+              { q: 3, text: "The films Melancholia and Far From the Madding Crowd were made in accordance with the principles of the Dogme 95 manifesto." },
+              { q: 4, text: "None of the Dogme 95 films ever received critical acclaim." },
+              { q: 5, text: "The founders of the movement eventually became disenchanted with it." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 6 - 10",
+            instructions: [
+              "Complete each sentence with the correct ending.",
+              "Choose from the list, A - H, below.",
+              "Write the appropriate letters, A - H, in answer boxes 6 - 10."
+            ],
+            endings: {
+              A: "... put cameras on their shoulders.",
+              B: "... be avoided.",
+              C: "... prevent them from imposing their own style on a film.",
+              D: "... use professional musicians on the film soundtrack.",
+              E: "... use a maximum of one lamp when filming.",
+              F: "... alter the location they had chosen.",
+              G: "... tell the actors how to act.",
+              H: "... be seen on the screen."
+            },
+            items: [
+              { q: 6, text: "The vow of chastity did not allow directors to" },
+              { q: 7, text: "The source of music or sound effects was to" },
+              { q: 8, text: "Filmmakers were permitted to" },
+              { q: 9, text: "Horror, fantasy and unnecessary violence were to" },
+              { q: 10, text: "Directors were not credited in films in order to" }
+            ]
+          },
+          {
+            type: "multiTextChoices",
+            title: "Questions 11-13",
+            instructions: [
+              "According to Reading Passage 1, Dogme 95, which three rules were broken in the first two Dogme 95 films?",
+              "Choose three correct options, A - G.",
+              "Write a letter, A - G, in any order in answer boxes 11-13."
+            ],
+            choices: [
+              { letter: "A", text: "Rule one" },
+              { letter: "B", text: "Rule two" },
+              { letter: "C", text: "Rule three" },
+              { letter: "D", text: "Rule four or five" },
+              { letter: "E", text: "Rule six, seven or eight" },
+              { letter: "F", text: "Rule nine" },
+              { letter: "G", text: "Rule ten" }
+            ],
+            items: [
+              { q: 11, text: "First answer" },
+              { q: 12, text: "Second answer" },
+              { q: 13, text: "Third answer" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `THE STORY OF THE SAXOPHONE
+
+A
+With its faded gold exterior, looped bell and distinctive soulful sound, the saxophone is one of the most instantly recognisable instruments. Although now most famous for its key role in the development of jazz music, it would be a mistake to believe it has always been this way. Its story is quite unlike that of the equally prominent jazz trio - trombone, clarinet and trumpet - which first appeared in the French military band of the late Middle Ages. In fact it was not until the early 19th Century that the saxophone first appeared on the world stage, thanks to a young Belgian of profound musical ability who had inherited his father's gift for instrument invention.
+
+B
+Born in Wallonia in 1814, Adolphe Sax grew up in an environment which struck a perfect harmony of invention and musicality. His father was a keen designer of instruments who made notable improvements to the design of the horn and Adolphe had already created several flutes and clarinets from scratch before heading to the Royal Conservatory of Brussels to study woodwind. Following his studies, Sax emerged as a clarinet virtuoso but - much to his master's disappointment – followed in his father's footsteps and proceeded to focus on the improvement of the clarinet. In 1842, he opened a workshop in Paris - then the artistic capital of Europe - where he set about designing instruments.
+
+C
+Sax’s opportunity came in 1859 when official changes were made to concert pitch, meaning it would be necessary for every band and orchestra to acquire new woodwind instruments. Originally, Sax invented two families of saxophone, one for orchestral use, the other for military use. The latter gained more exposure in the musical world following Sax's triumph at a head-to-head competition with the existing French military orchestra as part of a project to revolutionise French military music, at the time considered to be an embarrassment to patriotism and prestige. Subsequently, the saxophone made its journey beyond France's borders, through the military bands of much of the Western world.
+
+D
+In North America, the instrument became a key component of the popular wind bands where clarinetists also frequently experimented with the saxophone. One such dual instrumentalist, Edouard Lefebre, had fallen in love with the instrument whilst visiting Paris and pledged to make it his life’s work to promote the instrument. He settled in the United States where he eventually joined the John Philip Sousa Band, which toured throughout the United States playing its patriotic military marches and providing a platform for some of the saxophone's early icons. The instrument's popularity soon soared, allowing saxophonists to achieve unprecedented acclaim and riches. However, the fact that many early saxophonists incorporated novel gimmicks – such as simulated animal sounds and wild comic vibratos – within their 'uncultured' performances meant that its potential was yet to be recognised in more high-brow musical circles.
+
+E
+While the saxophone continued to gain approval from the public due to its continued use in music hall and vaudeville shows, early jazz pioneers continued to experiment with more traditional members of the horn and woodwind sections – the clarinet, trumpet, and trombone. In addition to the saxophone's negative associations as a frivolous instrument, another concern at the time was that the sound – smooth and mellow – could not compete with blaring trumpets, noisy drums and loud conversation that accompanied jazz performances. To counter this, the mouthpiece was shortened in order to slightly increase amplitude, making the instrument a suitable mouthpiece for the jazz sound. Through former clarinetists - including Sidney Bechet - who did not like the fact that the clarinet was unable to compete in volume with the brass melody instruments, the soprano saxophone became the first variety of the instrument to make a name for itself within the 1920s New Orleans jazz scene.
+
+F
+The saxophone became increasingly important in Swing music in the 1930s, which featured baritone saxophone and brass sections of the band playing call-response patterns between each other. Hugely influential towards the end of the 1930s was the work of Coleman Hawkins whose arrival onto the scene marked the point at which the saxophone grew to be an equal of the trumpet within the jazz sound. This momentum grew exponentially through the 1940s Bop and 1950s Bebop periods, which employed the saxophone expertly for solos and improvisations. Charlie Parker – now considered one of jazz's most important pioneers and talented virtuosos – was one of the key exponents of this new style of saxophone-focused jazz.
+
+G
+The saxophone has continued to play a prominent role in the development of a variety of types of music up to the present day. Saxophonists such as John Coltrane and Ornette Coleman made full use of the instrument's creative potential through the avant-garde jazz movements of the 1960s and 1970s, experimenting with tonal exploration, harmonics and multiphonics, and Pharaoh Sanders extended its reach to mimic non-Western ethnic sounds. In addition to the occasional flirtations classical music made with the saxophone in the early 20th Century, the instrument has also featured prominently in modern minimalist music as well as film soundtracks. Pop music has had a love affair with the saxophone from the 1950s doo-wop and rock and roll tracks, through to Motown and progressive rock, and platinum sales of albums by saxophone soloists such as Kenny G suggest that our fascination with the instrument remains in full swing.`,
+        blocks: [
+          {
+            type: "headings",
+            title: "Questions 14 - 19",
+            instructions: [
+              "Reading Passage 2, The Story of the Saxophone, has seven paragraphs, A - G.",
+              "From the list of headings below, choose the most suitable one for each paragraph, B - G.",
+              "Write the appropriate number (i - x) in answer boxes 14 - 19.",
+              "NB There are more headings than paragraphs, so you will not use them all."
+            ],
+            listTitle: "List of Headings",
+            headings: [
+              { value: "i", label: "The saxophone's popularity falls" },
+              { value: "ii", label: "The saxophone takes centre stage" },
+              { value: "iii", label: "Success abroad" },
+              { value: "iv", label: "Late to the show" },
+              { value: "v", label: "A difficult decision" },
+              { value: "vi", label: "Two versions - the saxophone's early success" },
+              { value: "vii", label: "A child of science and sound" },
+              { value: "viii", label: "Problems fitting in and how they were solved" },
+              { value: "ix", label: "New sounds and new audiences" },
+              { value: "x", label: "The inventor’s riches" }
+            ],
+            example: { paragraph: "Paragraph A", value: "iv" },
+            questions: [
+              { q: 14, paragraph: "Paragraph B" },
+              { q: 15, paragraph: "Paragraph C" },
+              { q: 16, paragraph: "Paragraph D" },
+              { q: 17, paragraph: "Paragraph E" },
+              { q: 18, paragraph: "Paragraph F" },
+              { q: 19, paragraph: "Paragraph G" }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 20 - 22",
+            instructions: [
+              "Complete the sentences below (questions 20 - 22).",
+              "Use NO MORE THAN THREE WORDS from Reading Passage 2, The Story of the Saxophone for each answer.",
+              "Write them in answer boxes 20 - 22."
+            ],
+            items: [
+              { q: 20, text: "While the other three jazz instruments were first played during the", tail: ", the saxophone did not appear until much later." },
+              { q: 21, text: "Sax's father also had a key role in the development of musical instruments, including the", tail: "." },
+              { q: 22, text: "Like the trumpet, trombone and clarinet, the saxophone also owes much of its early success to its use in", tail: "music." }
+            ]
+          },
+          {
+            type: "endingsMatch",
+            title: "Questions 23 - 26",
+            instructions: [
+              "Look at statements 23 - 26 and the list of people below.",
+              "Match each statement with the correct person.",
+              "Write the appropriate initials of the people in answer boxes 23 - 26."
+            ],
+            endings: {
+              CH: "Coleman Hawkins",
+              CP: "Charlie Parker",
+              EL: "Edouard Lefebre",
+              KG: "Kenny G",
+              OC: "Ornette Coleman",
+              SB: "Sidney Bechet"
+            },
+            items: [
+              { q: 23, text: "Which musician introduced the instrument to new places and new people?" },
+              { q: 24, text: "Which musician chose to play the saxophone over another instrument because he thought it was more suited to his style of music?" },
+              { q: 25, text: "Which musician was responsible for making the saxophone as important to jazz as other instruments were?" },
+              { q: 26, text: "Which musician became popular while playing the instrument without a backing band?" }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `SPACE CLEAN-UP
+
+A
+When the Soviet Union successfully launched Sputnik 1 in 1957, it was the first artificial satellite ever to enter orbit around the Earth, and the project's success marked a significant milestone in the history of the exploration of space. There was suddenly a profound change in human perspective, a change which would, in subsequent years, become ever more marked as scientists progressively acquired the ability to study aspects of the planet from a new (and not Earth-bound) point of view. However, the technology employed on that first satellite mission was astoundingly simple when compared to what would follow. To cite just one example of this, Sputnik 1 only employed four very basic radio transmitters. Commercial satellites in 2017 routinely employ dozens of extremely complex ‘transponders’.
+
+B
+Increasing use of ever-more sophisticated satellites has now permeated almost all aspects of modern life. Telecommunications could not function without them, and neither could the precision geo-location and navigational aids which we all take for granted. Worldwide monitoring of weather patterns has produced not only better forecasting, but an awareness of the human impact on the planet. Satellite imaging of the Earth is essential in conflict resolution and disaster management. Other satellites, such as the Hubble space telescope, are being used to collect data which help us understand the universe beyond our planet. Indeed, the international space station, on which a constantly changing crew of astronauts live, is another type of satellite.
+
+C
+Whilst the use of satellite technology has had a far-reaching impact on our lives, the question remains of what happens to these machines when they are no longer functional. In total over 6,600 satellites have been launched since Sputnik 1. Of the estimated 3,600 which are still in Earth’s orbit, only 1,000 remain in operation with the rest having become lifeless space debris. The problem of space debris is also self-perpetuating; when two satellites collide, many more pieces of rubbish are produced. A recent collision between two relatively small satellites created over 2,000 trackable pieces. There are now tens of thousands of objects larger than 5cm in diameter in orbit and an estimated one hundred million man-made pieces larger than 1mm. This ever-growing volume of junk is referred to as the Kessler syndrome, whereby each collision creates ever more debris, increasing chances of further collisions.
+
+D
+This growing volume of space waste can have serious consequences. Debris hurtling through space can strike working satellites, rendering them inoperable. Not only is this incredibly costly, but it can also take entire communications or tracking networks offline. The danger increases with the involvement of manned spacecraft. In 2007, a piece of space debris pierced the radiator of US space shuttle Endeavour. The International Space Station has also faced problems. Despite being in an orbit with relatively little space debris, it is frequently forced to make time-consuming manoeuvres out of the path of fragments of rubbish. As a result, it is essential that pieces of space debris are constantly tracked. When they do not have the necessary three days’ warning to change the craft’s path, the crew members are increasing told to take shelter in Soyuz, the evacuation craft.
+
+E
+With more satellites and spacecraft being launched every year, the problem of space debris needs a solution, one of which has recently been trialled by the Japanese. At the end of 2016, Kyoritsu was taken into orbit and released. Kyoritsu is a type of satellite from which a kilometre-long cable manufactured by a fishing net company is tethered to a 20-kilogram mass. As this moves through the Earth’s magnetic field, it generates an electric current which slows down space debris it comes into contact with. When travelling at a slower speed the debris is forced down into the Earth’s atmosphere where it burns up and is destroyed upon falling to Earth. Although the initial trial of Kyoritsu was unsuccessful as the tether failed to deploy, the team are hopeful for its future use.
+
+F
+A further solution may come in redesigning both the types of satellites we use and the technology to retrieve them. As technology has improved, we have the opportunity to create much more compact satellites with considerably lower deployment costs. Many scientists worry that this will lead to a proliferation of debris as these smaller devices fall out of service. However, when Switzerland recently launched their first satellites, which were no larger than a briefcase, they understood the need to have a system in place to avoid them ending their life cycle as space debris. It is for this reason that they designed CleanSpace 1, a satellite with a cone-shaped net at the front which can unfold and then entrap smaller satellites. Once its targets have been captured, it can then slow down and de-orbit, burning everything up as it re-enters the atmosphere. CleanSpace 1 is scheduled to launch in 2018 to recapture the Swiss satellites.
+
+G
+Brian Weeden, a technical advisor for the Secure World Foundation, has suggested that space debris was a ‘super wicked problem’. Super wicked problems are complex issues without any clear solution, and little time to find one. This is not helped by the fact that no central organisation takes responsibility. However, there are signs that more people are taking this issue seriously with both commercial and national space organisations understanding the need for sustainability in satellite deployment. Technologies like Kyoritsu and CleanSpace 1 are being developed but more programmes are needed. At present, Kessler syndrome still poses a real threat and the volume of space debris is growing.`,
+        blocks: [
+          {
+            type: "endingsMatch",
+            title: "Questions 27 - 33",
+            instructions: [
+              "Reading Passage 3, Space clean-up, has seven paragraphs (A - G).",
+              "Which paragraph contains the information below?",
+              "Write the correct letter, A - G, in answer boxes 27 - 33.",
+              "NB You can use any letter more than once."
+            ],
+            endings: {
+              A: "Paragraph A",
+              B: "Paragraph B",
+              C: "Paragraph C",
+              D: "Paragraph D",
+              E: "Paragraph E",
+              F: "Paragraph F",
+              G: "Paragraph G"
+            },
+            items: [
+              { q: 27, text: "Satellites being smaller and cheaper to launch than they used to be." },
+              { q: 28, text: "The fact that the more rubbish there is in space, the more is created." },
+              { q: 29, text: "Space junk orbiting more slowly if it comes into contact with electricity." },
+              { q: 30, text: "Some paths round the Earth containing less debris than others." },
+              { q: 31, text: "Satellites performing a wide range of functions." },
+              { q: 32, text: "Space junk being an issue that must be addressed with extreme urgency." },
+              { q: 33, text: "Astronauts facing delays and dangers as a result of space debris." }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 34 - 40",
+            instructions: [
+              "Choose words from the list in the box to complete the summary of Reading Passage 3, Space clean-up below.",
+              "Write the correct letter A - J in answer boxes 34 - 40."
+            ],
+            summaryTitle: "Two solutions to the problem of space debris",
+            summaryLines: [
+              { text: "Two solutions to the problem of space debris have been developed and are similar in that they both work by changing the", blankQ: 34, tail: "of the debris and making it burn up as it enters Earth's atmosphere." },
+              { text: "", blankQ: 35, before: "", after: "engineers have invented a satellite which uses" },
+              { text: "", blankQ: 36, before: "", after: "to catch defunct satellites, although this solution will only work with debris of a certain" },
+              { text: "", blankQ: 37, before: "", after: ", while" },
+              { text: "", blankQ: 38, before: "", after: "scientists have experimented with a satellite attached by a line to a" },
+              { text: "", blankQ: 39, before: "", after: "to force debris to decelerate." },
+              { text: "Both advancements are a step in the right direction but more is needed to address the growing", blankQ: 40, tail: "of space debris." }
+            ],
+            optionsTitle: "A - J",
+            options: [
+              { letter: "A", word: "weight" },
+              { letter: "B", word: "orbit" },
+              { letter: "C", word: "volume" },
+              { letter: "D", word: "number" },
+              { letter: "E", word: "cable" },
+              { letter: "F", word: "netting" },
+              { letter: "G", word: "size" },
+              { letter: "H", word: "Swiss" },
+              { letter: "I", word: "Japanese" },
+              { letter: "J", word: "shape" }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -8175,6 +8723,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts15: test15,
   ielts16: test16,
   ielts17: test17,
+  ielts18: test18,
 };
 
 export function getProtectedTestContent(testId) {

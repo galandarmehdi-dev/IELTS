@@ -9710,6 +9710,545 @@ He adds: 'If there is going to be change to jobs as a result of AI and robotics 
     ]
   }
 };
+const test21 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/21%20Cam%2016%20L2.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 Questions 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-10</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-card-title">Copying photos to digital format</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Name of company: <b>Picturerep</b></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Requirements</b></div>
+        <div class="note-row bullet">• Maximum size of photos is 30 cm, minimum size 4 cm.</div>
+        <div class="note-row bullet">• Photos must not be in a <span class="qnum">1</span> <input data-lq="1" class="l-input"> or an album.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Cost</b></div>
+        <div class="note-row bullet">• The cost for 360 photos is £<span class="qnum">2</span> <input data-lq="2" class="l-input small"> including one disk.</div>
+        <div class="note-row bullet">• Before the completed order is sent, <span class="qnum">3</span> <input data-lq="3" class="l-input"> is required.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Services included in the price</b></div>
+        <div class="note-row bullet">• Photos can be placed in a folder, e.g. with the name <span class="qnum">4</span> <input data-lq="4" class="l-input">.</div>
+        <div class="note-row bullet">• The <span class="qnum">5</span> <input data-lq="5" class="l-input"> and contrast can be improved if necessary.</div>
+        <div class="note-row bullet">• Photos which are very fragile will be scanned by <span class="qnum">6</span> <input data-lq="6" class="l-input">.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Special restore service (costs extra)</b></div>
+        <div class="note-row bullet">• It may be possible to remove an object from a photo, or change the <span class="qnum">7</span> <input data-lq="7" class="l-input">.</div>
+        <div class="note-row bullet">• A photo which is not correctly in <span class="qnum">8</span> <input data-lq="8" class="l-input"> cannot be fixed.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Other information</b></div>
+        <div class="note-row bullet">• Orders are completed within <span class="qnum">9</span> <input data-lq="9" class="l-input">.</div>
+        <div class="note-row bullet">• Send the photos in a box, not <span class="qnum">10</span> <input data-lq="10" class="l-input">.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 Questions 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11-15</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">11</span> Dartfield House school used to be</div>
+        <label class="mcq-opt"><input type="radio" name="q11" value="A" data-lq-radio="11"> A) a tourist information centre.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="B" data-lq-radio="11"> B) a private home.</label>
+        <label class="mcq-opt"><input type="radio" name="q11" value="C" data-lq-radio="11"> C) a local council building.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">12</span> What is planned with regard to the lower school?</div>
+        <label class="mcq-opt"><input type="radio" name="q12" value="A" data-lq-radio="12"> A) All buildings on the main site will be improved.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="B" data-lq-radio="12"> B) The lower school site will be used for new homes.</label>
+        <label class="mcq-opt"><input type="radio" name="q12" value="C" data-lq-radio="12"> C) Additional school buildings will be constructed on the lower school site.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">13</span> The catering has been changed because of</div>
+        <label class="mcq-opt"><input type="radio" name="q13" value="A" data-lq-radio="13"> A) long queuing times.</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="B" data-lq-radio="13"> B) changes to the school timetable.</label>
+        <label class="mcq-opt"><input type="radio" name="q13" value="C" data-lq-radio="13"> C) dissatisfaction with the menus.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">14</span> Parents are asked to</div>
+        <label class="mcq-opt"><input type="radio" name="q14" value="A" data-lq-radio="14"> A) help their children to decide in advance which serving point to use.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="B" data-lq-radio="14"> B) make sure their children have enough money for food.</label>
+        <label class="mcq-opt"><input type="radio" name="q14" value="C" data-lq-radio="14"> C) advise their children on healthy food to eat.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">15</span> What does the speaker say about the existing canteen?</div>
+        <label class="mcq-opt"><input type="radio" name="q15" value="A" data-lq-radio="15"> A) Food will still be served there.</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="B" data-lq-radio="15"> B) Only staff will have access to it.</label>
+        <label class="mcq-opt"><input type="radio" name="q15" value="C" data-lq-radio="15"> C) Pupils can take their food into it.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 16-18</div>
+      <div class="listen-inst">What comment does the speaker make about each of the following serving points in the Food Hall? Choose THREE answers from the box and write the correct letter, <b>A-D</b>, next to Questions 16-18.</div>
+
+      <div class="people-box">
+        <div><b>A</b> pupils help to plan menus</div>
+        <div><b>B</b> only vegetarian food</div>
+        <div><b>C</b> different food every week</div>
+        <div><b>D</b> daily change in menu</div>
+      </div>
+
+      <div class="listen-card-title">Food available at serving points in Food Hall</div>
+      <div class="note-row"><span class="qnum">16</span> World Adventures <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> Street Life <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> Speedy Italian <input data-lq="18" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 19 and 20</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO optional after-school lessons are new?</div>
+
+      <div class="people-box">
+        <div><b>A</b> swimming</div>
+        <div><b>B</b> piano</div>
+        <div><b>C</b> acting</div>
+        <div><b>D</b> cycling</div>
+        <div><b>E</b> theatre sound and lighting</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">19</span> First answer <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Second answer <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 Questions 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-24</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+      <div class="listen-card-title">Assignment on sleep and dreams</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> Luke read that one reason why we often forget dreams is that</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) our memories cannot cope with too much information.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) we might otherwise be confused about what is real.</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) we do not think they are important.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> What do Luke and Susie agree about dreams predicting the future?</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) It may just be due to chance.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) It only happens with certain types of event.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) It happens more often than some people think.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> Susie says that a study on pre-school children having a short nap in the day</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) had controversial results.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) used faulty research methodology.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) failed to reach any clear conclusions.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">24</span> In their last assignment, both students had problems with</div>
+        <label class="mcq-opt"><input type="radio" name="q24" value="A" data-lq-radio="24"> A) statistical analysis.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="B" data-lq-radio="24"> B) making an action plan.</label>
+        <label class="mcq-opt"><input type="radio" name="q24" value="C" data-lq-radio="24"> C) self-assessment.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 25-30</div>
+      <div class="listen-inst">Complete the flow chart below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Assignment plan</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Decide on research question:</div>
+        <div class="note-row"><b>Is there a relationship between hours of sleep and number of dreams?</b></div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Decide on sample:</div>
+        <div class="note-row">Twelve students from the <span class="qnum">25</span> <input data-lq="25" class="l-input"> department</div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Decide on methodology:</div>
+        <div class="note-row">Self-reporting</div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Decide on procedure:</div>
+        <div class="note-row">Answers on <span class="qnum">26</span> <input data-lq="26" class="l-input"></div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Check ethical guidelines for working with <span class="qnum">27</span> <input data-lq="27" class="l-input"></div>
+        <div class="note-row">Ensure that risk is assessed and <span class="qnum">28</span> <input data-lq="28" class="l-input"> is kept to a minimum</div>
+        <div class="note-row">↓</div>
+        <div class="note-row">Analyse the results</div>
+        <div class="note-row">Calculate the correlation and make a <span class="qnum">29</span> <input data-lq="29" class="l-input"></div>
+        <div class="note-row">↓</div>
+        <div class="note-row"><span class="qnum">30</span> <input data-lq="30" class="l-input"> the research</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 Questions 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Health benefits of dance</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Recent findings:</b></div>
+        <div class="note-row bullet">• All forms of dance produce various hormones associated with feelings of happiness.</div>
+        <div class="note-row bullet">• Dancing with others has a more positive impact than dancing alone.</div>
+        <div class="note-row bullet">• An experiment on university students suggested that dance increases <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+        <div class="note-row bullet">• For those with mental illness, dance could be used as a form of <span class="qnum">32</span> <input data-lq="32" class="l-input">.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Benefits of dance for older people:</b></div>
+        <div class="note-row bullet">• accessible for people with low levels of <span class="qnum">33</span> <input data-lq="33" class="l-input"></div>
+        <div class="note-row bullet">• reduces the risk of heart disease</div>
+        <div class="note-row bullet">• better <span class="qnum">34</span> <input data-lq="34" class="l-input"> reduces the risk of accidents</div>
+        <div class="note-row bullet">• improves <span class="qnum">35</span> <input data-lq="35" class="l-input"> function by making it work faster</div>
+        <div class="note-row bullet">• improves participants' general well-being</div>
+        <div class="note-row bullet">• gives people more <span class="qnum">36</span> <input data-lq="36" class="l-input"> to take exercise</div>
+        <div class="note-row bullet">• can lessen the feeling of <span class="qnum">37</span> <input data-lq="37" class="l-input">, very common in older people</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Benefits of Zumba:</b></div>
+        <div class="note-row bullet">• A study at The University of Wisconsin showed that doing Zumba for 40 minutes uses up as many <span class="qnum">38</span> <input data-lq="38" class="l-input"> as other quite intense forms of exercise.</div>
+        <div class="note-row bullet">• The American Journal of Health Behavior study showed that:</div>
+        <div class="note-row bullet">- women suffering from <span class="qnum">39</span> <input data-lq="39" class="l-input"> benefited from doing Zumba.</div>
+        <div class="note-row bullet">- Zumba became a <span class="qnum">40</span> <input data-lq="40" class="l-input"> for the participants.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Bar chart",
+    task2Type: "Two-part opinion essay",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The chart below shows the results of a survey about people's coffee and tea buying and drinking habits in five Australian cities.<br/>Summarise the information by selecting and reporting the main features, make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/21%20WT1%20Bar%20Graph.png",
+    task2Html: "You should spend about 40 minutes on this task. Write about the following topic:<br/><br/>In their advertising, businesses nowadays usually emphasise that their products are new in some way. Why is this? Do you think it is a positive or negative development?<br/><br/>Give reasons for your answer and include any relevant examples from your own knowledge or experience. <b>Write at least 250 words.</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `The White Horse of Uffington
+
+The cutting of huge figures or 'geoglyphs' into the earth of English hillsides has taken place for more than 3,000 years. There are 56 hill figures scattered around England, with the vast majority on the chalk downlands of the country's southern counties. The figures include giants, horses, crosses and regimental badges. Although the majority of these geoglyphs date within the last 300 years or so, there are one or two that are much older.
+
+The most famous of these figures is perhaps also the most mysterious - the Uffington White Horse in Oxfordshire. The White Horse has recently been re-dated and shown to be even older than its previously assigned ancient pre-Roman Iron Age date. More controversial is the date of the enigmatic Long Man of Wilmington in Sussex. While many historians are convinced the figure is prehistoric, others believe that it was the work of an artistic monk from a nearby priory and was created between the 11th and 15th centuries.
+
+The method of cutting these huge figures was simply to remove the overlying grass to reveal the gleaming white chalk below. However, the grass would soon grow over the geoglyph again unless it was regularly cleaned or scoured by a fairly large team of people. One reason that the vast majority of hill figures have disappeared is that when the traditions associated with the figures faded, people no longer bothered or remembered to clear away the grass to expose the chalk outline. Furthermore, over hundreds of years the outlines would sometimes change due to people not always cutting in exactly the same place, thus creating a different shape to the original geoglyph. The fact that any ancient hill figures survive at all in England today is testament to the strength and continuity of local customs and beliefs which, in one case at least, must stretch back over millennia.
+
+The Uffington White Horse is a unique, stylised representation of a horse consisting of a long, sleek back, thin disjointed legs, a streaming tail, and a bird-like beaked head. The elegant creature almost melts into the landscape. The horse is situated 2.5 km from Uffington village on a steep slope close to the Late Bronze Age hillfort of Uffington Castle and below the Ridgeway, a long-distance Neolithic track. The Uffington Horse is also surrounded by Bronze Age burial mounds. It is not far from the Bronze Age cemetery of Lambourn Seven Barrows, which consists of more than 30 well-preserved burial mounds. The carving has been placed in such a way as to make it extremely difficult to see from close quarters, and like many geoglyphs is best appreciated from the air. Nevertheless, there are certain areas of the Vale of the White Horse, the valley containing and named after the enigmatic creature, from which an adequate impression may be gained. Indeed on a clear day the carving can be seen from up to 30 km away.
+
+The earliest evidence of a horse at Uffington is from the 1070s CE when 'White Horse Hill' is mentioned in documents from the nearby Abbey of Abingdon, and the first reference to the horse itself is soon after, in 1190 CE. However, the carving is believed to date back much further than that. Due to the similarity of the Uffington White Horse to the stylised depictions of horses on 1st century BCE coins, it had been thought that the creature must also date to that period.
+
+However, in 1995 Optically Stimulated Luminescence (OSL) testing was carried out by the Oxford Archaeological Unit on soil from two of the lower layers of the horse's body, and from another cut near the base. The result was a date for the horse's construction somewhere between 1400 and 600 BCE - in other words, it had a Late Bronze Age or Early Iron Age origin.
+
+The latter end of this date range would tie the carving of the horse in with occupation of the nearby Uffington hillfort, indicating that it may represent a tribal emblem marking the land of the inhabitants of the hillfort. Alternatively, the carving may have been carried out during a Bronze or Iron Age ritual. Some researchers see the horse as representing the Celtic horse goddess Epona, who was worshipped as a protector of horses, and for her associations with fertility. However, the cult of Epona was not imported from Gaul until around the first century CE. This date is at least six centuries after the Uffington Horse was probably carved. Nevertheless, the horse had great ritual and economic significance during the Bronze and Iron Ages, as attested by its depictions on jewellery and other metal objects. It is possible that the carving represents a goddess in native mythology, such as Rhiannon, described in later Welsh mythology as a beautiful woman dressed in gold and riding a white horse.
+
+The fact that geoglyphs can disappear easily, along with their associated rituals and meaning, indicates that they were never intended to be anything more than temporary gestures. But this does not lessen their importance. These giant carvings are a fascinating glimpse into the minds of their creators and how they viewed the landscape in which they lived.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1-8",
+            instructions: [
+              "Do the following statements agree with the information given in Reading Passage 1?",
+              "In boxes 1-8 on your answer sheet, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this"
+            ],
+            items: [
+              { q: 1, text: "Most geoglyphs in England are located in a particular area of the country." },
+              { q: 2, text: "There are more geoglyphs in the shape of a horse than any other creature." },
+              { q: 3, text: "A recent dating of the Uffington White Horse indicates that people were mistaken about its age." },
+              { q: 4, text: "Historians have come to an agreement about the origins of the Long Man of Wilmington." },
+              { q: 5, text: "Geoglyphs were created by people placing white chalk on the hillside." },
+              { q: 6, text: "Many geoglyphs in England are no longer visible." },
+              { q: 7, text: "The shape of some geoglyphs has been altered over time." },
+              { q: 8, text: "The fame of the Uffington White Horse is due to its size." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 9-13",
+            instructions: [
+              "Complete the notes below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+              "Write your answers in boxes 9-13 on your answer sheet."
+            ],
+            items: [
+              { q: 9, text: "The Uffington White Horse is near an ancient road known as the", tail: "." },
+              { q: 10, text: "The first reference to White Horse Hill appears in", tail: "from the 1070s." },
+              { q: 11, text: "According to analysis of the surrounding", tail: ", the Horse is Late Bronze Age / Early Iron Age." },
+              { q: 12, text: "The Horse was possibly a representation of goddess Epona - associated with protection of horses and", tail: "." },
+              { q: 13, text: "The Horse was possibly a representation of a Welsh goddess called", tail: "." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `I contain multitudes
+
+Wendy Moore reviews Ed Yong's book about microbes
+
+Microbes, most of them bacteria, have populated this planet since long before animal life developed and they will outlive us. Invisible to the naked eye, they are ubiquitous. They inhabit the soil, air, rocks and water and are present within every form of life, from seaweed and coral to dogs and humans. And, as Yong explains in his utterly absorbing and hugely important book, we mess with them at our peril.
+
+Every species has its own colony of microbes, called a 'microbiome', and these microbes vary not only between species but also between individuals and within different parts of each individual. What is amazing is that while the number of human cells in the average person is about 30 trillion, the number of microbial ones is higher - about 39 trillion. At best, Yong informs us, we are only 50 per cent human. Indeed, some scientists even suggest we should think of each species and its microbes as a single unit, dubbed a 'holobiont'.
+
+In each human there are microbes that live only in the stomach, the mouth or the armpit and by and large they do so peacefully. So 'bad' microbes are just microbes out of context. Microbes that sit contentedly in the human gut, where there are more microbes than there are stars in the galaxy, can become deadly if they find their way into the bloodstream. These communities are constantly changing too. The right hand shares just one sixth of its microbes with the left hand. And, of course, we are surrounded by microbes. Every time we eat, we swallow a million microbes in each gram of food; we are continually swapping microbes with other humans, pets and the world at large.
+
+It's a fascinating topic and Yong, a young British science journalist, is an extraordinarily adept guide. Writing with lightness and panache, he has a knack of explaining complex science in terms that are both easy to understand and totally enthralling. Yong is on a mission. Leading us gently by the hand, he takes us into the world of microbes - a bizarre, alien planet - in a bid to persuade us to love them as much as he does. By the end, we do.
+
+For most of human history we had no idea that microbes existed. The first man to see these extraordinarily potent creatures was a Dutch lens-maker called Antony van Leeuwenhoek in the 1670s. Using microscopes of his own design that could magnify up to 270 times, he examined a drop of water from a nearby lake and found it teeming with tiny creatures he called 'animalcules'. It wasn't until nearly two hundred years later that the research of French biologist Louis Pasteur indicated that some microbes caused disease. It was Pasteur's 'germ theory' that gave bacteria the poor image that endures today.
+
+Yong's book is in many ways a plea for microbial tolerance, pointing out that while fewer than one hundred species of bacteria bring disease, many thousands more play a vital role in maintaining our health. The book also acknowledges that our attitude towards bacteria is not a simple one. We tend to see the dangers posed by bacteria, yet at the same time we are sold yoghurts and drinks that supposedly nurture 'friendly' bacteria. In reality, says Yong, bacteria should not be viewed as either friends or foes, villains or heroes. Instead we should realise we have a symbiotic relationship, that can be mutually beneficial or mutually destructive.
+
+What then do these millions of organisms do? The answer is pretty much everything. New research is now unravelling the ways in which bacteria aid digestion, regulate our immune systems, eliminate toxins, produce vitamins, affect our behaviour and even combat obesity. 'They actually help us become who we are,' says Yong. But we are facing a growing problem. Our obsession with hygiene, our overuse of antibiotics and our unhealthy, low-fibre diets are disrupting the bacterial balance and may be responsible for soaring rates of allergies and immune problems, such as inflammatory bowel disease.
+
+The most recent research actually turns accepted norms upside down. For example, there are studies indicating that the excessive use of household detergents and antibacterial products actually destroys the microbes that normally keep the more dangerous germs at bay. Other studies show that keeping a dog as a pet gives children early exposure to a diverse range of bacteria, which may help protect them against allergies later.
+
+The readers of Yong's book must be prepared for a decidedly unglamorous world. Among the less appealing case studies is one about a fungus that is wiping out entire populations of frogs and that can be halted by a rare microbial bacterium. Another is about squid that carry luminescent bacteria that protect them against predators. However, if you can overcome your distaste for some of the investigations, the reasons for Yong's enthusiasm become clear. The microbial world is a place of wonder. Already, in an attempt to stop mosquitoes spreading dengue fever - a disease that infects 400 million people a year - mosquitoes are being loaded with a bacterium to block the disease. In the future, our ability to manipulate microbes means we could construct buildings with useful microbes built into their walls to fight off infections. Just imagine a neonatal hospital ward coated in a specially mixed cocktail of microbes so that babies get the best start in life.`,
+        blocks: [
+          {
+            type: "mcq",
+            title: "Questions 14-16",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 14-16 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 14,
+                text: "What point does the writer make about microbes in the first paragraph?",
+                choices: {
+                  A: "They adapt quickly to their environment.",
+                  B: "The risk they pose has been exaggerated.",
+                  C: "They are more plentiful in animal life than plant life.",
+                  D: "They will continue to exist for longer than the human race."
+                }
+              },
+              {
+                q: 15,
+                text: "In the second paragraph, the writer is impressed by the fact that",
+                choices: {
+                  A: "each species tends to have vastly different microbes.",
+                  B: "some parts of the body contain relatively few microbes.",
+                  C: "the average individual has more microbial cells than human ones.",
+                  D: "scientists have limited understanding of how microbial cells behave."
+                }
+              },
+              {
+                q: 16,
+                text: "What is the writer doing in the fifth paragraph?",
+                choices: {
+                  A: "explaining how a discovery was made",
+                  B: "comparing scientists' theories about microbes",
+                  C: "describing confusion among scientists",
+                  D: "giving details of how microbes cause disease"
+                }
+              }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 17-20",
+            instructions: [
+              "Complete the summary using the list of words, A-H, below.",
+              "Write the correct letter, A-H, in boxes 17-20 on your answer sheet."
+            ],
+            summaryTitle: "We should be more tolerant of microbes",
+            summaryLines: [
+              { text: "Yong's book argues that we should be more tolerant of microbes. Many have a beneficial effect, and only a relatively small number lead to", blankQ: 17, tail: "." },
+              { text: "And although it is misleading to think of microbes as 'friendly', we should also stop thinking of them as the enemy. In fact, we should accept that our relationship with microbes is one based on", blankQ: 18, tail: "." },
+              { text: "New research shows that microbes have numerous benefits for humans. Amongst other things, they aid digestion, remove poisons, produce vitamins and may even help reduce obesity. However, there is a growing problem. Our poor", blankQ: 19, tail: ", our overuse of antibiotics, and our excessive focus on" },
+              { text: "", blankQ: 20, before: "", after: "are upsetting the bacterial balance and may be contributing to the huge increase in allergies and immune system problems." }
+            ],
+            optionsTitle: "A-H",
+            options: [
+              { letter: "A", word: "solution" },
+              { letter: "B", word: "partnership" },
+              { letter: "C", word: "destruction" },
+              { letter: "D", word: "exaggeration" },
+              { letter: "E", word: "cleanliness" },
+              { letter: "F", word: "regulations" },
+              { letter: "G", word: "illness" },
+              { letter: "H", word: "nutrition" }
+            ]
+          },
+          {
+            type: "ynng",
+            title: "Questions 21-26",
+            instructions: [
+              "Do the following statements agree with the claims of the writer in Reading Passage 2?",
+              "In boxes 21-26 on your answer sheet, write:",
+              "YES if the statement agrees with the claims of the writer",
+              "NO if the statement contradicts the claims of the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 21, text: "It is possible that using antibacterial products in the home fails to have the desired effect." },
+              { q: 22, text: "It is a good idea to ensure that children come into contact with as few bacteria as possible." },
+              { q: 23, text: "Yong's book contains more case studies than are necessary." },
+              { q: 24, text: "The case study about bacteria that prevent squid from being attacked may have limited appeal." },
+              { q: 25, text: "Efforts to control dengue fever have been surprisingly successful." },
+              { q: 26, text: "Microbes that reduce the risk of infection have already been put inside the walls of some hospital wards." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `How to make wise decisions
+
+Across cultures, wisdom has been considered one of the most revered human qualities. Although the truly wise may seem few and far between, empirical research examining wisdom suggests that it isn't an exceptional trait possessed by a small handful of bearded philosophers after all - in fact, the latest studies suggest that most of us have the ability to make wise decisions, given the right context.
+
+'It appears that experiential, situational, and cultural factors are even more powerful in shaping wisdom than previously imagined,' says Associate Professor Igor Grossmann of the University of Waterloo in Ontario, Canada. 'Recent empirical findings from cognitive, developmental, social, and personality psychology cumulatively suggest that people's ability to reason wisely varies dramatically across experiential and situational contexts. Understanding the role of such contextual factors offers unique insights into understanding wisdom in daily life, as well as how it can be enhanced and taught.'
+
+It seems that it's not so much that some people simply possess wisdom and others lack it, but that our ability to reason wisely depends on a variety of external factors. 'It is impossible to characterize thought processes attributed to wisdom without considering the role of contextual factors,' explains Grossmann. 'In other words, wisdom is not solely an “inner quality" but rather unfolds as a function of situations people happen to be in. Some situations are more likely to promote wisdom than others.'
+
+Coming up with a definition of wisdom is challenging, but Grossmann and his colleagues have identified four key characteristics as part of a framework of wise reasoning. One is intellectual humility or recognition of the limits of our own knowledge, and another is appreciation of perspectives wider than the issue at hand. Sensitivity to the possibility of change in social relations is also key, along with compromise or integration of different attitudes and beliefs.
+
+Grossmann and his colleagues have also found that one of the most reliable ways to support wisdom in our own day-to-day decisions is to look at scenarios from a third-party perspective, as though giving advice to a friend. Research suggests that when adopting a first-person viewpoint we focus on 'the focal features of the environment' and when we adopt a third-person, 'observer' viewpoint we reason more broadly and focus more on interpersonal and moral ideals such as justice and impartiality. Looking at problems from this more expansive viewpoint appears to foster cognitive processes related to wise decisions.
+
+What are we to do, then, when confronted with situations like a disagreement with a spouse or negotiating a contract at work, that require us to take a personal stake? Grossmann argues that even when we aren't able to change the situation, we can still evaluate these experiences from different perspectives.
+
+For example, in one experiment that took place during the peak of a recent economic recession, graduating college seniors were asked to reflect on their job prospects. The students were instructed to imagine their career either 'as if you were a distant observer' or 'before your own eyes as if you were right there'. Participants in the group assigned to the 'distant observer' role displayed more wisdom-related reasoning, intellectual humility and recognition of change, than did participants in the control group.
+
+In another study, couples in long-term romantic relationships were instructed to visualize an unresolved relationship conflict either through the eyes of an outsider or from their own perspective. Participants then discussed the incident with their partner for 10 minutes, after which they wrote down their thoughts about it. Couples in the 'other's eyes' condition were significantly more likely to rely on wise reasoning - recognizing others' perspectives and searching for a compromise - compared to the couples in the egocentric condition.
+
+'Ego-decentering promotes greater focus on others and enables a bigger picture, conceptual view of the experience, affording recognition of intellectual humility and change,' says Grossmann.
+
+We might associate wisdom with intelligence or particular personality traits, but research shows only a small positive relationship between wise thinking and crystallized intelligence and the personality traits of openness and agreeableness. 'It is remarkable how much people can vary in their wisdom from one situation to the next, and how much stronger such contextual effects are for understanding the relationship between wise judgment and its social and affective outcomes as compared to the generalized "traits",' Grossmann explains. 'That is, knowing how wisely a person behaves in a given situation is more informative for understanding their emotions or likelihood to forgive or retaliate as compared to knowing whether the person may be wise "in general".'`,
+        blocks: [
+          {
+            type: "mcq",
+            title: "Questions 27-30",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 27-30 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 27,
+                text: "What point does the writer make in the first paragraph?",
+                choices: {
+                  A: "Wisdom appears to be unique to the human race.",
+                  B: "A basic assumption about wisdom may be wrong.",
+                  C: "Concepts of wisdom may depend on the society we belong to.",
+                  D: "There is still much to be discovered about the nature of wisdom."
+                }
+              },
+              {
+                q: 28,
+                text: "What does Igor Grossmann suggest about the ability to make wise decisions?",
+                choices: {
+                  A: "It can vary greatly from one person to another.",
+                  B: "Earlier research into it was based on unreliable data.",
+                  C: "The importance of certain influences on it was underestimated.",
+                  D: "Various branches of psychology define it according to their own criteria."
+                }
+              },
+              {
+                q: 29,
+                text: "According to the third paragraph, Grossmann claims that the level of wisdom an individual shows",
+                choices: {
+                  A: "can be greater than they think it is.",
+                  B: "will be different in different circumstances.",
+                  C: "may be determined by particular aspects of their personality.",
+                  D: "should develop over time as a result of their life experiences."
+                }
+              },
+              {
+                q: 30,
+                text: "What is described in the fifth paragraph?",
+                choices: {
+                  A: "an example of the type of person who is likely to reason wisely",
+                  B: "a controversial view about the benefits of reasoning wisely",
+                  C: "a recommended strategy that can help people to reason wisely",
+                  D: "a difficulty encountered when attempting to reason wisely"
+                }
+              }
+            ]
+          },
+          {
+            type: "summarySelect",
+            title: "Questions 31-35",
+            instructions: [
+              "Complete the summary using the list of words, A-J, below.",
+              "Write the correct letter, A-J, in boxes 31-35 on your answer sheet."
+            ],
+            summaryTitle: "The characteristics of wise reasoning",
+            summaryLines: [
+              { text: "Igor Grossmann and colleagues have established four characteristics which enable us to make wise decisions. It is important to have a certain degree of", blankQ: 31, tail: "regarding the extent of our knowledge, and to take into account" },
+              { text: "", blankQ: 32, before: "", after: "which may not be the same as our own. We should also be able to take a broad" },
+              { text: "", blankQ: 33, before: "", after: "of any situation. Another key characteristic is being aware of the likelihood of alterations in the way that people relate to each other." },
+              { text: "Grossmann also believes that it is better to regard scenarios with", blankQ: 34, tail: "." },
+              { text: "By avoiding the first-person perspective, we focus more on", blankQ: 35, tail: "and on other moral ideals, which in turn leads to wiser decision-making." }
+            ],
+            optionsTitle: "A-J",
+            options: [
+              { letter: "A", word: "opinions" },
+              { letter: "B", word: "confidence" },
+              { letter: "C", word: "view" },
+              { letter: "D", word: "modesty" },
+              { letter: "E", word: "problems" },
+              { letter: "F", word: "objectivity" },
+              { letter: "G", word: "fairness" },
+              { letter: "H", word: "experiences" },
+              { letter: "I", word: "range" },
+              { letter: "J", word: "reasons" }
+            ]
+          },
+          {
+            type: "tfng",
+            title: "Questions 36-40",
+            instructions: [
+              "Do the following statements agree with the information given in Reading Passage 3?",
+              "In boxes 36-40 on your answer sheet, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this"
+            ],
+            items: [
+              { q: 36, text: "Students participating in the job prospects experiment could choose one of two perspectives to take." },
+              { q: 37, text: "Participants in the couples experiment were aware that they were taking part in a study about wise reasoning." },
+              { q: 38, text: "In the couples experiments, the length of the couples' relationships had an impact on the results." },
+              { q: 39, text: "In both experiments, the participants who looked at the situation from a more detached viewpoint tended to make wiser decisions." },
+              { q: 40, text: "Grossmann believes that a person's wisdom is determined by their intelligence to only a very limited extent." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
 
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
@@ -9732,6 +10271,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts18: test18,
   ielts19: test19,
   ielts20: test20,
+  ielts21: test21,
 };
 
 export function getProtectedTestContent(testId) {

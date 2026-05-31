@@ -1466,10 +1466,10 @@ export const OBJECTIVE_ANSWER_KEYS = {
       "38": "EMS",
       "39": "HB",
       "40": "EY"
-    }
   }
-  },
-  "ielts18": {
+}
+
+,"ielts18": {
     "listening": {
       "1": "Sloane",
       "2": "17",

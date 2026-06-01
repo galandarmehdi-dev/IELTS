@@ -75,7 +75,7 @@ export const OBJECTIVE_ANSWER_KEYS = {
       "30": "B",
       "31": "B",
       "32": "not given",
-      "33": "TRUE",
+      "33": "TRUE / yes",
       "34": "false / no",
       "35": "not given",
       "36": "false / no",

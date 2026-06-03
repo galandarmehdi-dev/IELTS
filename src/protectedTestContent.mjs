@@ -8180,7 +8180,7 @@ const test18 = {
 
     <div class="listen-card">
       <div class="listen-card-title">Questions 6-10</div>
-      <div class="listen-inst">Complete the form. Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</div>
+      <div class="listen-inst">Complete the form. Write <b>TWO WORDS AND/OR A NUMBER</b> for each answer.</div>
       <div class="listen-card-title">Internet package overview</div>
 
       <div class="listen-table-wrap">

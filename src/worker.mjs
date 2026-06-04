@@ -2384,6 +2384,9 @@ async function handleAdminApi(request, env) {
             }).catch(() => null);
       }
       if (action === "submitExam" && okResponse) {
+        await mirrorFullExamSubmissionToSupabase(env, parsedSubmissionPayload, data, auth, tenant).catch((error) => {
+          console.warn("[submission-supabase-mirror]", error?.message || error || "failed");
+        });
         const emailResult = await sendExamReportEmail(env, parsedSubmissionPayload, data).catch(() => ({ ok: false, error: "threw" }));
         console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
         // Clear admin results cache so the next summary fetch re-queries Supabase
@@ -3263,6 +3266,135 @@ async function writeSubmissionBackup(env, request, auth, finalPayload, options =
 
   const { finalPayload: _omitted, ...publicRecord } = built.record;
   return { ok: true, key: built.key, record: publicRecord };
+}
+
+function getObjectiveAnswersFromFinalPayload(finalPayload, section) {
+  const bucket = finalPayload?.[section];
+  const answers = bucket?.answers;
+  return answers && typeof answers === "object" ? answers : {};
+}
+
+function scoreObjectiveSectionFromFinalPayload(finalPayload, section) {
+  const normalizedSection = oneLine(section || "").toLowerCase();
+  if (!["listening", "reading"].includes(normalizedSection)) {
+    return { total: null, band: null, totalQuestions: null };
+  }
+  const sectionPayload = finalPayload?.[normalizedSection] || {};
+  const testId = normalizeCoverageTestId(
+    sectionPayload?.activeTestId ||
+    sectionPayload?.testId ||
+    finalPayload?.activeTestId ||
+    finalPayload?.examId ||
+    ""
+  );
+  const answerMap = buildObjectiveAnswerMap(testId, normalizedSection);
+  const questions = Object.keys(answerMap);
+  if (!questions.length) return { total: null, band: null, totalQuestions: null };
+
+  const answers = getObjectiveAnswersFromFinalPayload(finalPayload, normalizedSection);
+  let total = 0;
+  questions.forEach((q) => {
+    const studentValue = answers?.[q] ?? answers?.[String(q)] ?? "";
+    if (matchesObjectiveAnswer(studentValue, answerMap[q])) total += 1;
+  });
+  return {
+    total,
+    band: objectiveBandFromRaw(normalizedSection, total, questions.length),
+    totalQuestions: questions.length,
+  };
+}
+
+async function resolveStudentProfileForSubmission(env, summary = {}) {
+  const organizationId = normalizeOrganizationId(summary?.organizationId || "");
+  const studentIdCode = oneLine(summary?.studentIdCode || "");
+  if (studentIdCode) {
+    const byCode = await getStudentProfileByCode(env, studentIdCode, organizationId).catch(() => null);
+    if (byCode) return publicStudentProfile(byCode);
+  }
+  const officialEmail = normalizeEmail(summary?.officialEmail || "");
+  if (officialEmail) {
+    const byOfficialEmail = await getStudentProfileByOfficialEmail(env, officialEmail, organizationId).catch(() => null);
+    if (byOfficialEmail) return publicStudentProfile(byOfficialEmail);
+  }
+  const loginEmail = normalizeEmail(summary?.loginEmail || summary?.email || "");
+  if (loginEmail) {
+    const byLinkedEmail = await getStudentProfileByLinkedEmail(env, loginEmail, organizationId).catch(() => null);
+    if (byLinkedEmail) return publicStudentProfile(byLinkedEmail);
+  }
+  return null;
+}
+
+async function buildExamAttemptRowFromFinalPayload(env, finalPayload, appsResponse, auth, tenant) {
+  const summary = extractFinalPayloadSummary(finalPayload, auth, tenant);
+  if (!summary.submittedAt || !summary.studentFullName || !summary.examId) return null;
+  const profile = await resolveStudentProfileForSubmission(env, summary);
+  const listeningScore = scoreObjectiveSectionFromFinalPayload(finalPayload, "listening");
+  const readingScore = scoreObjectiveSectionFromFinalPayload(finalPayload, "reading");
+  const writing = finalPayload?.writing || {};
+  const task1 = String(writing?.answers?.task1 || "");
+  const task2 = String(writing?.answers?.task2 || "");
+  const finalWritingBand = toNullableBand(
+    appsResponse?.finalWritingBand ??
+    appsResponse?.result?.finalWritingBand ??
+    writing?.finalWritingBand ??
+    null
+  );
+  const overallBand = toRoundedOverallBand([
+    listeningScore.band,
+    readingScore.band,
+    finalWritingBand,
+  ]);
+  const activeTestId = normalizeCoverageTestId(
+    finalPayload?.activeTestId ||
+    finalPayload?.listening?.activeTestId ||
+    finalPayload?.reading?.activeTestId ||
+    finalPayload?.examId ||
+    ""
+  );
+
+  return {
+    user_id: oneLine(auth?.user?.id || auth?.user?.sub || summary.loginEmail || summary.email || "") || null,
+    user_email: normalizeEmail(summary.loginEmail || summary.email || auth?.user?.email || "") || null,
+    organization_id: summary.organizationId || getPrimaryOrganizationId(env),
+    student_full_name: profile?.fullName || summary.studentFullName,
+    student_profile_id: profile?.id || summary.studentProfileId || null,
+    student_id_code: profile?.studentIdCode || summary.studentIdCode || null,
+    classroom_id: profile?.classroomId || summary.classroomId || null,
+    official_email: profile?.officialEmail || summary.officialEmail || null,
+    exam_id: summary.examId,
+    active_test_id: activeTestId || summary.examId,
+    submitted_at: summary.submittedAt,
+    reason: summary.reason || "Student submitted exam.",
+    listening_test_id: oneLine(finalPayload?.listening?.testId || "") || null,
+    reading_test_id: oneLine(finalPayload?.reading?.testId || "") || null,
+    writing_test_id: oneLine(finalPayload?.writing?.testId || "") || null,
+    writing_task1: task1,
+    writing_task2: task2,
+    task1_words: toNullableNumber(writing?.wordCount?.task1),
+    task2_words: toNullableNumber(writing?.wordCount?.task2),
+    final_payload: finalPayload,
+    listening_total: listeningScore.total,
+    listening_band: listeningScore.band,
+    reading_total: readingScore.total,
+    reading_band: readingScore.band,
+    final_writing_band: finalWritingBand,
+    overall_band: overallBand,
+    listening_total_questions: listeningScore.totalQuestions,
+    reading_total_questions: readingScore.totalQuestions,
+  };
+}
+
+async function mirrorFullExamSubmissionToSupabase(env, finalPayload, appsResponse, auth, tenant) {
+  const row = await buildExamAttemptRowFromFinalPayload(env, finalPayload, appsResponse, auth, tenant);
+  if (!row) return { ok: false, error: "No exam attempt row built." };
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    method: "POST",
+    query: { on_conflict: "submitted_at,student_full_name,exam_id" },
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: row,
+  });
+  if (!res.ok) throw new Error(res.error || `Supabase HTTP ${res.status}`);
+  return { ok: true };
 }
 
 // Fetch the four component bands from exam_attempts and compute an updated overall.
@@ -6787,6 +6919,22 @@ async function getAdminResultsSummary(env, options = {}) {
   const cached = forceRefresh ? null : getCachedAdminResultsSummary(cacheKey);
   if (cached) return cached;
 
+  if (forceRefresh) {
+    const [supabaseSummaries, appsScriptSummaries] = await Promise.all([
+      getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => []),
+      getAdminResultsSummaryFromAppsScript(env, actor, true).catch(() => []),
+    ]);
+    const merged = mergeAdminSummarySources(
+      Array.isArray(appsScriptSummaries) ? appsScriptSummaries : [],
+      Array.isArray(supabaseSummaries) ? supabaseSummaries : []
+    );
+    if (merged.length) {
+      setCachedAdminResultsSummary(cacheKey, merged);
+      upsertAdminSummaryRowsToSupabase(env, appsScriptSummaries).catch(() => null);
+      return merged;
+    }
+  }
+
   // Supabase is the canonical source now that Apps Script auto-syncs every grading.
   // Return Supabase immediately and refresh the Apps Script-augmented cache in the background.
   const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => null);
@@ -6901,6 +7049,65 @@ function mergeAdminSummarySources(primaryRows, fallbackRows) {
     for (const entry of entries) merged.push(entry.row);
   }
   return merged.sort((a, b) => (adminSummaryRowTimestamp(b) || 0) - (adminSummaryRowTimestamp(a) || 0));
+}
+
+function buildSupabaseAttemptPatchFromAdminSummary(row, env) {
+  const submittedAt = oneLine(row?.submittedAt || row?.submitted_at || "");
+  const studentFullName = oneLine(row?.studentFullName || row?.student_full_name || "");
+  const examId = oneLine(row?.examId || row?.exam_id || "");
+  if (!submittedAt || !studentFullName || !examId) return null;
+  const listeningBand = toNullableBand(row?.listeningBand ?? row?.listening_band);
+  const readingBand = toNullableBand(row?.readingBand ?? row?.reading_band);
+  const finalWritingBand = toNullableBand(row?.finalWritingBand ?? row?.final_writing_band);
+  const speakingBand = toNullableBand(row?.speakingBand ?? row?.speaking_band);
+  return {
+    submitted_at: submittedAt,
+    student_full_name: studentFullName,
+    exam_id: examId,
+    reason: oneLine(row?.reason || "") || null,
+    organization_id: normalizeOrganizationId(row?.organizationId || row?.organization_id || "") || getPrimaryOrganizationId(env),
+    student_id_code: oneLine(row?.studentIdCode || row?.student_id_code || "") || null,
+    student_profile_id: oneLine(row?.studentProfileId || row?.student_profile_id || "") || null,
+    classroom_id: oneLine(row?.classroomId || row?.classroom_id || "") || null,
+    official_email: normalizeEmail(row?.officialEmail || row?.official_email || "") || null,
+    listening_total: toNullableNumber(row?.listeningTotal ?? row?.listening_total),
+    listening_band: listeningBand,
+    reading_total: toNullableNumber(row?.readingTotal ?? row?.reading_total),
+    reading_band: readingBand,
+    final_writing_band: finalWritingBand,
+    task1_words: toNullableNumber(row?.task1Words ?? row?.task1_words),
+    task2_words: toNullableNumber(row?.task2Words ?? row?.task2_words),
+    task1_band: toNullableBand(row?.task1Band ?? row?.task1_band),
+    task2_band: toNullableBand(row?.task2Band ?? row?.task2_band),
+    speaking_band: speakingBand,
+    overall_band: toNullableBand(row?.overallBand ?? row?.overall_band) ?? toRoundedOverallBand([
+      listeningBand,
+      readingBand,
+      finalWritingBand,
+      speakingBand,
+    ]),
+  };
+}
+
+async function upsertAdminSummaryRowsToSupabase(env, rows) {
+  const patches = (Array.isArray(rows) ? rows : [])
+    .map((row) => buildSupabaseAttemptPatchFromAdminSummary(row, env))
+    .filter(Boolean);
+  if (!patches.length) return { ok: true, count: 0 };
+  const chunkSize = 100;
+  let count = 0;
+  for (let index = 0; index < patches.length; index += chunkSize) {
+    const chunk = patches.slice(index, index + chunkSize);
+    const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "POST",
+      query: { on_conflict: "submitted_at,student_full_name,exam_id" },
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: chunk,
+    });
+    if (!res.ok) throw new Error(res.error || `Supabase HTTP ${res.status}`);
+    count += chunk.length;
+  }
+  return { ok: true, count };
 }
 
 async function getAdminResultsSummaryFromSupabase(env, actor = null, options = {}) {

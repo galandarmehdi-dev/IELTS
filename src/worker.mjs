@@ -5130,6 +5130,12 @@ function formatQuestionAnalyticsAnswerLabel(value) {
   return raw.toUpperCase();
 }
 
+function normalizeQuestionAnalyticsCorrectAnswer(value) {
+  const raw = String(value || "").trim();
+  if (!raw || raw === "-" || raw === "—" || raw === "–") return "";
+  return raw;
+}
+
 function extractObjectiveAnswersForSection(finalPayload, section) {
   if (!finalPayload || typeof finalPayload !== "object") return {};
   const bucket = finalPayload?.[section];
@@ -5373,8 +5379,9 @@ function applyQuestionAnalyticsReviewAttempt({
     if (!Number.isFinite(q) || q <= 0) return;
 
     const key = buildQuestionAnalyticsRecordKey(testId, section, q);
-    const defaultCorrect = String(answerMap[q] || "").trim();
-    const reviewCorrect = String(item?.correct ?? item?.answerKey ?? "").trim();
+    const defaultCorrect = normalizeQuestionAnalyticsCorrectAnswer(answerMap[q]);
+    const reviewCorrect = normalizeQuestionAnalyticsCorrectAnswer(item?.correct ?? item?.answerKey);
+    const effectiveCorrect = reviewCorrect || defaultCorrect;
     const existing = targetMap.get(key) || {
       testId,
       section,
@@ -5385,7 +5392,7 @@ function applyQuestionAnalyticsReviewAttempt({
       blankCount: 0,
       fullMockAttempts: 0,
       practiceAttempts: 0,
-      correctAnswer: reviewCorrect || defaultCorrect,
+      correctAnswer: effectiveCorrect,
       wrongAnswerCounts: new Map(),
       lastSubmittedAt: "",
       students: new Map(),
@@ -5393,12 +5400,12 @@ function applyQuestionAnalyticsReviewAttempt({
     existing.attempts += 1;
     if (mode === "practice") existing.practiceAttempts += 1;
     else existing.fullMockAttempts += 1;
-    if (reviewCorrect) existing.correctAnswer = reviewCorrect;
+    if (effectiveCorrect) existing.correctAnswer = effectiveCorrect;
 
     const rawStudentAnswer = String(item?.student ?? item?.studentAnswer ?? "").trim();
     const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
     const isBlank = !rawStudentAnswer;
-    const isCorrect = isObjectiveReviewItemCorrect(item);
+    const isCorrect = isObjectiveReviewItemCorrect(item) || matchesObjectiveAnswer(rawStudentAnswer, effectiveCorrect);
 
     if (isBlank) {
       existing.blankCount += 1;

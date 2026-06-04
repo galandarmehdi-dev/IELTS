@@ -3063,7 +3063,6 @@
       try { window.IELTS?.Router?.setHashRoute?.(getActiveTestId(), "results"); } catch (e) {}
       const tbody = $("adminResultsTbody");
       try {
-        if (forceRefresh) clearAdminResultsCache(adminState.mode);
         const cachedRows = loadAdminResultsCache(adminState.mode);
         let usedCachedRows = false;
         if (cachedRows.length) {

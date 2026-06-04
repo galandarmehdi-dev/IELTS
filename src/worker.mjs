@@ -6920,17 +6920,29 @@ async function getAdminResultsSummary(env, options = {}) {
   if (cached) return cached;
 
   if (forceRefresh) {
-    const [supabaseSummaries, appsScriptSummaries] = await Promise.all([
-      getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => []),
-      getAdminResultsSummaryFromAppsScript(env, actor, true).catch(() => []),
+    const supabaseSummaries = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => []);
+    const appsScriptPromise = getAdminResultsSummaryFromAppsScript(env, actor, true)
+      .then((rows) => ({ ok: true, rows: Array.isArray(rows) ? rows : [] }))
+      .catch((error) => ({ ok: false, error, rows: [] }));
+    const appsScriptFastResult = await Promise.race([
+      appsScriptPromise,
+      sleep(4500).then(() => ({ ok: false, timedOut: true, rows: [] })),
     ]);
-    const merged = mergeAdminSummarySources(
-      Array.isArray(appsScriptSummaries) ? appsScriptSummaries : [],
-      Array.isArray(supabaseSummaries) ? supabaseSummaries : []
-    );
+    const appsScriptSummaries = appsScriptFastResult.ok ? appsScriptFastResult.rows : [];
+    const merged = mergeAdminSummarySources(appsScriptSummaries, Array.isArray(supabaseSummaries) ? supabaseSummaries : []);
     if (merged.length) {
       setCachedAdminResultsSummary(cacheKey, merged);
-      upsertAdminSummaryRowsToSupabase(env, appsScriptSummaries).catch(() => null);
+      if (appsScriptSummaries.length) {
+        upsertAdminSummaryRowsToSupabase(env, appsScriptSummaries).catch(() => null);
+      } else {
+        appsScriptPromise.then((result) => {
+          const rows = Array.isArray(result?.rows) ? result.rows : [];
+          if (!rows.length) return;
+          upsertAdminSummaryRowsToSupabase(env, rows).catch(() => null);
+          const nextMerged = mergeAdminSummarySources(rows, merged);
+          setCachedAdminResultsSummary(cacheKey, nextMerged);
+        }).catch(() => null);
+      }
       return merged;
     }
   }
@@ -6966,6 +6978,7 @@ function refreshAdminSummaryFromAppsScriptInBackground(env, actor, cacheKey, for
       const supabaseRecent = await getAdminResultsSummaryFromSupabase(env, actor, { limit: 1000 }).catch(() => []);
       const merged = mergeAdminSummarySources(appsScriptSummaries, supabaseRecent);
       setCachedAdminResultsSummary(cacheKey, merged);
+      upsertAdminSummaryRowsToSupabase(env, appsScriptSummaries).catch(() => null);
     } catch (e) {}
   })();
 }

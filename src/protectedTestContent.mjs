@@ -8688,7 +8688,7 @@ Brian Weeden, a technical advisor for the Secure World Foundation, has suggested
             optionsTitle: "A - J",
             options: [
               { letter: "A", word: "weight" },
-              { letter: "B", word: "orbit" },
+              { letter: "B", word: "direction" },
               { letter: "C", word: "volume" },
               { letter: "D", word: "number" },
               { letter: "E", word: "cable" },

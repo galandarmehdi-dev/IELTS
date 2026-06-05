@@ -3369,60 +3369,103 @@ function syncRecentSubmissionsToSupabase() {
  *
  * Safe to run manually from Apps Script after answer-key corrections. It does
  * not re-grade writing. It recalculates objective Listening/Reading totals and
- * bands from the AnswerKey sheet, updates Objective Results, then syncs those
- * rows to Supabase so Admin Results reflects the refreshed objective scores.
+ * bands from the AnswerKey sheet and updates Objective Results only.
  */
 function refreshLast20ListeningReadingResults() {
-  const RECENT_COUNT = 20;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh || sh.getLastRow() < 2) {
+  var RECENT_COUNT = 20;
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var submissions = getSubmissionSheet_(ss);
+  var objective = getOrCreateObjectiveResultsSheet_(ss);
+  ensureSheetHeaders_(objective, getObjectiveResultsHeaders_());
+  if (!submissions || submissions.getLastRow() < 2) {
     Logger.log("No submissions found.");
-    return { ok: true, window: RECENT_COUNT, processed: 0, updated: 0, synced: 0, failed: 0, failures: [] };
+    return { ok: true, window: RECENT_COUNT, scanned: 0, updated: 0, skippedMissing: 0, failed: 0, failures: [] };
+  }
+  if (objective.getLastRow() < 2) {
+    Logger.log("Objective Results is empty. Run the full objective refresh first.");
+    return { ok: true, window: RECENT_COUNT, scanned: 0, updated: 0, skippedMissing: 0, failed: 0, failures: [] };
   }
 
-  const allRows = getAllSubmissionRowObjects_(sh);
-  const recentRows = allRows.slice(-RECENT_COUNT);
-  let updated = 0;
-  let synced = 0;
-  let failed = 0;
-  const failures = [];
+  var writingBandMap = buildWritingOverallBandMap_(ss);
+  var objectiveMap = {};
+  for (var rowNumber = 2; rowNumber <= objective.getLastRow(); rowNumber++) {
+    var current = getObjectiveResultRowObject_(objective, rowNumber);
+    var key = makeSubmissionKey_(
+      current.submittedAt || "",
+      current.studentFullName || "",
+      current.examId || "",
+      current.reason || "",
+    );
+    if (!key) continue;
+    objectiveMap[key] = rowNumber;
+  }
 
-  // Oldest-first keeps sheet/supabase order predictable while still limiting work.
-  for (let i = 0; i < recentRows.length; i++) {
-    const row = recentRows[i];
+  var lastSubmissionRow = submissions.getLastRow();
+  var firstSubmissionRow = Math.max(2, lastSubmissionRow - RECENT_COUNT + 1);
+  var updated = 0;
+  var skippedMissing = 0;
+  var failed = 0;
+  var failures = [];
+
+  for (var submissionRow = lastSubmissionRow; submissionRow >= firstSubmissionRow; submissionRow--) {
     try {
-      upsertObjectiveResultRow_(row.rowNumber);
-      updated++;
-
-      const res = syncSubmissionToSupabase_(row.rowNumber);
-      if (res && res.ok) {
-        synced++;
-        Logger.log("Refreshed L/R row " + row.rowNumber + ": " + (row.studentFullName || "?") + " · " + (row.examId || "?"));
-      } else {
-        failed++;
-        const info = { row: row.rowNumber, student: row.studentFullName || "", examId: row.examId || "", res: res || null };
-        failures.push(info);
-        Logger.log("Refresh L/R sync failed row " + row.rowNumber + ": " + JSON.stringify(res));
-        logSystem_("refreshLast20LR", "Supabase sync failed", info);
+      var submission = getSubmissionRowObject_(submissions, submissionRow);
+      var resultKey = makeSubmissionKey_(
+        submission.submittedAt || "",
+        submission.studentFullName || "",
+        submission.examId || "",
+        submission.reason || "",
+      );
+      var targetRow = objectiveMap[resultKey];
+      if (!targetRow) {
+        skippedMissing++;
+        Logger.log("Skipped row " + submissionRow + ": no matching Objective Results row.");
+        continue;
       }
+
+      var computed = buildObjectiveResultRow_(
+        [
+          submission.submittedAt,
+          submission.studentFullName,
+          submission.examId,
+          submission.reason,
+          submission.listening_json,
+          submission.reading_json,
+          submission.writing_json,
+          submission.organizationId,
+          submission.studentIdCode,
+          submission.classroom,
+          submission.canonicalStudentName,
+          submission.officialEmail,
+        ],
+        ss,
+        writingBandMap,
+      );
+      objective
+        .getRange(targetRow, 5, 1, 5)
+        .setValues([
+          [computed[4], computed[5], computed[6], computed[7], computed[8]],
+        ]);
+      updated++;
+      Logger.log("Refreshed L/R row " + submissionRow + ": " + (submission.studentFullName || "?") + " · " + (submission.examId || "?"));
     } catch (err) {
       failed++;
-      const info = { row: row.rowNumber, student: row.studentFullName || "", examId: row.examId || "", error: String(err) };
+      var info = { row: submissionRow, error: String(err) };
       failures.push(info);
-      Logger.log("Refresh L/R error row " + row.rowNumber + ": " + err);
+      Logger.log("Refresh L/R error row " + submissionRow + ": " + err);
       logSystem_("refreshLast20LR", "Refresh error", info);
     }
-    Utilities.sleep(200);
   }
 
+  formatObjectiveResultsSheet_(objective);
   clearAdminResultsCaches_();
-  const summary = {
+  SpreadsheetApp.flush();
+  var summary = {
     ok: failed === 0,
     window: RECENT_COUNT,
-    processed: recentRows.length,
+    scanned: lastSubmissionRow - firstSubmissionRow + 1,
     updated: updated,
-    synced: synced,
+    skippedMissing: skippedMissing,
     failed: failed,
     failures: failures.slice(0, 20),
   };

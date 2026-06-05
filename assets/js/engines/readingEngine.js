@@ -614,7 +614,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
       if (type === "headings") return renderHeadingsTask({ ...block, example: block.example || null }, answers);
       if (type === "shortAnswer") return renderShortAnswerBlock(block, answers);
       if (type === "sentenceGaps") return renderSentenceGapsBlock(block, answers);
-      if (type === "tfng") return renderTFNGBlock(block, answers);
+      if (type === "tfng" || type === "ynng") return renderTFNGBlock(block, answers);
       if (type === "mcq") return renderMCQBlock(block, answers);
       if (type === "endingsMatch") return renderEndingsMatchBlock(block, answers);
       if (type === "summarySelect") return renderSummarySelectBlock(block, answers);

@@ -1,3 +1,4 @@
+
 /******************************************************* IELTS SHEETS + APPS SCRIPT — CLEAN FULL REPLACEMENT - Full submit flow - Immediate Writing grading - Objective Results + Results updates - Background retry queue for failed Writing grading - Speaking upload support********************************************************/ const SPREADSHEET_ID =
   "1ZTBc4uMJ3ZAA5yG7r7i4RhTz4Eo8onnzVNNJoF1m8iU";
 const SHEET_NAME = "IELTS submissions";
@@ -9,8 +10,8 @@ const SPEAKING_SHEET_NAME = "SpeakingUploads";
 const SYSTEM_LOG_SHEET_NAME = "System Logs";
 const SUBMISSION_META_SHEET_NAME = "SubmissionMeta";
 const SPEAKING_FOLDER_ID = "1yWmzGpn6XXVVCV9f9YtNwv_sJVCp3LKe";
-const OPENAI_BASE_URL = "https://api.openai.com/v1/responses";
-const OPENAI_MODELS_FOR_WRITING = ["gpt-4.1", "gpt-4o-mini"];
+const OPENAI_BASE_URL = "https://api.deepseek.com/v1/chat/completions";
+const OPENAI_MODELS_FOR_WRITING = ["deepseek-chat", "deepseek-reasoner"];
 const DETAILED_BLOCK_HEIGHT = 47;
 const DETAILED_BLOCK_WIDTH = 9;
 const ADMIN_RESULTS_SUMMARY_CACHE_KEY = "admin_results_summary_v1";
@@ -1390,8 +1391,8 @@ function formatDetailedBlock_(sheet, startRow) {
 }
 /*********************** WRITING GRADING************************/ function getOpenAIApiKey_() {
   const key =
-    PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!key) throw new Error("OPENAI_API_KEY is missing in Script Properties.");
+    PropertiesService.getScriptProperties().getProperty("DEEPSEEK_API_KEY");
+  if (!key) throw new Error("DEEPSEEK_API_KEY is missing in Script Properties.");
   return key;
 }
 function buildWritingRubricPrompt_(
@@ -1403,171 +1404,639 @@ function buildWritingRubricPrompt_(
 ) {
   const hasTask1 = Boolean(String(task1Essay || "").trim());
   const hasTask2 = Boolean(String(task2Essay || "").trim());
+
   const taskScope = hasTask1 && hasTask2
     ? "BOTH IELTS Writing Task 1 and Task 2 responses"
     : hasTask1
     ? "the IELTS Writing Task 1 response only (Task 2 was not submitted)"
     : "the IELTS Writing Task 2 response only (Task 1 was not submitted)";
-  return [
-    "You are a highly experienced IELTS Writing examiner trained to apply the official IELTS band descriptors accurately and realistically.",
-    "",
-    `Your task is to evaluate ${taskScope}.`,
-    "",
-    "You must behave like a real IELTS examiner: balanced, practical, evidence-based, and focused on communication rather than perfection.",
-    "",
-    "GENERAL EXAMINER APPROACH",
-    "- Follow official IELTS band descriptors, but apply them with real examiner judgment.",
-    "- Judge what the candidate CAN do, not only what they cannot do.",
-    "- Focus on overall effectiveness of communication.",
-    "- Do NOT expect perfection, even at higher bands.",
-    "- Minor or occasional errors should NOT significantly reduce scores if meaning remains clear.",
-    "- Evaluate patterns, not isolated mistakes.",
-    "",
-    "LENIENCY CALIBRATION",
-    "- IELTS examiners are not harsh graders.",
-    "- If the writing is generally clear and understandable, it should usually not fall below Band 6.",
-    "- If ideas are developed and mostly clear, it can reach Band 6.5–7 even with noticeable language errors.",
-    "- Band 7 does NOT require near-perfect grammar; it requires effective communication, sufficient development, and reasonable control.",
-    "- Always ask: 'Would a real examiner penalize this heavily?' If not, do not reduce the score.",
-    "",
-    "REAL STUDENT STANDARD",
-    "- Most IELTS candidates are non-native speakers.",
-    "- Do NOT compare responses to native-level writing.",
-    "- Evaluate based on IELTS expectations, not ideal academic prose.",
-    "",
-    "SCORING PROCESS",
-    "- Evaluate each criterion independently from the script itself.",
-    "- Do NOT decide the overall band first.",
-    "- First assign criterion scores, then calculate the task overall band.",
-    "- Use 0.5 band increments where appropriate.",
-    "",
-    "SCORE SEPARATION CALIBRATION (CRITICAL)",
-    "- Do NOT begin with an estimated overall band and then fit all criteria around it.",
-    "- Score each criterion from fresh evidence in the script.",
-    "- Do NOT cluster all four criteria around the same band unless the evidence genuinely supports that.",
-    "- In real IELTS marking, one criterion is often 0.5 to 1 band higher or lower than another.",
-    "- Task Response / Task Achievement is often higher than Grammar or Lexical Resource when ideas are clear but language control is weaker.",
-    "- Lexical Resource and Grammatical Range and Accuracy should NOT automatically receive the same score.",
-    "- Coherence and Cohesion may be stronger than Grammar when organisation is clear but sentence control is inconsistent.",
-    "- Similar scores are allowed only when there is clear evidence that performance is genuinely balanced.",
-    "- Before finalising scores, identify the strongest criterion and the weakest criterion for each task.",
-    "- If all four criteria are the same, or three are nearly identical, re-check whether this happened because of real evidence or because of score anchoring.",
-    "- A script may appear to be an overall Band 6.5 performance while still containing criterion scores such as 7 / 6.5 / 6 / 6 or 7 / 6 / 6.5 / 6.",
-    "",
-    "BAND DECISION GUIDANCE",
-    "- If a response sits between two bands, choose the higher band if most features of that band are present.",
-    "- Only choose the lower band if clear weaknesses prevent meeting the higher band.",
-    "",
-    "WORD COUNT RULES",
-    "- Task 1 minimum: 150 words.",
-    "- Task 2 minimum: 250 words.",
-    "- If slightly under length but still well-developed, do NOT heavily penalize.",
-    "- Only reduce Task Achievement / Task Response when lack of length clearly limits content development.",
-    "",
-    "TASK 1 GUIDANCE",
-    "- Check for a clear overview. It does not need to be perfect to support a good score.",
-    "- Check whether key features are selected and compared.",
-    "- Minor omissions should not prevent a good score if the main trends are covered.",
-    "",
-    "TASK 2 GUIDANCE",
-    "- Identify the question type correctly.",
-    "- Focus on clarity of position, development of ideas, and relevance to the exact question.",
-    "- Strong ideas and clear progression can support a higher Task Response score even if language control is weaker.",
-    "",
-    "LANGUAGE SCORING",
-    "Lexical Resource:",
-    "- Reward range, flexibility, and appropriate topic vocabulary.",
-    "- Occasional inaccurate word choice or awkward collocation is acceptable.",
-    "- Reduce the score only when vocabulary problems are frequent, repetitive, or reduce precision.",
-    "",
-    "Grammatical Range and Accuracy:",
-    "- Focus on range and overall control, not perfection.",
-    "- Occasional sentence-level mistakes are acceptable, even at Band 7.",
-    "- Reduce the score only when grammatical problems are frequent, persistent, or reduce clarity.",
-    "",
-    "ADVICE RULES",
-    "- band7_advice: give practical advice to reach Band 7 if the current level is below Band 7.",
-    "- band8_advice: give practical advice to move toward Band 8, even if the current level is already around Band 7.",
-    "- Advice must be specific and based only on real weaknesses in the script.",
-    "",
-    "ERROR ANALYSIS RULES",
-    "- Include only real errors from the text.",
-    "- Do NOT invent errors.",
-    "- Keep corrections concise and accurate.",
-    "",
-    "OUTPUT RULES",
-    "- Return ONLY valid JSON.",
-    "- Do NOT include explanations outside JSON.",
-    ...(!(hasTask1 && hasTask2) ? [
-      "",
-      "SINGLE-TASK SUBMISSION",
-      hasTask1
-        ? "- Only Task 1 was submitted. Set final_writing_band = task1.overall. Fill task2 with all-zero scores and empty strings."
-        : "- Only Task 2 was submitted. Set final_writing_band = task2.overall. Fill task1 with all-zero scores and empty strings.",
-    ] : []),
-    "",
-    "Return EXACTLY in this format:",
-    "{",
-    '  "task1": {',
-    '    "analysis": "",',
-    '    "TA_justification": "",',
-    '    "CC_justification": "",',
-    '    "LR_justification": "",',
-    '    "GRA_justification": "",',
-    '    "strongest_criterion": "",',
-    '    "weakest_criterion": "",',
-    '    "TA": 0,',
-    '    "CC": 0,',
-    '    "LR": 0,',
-    '    "GRA": 0,',
-    '    "overall": 0,',
-    '    "strengths": [],',
-    '    "weaknesses": []',
-    "  },",
-    '  "task2": {',
-    '    "analysis": "",',
-    '    "question_type": "",',
-    '    "TR_justification": "",',
-    '    "CC_justification": "",',
-    '    "LR_justification": "",',
-    '    "GRA_justification": "",',
-    '    "strongest_criterion": "",',
-    '    "weakest_criterion": "",',
-    '    "TR": 0,',
-    '    "CC": 0,',
-    '    "LR": 0,',
-    '    "GRA": 0,',
-    '    "overall": 0,',
-    '    "strengths": [],',
-    '    "weaknesses": []',
-    "  },",
-    '  "final_writing_band": 0,',
-    '  "cefr_estimate": "",',
-    '  "template_detected": false,',
-    '  "main_issues": [],',
-    '  "error_analysis": [{"original": "", "corrected": "", "issue_type": ""}],',
-    '  "band7_advice": [],',
-    '  "band8_advice": []',
-    "}",
-    "",
-    "TASK 1 PROMPT:",
-    task1Prompt || "",
-    "",
-    "TASK 1 GRAPH URL:",
-    task1ImageSrc || "",
-    "",
-    "TASK 1 RESPONSE:",
-    task1Essay || "",
-    "",
-    "TASK 2 PROMPT:",
-    task2Prompt || "",
-    "",
-    "TASK 2 RESPONSE:",
-    task2Essay || "",
-  ].join("\n");
+
+  const singleTaskInstruction = !(hasTask1 && hasTask2)
+    ? hasTask1
+      ? "Only Task 1 was submitted. Set final_writing_band = task1.overall. Fill task2 with all-zero scores and empty strings."
+      : "Only Task 2 was submitted. Set final_writing_band = task2.overall. Fill task1 with all-zero scores and empty strings."
+    : "Both tasks were submitted. Calculate final_writing_band using IELTS Writing weighting: Task 1 counts once and Task 2 counts twice. Formula: (task1.overall + task2.overall + task2.overall) / 3, then round to the nearest 0.5.";
+
+  return `
+You are a highly experienced IELTS Writing examiner.
+
+Your task is to evaluate ${taskScope} using IELTS Academic Writing assessment standards.
+
+You must assess like a real IELTS examiner:
+- Accurate
+- Fair
+- Slightly generous when communication is clear
+- Evidence-based
+- Practical
+- Not overly harsh
+- Not overly complimentary
+- Focused on IELTS band descriptors, not native-speaker perfection
+
+IMPORTANT GLOBAL PRINCIPLE:
+IELTS Writing assessment is about effective communication, task fulfilment, organisation, vocabulary control, and grammar control. Do not punish every mistake equally. Judge the overall pattern of performance.
+
+A candidate can have spelling and grammar mistakes and still be Band 5.5, 6, or even 6.5 if the response is clear, organised, relevant, and developed.
+
+Do NOT treat frequent surface errors as automatic Band 4.
+Band 4 is for writing where communication is seriously limited, ideas are hard to follow, organisation is weak, vocabulary is very basic or inappropriate, and grammar errors cause strain for the reader.
+
+Do NOT give Band 4 for LR or GRA if:
+- the meaning is generally clear,
+- the candidate attempts topic-related vocabulary,
+- the candidate uses some complex sentences,
+- errors are noticeable but do not usually block understanding.
+
+GENERAL IELTS BAND PHILOSOPHY:
+Band 9 = expert, natural, fully controlled, rare slips only.
+Band 8 = very strong, flexible, well-developed, only occasional inaccuracies.
+Band 7 = clear and effective, with some errors but generally strong control.
+Band 6 = generally clear and relevant, with noticeable errors and some limitations.
+Band 5 = understandable but limited, with frequent problems and weaker development/control.
+Band 4 = difficult, limited, unclear in places, poor control, weak task fulfilment.
+Band 3 and below = very limited communication or largely unsuccessful response.
+
+SCORING PROCESS:
+1. Read the task prompt carefully.
+2. Identify the task type.
+3. Read the student response.
+4. Assess each criterion separately.
+5. Do NOT decide the overall band first.
+6. Do NOT force all criteria to have the same score.
+7. Give criterion scores in 0.5 increments where appropriate.
+8. Then calculate the task overall band from the four criteria.
+9. Identify the strongest and weakest criterion.
+10. Before finalising, check whether the score is too harsh or too generous.
+
+CRITICAL ANTI-ANCHORING RULE:
+Do not start with “this feels like Band 5” and then force TA/TR, CC, LR, and GRA around 5.
+One essay may realistically have:
+- TA/TR 6, CC 6, LR 5, GRA 5
+- TA/TR 6.5, CC 6, LR 5.5, GRA 5
+- TA/TR 5, CC 6, LR 5, GRA 5.5
+Criterion scores often differ.
+
+HALF-BAND RULE:
+Use .5 scores when the performance is between two bands.
+Examples:
+- 5.5 = clearly better than Band 5 but not consistently Band 6.
+- 6.5 = clearly better than Band 6 but not consistently Band 7.
+- 7.5 = clearly better than Band 7 but not consistently Band 8.
+
+SLIGHTLY GENEROUS CALIBRATION:
+If the response sits between two bands, choose the higher half-band when:
+- meaning is mostly clear,
+- the task is answered,
+- organisation is logical,
+- errors do not usually block understanding,
+- the candidate shows some ambition in vocabulary or grammar.
+
+Choose the lower band when:
+- ideas are unclear or underdeveloped,
+- the answer misses key parts of the task,
+- organisation breaks down,
+- errors frequently cause strain,
+- vocabulary is too limited or often inappropriate,
+- grammar prevents clear communication.
+
+WORD COUNT RULES:
+Task 1 minimum: 150 words.
+Task 2 minimum: 250 words.
+
+Do NOT automatically punish a response only because it is slightly under length.
+Only reduce TA/TR if the short length clearly limits task completion, overview, detail, argument, or development.
+
+If the response is very short:
+- Task 1 below about 120 words usually cannot score high for TA.
+- Task 2 below about 220 words usually cannot score high for TR.
+But still assess all criteria based on actual evidence.
+
+MEMORISED OR TEMPLATE LANGUAGE:
+If the response seems memorised, generic, or not adapted to the question:
+- Set template_detected = true.
+- Penalise TA/TR and possibly CC/LR.
+- Do not reward memorised phrases as real language control.
+
+TASK 1 SPECIAL RULES:
+For Academic Task 1, assess:
+- whether the response introduces the visual/task accurately,
+- whether there is a clear overview,
+- whether key features are selected,
+- whether data is reported accurately enough,
+- whether comparisons are made where relevant,
+- whether details support the overview.
+
+If the image/graph/table cannot be viewed:
+- Do NOT invent visual details.
+- Use only information available from the prompt and student response.
+- Mention this limitation inside analysis.
+- Be careful with TA because data accuracy cannot be fully verified.
+
+TASK 1 TASK ACHIEVEMENT BAND GUIDE:
+Band 9:
+- Fully satisfies all task requirements.
+- Clear, complete overview.
+- Key features fully and accurately selected.
+- Details are precise, relevant, and well-integrated.
+
+Band 8:
+- Covers all task requirements well.
+- Clear overview.
+- Key features are well selected and supported.
+- Minor omissions or inaccuracies may exist but do not affect the report.
+
+Band 7:
+- Covers the task.
+- Clear overview of main trends/differences/stages.
+- Key features are presented.
+- Some details may be less fully extended or slightly inaccurate.
+
+Band 6:
+- Addresses the task.
+- Overview is present, though it may be general or imperfect.
+- Main features are selected.
+- Some details may be irrelevant, inaccurate, or mechanically reported.
+- The reader can understand the main message of the visual.
+
+Band 5:
+- Generally addresses the task.
+- Overview may be missing, unclear, or only mechanical.
+- Some key features are covered but coverage is limited.
+- May focus too much on details.
+- Data support may be limited or inaccurate.
+- Still mostly understandable.
+
+Band 4:
+- Attempts the task but misses important requirements.
+- No clear overview.
+- Key features are confused, missing, irrelevant, or inaccurate.
+- Description may be hard to follow.
+- Significant parts may be unclear.
+
+Band 3:
+- Very limited task response.
+- Misunderstands the visual/task.
+- Few relevant features.
+- Meaning often unclear.
+
+Band 2:
+- Barely related to the task.
+
+Band 1:
+- Completely unrelated or communicates almost nothing.
+
+Band 0:
+- No attempt, not in English, or fully memorised response.
+
+TASK 2 SPECIAL RULES:
+For Task 2, assess:
+- whether the question is answered directly,
+- whether all parts of the question are addressed,
+- whether the position is clear,
+- whether ideas are relevant,
+- whether ideas are developed and supported,
+- whether examples are useful and connected,
+- whether the essay avoids repetition and memorised content.
+
+TASK 2 TASK RESPONSE BAND GUIDE:
+Band 9:
+- Fully addresses all parts.
+- Fully developed, clear position.
+- Ideas are relevant, extended, and well supported throughout.
+
+Band 8:
+- Addresses all parts well.
+- Clear position throughout.
+- Ideas are relevant, well developed, and supported.
+- Minor lapses may occur.
+
+Band 7:
+- Addresses all parts of the task.
+- Clear position.
+- Main ideas are relevant.
+- Some ideas may be less fully extended, but development is generally clear.
+
+Band 6:
+- Addresses the task.
+- Position is relevant and generally clear.
+- Main ideas are relevant but may be unevenly developed.
+- Some support may be general, repetitive, or not fully explained.
+- The essay still communicates a clear answer.
+
+Band 5:
+- Addresses the task only partially or generally.
+- Position may be present but unclear or inconsistent.
+- Ideas may be relevant but limited.
+- Development may be simple, repetitive, or insufficient.
+- Examples may be weak or vague.
+
+Band 4:
+- Responds only in a limited way.
+- Position is unclear or difficult to identify.
+- Ideas are underdeveloped, irrelevant, repetitive, or confusing.
+- The response may not properly answer the question.
+
+Band 3:
+- Does not adequately address the task.
+- Ideas are very limited or mostly irrelevant.
+- Meaning is often unclear.
+
+Band 2:
+- Barely related to the question.
+
+Band 1:
+- Completely unrelated or communicates almost nothing.
+
+Band 0:
+- No attempt, not in English, or fully memorised response.
+
+COHERENCE AND COHESION GUIDE FOR BOTH TASKS:
+Assess:
+- logical organisation,
+- paragraphing,
+- progression of ideas,
+- linking devices,
+- referencing,
+- substitution,
+- clarity of relationships between ideas.
+
+Band 9:
+- Fully coherent.
+- Cohesion is natural and unnoticed.
+- Paragraphing is skilfully managed.
+
+Band 8:
+- Logical sequencing.
+- Cohesion is well managed.
+- Paragraphing is appropriate and effective.
+- Very minor lapses only.
+
+Band 7:
+- Clear progression throughout.
+- Cohesive devices are used appropriately, though there may be some overuse or underuse.
+- Paragraphing is clear.
+
+Band 6:
+- Information and ideas are arranged coherently.
+- There is a clear overall progression.
+- Cohesive devices are used, but may be mechanical or faulty.
+- Referencing may be imperfect.
+- Paragraphing is generally logical.
+
+Band 5:
+- Some organisation is present.
+- Progression may be limited or unclear in places.
+- Cohesive devices may be inaccurate, repetitive, or overused.
+- Referencing/substitution may be weak.
+- Paragraphing may be basic but still visible.
+
+Band 4:
+- Ideas are not arranged coherently.
+- Progression is unclear.
+- Cohesive devices are basic, repetitive, inaccurate, or missing.
+- Paragraphing may be poor or confusing.
+
+Band 3:
+- Very little logical organisation.
+- Links between ideas are unclear.
+
+Band 2:
+- Very little control of organisation.
+
+Band 1:
+- No meaningful organisation.
+
+Band 0:
+- No assessable writing.
+
+LEXICAL RESOURCE GUIDE:
+Assess:
+- range of vocabulary,
+- topic-specific vocabulary,
+- precision,
+- collocation,
+- word choice,
+- spelling,
+- word formation,
+- flexibility.
+
+IMPORTANT:
+Spelling mistakes alone should not push LR to Band 4 if meaning is clear and vocabulary range is adequate.
+Awkward word choice does not automatically mean Band 4.
+Band 4 LR requires very basic, repetitive, often inappropriate vocabulary that causes strain.
+
+Band 9:
+- Wide, natural, sophisticated vocabulary.
+- Full flexibility and precision.
+- Rare slips only.
+
+Band 8:
+- Wide vocabulary used fluently and flexibly.
+- Less common vocabulary used well.
+- Occasional inaccuracies in word choice/collocation/spelling may occur.
+
+Band 7:
+- Sufficient range for flexibility and precision.
+- Some less common vocabulary.
+- Some awareness of style and collocation.
+- Occasional errors in word choice, spelling, or word formation.
+
+Band 6:
+- Adequate vocabulary for the task.
+- Attempts less common vocabulary, though sometimes inaccurately.
+- Some spelling/word formation errors.
+- Errors usually do not impede communication.
+
+Band 5:
+- Limited but minimally adequate vocabulary.
+- Noticeable spelling/word formation errors.
+- Errors may cause some difficulty for the reader.
+- Some repetition or inappropriate word choice.
+
+Band 4:
+- Basic vocabulary only.
+- Vocabulary is repetitive or often inappropriate.
+- Word formation/spelling problems are frequent.
+- Errors cause strain for the reader.
+
+Band 3:
+- Very limited vocabulary.
+- Errors severely distort meaning.
+
+Band 2:
+- Extremely limited vocabulary.
+- Little control.
+
+Band 1:
+- Only isolated words.
+
+Band 0:
+- No assessable writing.
+
+GRAMMATICAL RANGE AND ACCURACY GUIDE:
+Assess:
+- sentence variety,
+- simple sentence control,
+- complex sentence attempts,
+- grammar accuracy,
+- punctuation,
+- effect of errors on meaning.
+
+IMPORTANT:
+Do not give GRA 4 just because there are frequent errors.
+If the candidate uses simple and complex sentences, and meaning is usually clear, GRA is often Band 5 or 6.
+Band 4 GRA means errors predominate and cause noticeable strain, with very limited range.
+
+Band 9:
+- Wide range of structures.
+- Full flexibility and accuracy.
+- Rare minor slips only.
+
+Band 8:
+- Wide range of structures.
+- Most sentences are error-free.
+- Errors are rare and minor.
+
+Band 7:
+- Variety of complex structures.
+- Frequent error-free sentences.
+- Good control of grammar and punctuation.
+- A few errors remain.
+
+Band 6:
+- Mix of simple and complex sentence forms.
+- Some grammar/punctuation errors.
+- Errors rarely reduce communication.
+- Complex structures may be faulty, but the message is usually clear.
+
+Band 5:
+- Limited range of structures.
+- Complex sentences are attempted but often less accurate than simple ones.
+- Frequent grammar/punctuation errors.
+- Errors can cause some difficulty, but the message is still usually understandable.
+
+Band 4:
+- Very limited range of structures.
+- Rare use of subordinate clauses.
+- Errors predominate.
+- Punctuation is often faulty.
+- Errors cause strain for the reader.
+
+Band 3:
+- Sentence forms are attempted but errors dominate and often distort meaning.
+
+Band 2:
+- Cannot use sentence forms except memorised phrases.
+
+Band 1:
+- Cannot use sentence forms.
+
+Band 0:
+- No assessable writing.
+
+BAND 4 VS BAND 5 VS BAND 6 DECISION RULES:
+Use these rules carefully because many AI checkers are too harsh.
+
+Give Band 6 when:
+- the task is answered,
+- the response is organised,
+- the main message is clear,
+- there is an overview for Task 1 or a position for Task 2,
+- vocabulary is adequate,
+- grammar errors are noticeable but meaning is usually clear.
+
+Give Band 5 when:
+- the response is understandable but limited,
+- ideas/details are present but not well developed,
+- organisation exists but progression is uneven,
+- vocabulary is limited or repetitive,
+- grammar errors are frequent and sometimes cause difficulty.
+
+Give Band 4 only when:
+- task fulfilment is weak,
+- organisation is poor or unclear,
+- vocabulary is very basic/repetitive/inappropriate,
+- grammar errors predominate,
+- the reader often has to work hard to understand the meaning.
+
+Do not give overall 4.5 if:
+- the response has a clear introduction,
+- a clear overview or position,
+- logical paragraphing,
+- relevant ideas or key features,
+- mostly understandable meaning.
+
+Such a response is usually closer to Band 5 or 5.5, even with frequent language errors.
+
+COMMON CASES:
+Case 1:
+Clear answer + logical paragraphs + frequent grammar/spelling errors but meaning clear
+=> Usually 5.5 or 6, not 4.5.
+
+Case 2:
+Good ideas + weak grammar
+=> TR/TA and CC may be 6 or 6.5, while LR/GRA may be 5 or 5.5.
+
+Case 3:
+Strong vocabulary but poor task response
+=> LR may be high, but TA/TR must be lower.
+
+Case 4:
+Many linking words but weak logic
+=> Do not reward CC highly. Cohesion is not just connectors.
+
+Case 5:
+Task 1 has no overview
+=> TA usually limited to 5, unless an overview is implied very clearly.
+
+Case 6:
+Task 2 has no clear position
+=> TR usually limited to 5 or below.
+
+Case 7:
+Off-topic essay
+=> TR must be low even if English is good.
+
+Case 8:
+Memorised essay
+=> Penalise strongly. Set template_detected = true.
+
+Case 9:
+Frequent spelling errors but vocabulary is understandable and topic-related
+=> LR is usually 5 or 5.5, not automatically 4.
+
+Case 10:
+Frequent grammar errors but the reader understands the message without major strain
+=> GRA is usually 5 or 5.5, not automatically 4.
+
+ROUNDING RULES:
+For each task:
+- Average the four criterion scores.
+- Round to the nearest 0.5.
+
+For final_writing_band:
+- If both Task 1 and Task 2 are submitted:
+  final_writing_band = (task1.overall + task2.overall + task2.overall) / 3
+  Then round to the nearest 0.5.
+- If only one task is submitted:
+  final_writing_band = that task's overall band.
+
+OUTPUT RULES:
+Return ONLY valid JSON.
+Do NOT include explanations outside JSON.
+Do NOT use markdown.
+Do NOT wrap JSON in code fences.
+All scores must be numbers, not strings.
+Arrays must contain strings.
+Do not invent errors.
+Use only errors actually found in the student response.
+Keep advice practical and specific.
+
+ERROR ANALYSIS RULES:
+Include 5 to 12 important errors.
+Prioritise repeated or serious errors.
+Do not list every spelling mistake.
+For each error, give:
+- original
+- corrected
+- issue_type
+
+ADVICE RULES:
+band7_advice:
+Give advice for reaching Band 7.
+Focus on the biggest obstacles preventing Band 7.
+
+band8_advice:
+Give advice for moving toward Band 8.
+This can include precision, flexibility, sophistication, and naturalness.
+
+ANALYSIS STYLE:
+Be clear and direct.
+Do not be cruel.
+Do not exaggerate weaknesses.
+Do not say “excellent” unless it truly is.
+Do not say “poor” if the response is understandable.
+Use realistic IELTS language.
+
+SINGLE-TASK SUBMISSION:
+${singleTaskInstruction}
+
+Return EXACTLY in this JSON format:
+
+{
+  "task1": {
+    "analysis": "",
+    "TA_justification": "",
+    "CC_justification": "",
+    "LR_justification": "",
+    "GRA_justification": "",
+    "strongest_criterion": "",
+    "weakest_criterion": "",
+    "TA": 0,
+    "CC": 0,
+    "LR": 0,
+    "GRA": 0,
+    "overall": 0,
+    "strengths": [],
+    "weaknesses": []
+  },
+  "task2": {
+    "analysis": "",
+    "question_type": "",
+    "TR_justification": "",
+    "CC_justification": "",
+    "LR_justification": "",
+    "GRA_justification": "",
+    "strongest_criterion": "",
+    "weakest_criterion": "",
+    "TR": 0,
+    "CC": 0,
+    "LR": 0,
+    "GRA": 0,
+    "overall": 0,
+    "strengths": [],
+    "weaknesses": []
+  },
+  "final_writing_band": 0,
+  "cefr_estimate": "",
+  "template_detected": false,
+  "main_issues": [],
+  "error_analysis": [
+    {
+      "original": "",
+      "corrected": "",
+      "issue_type": ""
+    }
+  ],
+  "band7_advice": [],
+  "band8_advice": []
+}
+
+TASK 1 PROMPT:
+${task1Prompt || ""}
+
+TASK 1 GRAPH URL:
+${task1ImageSrc || ""}
+
+TASK 1 RESPONSE:
+${task1Essay || ""}
+
+TASK 2 PROMPT:
+${task2Prompt || ""}
+
+TASK 2 RESPONSE:
+${task2Essay || ""}
+`.trim();
 }
 function extractResponseText_(responseJson) {
   if (!responseJson) return "";
+  // Chat Completions format (DeepSeek, OpenAI /v1/chat/completions)
+  const choices = responseJson.choices;
+  if (Array.isArray(choices) && choices.length) {
+    const msg = choices[0].message;
+    if (msg && typeof msg.content === "string" && msg.content.trim())
+      return msg.content.trim();
+  }
+  // OpenAI Responses API legacy formats
   if (
     typeof responseJson.output_text === "string" &&
     responseJson.output_text.trim()
@@ -1691,19 +2160,13 @@ function callOpenAIIELTS_(writingJson) {
   const models =
     Array.isArray(OPENAI_MODELS_FOR_WRITING) && OPENAI_MODELS_FOR_WRITING.length
       ? OPENAI_MODELS_FOR_WRITING
-      : ["gpt-5.4"];
+      : ["deepseek-chat"];
   models.forEach((model) => {
     payloads.push({
-      label: model + " / simple-input",
-      payload: { model: model, input: prompt },
-    });
-    payloads.push({
-      label: model + " / messages-input",
+      label: model,
       payload: {
         model: model,
-        input: [
-          { role: "user", content: [{ type: "input_text", text: prompt }] },
-        ],
+        messages: [{ role: "user", content: prompt }],
       },
     });
   });
@@ -1722,7 +2185,7 @@ function callOpenAIIELTS_(writingJson) {
       const body = response.getContentText();
       if (code < 200 || code >= 300) {
         throw new Error(
-          "OpenAI API error " + code + " [" + item.label + "]: " + body,
+          "DeepSeek API error " + code + " [" + item.label + "]: " + body,
         );
       }
       let parsedResponse = null;
@@ -1730,26 +2193,26 @@ function callOpenAIIELTS_(writingJson) {
         parsedResponse = JSON.parse(body);
       } catch (e) {
         throw new Error(
-          "OpenAI returned non-JSON body [" + item.label + "]: " + body,
+          "DeepSeek returned non-JSON body [" + item.label + "]: " + body,
         );
       }
       const rawText = extractResponseText_(parsedResponse);
       if (!rawText) {
         throw new Error(
-          "OpenAI returned no usable text [" + item.label + "]: " + body,
+          "DeepSeek returned no usable text [" + item.label + "]: " + body,
         );
       }
       const parsedJson = extractFirstJsonObject_(rawText);
       return normalizeWritingResult_(parsedJson);
     } catch (err) {
       lastErr = String(err);
-      logSystem_("OpenAI", "Model attempt failed", {
+      logSystem_("DeepSeek", "Model attempt failed", {
         label: item.label,
         error: String(err),
       });
     }
   }
-  throw new Error(lastErr || "All OpenAI model attempts failed.");
+  throw new Error(lastErr || "All DeepSeek model attempts failed.");
 }
 function getOrCreateWritingSheet_(ss) {
   let sh = ss.getSheetByName(WRITING_SHEET_NAME);
@@ -1994,7 +2457,19 @@ function tryGradeSubmissionNow_(rowNumber) {
       finalWritingBand: existing.finalWritingBand || "",
     };
   }
-  const writingMeta = processNewWritingSubmission_(rowNumber);
+  // Grading is attempted first, but Objective Results + Supabase sync always
+  // run even if grading fails — so the row is never silently lost from Supabase.
+  let writingMeta = null;
+  let gradingError = "";
+  try {
+    writingMeta = processNewWritingSubmission_(rowNumber);
+  } catch (gradErr) {
+    gradingError = String(gradErr);
+    logSystem_("tryGrade", "Writing grading failed; will still sync to Supabase", {
+      row: rowNumber,
+      error: gradingError,
+    });
+  }
   upsertObjectiveResultRow_(rowNumber);
   ensureDetailedResultBlock_(rowNumber);
   SpreadsheetApp.flush();
@@ -2005,6 +2480,10 @@ function tryGradeSubmissionNow_(rowNumber) {
       row: rowNumber,
       error: String(err),
     });
+  }
+  if (gradingError) {
+    // Re-throw so doPost knows to queue for background retry.
+    throw new Error(gradingError);
   }
   return {
     ok: true,
@@ -2791,6 +3270,164 @@ function reGradeUngradedSubmissions() {
   }
   clearAdminResultsCaches_();
   Logger.log("reGradeUngradedSubmissions: processed=" + processed + ", skipped(already graded)=" + skipped);
+}
+/**
+ * Re-grades ungraded writing submissions among the most recent N rows.
+ * Safe to run from the Apps Script editor — will never touch old past-exam essays.
+ * Change RECENT_COUNT to look further back if needed.
+ */
+function reGradeRecentUngraded() {
+  const RECENT_COUNT = 20; // only inspect the last N submissions
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) {
+    Logger.log("No submissions found.");
+    return;
+  }
+  const allRows = getAllSubmissionRowObjects_(sh);
+  // Take only the most recent RECENT_COUNT rows (last in sheet = most recent)
+  const recentRows = allRows.slice(-RECENT_COUNT);
+  let processed = 0;
+  let skipped = 0;
+  let noWriting = 0;
+  // Iterate newest-first so the most urgent submissions get graded first
+  for (let i = recentRows.length - 1; i >= 0; i--) {
+    const row = recentRows[i];
+    const writingJson = row.writing_json || "";
+    if (!writingJson || !hasRealWritingContent_(writingJson)) {
+      noWriting++;
+      continue;
+    }
+    if (isSubmissionAlreadyGraded_(ss, row.rowNumber)) {
+      skipped++;
+      continue;
+    }
+    try {
+      Logger.log("Re-grading row " + row.rowNumber + ": " + (row.studentFullName || "unknown"));
+      tryGradeSubmissionNow_(row.rowNumber);
+      processed++;
+      Utilities.sleep(1500);
+    } catch (err) {
+      logSystem_("reGradeRecent", "Grading failed", { row: row.rowNumber, error: String(err) });
+      Logger.log("Failed row " + row.rowNumber + ": " + err);
+    }
+  }
+  clearAdminResultsCaches_();
+  Logger.log(
+    "reGradeRecentUngraded: window=" + RECENT_COUNT +
+    ", graded=" + processed +
+    ", alreadyGraded=" + skipped +
+    ", noWriting=" + noWriting
+  );
+}
+/**
+ * Syncs the most recent N submission rows to Objective Results + Supabase
+ * WITHOUT re-grading. Safe to run any time — idempotent upserts.
+ * Use this to recover rows that are missing from Supabase because writing
+ * grading failed and the sync was skipped.
+ * Change RECENT_COUNT if you need to reach further back.
+ */
+function syncRecentSubmissionsToSupabase() {
+  const RECENT_COUNT = 30;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) {
+    Logger.log("No submissions found.");
+    return;
+  }
+  const allRows = getAllSubmissionRowObjects_(sh);
+  const recentRows = allRows.slice(-RECENT_COUNT);
+  let synced = 0;
+  let failed = 0;
+  // Oldest-first so Objective Results is populated before sync attempts
+  for (let i = 0; i < recentRows.length; i++) {
+    const row = recentRows[i];
+    try {
+      upsertObjectiveResultRow_(row.rowNumber);
+      const res = syncSubmissionToSupabase_(row.rowNumber);
+      if (res && res.ok) {
+        synced++;
+        Logger.log("Synced row " + row.rowNumber + ": " + (row.studentFullName || "?"));
+      } else {
+        failed++;
+        Logger.log("Sync failed row " + row.rowNumber + ": " + JSON.stringify(res));
+        logSystem_("syncRecent", "Supabase sync failed", { row: row.rowNumber, res: res });
+      }
+    } catch (err) {
+      failed++;
+      Logger.log("Error row " + row.rowNumber + ": " + err);
+      logSystem_("syncRecent", "Sync error", { row: row.rowNumber, error: String(err) });
+    }
+    Utilities.sleep(200);
+  }
+  clearAdminResultsCaches_();
+  Logger.log("syncRecentSubmissionsToSupabase: window=" + RECENT_COUNT + ", synced=" + synced + ", failed=" + failed);
+}
+
+/**
+ * Refreshes only Listening + Reading scores for the latest 20 submission rows.
+ *
+ * Safe to run manually from Apps Script after answer-key corrections. It does
+ * not re-grade writing. It recalculates objective Listening/Reading totals and
+ * bands from the AnswerKey sheet, updates Objective Results, then syncs those
+ * rows to Supabase so Admin Results reflects the refreshed objective scores.
+ */
+function refreshLast20ListeningReadingResults() {
+  const RECENT_COUNT = 20;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) {
+    Logger.log("No submissions found.");
+    return { ok: true, window: RECENT_COUNT, processed: 0, updated: 0, synced: 0, failed: 0, failures: [] };
+  }
+
+  const allRows = getAllSubmissionRowObjects_(sh);
+  const recentRows = allRows.slice(-RECENT_COUNT);
+  let updated = 0;
+  let synced = 0;
+  let failed = 0;
+  const failures = [];
+
+  // Oldest-first keeps sheet/supabase order predictable while still limiting work.
+  for (let i = 0; i < recentRows.length; i++) {
+    const row = recentRows[i];
+    try {
+      upsertObjectiveResultRow_(row.rowNumber);
+      updated++;
+
+      const res = syncSubmissionToSupabase_(row.rowNumber);
+      if (res && res.ok) {
+        synced++;
+        Logger.log("Refreshed L/R row " + row.rowNumber + ": " + (row.studentFullName || "?") + " · " + (row.examId || "?"));
+      } else {
+        failed++;
+        const info = { row: row.rowNumber, student: row.studentFullName || "", examId: row.examId || "", res: res || null };
+        failures.push(info);
+        Logger.log("Refresh L/R sync failed row " + row.rowNumber + ": " + JSON.stringify(res));
+        logSystem_("refreshLast20LR", "Supabase sync failed", info);
+      }
+    } catch (err) {
+      failed++;
+      const info = { row: row.rowNumber, student: row.studentFullName || "", examId: row.examId || "", error: String(err) };
+      failures.push(info);
+      Logger.log("Refresh L/R error row " + row.rowNumber + ": " + err);
+      logSystem_("refreshLast20LR", "Refresh error", info);
+    }
+    Utilities.sleep(200);
+  }
+
+  clearAdminResultsCaches_();
+  const summary = {
+    ok: failed === 0,
+    window: RECENT_COUNT,
+    processed: recentRows.length,
+    updated: updated,
+    synced: synced,
+    failed: failed,
+    failures: failures.slice(0, 20),
+  };
+  Logger.log("refreshLast20ListeningReadingResults: " + JSON.stringify(summary));
+  return summary;
 }
 function hasUngradedWriting_() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -3765,7 +4402,16 @@ function doPost(e) {
         row: rowNumber,
         error: immediateGradeError,
       });
-      if (hasWriting) scheduleQueuedWritingProcessing_();
+      if (hasWriting) {
+        try {
+          scheduleQueuedWritingProcessing_();
+        } catch (schedErr) {
+          logSystem_("doPost", "Failed to schedule grading trigger", {
+            row: rowNumber,
+            error: String(schedErr),
+          });
+        }
+      }
       try {
         ensureDetailedResultBlock_(rowNumber);
       } catch (detailErr) {
@@ -4718,22 +5364,49 @@ function backfillFromObjectiveResultsSheet() {
   const TIME_BUDGET_MS = 5 * 60 * 1000;
   const startedAt = Date.now();
   let pushed = 0,
-    failed = 0;
+    failed = 0,
+    totalDupsSkipped = 0;
   const failures = [];
 
   while (i < total && Date.now() - startedAt < TIME_BUDGET_MS) {
     const slice = table.values.slice(i, i + BATCH_SIZE);
-    const payload = [];
+    // Build raw payload items
+    const rawPayload = [];
     for (const row of slice) {
       const item = buildSupabasePayloadFromObjectiveRow_(row, table.idx);
-      if (item) payload.push(item);
+      if (item) rawPayload.push(item);
     }
+    // Deduplicate by conflict key: submitted_at||student_full_name||exam_id
+    // Keep last / most-complete row per key (most non-null/non-empty fields wins)
+    const dedupMap = new Map();
+    for (const item of rawPayload) {
+      const key =
+        item.submitted_at + "||" + item.student_full_name + "||" + item.exam_id;
+      const prev = dedupMap.get(key);
+      if (!prev) {
+        dedupMap.set(key, item);
+      } else {
+        const nonNull = (o) =>
+          Object.values(o).filter((v) => v !== null && v !== "").length;
+        if (nonNull(item) >= nonNull(prev)) dedupMap.set(key, item);
+      }
+    }
+    const payload = Array.from(dedupMap.values());
+    const batchDups = rawPayload.length - payload.length;
+    totalDupsSkipped += batchDups;
     if (payload.length) {
       const res = postSupabaseUpsertBatch_(cfg, payload);
       if (res.ok) pushed += payload.length;
       else {
         failed += payload.length;
-        if (failures.length < 5) failures.push({ atIndex: i, info: res });
+        if (failures.length < 5)
+          failures.push({
+            atIndex: i,
+            batchSize: rawPayload.length,
+            dedupedSize: payload.length,
+            dupsSkipped: batchDups,
+            info: res,
+          });
       }
     }
     i += BATCH_SIZE;
@@ -4747,6 +5420,7 @@ function backfillFromObjectiveResultsSheet() {
     total: total,
     pushed: pushed,
     failed: failed,
+    dupsSkipped: totalDupsSkipped,
     failures: failures,
   });
   return {
@@ -4755,6 +5429,7 @@ function backfillFromObjectiveResultsSheet() {
     total: total,
     pushed: pushed,
     failed: failed,
+    dupsSkipped: totalDupsSkipped,
     failures: failures,
   };
 }

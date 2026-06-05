@@ -4963,6 +4963,10 @@ function buildSupabasePayloadFromObjectiveRow_(row, idx) {
     reading_total: toNumberOrNull_(row[idx.readingTotal]),
     reading_band: toNumberOrNull_(row[idx.readingBand]),
     final_writing_band: toNumberOrNull_(row[idx.finalWritingBand]),
+    // Supabase exam_attempts requires these columns to be non-null. Objective-only
+    // rows and early syncs may not have writing text yet, so default safely to 0.
+    task1_words: 0,
+    task2_words: 0,
   };
 }
 
@@ -5056,8 +5060,8 @@ function syncSubmissionToSupabase_(rowNumber) {
   // Word counts from submission JSON.
   const t1Words = Number(WRITING_WORDCOUNT(writingJson, "task1") || 0);
   const t2Words = Number(WRITING_WORDCOUNT(writingJson, "task2") || 0);
-  payload.task1_words = t1Words > 0 ? t1Words : null;
-  payload.task2_words = t2Words > 0 ? t2Words : null;
+  payload.task1_words = t1Words > 0 ? t1Words : 0;
+  payload.task2_words = t2Words > 0 ? t2Words : 0;
 
   return postSupabaseUpsertBatch_(cfg, [payload]);
 }
@@ -5151,8 +5155,8 @@ function resyncAllSubmissionsToSupabase() {
         }
         const t1Words = Number(WRITING_WORDCOUNT(writingJson, "task1") || 0);
         const t2Words = Number(WRITING_WORDCOUNT(writingJson, "task2") || 0);
-        payload.task1_words = t1Words > 0 ? t1Words : null;
-        payload.task2_words = t2Words > 0 ? t2Words : null;
+        payload.task1_words = t1Words > 0 ? t1Words : 0;
+        payload.task2_words = t2Words > 0 ? t2Words : 0;
 
         batch.push(payload);
       } catch (rowErr) {

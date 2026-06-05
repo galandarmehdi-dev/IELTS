@@ -14,7 +14,7 @@ const DEFAULT_PRIMARY_ORGANIZATION_ID = "ieltsmock";
 const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (isSensitiveAssetPath(url.pathname)) {
       return json(404, { ok: false, error: "Not found." });
@@ -63,7 +63,7 @@ export default {
     }
 
     if (url.pathname === "/api/admin") {
-      return handleAdminApi(request, env);
+      return handleAdminApi(request, env, ctx);
     }
 
     if (shouldServeAppShell(url.pathname, request.method)) {
@@ -907,7 +907,7 @@ async function handleContactApi(request, env) {
   return json(200, { ok: true, message: "Your message has been sent to IELTS Mock support." });
 }
 
-async function handleAdminApi(request, env) {
+async function handleAdminApi(request, env, ctx = null) {
   const url = new URL(request.url);
   const action = String(url.searchParams.get("action") || "").trim();
   if (request.method === "GET" && action === "session") {
@@ -2384,14 +2384,24 @@ async function handleAdminApi(request, env) {
             }).catch(() => null);
       }
       if (action === "submitExam" && okResponse) {
-        await mirrorFullExamSubmissionToSupabase(env, parsedSubmissionPayload, data, auth, tenant).catch((error) => {
-          console.warn("[submission-supabase-mirror]", error?.message || error || "failed");
-        });
-        const emailResult = await sendExamReportEmail(env, parsedSubmissionPayload, data).catch(() => ({ ok: false, error: "threw" }));
-        console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
-        // Clear admin results cache so the next summary fetch re-queries Supabase
-        // rather than serving the pre-submission cached list. Resend email is unaffected.
-        try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+        const postSubmitWork = (async () => {
+          const emailResult = await sendExamReportEmail(env, parsedSubmissionPayload, data).catch((error) => ({
+            ok: false,
+            error: error?.message || "threw",
+          }));
+          console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
+          await mirrorFullExamSubmissionToSupabase(env, parsedSubmissionPayload, data, auth, tenant).catch((error) => {
+            console.warn("[submission-supabase-mirror]", error?.message || error || "failed");
+          });
+          // Clear admin results cache so the next summary fetch re-queries Supabase
+          // rather than serving the pre-submission cached list. Resend email is unaffected.
+          try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+        })();
+        if (ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil(postSubmitWork);
+        } else {
+          postSubmitWork.catch(() => null);
+        }
       }
     }
     return upstream;

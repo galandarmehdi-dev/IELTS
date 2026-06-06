@@ -653,7 +653,6 @@
         }
 
         hasSubmitted = true;
-        S().set(W.keys.submitted, "true");
         S().remove(WRITING_DEADLINE_KEY);
         if (timer) clearInterval(timer);
 
@@ -714,15 +713,20 @@
           window.IELTS?.Assignments?.markAssignmentCompleteForTest?.(activeTestId);
         } catch (e) {}
 
-        UI().lockWholeExamAfterFinalSubmit();
-
         const hasWritingText = hasAnyWritingText(writingPayload);
         const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
         const backupResult = await recordSubmissionBackup(finalPayload);
         if (!backupResult.ok) {
           console.error("Submission backup was not confirmed before sheet submit:", backupResult.error || backupResult);
+          const recoveryError = new Error("We could not save a secure server backup for this submission. Please check the internet connection and press submit again. Do not close this page.");
+          recoveryError.serverRecoveryFailed = true;
+          recoveryError.detail = backupResult.error || backupResult;
+          throw recoveryError;
         }
         await recordSubmissionMeta(finalPayload);
+
+        S().set(W.keys.submitted, "true");
+        UI().lockWholeExamAfterFinalSubmit();
 
         // Save history immediately so a flaky backend response does not erase the student's record.
         const historyResult = await saveAttemptToSupabase(finalPayload);
@@ -823,9 +827,12 @@
           }
         } catch (e) {}
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
+        const message = err?.serverRecoveryFailed
+          ? "Your answers are still on this screen, but they were NOT safely saved to the server. Please check the internet connection and press submit again. Do not close or refresh this page until it submits successfully."
+          : "Something went wrong during submission. Your latest answers are still saved on this browser. Please refresh and try again.";
         Modal().showModal(
-          "Submission error",
-          "Something went wrong during submission. Your latest answers are still saved on this browser. Please refresh and try again.",
+          err?.serverRecoveryFailed ? "Submission not saved yet" : "Submission error",
+          message,
           { mode: "confirm" }
         );
       }

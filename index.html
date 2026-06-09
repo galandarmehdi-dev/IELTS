@@ -1136,6 +1136,7 @@
       <button class="btn secondary" type="button" id="adminPageAssignmentsBtn" aria-pressed="false">Assignments</button>
       <button class="btn secondary" type="button" id="adminPageQuestionsBtn" aria-pressed="false">Questions</button>
       <button class="btn secondary" type="button" id="adminPageQuestionAnalyticsBtn" aria-pressed="false">Question Analytics</button>
+      <button class="btn secondary" type="button" id="adminPageSubmissionSyncBtn" aria-pressed="false">Submission Sync</button>
     </div>
 
     <div class="workspace-banner admin-banner ui-panel ui-panel-hero" id="adminResultsBanner">
@@ -1636,6 +1637,71 @@
       </div>
     </div>
     <!-- ─── End Question Analytics page ─── -->
+
+    <div class="hidden" id="adminSubmissionSyncPage">
+      <div class="admin-result-detail ui-panel" style="margin-bottom:16px;">
+        <div class="admin-result-detail-top">
+          <div>
+            <p class="eyebrow">Recovery / Resync</p>
+            <h2>Submission Sync Monitor</h2>
+            <p class="small">Compare server-side submission backups with Supabase admin results and safely resync missing rows.</p>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn secondary" type="button" id="adminSubmissionSyncRefreshBtn">Refresh</button>
+            <button class="btn" type="button" id="adminSubmissionSyncRetryMissingBtn">Retry all missing</button>
+          </div>
+        </div>
+        <p class="small" id="adminSubmissionSyncStatus">Loading submission sync monitor…</p>
+
+        <div class="admin-results-summary ui-grid ui-grid-6">
+          <div class="admin-stat-card"><div class="admin-stat-label">Backups scanned</div><div class="admin-stat-value" id="syncSummaryScanned">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Missing from Supabase</div><div class="admin-stat-value" id="syncSummaryMissing">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Synced / resynced</div><div class="admin-stat-value" id="syncSummarySynced">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Duplicate possible</div><div class="admin-stat-value" id="syncSummaryDuplicate">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Invalid payload</div><div class="admin-stat-value" id="syncSummaryInvalid">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Failed resync</div><div class="admin-stat-value" id="syncSummaryFailed">0</div></div>
+        </div>
+
+        <div class="admin-results-toolbar ui-toolbar-grid">
+          <label class="admin-field"><span>Status</span>
+            <select id="submissionSyncStatusFilter">
+              <option value="">All statuses</option>
+              <option value="missing_from_supabase">Missing from Supabase</option>
+              <option value="synced">Synced</option>
+              <option value="resynced">Resynced</option>
+              <option value="duplicate_possible">Duplicate possible</option>
+              <option value="invalid_payload">Invalid payload</option>
+              <option value="failed_resync">Failed resync</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Limit</span><input id="submissionSyncLimitInput" type="number" min="20" max="500" step="20" value="200"></label>
+        </div>
+
+        <div class="admin-results-table-wrap">
+          <table class="admin-results-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Submitted</th>
+                <th>Student</th>
+                <th>Test</th>
+                <th>Section</th>
+                <th>Sheet backup</th>
+                <th>Error</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="submissionSyncRowsTbody"></tbody>
+          </table>
+        </div>
+
+        <details class="ui-panel" style="margin-top:16px;" id="submissionSyncRawPanel">
+          <summary>Raw payload viewer</summary>
+          <pre id="submissionSyncRawPayload" style="white-space:pre-wrap;overflow:auto;max-height:420px;"></pre>
+        </details>
+      </div>
+    </div>
+    <!-- ─── End Submission Sync page ─── -->
 
     <div id="adminResultsContent" class="ui-stack">
     <div class="admin-results-toolbar ui-panel ui-toolbar-grid">
@@ -2498,7 +2564,7 @@
 
 <script src="/assets/js/engines/listeningEngine.js"></script>
 <script src="/assets/js/engines/readingEngine.js?v=20260605a"></script>
-<script src="/assets/js/engines/writingEngine.js?v=20260606a"></script>
+<script src="/assets/js/engines/writingEngine.js?v=20260609a"></script>
 
 <script type="module" src="/assets/js/auth.js?v=20260509h"></script>
 <script src="/assets/js/dashboard.js?v=20260405"></script>
@@ -2511,7 +2577,7 @@
 <script src="/assets/js/placement-test.js"></script>
 <script src="/assets/js/resources-page.js"></script>
 <script src="/assets/js/recent-questions.js"></script>
-<script src="/assets/js/app.js?v=20260604a"></script>
+<script src="/assets/js/app.js?v=20260609a"></script>
 <script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

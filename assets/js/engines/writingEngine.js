@@ -705,6 +705,12 @@
           writing: writingPayload,
         };
 
+        console.info("[submission] final submit captured", {
+          examId: finalPayload.examId,
+          submittedAt: finalPayload.submittedAt,
+          attemptKind: finalPayload.attemptKind,
+        });
+
         S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
         S().set(R().EXAM.keys.finalSubmitted, "true");
 
@@ -716,6 +722,11 @@
         const hasWritingText = hasAnyWritingText(writingPayload);
         const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
         const backupResult = await recordSubmissionBackup(finalPayload);
+        console.info("[submission] server backup result", {
+          ok: !!backupResult.ok,
+          examId: finalPayload.examId,
+          error: backupResult.ok ? "" : String(backupResult.error || ""),
+        });
         if (!backupResult.ok) {
           console.error("Submission backup was not confirmed before sheet submit:", backupResult.error || backupResult);
           const recoveryError = new Error("We could not save a secure server backup for this submission. Please check the internet connection and press submit again. Do not close this page.");
@@ -730,6 +741,12 @@
 
         // Save history immediately so a flaky backend response does not erase the student's record.
         const historyResult = await saveAttemptToSupabase(finalPayload);
+        console.info("[submission] browser supabase history result", {
+          ok: !!historyResult.ok,
+          skipped: !!historyResult.skipped,
+          examId: finalPayload.examId,
+          error: historyResult.ok ? "" : String(historyResult.message || historyResult.error?.message || historyResult.error || ""),
+        });
 
         const endpoint = String(R().ADMIN_API_PATH || "").trim();
         let sheetsSaved = false;
@@ -763,6 +780,11 @@
               throw new Error((json && json.error) || text || `HTTP ${res.status}`);
             }
             sheetsSaved = true;
+            console.info("[submission] apps script sheet result", {
+              ok: true,
+              examId: finalPayload.examId,
+              status: res.status,
+            });
           } catch (sheetErr) {
             console.error("Backend submission response failed:", sheetErr);
             submissionWarning = String(sheetErr?.message || sheetErr || "Submission response failed");

@@ -3105,7 +3105,7 @@
     }
 
     function setAdminPage(page) {
-      const validPages = ["results", "classrooms", "assignments", "questions", "questionAnalytics"];
+      const validPages = ["results", "classrooms", "assignments", "questions", "questionAnalytics", "submissionSync"];
       const nextPage = validPages.includes(page) ? page : "results";
       adminState.page = nextPage;
       $("adminResultsBanner")?.classList.toggle("hidden", nextPage !== "results");
@@ -3114,11 +3114,13 @@
       $("adminAssignmentsPage")?.classList.toggle("hidden", nextPage !== "assignments");
       $("adminQuestionsPage")?.classList.toggle("hidden", nextPage !== "questions");
       $("adminQuestionAnalyticsPage")?.classList.toggle("hidden", nextPage !== "questionAnalytics");
+      $("adminSubmissionSyncPage")?.classList.toggle("hidden", nextPage !== "submissionSync");
       const resultsBtn = $("adminPageResultsBtn");
       const classroomsBtn = $("adminPageClassroomsBtn");
       const assignmentsBtn = $("adminPageAssignmentsBtn");
       const questionsBtn = $("adminPageQuestionsBtn");
       const analyticsBtn = $("adminPageQuestionAnalyticsBtn");
+      const syncBtn = $("adminPageSubmissionSyncBtn");
       const toggleBtn = $("adminClassroomsToggleBtn");
       if (resultsBtn) {
         resultsBtn.className = nextPage === "results" ? "btn" : "btn secondary";
@@ -3139,6 +3141,10 @@
       if (analyticsBtn) {
         analyticsBtn.className = nextPage === "questionAnalytics" ? "btn" : "btn secondary";
         analyticsBtn.setAttribute("aria-pressed", nextPage === "questionAnalytics" ? "true" : "false");
+      }
+      if (syncBtn) {
+        syncBtn.className = nextPage === "submissionSync" ? "btn" : "btn secondary";
+        syncBtn.setAttribute("aria-pressed", nextPage === "submissionSync" ? "true" : "false");
       }
       if (toggleBtn) toggleBtn.textContent = nextPage === "classrooms" ? "Results" : "Classrooms";
       if (nextPage !== "classrooms") {
@@ -3353,6 +3359,207 @@
       await loadQuestionAnalytics(forceRefresh);
     }
 
+    const submissionSyncState = { summary: null, rows: [], loading: false };
+
+    function setSubmissionSyncStatus(message, tone = "") {
+      const el = $("adminSubmissionSyncStatus");
+      if (!el) return;
+      el.textContent = message || "";
+      el.style.color = tone === "error" ? "#991b1b" : tone === "success" ? "#166534" : "";
+    }
+
+    function renderSubmissionSyncSummary(summary) {
+      const safe = summary || {};
+      const set = (id, value) => {
+        const el = $(id);
+        if (el) el.textContent = String(value ?? 0);
+      };
+      set("syncSummaryScanned", safe.scanned || 0);
+      set("syncSummaryMissing", safe.missing || 0);
+      set("syncSummarySynced", safe.synced || 0);
+      set("syncSummaryDuplicate", safe.duplicatePossible || 0);
+      set("syncSummaryInvalid", safe.invalidPayload || 0);
+      set("syncSummaryFailed", safe.failedResync || 0);
+    }
+
+    function submissionSyncStatusLabel(status) {
+      const value = String(status || "");
+      const labels = {
+        synced: "Synced",
+        resynced: "Resynced",
+        missing_from_supabase: "Missing from Supabase",
+        duplicate_possible: "Duplicate possible",
+        invalid_payload: "Invalid payload",
+        failed_resync: "Failed resync",
+      };
+      return labels[value] || value || "Unknown";
+    }
+
+    function renderSubmissionSyncRows(rows) {
+      const tbody = $("submissionSyncRowsTbody");
+      if (!tbody) return;
+      const safeRows = Array.isArray(rows) ? rows : [];
+      tbody.innerHTML = safeRows.map((row) => {
+        const key = String(row.submissionKey || "");
+        const canResync = row.status === "missing_from_supabase" || row.status === "failed_resync";
+        return `
+          <tr class="ui-data-row">
+            <td><span class="badge">${escapeHtml(submissionSyncStatusLabel(row.status))}</span>${row.reviewed ? ` <span class="badge badge-muted">Reviewed</span>` : ""}</td>
+            <td>${escapeHtml(fmtDate(row.submittedAt || ""))}</td>
+            <td>
+              <strong>${escapeHtml(row.studentFullName || "Student")}</strong>
+              <div class="small">${escapeHtml(row.studentIdCode || row.email || "—")}</div>
+            </td>
+            <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
+            <td>${escapeHtml(row.section || row.attemptKind || "—")}</td>
+            <td>${escapeHtml(row.sheetSyncStatus || "—")}</td>
+            <td>${escapeHtml(row.errorReason || row.sheetLastError || "—")}</td>
+            <td>
+              <div class="admin-row-actions">
+                <button class="btn secondary" type="button" data-sync-raw="${escapeHtml(key)}">View raw</button>
+                <button class="btn secondary" type="button" data-sync-reviewed="${escapeHtml(key)}">${row.reviewed ? "Unreview" : "Mark reviewed"}</button>
+                <button class="btn" type="button" data-sync-resync="${escapeHtml(key)}" ${canResync ? "" : "disabled"}>Resync</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("") || `<tr class="ui-table-state-row"><td colspan="8">No submission sync rows matched this filter.</td></tr>`;
+
+      Array.from(tbody.querySelectorAll("[data-sync-raw]")).forEach((button) => {
+        button.addEventListener("click", () => viewSubmissionSyncRaw(String(button.getAttribute("data-sync-raw") || "")));
+      });
+      Array.from(tbody.querySelectorAll("[data-sync-reviewed]")).forEach((button) => {
+        button.addEventListener("click", () => markSubmissionSyncReviewed(String(button.getAttribute("data-sync-reviewed") || "")));
+      });
+      Array.from(tbody.querySelectorAll("[data-sync-resync]")).forEach((button) => {
+        button.addEventListener("click", () => resyncSubmissionRow(String(button.getAttribute("data-sync-resync") || "")));
+      });
+    }
+
+    async function loadSubmissionSyncMonitor(forceRefresh = false) {
+      if (submissionSyncState.loading) return;
+      submissionSyncState.loading = true;
+      setSubmissionSyncStatus("Loading submission sync monitor...");
+      try {
+        const status = String(submissionSyncStatusFilter?.value || "");
+        const limit = Math.max(20, Math.min(500, Number(submissionSyncLimitInput?.value || 200)));
+        const url = R()?.buildAdminApiUrl?.({
+          action: "submissionSyncMonitor",
+          status,
+          limit: String(limit),
+          refresh: forceRefresh ? "1" : "",
+        });
+        if (!url) throw new Error("Could not build sync monitor URL.");
+        const res = await fetch(url.toString(), { cache: "no-store", headers: await getAuthHeaders() }).catch(() => null);
+        const data = res ? await res.json().catch(() => null) : null;
+        if (!res || !res.ok || !data || data.ok !== true) {
+          throw new Error(data?.error || "Could not load submission sync monitor.");
+        }
+        submissionSyncState.summary = data.summary || null;
+        submissionSyncState.rows = Array.isArray(data.rows) ? data.rows : [];
+        renderSubmissionSyncSummary(submissionSyncState.summary);
+        renderSubmissionSyncRows(submissionSyncState.rows);
+        setSubmissionSyncStatus(`Loaded ${submissionSyncState.rows.length} rows.`, "success");
+      } catch (error) {
+        renderSubmissionSyncSummary(null);
+        renderSubmissionSyncRows([]);
+        setSubmissionSyncStatus(error?.message || "Could not load submission sync monitor.", "error");
+      } finally {
+        submissionSyncState.loading = false;
+      }
+    }
+
+    async function openAdminSubmissionSyncView(forceRefresh = false) {
+      if (!isAdminView()) return;
+      UI().showOnly("adminResults");
+      setAdminPage("submissionSync");
+      await loadSubmissionSyncMonitor(forceRefresh);
+    }
+
+    async function postSubmissionSyncAction(action, body) {
+      const url = R()?.buildAdminApiUrl?.({ action });
+      if (!url) throw new Error("Could not build admin action URL.");
+      const headers = await getAuthHeaders();
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        cache: "no-store",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        throw new Error(data?.error || `Request failed (${res?.status || "network"})`);
+      }
+      return data;
+    }
+
+    async function resyncSubmissionRow(submissionKey) {
+      if (!submissionKey) return;
+      setSubmissionSyncStatus("Resyncing submission...");
+      try {
+        const data = await postSubmissionSyncAction("resyncSubmission", { submissionKey });
+        setSubmissionSyncStatus(data.message || "Submission resynced.", "success");
+        await loadSubmissionSyncMonitor(true);
+      } catch (error) {
+        setSubmissionSyncStatus(error?.message || "Could not resync submission.", "error");
+        await loadSubmissionSyncMonitor(true).catch(() => null);
+      }
+    }
+
+    async function markSubmissionSyncReviewed(submissionKey) {
+      if (!submissionKey) return;
+      const current = submissionSyncState.rows.find((row) => row.submissionKey === submissionKey);
+      const reviewed = !(current && current.reviewed);
+      try {
+        await postSubmissionSyncAction("markSubmissionReviewed", { submissionKey, reviewed });
+        setSubmissionSyncStatus(reviewed ? "Submission marked reviewed." : "Submission unreviewed.", "success");
+        await loadSubmissionSyncMonitor(true);
+      } catch (error) {
+        setSubmissionSyncStatus(error?.message || "Could not update reviewed status.", "error");
+      }
+    }
+
+    async function viewSubmissionSyncRaw(submissionKey) {
+      if (!submissionKey) return;
+      const target = $("submissionSyncRawPayload");
+      const panel = $("submissionSyncRawPanel");
+      if (target) target.textContent = "Loading raw payload...";
+      try { if (panel) panel.open = true; } catch (e) {}
+      try {
+        const url = R()?.buildAdminApiUrl?.({ action: "submissionBackup", key: `submission-backup:${submissionKey}` });
+        if (!url) throw new Error("Could not build raw payload URL.");
+        const res = await fetch(url.toString(), { cache: "no-store", headers: await getAuthHeaders() }).catch(() => null);
+        const data = res ? await res.json().catch(() => null) : null;
+        if (!res || !res.ok || !data || data.ok !== true) {
+          throw new Error(data?.error || "Could not load raw payload.");
+        }
+        if (target) target.textContent = JSON.stringify(data.backup || data, null, 2);
+      } catch (error) {
+        if (target) target.textContent = error?.message || "Could not load raw payload.";
+      }
+    }
+
+    async function retryAllMissingSubmissionRows() {
+      const rows = (Array.isArray(submissionSyncState.rows) ? submissionSyncState.rows : [])
+        .filter((row) => row.status === "missing_from_supabase" || row.status === "failed_resync");
+      if (!rows.length) {
+        setSubmissionSyncStatus("No missing submissions are visible in the current filter.", "success");
+        return;
+      }
+      let success = 0;
+      let failed = 0;
+      for (const row of rows) {
+        try {
+          await postSubmissionSyncAction("resyncSubmission", { submissionKey: row.submissionKey });
+          success += 1;
+        } catch (e) {
+          failed += 1;
+        }
+      }
+      setSubmissionSyncStatus(`Retry complete. Resynced: ${success}. Failed: ${failed}.`, failed ? "error" : "success");
+      await loadSubmissionSyncMonitor(true);
+    }
+
     async function openAdminClassroomsView(forceRefresh = false) {
       if (!isAdminView()) return;
       UI().showOnly("adminResults");
@@ -3501,6 +3708,7 @@
     const adminPageClassroomsBtn = $("adminPageClassroomsBtn");
     const adminPageAssignmentsBtn = $("adminPageAssignmentsBtn");
     const adminPageQuestionAnalyticsBtn = $("adminPageQuestionAnalyticsBtn");
+    const adminPageSubmissionSyncBtn = $("adminPageSubmissionSyncBtn");
     const adminClassroomsRefreshBtn = $("adminClassroomsRefreshBtn");
     const adminClassroomManagementPanel = $("adminClassroomManagementPanel");
     const adminCreateClassroomBtn = $("adminCreateClassroomBtn");
@@ -3522,6 +3730,10 @@
     const qaDifficultyFilter = $("qaDifficultyFilter");
     const qaQuestionFilter = $("qaQuestionFilter");
     const adminQuestionAnalyticsRefreshBtn = $("adminQuestionAnalyticsRefreshBtn");
+    const adminSubmissionSyncRefreshBtn = $("adminSubmissionSyncRefreshBtn");
+    const adminSubmissionSyncRetryMissingBtn = $("adminSubmissionSyncRetryMissingBtn");
+    const submissionSyncStatusFilter = $("submissionSyncStatusFilter");
+    const submissionSyncLimitInput = $("submissionSyncLimitInput");
     const adminExistingAccountSearch = $("adminExistingAccountSearch");
     const adminResultsModeFullBtn = $("adminResultsModeFullBtn");
     const adminResultsModePracticeBtn = $("adminResultsModePracticeBtn");
@@ -6232,6 +6444,9 @@ function startFreshExam() {
     if (adminPageQuestionAnalyticsBtn) adminPageQuestionAnalyticsBtn.onclick = () => {
       openAdminQuestionAnalyticsView().catch((e) => setQuestionAnalyticsStatus(e?.message || "Could not open question analytics.", "error"));
     };
+    if (adminPageSubmissionSyncBtn) adminPageSubmissionSyncBtn.onclick = () => {
+      openAdminSubmissionSyncView().catch((e) => setSubmissionSyncStatus(e?.message || "Could not open submission sync monitor.", "error"));
+    };
     const adminPageQuestionsBtn = $("adminPageQuestionsBtn");
     if (adminPageQuestionsBtn) adminPageQuestionsBtn.onclick = () => { UI().showOnly("adminResults"); setAdminPage("questions"); loadAdminPendingQuestions(); };
     const adminQuestionsRefreshBtn = $("adminQuestionsRefreshBtn");
@@ -6286,6 +6501,10 @@ function startFreshExam() {
     if (qaMinAttemptsFilter) qaMinAttemptsFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (qaDifficultyFilter) qaDifficultyFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (qaQuestionFilter) qaQuestionFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    if (adminSubmissionSyncRefreshBtn) adminSubmissionSyncRefreshBtn.onclick = () => loadSubmissionSyncMonitor(true);
+    if (adminSubmissionSyncRetryMissingBtn) adminSubmissionSyncRetryMissingBtn.onclick = () => retryAllMissingSubmissionRows();
+    if (submissionSyncStatusFilter) submissionSyncStatusFilter.addEventListener("change", () => loadSubmissionSyncMonitor(false));
+    if (submissionSyncLimitInput) submissionSyncLimitInput.addEventListener("change", () => loadSubmissionSyncMonitor(false));
     if (adminExistingAccountSearch) adminExistingAccountSearch.addEventListener("input", renderExistingAccountMatches);
     if (adminResultsHomeBtn) adminResultsHomeBtn.onclick = () => {
       UI().showOnly("home");

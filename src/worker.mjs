@@ -956,6 +956,24 @@ async function handleAdminApi(request, env, ctx = null) {
     return handleAdminQuestionAnalytics(request, env, auth);
   }
 
+  if (request.method === "GET" && action === "submissionSyncMonitor") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminSubmissionSyncMonitor(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "resyncSubmission") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminResyncSubmission(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "markSubmissionReviewed") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminMarkSubmissionReviewed(request, env, auth);
+  }
+
   if (request.method === "GET" && action === "classroomStudentProgress") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -1723,6 +1741,11 @@ async function handleAdminApi(request, env, ctx = null) {
       source: oneLine(payload?.source || "pre-sheets-backup"),
     });
     if (!saved.ok) return json(saved.status || 400, { ok: false, error: saved.error || "Could not save submission backup." });
+    console.log("[submission-sync] backup confirmed", {
+      submissionKey: saved.key || saved.record?.submissionKey || "",
+      examId: saved.record?.examId || "",
+      source: saved.record?.backupSource || "",
+    });
     return json(200, { ok: true, backup: saved.record });
   }
 
@@ -2382,6 +2405,12 @@ async function handleAdminApi(request, env, ctx = null) {
               sheet_sync_status: "failed",
               sheet_last_error: oneLine(data?.error || bodyTextResponse || `HTTP ${upstream.status}`),
             }).catch(() => null);
+        console.log("[submission-sync] sheets proxy result", {
+          submissionKey,
+          action,
+          status: okResponse ? "synced" : "failed",
+          upstreamStatus: upstream.status,
+        });
       }
       if (action === "submitExam" && okResponse) {
         const postSubmitWork = (async () => {
@@ -3404,7 +3433,338 @@ async function mirrorFullExamSubmissionToSupabase(env, finalPayload, appsRespons
     body: row,
   });
   if (!res.ok) throw new Error(res.error || `Supabase HTTP ${res.status}`);
+  console.log("[submission-sync] supabase mirror complete", {
+    examId: row.exam_id || "",
+    submittedAt: row.submitted_at || "",
+    organizationId: row.organization_id || "",
+  });
   return { ok: true };
+}
+
+function getRecoverySummaryObject(row) {
+  const summary = row?.summary;
+  if (summary && typeof summary === "object" && !Array.isArray(summary)) return summary;
+  if (typeof summary === "string" && summary.trim()) {
+    try {
+      const parsed = JSON.parse(summary);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  return {};
+}
+
+function buildSubmissionSyncIdentity(row = {}) {
+  return {
+    organizationId: normalizeOrganizationId(row.organization_id || row.organizationId || ""),
+    submittedAt: oneLine(row.submitted_at || row.submittedAt || ""),
+    examId: oneLine(row.exam_id || row.examId || ""),
+    studentFullName: oneLine(row.student_full_name || row.studentFullName || ""),
+    studentIdCode: oneLine(row.student_id_code || row.studentIdCode || ""),
+    officialEmail: normalizeEmail(row.official_email || row.officialEmail || ""),
+    userEmail: normalizeEmail(row.user_email || row.userEmail || ""),
+    loginEmail: normalizeEmail(row.login_email || row.loginEmail || ""),
+  };
+}
+
+function buildSubmissionSyncMatchKeys(identity = {}) {
+  const organizationId = normalizeOrganizationId(identity.organizationId || "");
+  const submittedAt = oneLine(identity.submittedAt || "");
+  const examId = oneLine(identity.examId || "").toLowerCase();
+  if (!organizationId || !submittedAt || !examId) return [];
+  const keys = [];
+  const base = `${organizationId}|${submittedAt}|${examId}`;
+  const add = (kind, value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized) keys.push(`${base}|${kind}:${normalized}`);
+  };
+  add("name", identity.studentFullName);
+  add("code", identity.studentIdCode);
+  add("official", identity.officialEmail);
+  add("user", identity.userEmail);
+  add("login", identity.loginEmail);
+  return Array.from(new Set(keys));
+}
+
+function addSubmissionSyncAttemptToIndex(index, attempt = {}) {
+  const keys = buildSubmissionSyncMatchKeys(buildSubmissionSyncIdentity(attempt));
+  keys.forEach((key) => {
+    const existing = index.get(key) || [];
+    existing.push(attempt);
+    index.set(key, existing);
+  });
+}
+
+function getSubmissionSyncMatches(index, identity = {}) {
+  const matches = new Map();
+  buildSubmissionSyncMatchKeys(identity).forEach((key) => {
+    (index.get(key) || []).forEach((attempt) => {
+      const matchId = oneLine(attempt?.id || `${attempt?.submitted_at || ""}:${attempt?.student_full_name || ""}:${attempt?.exam_id || ""}`);
+      if (matchId) matches.set(matchId, attempt);
+    });
+  });
+  return Array.from(matches.values());
+}
+
+function inferSubmissionSection(row, finalPayload) {
+  const attemptKind = oneLine(row?.attempt_kind || finalPayload?.attemptKind || "").toLowerCase();
+  const practiceSection = oneLine(row?.practice_section || finalPayload?.practiceSection || "").toLowerCase();
+  if (attemptKind === "practice") return practiceSection || "practice";
+  const examId = oneLine(row?.exam_id || finalPayload?.examId || "").toLowerCase();
+  if (examId.includes("practice-listening")) return "listening practice";
+  if (examId.includes("practice-reading")) return "reading practice";
+  if (examId.includes("practice-writing")) return "writing practice";
+  if (examId.includes("practice-speaking")) return "speaking practice";
+  return "full mock";
+}
+
+async function buildSubmissionSyncMonitorRow(row, attemptIndex) {
+  const finalPayload = row?.final_payload && typeof row.final_payload === "object" ? row.final_payload : null;
+  const summary = getRecoverySummaryObject(row);
+  const identity = buildSubmissionSyncIdentity(row);
+  const matches = getSubmissionSyncMatches(attemptIndex, identity);
+  const payloadHash = finalPayload ? await sha256Base64Url(stableStringify(finalPayload)).catch(() => "") : "";
+  const reviewed = summary.syncMonitorReviewed === true;
+  let status = "missing_from_supabase";
+  let errorReason = "";
+  if (!finalPayload) {
+    status = "invalid_payload";
+    errorReason = "No final payload is available in the recovery table.";
+  } else if (summary.syncMonitorResyncStatus === "failed") {
+    status = "failed_resync";
+    errorReason = oneLine(summary.syncMonitorLastError || "Last resync attempt failed.");
+  } else if (matches.length > 1) {
+    status = "duplicate_possible";
+    errorReason = "More than one Supabase result matches this backup.";
+  } else if (matches.length === 1) {
+    status = summary.syncMonitorResyncStatus === "resynced" ? "resynced" : "synced";
+  }
+  return {
+    submissionKey: oneLine(row?.submission_key || ""),
+    deterministicKey: payloadHash
+      ? `submission:${identity.organizationId}:${identity.examId}:${identity.submittedAt}:${payloadHash.slice(0, 16)}`
+      : oneLine(row?.submission_key || ""),
+    studentFullName: identity.studentFullName,
+    studentIdCode: identity.studentIdCode,
+    email: identity.officialEmail || identity.loginEmail || identity.userEmail,
+    classroomName: oneLine(row?.classroom_name || ""),
+    testId: identity.examId,
+    section: inferSubmissionSection(row, finalPayload),
+    attemptKind: oneLine(row?.attempt_kind || finalPayload?.attemptKind || "full") || "full",
+    submittedAt: identity.submittedAt,
+    organizationId: identity.organizationId,
+    status,
+    errorReason,
+    reviewed,
+    sheetSyncStatus: oneLine(row?.sheet_sync_status || ""),
+    sheetLastError: oneLine(row?.sheet_last_error || ""),
+    backupSource: oneLine(row?.source || ""),
+    payloadHash,
+    payloadBytes: finalPayload ? new TextEncoder().encode(stableStringify(finalPayload)).length : 0,
+    supabaseAttemptIds: matches.map((match) => oneLine(match?.id || "")).filter(Boolean),
+    lastCheckedAt: new Date().toISOString(),
+  };
+}
+
+async function loadSubmissionSyncAttemptIndex(env, auth, organizationId) {
+  const query = {
+    select: "id,organization_id,submitted_at,student_full_name,exam_id,student_id_code,official_email,user_email",
+    order: "submitted_at.desc",
+    limit: "5000",
+    ...(auth.isSuperAdmin ? {} : { organization_id: `eq.${organizationId}` }),
+  };
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", { query });
+  const index = new Map();
+  (Array.isArray(res?.data) ? res.data : []).forEach((attempt) => addSubmissionSyncAttemptToIndex(index, attempt));
+  return index;
+}
+
+async function handleAdminSubmissionSyncMonitor(request, env, auth) {
+  const url = new URL(request.url);
+  const actorOrganizationId = getActorOrganizationId(auth);
+  const statusFilter = oneLine(url.searchParams.get("status") || "");
+  const limit = Math.min(500, Math.max(20, Number(url.searchParams.get("limit") || 200)));
+  const recoveryRes = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionRecoveryTableName()}`, {
+    query: {
+      select: "*",
+      order: "submitted_at.desc",
+      limit: String(limit),
+      ...(auth.isSuperAdmin ? {} : { organization_id: `eq.${actorOrganizationId}` }),
+    },
+  });
+  if (!recoveryRes.ok) {
+    return json(recoveryRes.status || 502, {
+      ok: false,
+      error: recoveryRes.error || "Could not load submission recovery rows.",
+    });
+  }
+  const attemptIndex = await loadSubmissionSyncAttemptIndex(env, auth, actorOrganizationId).catch(() => new Map());
+  const sourceRows = (Array.isArray(recoveryRes.data) ? recoveryRes.data : [])
+    .filter((row) => canActorAccessOrganization(auth, row?.organization_id || ""));
+  const rows = [];
+  for (const row of sourceRows) {
+    rows.push(await buildSubmissionSyncMonitorRow(row, attemptIndex));
+  }
+  const filteredRows = statusFilter ? rows.filter((row) => row.status === statusFilter) : rows;
+  const counts = rows.reduce((acc, row) => {
+    acc[row.status] = (acc[row.status] || 0) + 1;
+    return acc;
+  }, {});
+  return json(200, {
+    ok: true,
+    summary: {
+      scanned: rows.length,
+      shown: filteredRows.length,
+      missing: counts.missing_from_supabase || 0,
+      synced: (counts.synced || 0) + (counts.resynced || 0),
+      duplicatePossible: counts.duplicate_possible || 0,
+      invalidPayload: counts.invalid_payload || 0,
+      failedResync: counts.failed_resync || 0,
+    },
+    rows: filteredRows,
+  });
+}
+
+async function findExistingExamAttemptsForRecovery(env, recoveryRow) {
+  const identity = buildSubmissionSyncIdentity(recoveryRow || {});
+  if (!identity.organizationId || !identity.submittedAt || !identity.examId) return [];
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    query: {
+      select: "id,organization_id,submitted_at,student_full_name,exam_id,student_id_code,official_email,user_email",
+      organization_id: `eq.${identity.organizationId}`,
+      submitted_at: `eq.${identity.submittedAt}`,
+      exam_id: `eq.${identity.examId}`,
+      limit: "20",
+    },
+  });
+  if (!res.ok || !Array.isArray(res.data)) return [];
+  const index = new Map();
+  res.data.forEach((attempt) => addSubmissionSyncAttemptToIndex(index, attempt));
+  return getSubmissionSyncMatches(index, identity);
+}
+
+function buildSyntheticSubmissionAuthFromRecovery(row, adminAuth) {
+  const email = normalizeEmail(row?.login_email || row?.user_email || row?.official_email || adminAuth?.user?.email || "");
+  return {
+    user: {
+      id: oneLine(row?.student_profile_id || row?.student_id_code || email || adminAuth?.user?.id || ""),
+      email,
+      app_metadata: { provider: oneLine(row?.sign_in_method || "recovery-resync") },
+      user_metadata: { name: oneLine(row?.student_full_name || "") },
+    },
+  };
+}
+
+async function patchSubmissionSyncSummary(env, submissionKey, patch) {
+  const recovery = await getSubmissionRecoveryRow(env, submissionKey);
+  if (!recovery) return { ok: false, status: 404, error: "Submission recovery row was not found." };
+  const summary = {
+    ...getRecoverySummaryObject(recovery),
+    ...patch,
+  };
+  return updateSubmissionRecoveryRow(env, submissionKey, { summary });
+}
+
+async function handleAdminResyncSubmission(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const submissionKey = oneLine(payload?.submissionKey || payload?.key || "");
+  if (!submissionKey) return json(400, { ok: false, error: "Missing submission key." });
+
+  const recovery = await getSubmissionRecoveryRow(env, submissionKey);
+  if (!recovery) return json(404, { ok: false, error: "Submission recovery row was not found." });
+  const organizationId = normalizeOrganizationId(recovery.organization_id || "");
+  if (!canActorAccessOrganization(auth, organizationId)) {
+    return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+  }
+  const finalPayload = recovery.final_payload && typeof recovery.final_payload === "object" ? recovery.final_payload : null;
+  if (!finalPayload) {
+    await patchSubmissionSyncSummary(env, submissionKey, {
+      syncMonitorResyncStatus: "failed",
+      syncMonitorLastError: "No final payload is available for resync.",
+      syncMonitorLastAttemptAt: new Date().toISOString(),
+    }).catch(() => null);
+    return json(400, { ok: false, error: "No final payload is available for resync." });
+  }
+
+  console.log("[submission-sync] resync requested", { submissionKey, examId: recovery.exam_id, organizationId });
+  const beforeMatches = await findExistingExamAttemptsForRecovery(env, recovery).catch(() => []);
+  if (beforeMatches.length === 1) {
+    await patchSubmissionSyncSummary(env, submissionKey, {
+      syncMonitorResyncStatus: "synced_existing",
+      syncMonitorLastError: "",
+      syncMonitorLastAttemptAt: new Date().toISOString(),
+    }).catch(() => null);
+    return json(200, {
+      ok: true,
+      status: "synced",
+      message: "A matching Supabase result already exists. No duplicate was inserted.",
+      supabaseAttemptIds: beforeMatches.map((match) => oneLine(match.id || "")).filter(Boolean),
+    });
+  }
+  if (beforeMatches.length > 1) {
+    await patchSubmissionSyncSummary(env, submissionKey, {
+      syncMonitorResyncStatus: "duplicate_possible",
+      syncMonitorLastError: "Multiple matching Supabase rows already exist.",
+      syncMonitorLastAttemptAt: new Date().toISOString(),
+    }).catch(() => null);
+    return json(409, {
+      ok: false,
+      status: "duplicate_possible",
+      error: "Multiple matching Supabase rows already exist. Review manually before resyncing.",
+      supabaseAttemptIds: beforeMatches.map((match) => oneLine(match.id || "")).filter(Boolean),
+    });
+  }
+
+  try {
+    const syntheticAuth = buildSyntheticSubmissionAuthFromRecovery(recovery, auth);
+    const tenant = { organizationId: organizationId || getActorOrganizationId(auth) || getPrimaryOrganizationId(env) };
+    const result = await mirrorFullExamSubmissionToSupabase(env, finalPayload, {}, syntheticAuth, tenant);
+    if (!result.ok) throw new Error(result.error || "Supabase mirror returned false.");
+    const afterMatches = await findExistingExamAttemptsForRecovery(env, recovery).catch(() => []);
+    await patchSubmissionSyncSummary(env, submissionKey, {
+      syncMonitorResyncStatus: "resynced",
+      syncMonitorLastError: "",
+      syncMonitorLastAttemptAt: new Date().toISOString(),
+      syncMonitorResyncedBy: normalizeEmail(auth?.user?.email || ""),
+    }).catch(() => null);
+    try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+    console.log("[submission-sync] resync complete", { submissionKey, matches: afterMatches.length });
+    return json(200, {
+      ok: true,
+      status: "resynced",
+      message: "Submission was resynced to Supabase.",
+      supabaseAttemptIds: afterMatches.map((match) => oneLine(match.id || "")).filter(Boolean),
+    });
+  } catch (error) {
+    const message = error?.message || "Could not resync submission.";
+    await patchSubmissionSyncSummary(env, submissionKey, {
+      syncMonitorResyncStatus: "failed",
+      syncMonitorLastError: oneLine(message),
+      syncMonitorLastAttemptAt: new Date().toISOString(),
+    }).catch(() => null);
+    console.warn("[submission-sync] resync failed", { submissionKey, error: message });
+    return json(500, { ok: false, status: "failed_resync", error: message });
+  }
+}
+
+async function handleAdminMarkSubmissionReviewed(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const submissionKey = oneLine(payload?.submissionKey || payload?.key || "");
+  const reviewed = payload?.reviewed !== false;
+  if (!submissionKey) return json(400, { ok: false, error: "Missing submission key." });
+  const recovery = await getSubmissionRecoveryRow(env, submissionKey);
+  if (!recovery) return json(404, { ok: false, error: "Submission recovery row was not found." });
+  if (!canActorAccessOrganization(auth, recovery.organization_id || "")) {
+    return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+  }
+  const result = await patchSubmissionSyncSummary(env, submissionKey, {
+    syncMonitorReviewed: reviewed,
+    syncMonitorReviewedAt: new Date().toISOString(),
+    syncMonitorReviewedBy: normalizeEmail(auth?.user?.email || ""),
+  });
+  if (!result.ok) return json(result.status || 500, { ok: false, error: result.error || "Could not update reviewed status." });
+  return json(200, { ok: true, reviewed });
 }
 
 // Fetch the four component bands from exam_attempts and compute an updated overall.

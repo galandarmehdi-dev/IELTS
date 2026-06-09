@@ -919,7 +919,7 @@
 .premium-footer { margin-top: 28px; background: var(--ink); border-top: none; }
 .premium-footer-inner { padding: 20px 0 26px; color: #fff; }
 .footer-brand         { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
-.premium-footer .home-footer-muted { color: rgba(255,255,255,.62); }
+.premium-footer .home-footer-muted { color: rgba(255,255,255,.76); }
 .footer-links         { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; justify-content: flex-end; }
 .footer-link-btn {
   min-height: 38px;
@@ -2243,9 +2243,9 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   height: 36px;
   padding: 0 12px;
   border-radius: 8px;
-  background: transparent;
+  background: #0f1b2d;
   border: none;
-  color: var(--hs-muted);
+  color: #f8fafc;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -2255,8 +2255,8 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   font-family: inherit;
 }
 .hs-nav-only .home-skill-trigger:hover {
-  background: #f1f5f9;
-  color: var(--hs-text);
+  background: #1e293b;
+  color: #fff;
 }
 .hs-nav-only .home-skill-trigger i {
   font-style: normal;
@@ -2855,7 +2855,7 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   font-family: "Space Grotesk", sans-serif;
   font-size: 52px;
   font-weight: 800;
-  color: #e2e8f0;
+  color: #74839a;
   letter-spacing: -0.07em;
   line-height: 1;
   margin-bottom: 14px;
@@ -2972,8 +2972,7 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
 .hs-disclaimer {
   text-align: center;
   font-size: 11px;
-  color: var(--hs-muted);
-  opacity: .58;
+  color: #617086;
   padding: 28px 20px 20px;
   line-height: 1.55;
 }

@@ -397,6 +397,32 @@ select:focus {
   transform: none !important;
 }
 
+.hs-nav-only .home-skill-trigger {
+  background: transparent !important;
+  color: var(--neutral-700) !important;
+}
+
+.hs-nav-only .home-skill-trigger span {
+  color: var(--neutral-700) !important;
+  opacity: 1 !important;
+}
+
+.hs-nav-only .home-skill-trigger:hover,
+.hs-nav-only .home-skill-trigger:focus-visible {
+  background: var(--neutral-100) !important;
+  color: var(--neutral-900) !important;
+}
+
+.hs-nav-only .home-skill-trigger:hover span,
+.hs-nav-only .home-skill-trigger:focus-visible span {
+  color: var(--neutral-900) !important;
+}
+
+.hs-nav-only .home-skill-trigger i {
+  color: var(--neutral-500);
+  opacity: .7 !important;
+}
+
 .home-skill-trigger i {
   font-size: 10px;
   opacity: .5;

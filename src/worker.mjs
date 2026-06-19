@@ -2630,10 +2630,10 @@ function normalizePasswordSubject(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-const PBKDF2_ITERATIONS = 250_000;
+const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_PREFIX = "pbkdf2v1:";
 
-// Hash a password with PBKDF2-SHA-256 (250k iterations).
+// Hash a password with PBKDF2-SHA-256 using Cloudflare Workers' supported iteration limit.
 // Output format: "pbkdf2v1:<base64url-hash>" so legacy SHA-256 hashes
 // (which never start with this prefix) can still be verified.
 async function hashStudentPassword(subject, password, salt) {

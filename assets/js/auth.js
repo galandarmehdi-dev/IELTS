@@ -1377,9 +1377,10 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
       password: nextPassword,
     }),
   }).catch(() => null);
-  const data = res ? await res.json().catch(() => null) : null;
+  const raw = res ? await res.text().catch(() => "") : "";
+  const data = raw ? (() => { try { return JSON.parse(raw); } catch (e) { return null; } })() : null;
   if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
-    throw new Error(data?.error || "Could not save the student password.");
+    throw new Error(data?.error || raw || "Could not save the student password.");
   }
   saveSharedSession({
     token: data.token,
@@ -1398,6 +1399,16 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
   };
 }
 
+function resetExpiredSharedSetup(message) {
+  clearSharedSession();
+  clearSavedUser();
+  syncAuthExport();
+  clearAuthFlowModes();
+  openLoginGate(message || "That setup session expired. Please sign in with email and password again.");
+  setMessage(message || "That setup session expired. Please sign in with email and password again.", { tone: "error", sticky: true });
+  try { getEl("otpEmail")?.focus(); } catch (e) {}
+}
+
 async function completeSharedStudentSetup() {
   const studentIdCode = getEl("sharedSetupStudentId")?.value.trim() || "";
   const password = getEl("sharedSetupPasswordInput")?.value || "";
@@ -1414,6 +1425,12 @@ async function completeSharedStudentSetup() {
   }
   if (password !== confirm) {
     setMessage("The password confirmation does not match.", { tone: "error" });
+    return;
+  }
+
+  const setupToken = await getAccessToken().catch(() => null);
+  if (!setupToken) {
+    resetExpiredSharedSetup("That setup session expired. Please sign in with email and password again.");
     return;
   }
 
@@ -1437,7 +1454,12 @@ async function completeSharedStudentSetup() {
     setMessage(result?.message || "Student setup complete.", { tone: "success", sticky: true });
   } catch (e) {
     console.error("[AUTH] shared setup error:", e);
-    setMessage(e?.message || "Could not complete student setup.", { tone: "error", sticky: true });
+    const message = e?.message || "Could not complete student setup.";
+    if (/access token|shared sign-in token|session expired|invalid access token/i.test(message)) {
+      resetExpiredSharedSetup("That setup session expired. Please sign in with email and password again.");
+      return;
+    }
+    setMessage(message, { tone: "error", sticky: true });
   }
 }
 

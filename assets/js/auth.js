@@ -1377,10 +1377,9 @@ async function upgradeSharedStudentPassword(nextPassword, profile = {}) {
       password: nextPassword,
     }),
   }).catch(() => null);
-  const raw = res ? await res.text().catch(() => "") : "";
-  const data = raw ? (() => { try { return JSON.parse(raw); } catch (e) { return null; } })() : null;
+  const data = res ? await res.json().catch(() => null) : null;
   if (!res || !res.ok || !data || data.ok !== true || !data.token || !data.user) {
-    throw new Error(data?.error || raw || "Could not save the student password.");
+    throw new Error(data?.error || "Could not save the student password. Please sign in with email and password again.");
   }
   saveSharedSession({
     token: data.token,
@@ -1404,6 +1403,16 @@ function resetExpiredSharedSetup(message) {
   clearSavedUser();
   syncAuthExport();
   clearAuthFlowModes();
+  const studentIdInput = getEl("sharedSetupStudentId");
+  const firstNameInput = getEl("sharedSetupFirstName");
+  const lastNameInput = getEl("sharedSetupLastName");
+  const passwordInput = getEl("sharedSetupPasswordInput");
+  const confirmInput = getEl("sharedSetupConfirmInput");
+  if (studentIdInput) studentIdInput.value = "";
+  if (firstNameInput) firstNameInput.value = "";
+  if (lastNameInput) lastNameInput.value = "";
+  if (passwordInput) passwordInput.value = "";
+  if (confirmInput) confirmInput.value = "";
   openLoginGate(message || "That setup session expired. Please sign in with email and password again.");
   setMessage(message || "That setup session expired. Please sign in with email and password again.", { tone: "error", sticky: true });
   try { getEl("otpEmail")?.focus(); } catch (e) {}
@@ -1454,12 +1463,7 @@ async function completeSharedStudentSetup() {
     setMessage(result?.message || "Student setup complete.", { tone: "success", sticky: true });
   } catch (e) {
     console.error("[AUTH] shared setup error:", e);
-    const message = e?.message || "Could not complete student setup.";
-    if (/access token|shared sign-in token|session expired|invalid access token/i.test(message)) {
-      resetExpiredSharedSetup("That setup session expired. Please sign in with email and password again.");
-      return;
-    }
-    setMessage(message, { tone: "error", sticky: true });
+    resetExpiredSharedSetup("Could not save the student password. Please sign in with email and password again.");
   }
 }
 

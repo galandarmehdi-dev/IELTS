@@ -10250,6 +10250,530 @@ We might associate wisdom with intelligence or particular personality traits, bu
   }
 };
 
+const test22 = {
+  listening: {
+    audioSrc: "https://audio.ieltsmock.org/22.mp3",
+    html: `
+<div class="listen-page" id="listenSec1">
+  <div class="listen-block">
+    <div class="listen-h">PART 1 Questions 1-10</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 1-10</div>
+      <div class="listen-inst">Complete the form below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Survey about shopping in Broadbeach</div>
+
+      <div class="listen-notes">
+        <div class="note-row">Name: Martyn <span class="qnum">1</span> <input data-lq="1" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Today's journey to Broadbeach town centre:</b></div>
+        <div class="note-row">used his <span class="qnum">2</span> <input data-lq="2" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Purpose of today's trip:</b></div>
+        <div class="note-row">has visited the <span class="qnum">3</span> <input data-lq="3" class="l-input"></div>
+        <div class="note-row">looking for a new <span class="qnum">4</span> <input data-lq="4" class="l-input"></div>
+        <div class="note-row">collecting <span class="qnum">5</span> <input data-lq="5" class="l-input"> after repair</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Preferred day for shopping:</b></div>
+        <div class="note-row"><span class="qnum">6</span> <input data-lq="6" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Opinions about shopping in the town centre</b></div>
+        <div class="note-row">Finds the service in shops is excellent</div>
+        <div class="note-row">Thinks there are too many places selling <span class="qnum">7</span> <input data-lq="7" class="l-input"></div>
+        <div class="note-row">Would like more places to buy <span class="qnum">8</span> <input data-lq="8" class="l-input"></div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Opinions about new out-of-town Shopping Centre</b></div>
+        <div class="note-row">Likes the <span class="qnum">9</span> <input data-lq="9" class="l-input"> best</div>
+        <div class="note-row">Believes the <span class="qnum">10</span> <input data-lq="10" class="l-input"> is unnecessary</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec2">
+  <div class="listen-block">
+    <div class="listen-h">PART 2 Questions 11-20</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 11 and 12</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">In which TWO areas of the business exhibition did James Craig promote his company last year?</div>
+
+      <div class="people-box">
+        <div><b>A</b> the Digital Marketing Centre</div>
+        <div><b>B</b> the TalkCon Zone</div>
+        <div><b>C</b> the Breakout area</div>
+        <div><b>D</b> the Business Village</div>
+        <div><b>E</b> the Business Connections Zone</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">11</span> First answer <input data-lq="11" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">12</span> Second answer <input data-lq="12" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 13 and 14</div>
+      <div class="listen-inst">Choose <b>TWO</b> letters, A-E. Type one letter in each box.</div>
+      <div class="listen-card-title">Which TWO facts are given about discounts on popular brands available to exhibitors?</div>
+
+      <div class="people-box">
+        <div><b>A</b> They are available to all members of exhibiting companies.</div>
+        <div><b>B</b> They can be used for both food and clothing.</div>
+        <div><b>C</b> They only apply if people spend at least £400.</div>
+        <div><b>D</b> They can be used by family members.</div>
+        <div><b>E</b> The percentage saved is always the same.</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">13</span> First answer <input data-lq="13" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">14</span> Second answer <input data-lq="14" class="l-input tiny"></div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 15-20</div>
+      <div class="listen-inst">Which topic will each of the following speakers focus on? Choose SIX answers from the box and write the correct letter, <b>A-G</b>, next to Questions 15-20.</div>
+
+      <div class="people-box">
+        <div><b>A</b> Supporting job seekers</div>
+        <div><b>B</b> Dealing with personal problems</div>
+        <div><b>C</b> Effects of an unexpectedly rapid expansion</div>
+        <div><b>D</b> A global range of business experiences</div>
+        <div><b>E</b> Coping with financial set-backs</div>
+        <div><b>F</b> Developing a company in response to changing markets</div>
+        <div><b>G</b> Combining business success with contributions to charities</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">15</span> Jim Clowrie <input data-lq="15" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">16</span> David France <input data-lq="16" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">17</span> Oliver Stanton <input data-lq="17" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">18</span> Francesca Heptonstall <input data-lq="18" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">19</span> Salman Khan <input data-lq="19" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">20</span> Annie Craven <input data-lq="20" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec3">
+  <div class="listen-block">
+    <div class="listen-h">PART 3 Questions 21-30</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 21-23</div>
+      <div class="listen-inst">Choose the correct letter, <b>A, B or C</b>.</div>
+      <div class="listen-card-title">Presentation on houses of the future</div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">21</span> Which aspect of their presentation are Mia and Leo both concerned about?</div>
+        <label class="mcq-opt"><input type="radio" name="q21" value="A" data-lq-radio="21"> A) meeting the deadline</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="B" data-lq-radio="21"> B) finding suitable examples</label>
+        <label class="mcq-opt"><input type="radio" name="q21" value="C" data-lq-radio="21"> C) including original ideas</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">22</span> The students decide to focus their assignment on housing for</div>
+        <label class="mcq-opt"><input type="radio" name="q22" value="A" data-lq-radio="22"> A) family groups.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="B" data-lq-radio="22"> B) old people.</label>
+        <label class="mcq-opt"><input type="radio" name="q22" value="C" data-lq-radio="22"> C) single people.</label>
+      </div>
+
+      <div class="mcq">
+        <div class="mcq-q"><span class="qnum">23</span> The students agree that demand for accommodation in urban areas should be met by</div>
+        <label class="mcq-opt"><input type="radio" name="q23" value="A" data-lq-radio="23"> A) repurposing offices and factories.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="B" data-lq-radio="23"> B) constructing tall buildings.</label>
+        <label class="mcq-opt"><input type="radio" name="q23" value="C" data-lq-radio="23"> C) developing creative ideas for smaller homes.</label>
+      </div>
+    </div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 24-30</div>
+      <div class="listen-inst">What opinion is given about each of the following developments? Choose SEVEN answers from the box and write the correct letter, <b>A-I</b>, next to Questions 24-30.</div>
+
+      <div class="people-box">
+        <div><b>A</b> This could cause unnecessary anxiety.</div>
+        <div><b>B</b> This would be especially beneficial for city residents.</div>
+        <div><b>C</b> This would be challenging for young people.</div>
+        <div><b>D</b> This would have environmental benefits.</div>
+        <div><b>E</b> This could encourage creativity.</div>
+        <div><b>F</b> This could lead to social problems.</div>
+        <div><b>G</b> This could enable retired people to share a project.</div>
+        <div><b>H</b> This would help some people but cause problems for others.</div>
+        <div><b>I</b> This would suit both existing and new members of a household.</div>
+      </div>
+
+      <div class="note-row"><span class="qnum">24</span> use of roof space for gardens <input data-lq="24" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">25</span> shared working spaces <input data-lq="25" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">26</span> moveable internal walls <input data-lq="26" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">27</span> smart mirrors in bathrooms <input data-lq="27" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">28</span> bike sheds with charging points <input data-lq="28" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">29</span> restriction of cars to certain areas <input data-lq="29" class="l-input tiny"></div>
+      <div class="note-row"><span class="qnum">30</span> communal vegetable plots <input data-lq="30" class="l-input tiny"></div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-page hidden" id="listenSec4">
+  <div class="listen-block">
+    <div class="listen-h">PART 4 Questions 31-40</div>
+
+    <div class="listen-card">
+      <div class="listen-card-title">Questions 31-40</div>
+      <div class="listen-inst">Complete the notes below. Write <b>ONE WORD ONLY</b> for each answer.</div>
+      <div class="listen-card-title">Music therapy for surgical patients</div>
+
+      <div class="listen-notes">
+        <div class="note-row"><b>Background</b></div>
+        <div class="note-row bullet">• Surgery impacts patients because they may experience discomfort or unwelcome changes to their <span class="qnum">31</span> <input data-lq="31" class="l-input">.</div>
+        <div class="note-row bullet">• Current post-surgical strategies focus mainly on pain relief.</div>
+
+        <div class="note-row" style="margin-top:12px;"><b>Recent research</b></div>
+        <div class="note-row bullet">• A study reviewed data from about 100 <span class="qnum">32</span> <input data-lq="32" class="l-input"> and found that listening to music</div>
+        <div class="note-row bullet">- improved hospital patients' sense of wellbeing.</div>
+        <div class="note-row bullet">- reduced the length of their stay.</div>
+        <div class="note-row bullet">• The patients in the study all listened to music with a <span class="qnum">33</span> <input data-lq="33" class="l-input"> effect.</div>
+        <div class="note-row bullet">• The music was mostly played through music <span class="qnum">34</span> <input data-lq="34" class="l-input">.</div>
+        <div class="note-row bullet">• Patients reported an absence or low levels of <span class="qnum">35</span> <input data-lq="35" class="l-input">.</div>
+        <div class="note-row bullet">• Medical records confirmed that patients who were played music in hospital needed less <span class="qnum">36</span> <input data-lq="36" class="l-input"> than those who weren't played music.</div>
+        <div class="note-row bullet">• The best results were achieved when patients were played music while they were <span class="qnum">37</span> <input data-lq="37" class="l-input">.</div>
+        <div class="note-row bullet">• The study concluded that playing music was effective because it served as a <span class="qnum">38</span> <input data-lq="38" class="l-input">.</div>
+        <div class="note-row bullet">• The researchers recommend playing either music or sounds from <span class="qnum">39</span> <input data-lq="39" class="l-input"> to all surgical patients.</div>
+        <div class="note-row bullet">• A future study will investigate the best <span class="qnum">40</span> <input data-lq="40" class="l-input"> for the music.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="listen-footer">
+  <div class="muted" id="listenAutosave">Autosave: ready</div>
+  <button class="btn secondary" id="downloadListeningBtn" type="button">Download Listening answers (JSON)</button>
+  <button class="btn secondary" id="copyListeningBtn" type="button">Copy Listening answers</button>
+  <button class="btn" id="submitListeningBtn" type="button">Submit Listening now</button>
+</div>
+`
+  },
+
+  writing: {
+    task1Type: "Chart and table",
+    task2Type: "Two-part opinion essay",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The chart and table below show the results of a survey of library users at a university.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/T1%2022.png",
+    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>Some people argue that primary schools focus too much on formal learning. To what extent do you agree with this opinion?<br/>How important do you think it is for children to play as well as learn in the primary school classroom?<br/><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words.</b>"
+  },
+
+  reading: {
+    parts: [
+      {
+        id: "part1",
+        passageText: `The problems and benefits created by the spread of the water hyacinth in Kenya
+
+Water hyacinth (Eichhornia crassipes), an aquatic plant native to South America, first appeared in countries in Africa in the early 1900s. Scientists there called it the 'world's worst aquatic weed', after it spread from the southernmost tip of Africa in the early 1900s and started obstructing major dams and rivers.
+
+In east Africa the plant arrived with Belgian colonists in Rwanda, who liked the look of its glossy leaves and delicate purple flowers floating in their ponds. But by the 1980s, it had 'escaped' out of the country via the Kagera river and made its way downstream to Lake Victoria. There, with no natural predators and perfect temperature conditions, the plant began spreading in the open water, blocking fishing routes and providing a new habitat for disease-carrying mosquitoes.
+
+For the women who smoke fish from the lake to sell it has meant declining income, as the boats that once brought the fish to shore by the hundreds struggle to navigate through the mass of plants. But water hyacinth isn't their only headache. In order to smoke the fish that they buy, they must gather huge quantities of firewood, sometimes walking as far as 10km each way to collect enough to complete their work. And each day as they cook, they breathe in the thick, grey smoke. About three out of four families in Kenya depend on wood or charcoal to cook their daily meals, and the rate is even higher in rural areas, Kenya's latest demographic and health survey shows. Using solid fuels like these for cooking increases indoor pollution. The World Health Organization estimates that about 14,300 Kenyans die annually as a result of indoor air pollution - most of which is caused by cooking and heating sources.
+
+Some years ago, on the shores of Lake Victoria, huge piles of water hyacinth that villagers had taken out of the water in an attempt to clear it were a common sight. But buried in those decaying waxy leaves was a renewable energy gold mine. It turns out the floating plant isn't just good at spreading - its foliage also contains a high ratio of carbon to nitrogen. It's a magic combination that has captivated researchers' imaginations since as early as the 1980s when, across the world, they began to explore its potential as a biofuel. Just about 4kg of the dried plant would be enough to cater for a large family's daily energy needs, early research predicted.
+
+In 2014, Nigerian academics announced they had got better yields of biofuel gas when they mixed the plant with chicken manure. A few years later, Kenyan scientists confirmed what their Nigerian peers and others had already found: manure worked to improve the process of converting the weed into gas.
+
+In 2018, the technology came to a village on the shore of Lake Victoria, called Dunga. The project promised a two-for-one solution to the dual menaces of the water hyacinth and dependence on firewood. The community received a pair of donated biogas digesters - machines that would transform a mix of water hyacinth and cow dung into biogas for cooking.
+
+The digesters work a bit like a stomach. The mixture goes in one end - think of it as a mouth - and over the next 20 to 30 days, it goes through a fermentation process and breaks down, giving off gas that comes out the other end. From there, the clean-burning gas is passed through pipes to the point of use, just like traditional domestic gas. In Dunga, the machines produce enough gas to serve about 60% of the village's population. It is used in domestic stoves and for other household tasks such as purifying water and incubating chicks.
+
+The project is testing whether biogas can provide an effective alternative to firewood and charcoal in rural Kenyan communities. Results indicate that the programme seems to be working. The women who smoke the lake fish are already getting sick less often. Besides, they don't have to devote a lot of time every day to gathering firewood, which is a great relief. As a result, they're able to make more money for their families from other enterprises.
+
+Kanyiva Muindi is an epidemiologist and air pollution research fellow at the African Population and Health Research Centre in Nairobi. She says families who switch to the smokeless cooking method could expect fewer respiratory diseases. Women, young girls and children are particularly vulnerable because they are the ones who cook in the kitchen or outside over fires.
+
+How much better the biogas stoves will be for the community's health still needs more research, says Dominic Kahumbu Wanjihia, Biogas International's chief executive. But unless the price of the machines drops, it's pretty clear that most communities will never be able to afford any, since they sell for about $750.
+
+Kanyiva says affordability is a challenge worth addressing, given the huge health and environmental dangers posed by 'dirty' fuels such as wood, charcoal and kerosene. If biogas could become affordable on a large scale, she says it 'would be life-changing for millions on the African continent and beyond'.`,
+        blocks: [
+          {
+            type: "tfng",
+            title: "Questions 1-7",
+            instructions: [
+              "Do the following statements agree with the information given in Reading Passage 1?",
+              "In boxes 1-7 on your answer sheet, write:",
+              "TRUE if the statement agrees with the information",
+              "FALSE if the statement contradicts the information",
+              "NOT GIVEN if there is no information on this"
+            ],
+            items: [
+              { q: 1, text: "Water hyacinth was introduced as a decorative plant in east Africa." },
+              { q: 2, text: "Fishermen took some water hyacinth plants to Lake Victoria." },
+              { q: 3, text: "It is now difficult to force boats through the thick water hyacinth on Lake Victoria." },
+              { q: 4, text: "Chemicals produced by the water hyacinth plants are affecting the numbers of fish in Lake Victoria." },
+              { q: 5, text: "Cooking with charcoal has been proved to be even worse for people's health than cooking with wood." },
+              { q: 6, text: "People found it impossible to remove much water hyacinth from Lake Victoria." },
+              { q: 7, text: "Scientists started investigating the possibility of using water hyacinth to generate biogas in the last century." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 8-10",
+            instructions: [
+              "Complete the flow-chart below.",
+              "Choose NO MORE THAN TWO WORDS from the passage for each answer.",
+              "Write your answers in boxes 8-10 on your answer sheet."
+            ],
+            items: [
+              { q: 8, text: "First, place water hyacinth together with some", tail: "into a digester." },
+              { q: 9, text: "Leave the mixture until the", tail: "is completed." },
+              { q: 10, text: "Capture the gas emitted by the digester and use", tail: "to transport it to individual homes." }
+            ]
+          },
+          {
+            type: "sentenceGaps",
+            title: "Questions 11-13",
+            instructions: [
+              "Complete the notes below.",
+              "Choose ONE WORD ONLY from the passage for each answer.",
+              "Write your answers in boxes 11-13 on your answer sheet."
+            ],
+            items: [
+              { q: 11, text: "No need for them to spend so much", tail: "collecting fuel." },
+              { q: 12, text: "They can focus on different tasks that bring in", tail: "." },
+              { q: 13, text: "The", tail: "of the digesters is beyond the reach of most villages." }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part2",
+        passageText: `How could multilingualism benefit India's poorest schoolchildren?
+
+The crowded and bustling streets of Delhi teem with life. Stop to listen and, above the din of rickshaws and buses, you'll hear a multitude of languages, as more than 20 million people go about their daily lives. Many were born and raised here, and many millions more have recently made India's capital their home, having moved from surrounding neighbourhoods, cities and states or across the country, often in the hope of gaining better jobs and a better life. Some arrive speaking fluent Hindi, the dominant language in Delhi and the official language of government, but many arrive speaking any number of India's 22 officially recognised languages, let alone the hundreds of regional languages in a country of more than 1.3 billion people.
+
+A team of researchers led by Professor Ianthi Tsimpli of Cambridge University is currently working on a project collecting data on 1,000 primary-age children in Delhi and the cities of Hyderabad and Bihar. The overriding aim of the four-year project, called 'Multilingualism and Multiliteracy', is to find out why in a country where multilingualism is so common, more than 255 million people in India speak at least two languages, and nearly 90 million speak three or more languages, the many benefits of speaking more than one language, observed in schools in Europe for instance, do not apply to many of India's schoolchildren.
+
+'Each year across India, 600,000 children are tested, and year after year over 50% of children in Standard 5 [ten-year-olds] cannot read a Standard 2 [seven-year-olds] task fluently, and just under 50% of them cannot solve a Standard 2 subtraction task,' says Tsimpli. She explains that low educational achievement can lead to many of these students dropping out of school - a problem disproportionately affecting female students.
+
+Tsimpli and her colleagues are investigating whether these low learning outcomes could be caused by an Indian school system where the language that children are taught in often differs from the language used at home. The research project, which focuses on 8 to 11-year-old schoolchildren in rural and urban areas, collects data on whether the schoolchildren live in slum or non-slum areas. Many of the children have moved from remote, rural areas to urban areas. They are so poor they have to live in slums and, as a result of migration, they may speak languages that are different from the regional language.
+
+Having already tested 1,000 children, the researchers will now embark on retesting them. They intend to look not only at test results, but also at variables such as the standard of schooling, the environment and the teaching practices themselves. It's possible that one of the causes of low performance is the lack of pupil-centred teaching methods; in many Indian primary schools the teacher dominates and there is little room for independent learning.
+
+Although the findings are at a preliminary stage, Tsimpli and her team have found that the medium of instruction used in schools, especially English, may hold back those children who have little familiarity with, or exposure to, the language before starting school and outside of school life. According to Tsimpli, most of the evidence from this and other projects shows that English instruction for children from low socio-economic areas might not be the best way for them to learn, at least in the first three years of primary education.
+
+'What we would recommend for everyone, not just low socio-economic status children, would be to start learning in the language they feel comfortable learning in ... English can still be used, but perhaps not as the medium of instruction in primary schools. It could, for example, be one of the subjects that are being taught alongside other subjects. We are not suggesting that English be withdrawn - that ship has sailed - but we perhaps have to think more about learner needs. There is perhaps too much uniformity in teaching and less tailoring to the children's language abilities and needs,' says Tsimpli.
+
+While the preliminary results show there is no difference in general intelligence among boys and girls from slum areas versus those from urban poor backgrounds, an unanticipated finding has been that children from slum backgrounds do not seem to lag behind children from other urban poor backgrounds - and in some cases outperform them, e.g. in numeracy and literacy tasks. According to the researchers, this unexpected finding may be down to the life experiences of children growing up in slums. They are likely to mature faster and come into closer contact with the numeracy skills essential for day-to-day survival.
+
+The project has already caught the attention of government ministers, who are keen to use the findings of the study to inform and adjust school policy in Delhi and the wider state. 'They are as keen as us to understand how the challenging context of deprivation can be attenuated when focusing on the languages children learn and use while at school. Our findings don't mean you're doomed if you're poor. It may be that these low learning outcomes are because of the way education is provided in India, with a huge focus on Hindi and English as the mediums of instruction, to the potential detriment of children unfamiliar with those languages,' explains Tsimpli.
+
+'Language is central to the way knowledge is transferred - so the medium of instruction is obviously hugely influential. We hope to ... show that problem solving, numeracy and literacy can and do improve in children who are educated in a language of instruction they know. The trick may be to bridge school skills with life skills and make use of the richness of a child's life experience to help them learn in the most effective ways possible,' says Tsimpli.`,
+        blocks: [
+          {
+            type: "summarySelect",
+            title: "Questions 14-19",
+            instructions: [
+              "Complete the summary using the list of words, A-J, below.",
+              "Write the correct letter, A-J, in boxes 14-19 on your answer sheet."
+            ],
+            summaryTitle: "Multilingualism in Delhi",
+            summaryLines: [
+              { text: "The city of Delhi has a", blankQ: 14, tail: "and as you walk through its streets you hear people speaking a variety of languages." },
+              { text: "Some of them have spent their entire life in Delhi, while others are", blankQ: 15, tail: "." },
+              { text: "Whether they have come from a", blankQ: 16, tail: "or have travelled from the other side of India, they have all come in search of things such as improved" },
+              { text: "", blankQ: 17, before: "", after: "." },
+              { text: "A team of researchers led by Professor Ianthi Tsimpli of Cambridge University is collecting data on primary-age schoolchildren in Delhi and other Indian cities. The", blankQ: 18, tail: "of the research is to discover why multilingual Indian schoolchildren do not experience" },
+              { text: "", blankQ: 19, before: "", after: "to those that multilingual schoolchildren in Europe experience." }
+            ],
+            optionsTitle: "A-J",
+            options: [
+              { letter: "A", word: "basic outlook" },
+              { letter: "B", word: "employment opportunities" },
+              { letter: "C", word: "wealthy visitors" },
+              { letter: "D", word: "distant country" },
+              { letter: "E", word: "primary objective" },
+              { letter: "F", word: "similar advantages" },
+              { letter: "G", word: "thriving economy" },
+              { letter: "H", word: "nearby district" },
+              { letter: "I", word: "dense population" },
+              { letter: "J", word: "new immigrants" }
+            ]
+          },
+          {
+            type: "ynng",
+            title: "Questions 20-23",
+            instructions: [
+              "Do the following statements agree with the claims of the writer in Reading Passage 2?",
+              "In boxes 20-23 on your answer sheet, write:",
+              "YES if the statement agrees with the claims of the writer",
+              "NO if the statement contradicts the claims of the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 20, text: "Ten-year-old Indian schoolchildren tend to perform better in literacy tests than in numeracy tests." },
+              { q: 21, text: "Tsimpli had problems convincing some female students to take part in the study." },
+              { q: 22, text: "Tsimpli and her team wanted to know if there is a connection between poor academic performance and being taught in an unfamiliar language." },
+              { q: 23, text: "The researchers have decided against investigating the impact teaching methodology may have on learning outcomes." }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 24-26",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 24-26 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 24,
+                text: "What point does the writer make about primary schools in India in the sixth paragraph?",
+                choices: {
+                  A: "Exposure to English outside of school is of limited benefit.",
+                  B: "Children learn English more easily when they are well motivated.",
+                  C: "Poor children may be disadvantaged further by being instructed in English.",
+                  D: "There is little consistency across schools with regard to instruction in English."
+                }
+              },
+              {
+                q: 25,
+                text: "What is Tsimpli suggesting when she uses the phrase 'that ship has sailed'?",
+                choices: {
+                  A: "The findings of the report may be of little help to some Indian schoolchildren.",
+                  B: "Instruction in English could be better adapted to the needs of schoolchildren.",
+                  C: "Schools have had limited success in teaching English as a separate subject.",
+                  D: "It is too late to remove English completely as a language of instruction in schools."
+                }
+              },
+              {
+                q: 26,
+                text: "In the eighth paragraph, what do we learn has surprised researchers?",
+                choices: {
+                  A: "Boys and girls from low socio-economic groups have similar general intelligence levels.",
+                  B: "The age at which children move into a slum does not affect their academic performance.",
+                  C: "Slum children and children from other urban poor backgrounds have similar life experiences.",
+                  D: "The literacy and numeracy skills of slum children are not lower than those of children from other urban poor backgrounds."
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: "part3",
+        passageText: `The Globemakers: The Curious Story of an Ancient Craft
+
+A review of Peter Bellerby's book The Globemakers
+
+In 2008, Peter Bellerby, who lived in London, wanted to give his father a model globe for his eightieth birthday. What seemed simple enough to start with triggered an almost obsessive, decade-long journey, marked by a series of obstacles that would have deterred anyone less determined. It ended with his establishing the world's only bespoke globemaking company.
+
+The first surprise in The Globemakers, Bellerby's account of this impulsive enterprise, is that obtaining such a globe was not simply a matter of a quick online order and a repressed sigh at the shipping costs. After all, contrary to stubbornly held popular views of our ancestors' geographical ignorance, we have known that the world is spherical since at least the 6th century BCE. The ancient Greek philosopher Plato in his work Phaedo likened it to a leather ball, while the accolade of producing the first recorded globe goes to the ancient Greek philosopher Crates of Mallus, who is said to have made one in around 150 BCE. Surely, Bellerby reasoned, a good-quality globe wouldn't be difficult to find.
+
+Nearly two millennia later, however, it seemed that the art of globemaking had been largely forgotten. Bellerby came across shoddy commercial versions designed for school classrooms and genuine antiques in auction houses that would have bust his budget. Even his trips to Morocco and India, where surely the knowledge of artisan cartographers had been preserved, drew a blank.
+
+Not one to be easily thwarted, Bellerby decided to make his own good-quality globe. In the process, almost everything that could possibly go wrong did so. Even the shape of the Earth posed a problem, as it is not quite a perfect sphere, but oblate, slightly flattened at the poles. Having decided to compromise and opt for two half-spherical pieces that could be fitted together, he was unable to discover anyone capable of casting moulds with sufficient accuracy to ensure that he would not be left with two half-spheres that were not quite the same circumference. Even after he eventually resolved this issue, extracting these from the moulds resulted in piles of cracked plaster of Paris and clouds of choking dust in the workshop he had set up at the rear of his house.
+
+This series of abortive experiments taught Bellerby a lot about the challenges of making globes, which he communicates here to the reader. Finding just the right way to prise the globes from the mould - a high-end air compressor finally did the trick - and locating the right paper and inks with which to make the gores, the sections of flat sheet mapping that are pasted onto the spherical globe, without the ink seeping out to create a mushy, unreadable mess took months and an alarming chunk out of his bank balance. Bellerby's frustration at the painstaking process of attaching the gores to the globe surface - after having found a glue with precisely the right adhesive qualities - is palpable. Right at the end of the process, he learnt that the paper had stretched slightly and so the final one overlapped the first by a centimetre, which may not seem a great deal, but when that represents 2 per cent of the Earth's diameter, it's equivalent to obliterating the Himalayas or wiping out Chile.
+
+Bellerby's account of the technical challenges of globe production is interspersed with a series of interludes on great globemakers of the past and cartographic history in general. Purists might wish for more map-making details, but Bellerby clearly found a kindred spirit in Martin Behaim. He was the Nuremberg entrepreneur who in 1492 created the Erdapfel, the world's oldest surviving globe, beautifully finished by a workshop of painters and other craftsmen, only to find that the explorer Christopher Columbus had stumbled upon the Americas the very same year, rendering his masterpiece instantly out of date. Something of Bellerby's unflinching ambition is reflected in the even more heroic efforts of the Italian cartographer Vincenzo Coronelli, who, in the seventeenth century, created two globes for Louis XIV of France. It took him twenty years to complete the monstrous pair, whose vast bulk - each with a diameter of around four metres - can still be admired in the National Library of France in Paris.
+
+Although a celebration of the revival of an ancient craft, Bellerby's book is also a lament for the fading away of centuries-old traditions. When he embarked on his globemaking odyssey, he struggled to find artisans with the skills to make the right moulds for the globes or foundries that could shape the meridians, the metal frames which girdle globes, in just the right way. Although he finally located the right craftsmen, some simply dropping in, serendipitously, to his workshop, by now in more suitable premises than his back room, many of these have now retired or passed away.
+
+Bellerby's father finally did receive his eightieth birthday present, albeit two years late. Bellerby went on to found a company which now turns out over six hundred globes a year for customers who can have their own tiny village marked or more unusual requests fulfilled. His book, beautifully illustrated with photographs of the various stages of his venture and a few illustrations of historic globes and maps, is hardly a blueprint for commercial success. But it is more than enough to stir up admiration for the craftsmanship of the great mapmakers of the past and the obsessive determination of a modern successor who revived their almost moribund art.`,
+        blocks: [
+          {
+            type: "summarySelect",
+            title: "Questions 27-32",
+            instructions: [
+              "Complete the summary using the list of words, A-J, below.",
+              "Write the correct letter, A-J, in boxes 27-32 on your answer sheet."
+            ],
+            summaryTitle: "A birthday gift",
+            summaryLines: [
+              { text: "Peter Bellerby's plan to give his father a globe for his birthday was an unexpectedly", blankQ: 27, tail: "for which he had to overcome" },
+              { text: "", blankQ: 28, before: "", after: "." },
+              { text: "He soon learnt that a straightforward", blankQ: 29, tail: "would not be possible." },
+              { text: "Some", blankQ: 30, tail: "that had been intended for" },
+              { text: "", blankQ: 31, before: "", after: "were available, as were some expensive antique globes, but these were beyond his budget." },
+              { text: "He even travelled to places where people might still have the", blankQ: 32, tail: ", but Bellerby could not find what he wanted." }
+            ],
+            optionsTitle: "A-J",
+            options: [
+              { letter: "A", word: "educational use" },
+              { letter: "B", word: "rare materials" },
+              { letter: "C", word: "inferior makes" },
+              { letter: "D", word: "product exchange" },
+              { letter: "E", word: "necessary skills" },
+              { letter: "F", word: "international markets" },
+              { letter: "G", word: "challenging task" },
+              { letter: "H", word: "memorable object" },
+              { letter: "I", word: "internet purchase" },
+              { letter: "J", word: "numerous problems" }
+            ]
+          },
+          {
+            type: "ynng",
+            title: "Questions 33-36",
+            instructions: [
+              "Do the following statements agree with the claims of the writer in Reading Passage 3?",
+              "In boxes 33-36 on your answer sheet, write:",
+              "YES if the statement agrees with the claims of the writer",
+              "NO if the statement contradicts the claims of the writer",
+              "NOT GIVEN if it is impossible to say what the writer thinks about this"
+            ],
+            items: [
+              { q: 33, text: "The assumption today that people in the past knew very little about geography is correct." },
+              { q: 34, text: "Plato was criticised for saying the world was shaped like a leather ball." },
+              { q: 35, text: "The globe made by Crates of Mallus was an accurate representation of the known world." },
+              { q: 36, text: "Bellerby assumed he would have few problems locating a well-made globe." }
+            ]
+          },
+          {
+            type: "mcq",
+            title: "Questions 37-40",
+            instructions: [
+              "Choose the correct letter, A, B, C or D.",
+              "Write the correct letter in boxes 37-40 on your answer sheet."
+            ],
+            items: [
+              {
+                q: 37,
+                text: "When Bellerby had to attach the gores to the globe surface,",
+                choices: {
+                  A: "he decided it was best to work quickly.",
+                  B: "he became aware of an unexpected issue.",
+                  C: "he was worried about the quality of his materials.",
+                  D: "he nearly gave up the whole project."
+                }
+              },
+              {
+                q: 38,
+                text: "The reviewer mentions other globe makers of the past because",
+                choices: {
+                  A: "Bellerby was particularly inspired by them.",
+                  B: "their achievements are not widely known.",
+                  C: "Bellerby had something in common with each of them.",
+                  D: "their difficulties could have been avoided."
+                }
+              },
+              {
+                q: 39,
+                text: "What point is made about Bellerby in the seventh paragraph?",
+                choices: {
+                  A: "He had long working relationships with numerous craftsmen.",
+                  B: "He understands the lack of interest in traditional crafts.",
+                  C: "He appreciates the importance of careful planning.",
+                  D: "He regrets the loss of many globe-making skills."
+                }
+              },
+              {
+                q: 40,
+                text: "What does the reviewer say about Bellerby's book in the final paragraph?",
+                choices: {
+                  A: "It does not tell you how to create a profitable business.",
+                  B: "It overlooks some important mapmakers.",
+                  C: "It fails to discuss the future of globe-making.",
+                  D: "It does not give enough details about individual customers."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+};
+
 export const PROTECTED_TEST_CONTENT = {
   ielts1: test1,
   ielts2: test2,
@@ -10272,6 +10796,7 @@ export const PROTECTED_TEST_CONTENT = {
   ielts19: test19,
   ielts20: test20,
   ielts21: test21,
+  ielts22: test22,
 };
 
 export function getProtectedTestContent(testId) {

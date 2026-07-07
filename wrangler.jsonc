@@ -31,7 +31,8 @@
     "SUPABASE_URL": "https://bgujwyknnszwborgbkxq.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z",
     "PRIMARY_TENANT_HOST": "ieltsmock.org",
-    "PRIMARY_ORGANIZATION_ID": "ieltsmock"
+    "PRIMARY_ORGANIZATION_ID": "ieltsmock",
+    "TENANT_HOST_MAP": "{\"leznikmock.online\":{\"organizationId\":\"leznikmock\",\"name\":\"Leznik Mock\"}}"
   },
   "compatibility_flags": [
     "nodejs_compat"

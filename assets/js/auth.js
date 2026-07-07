@@ -2,7 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = "https://bgujwyknnszwborgbkxq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z";
-const SITE_URL = "https://ieltsmock.org/";
+// Dynamic: ensures Google/email OAuth always redirects back to whichever
+// domain the student is currently on (ieltsmock.org, school-b.com, etc.)
+const SITE_URL = window.location.origin + "/";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {

@@ -66,6 +66,10 @@ export default {
       return handleAdminApi(request, env, ctx);
     }
 
+    if (url.pathname === "/api/submissions/finalize") {
+      return handleFinalizeSubmission(request, env, ctx);
+    }
+
     if (shouldServeAppShell(url.pathname, request.method)) {
       const appShellUrl = new URL("/", url.origin);
       const appShellRequest = new Request(appShellUrl.toString(), request);
@@ -75,6 +79,15 @@ export default {
 
     const response = await env.ASSETS.fetch(request);
     return applyDocumentSecurityHeaders(response);
+  },
+
+  async scheduled(controller, env, ctx) {
+    const retryWork = retryFailedInboxSubmissions(env, null, {
+      limit: 20,
+      reason: "scheduled",
+    });
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(retryWork);
+    else await retryWork;
   },
 };
 
@@ -966,6 +979,18 @@ async function handleAdminApi(request, env, ctx = null) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     return handleAdminResyncSubmission(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "retrySubmissionProcessing") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminRetrySubmissionProcessing(request, env, auth);
+  }
+
+  if (request.method === "GET" && action === "submissionRaw") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminSubmissionRaw(request, env, auth);
   }
 
   if (request.method === "POST" && action === "markSubmissionReviewed") {
@@ -2468,11 +2493,20 @@ async function authenticateAdmin(request, env) {
     return { ok: false, status: 403, error: "This admin account is not allowed to use this tenant domain." };
   }
 
+  // When a super admin visits a secondary tenant domain, scope them to that tenant
+  // so they only see that school's students (not everyone's). On the primary tenant
+  // (ieltsmock.org) they retain full super-admin access as before.
+  const isOnPrimaryTenant = tenant.isPrimaryTenant;
+  const effectiveIsSuperAdmin = isSuperAdmin && isOnPrimaryTenant;
+  const effectiveOrganizationId = isSuperAdmin
+    ? (isOnPrimaryTenant ? null : (tenant.organizationId || null))
+    : tenantAdminOrg;
+
   return {
     ...auth,
-    role: isSuperAdmin ? "super_admin" : "tenant_admin",
-    isSuperAdmin,
-    organizationId: isSuperAdmin ? null : tenantAdminOrg,
+    role: effectiveIsSuperAdmin ? "super_admin" : "tenant_admin",
+    isSuperAdmin: effectiveIsSuperAdmin,
+    organizationId: effectiveOrganizationId,
     tenant,
   };
 }
@@ -3441,6 +3475,453 @@ async function mirrorFullExamSubmissionToSupabase(env, finalPayload, appsRespons
   return { ok: true };
 }
 
+function getSubmissionInboxTableName() {
+  return "submission_inbox";
+}
+
+function isMissingSubmissionInboxTable(result) {
+  const raw = String(result?.error || result?.data?.message || result?.data?.code || "").toLowerCase();
+  return raw.includes("submission_inbox") && (
+    raw.includes("does not exist") ||
+    raw.includes("could not find") ||
+    raw.includes("schema cache") ||
+    raw.includes("42p01") ||
+    raw.includes("pgrst")
+  );
+}
+
+function inferFinalSubmissionSection(finalPayload = {}) {
+  const attemptKind = oneLine(finalPayload?.attemptKind || "").toLowerCase();
+  const practiceSection = oneLine(finalPayload?.practiceSection || "").toLowerCase();
+  if (attemptKind === "practice") return practiceSection || "practice";
+  const examId = oneLine(finalPayload?.examId || "").toLowerCase();
+  if (examId.includes("practice-listening")) return "listening";
+  if (examId.includes("practice-reading")) return "reading";
+  if (examId.includes("practice-writing")) return "writing";
+  if (examId.includes("practice-speaking")) return "speaking";
+  return "full mock";
+}
+
+function normalizeSubmissionId(value) {
+  return oneLine(value || "").replace(/[^a-zA-Z0-9:_-]+/g, "-").slice(0, 160);
+}
+
+function buildSubmissionIdentityValue(summary = {}) {
+  return oneLine(
+    summary.studentIdCode ||
+    summary.officialEmail ||
+    summary.loginEmail ||
+    summary.email ||
+    summary.studentProfileId ||
+    summary.studentFullName ||
+    "unknown-student"
+  ).toLowerCase();
+}
+
+async function buildSubmissionInboxRecord(finalPayload, auth, tenant, requestedSubmissionId = "") {
+  const normalizedPayload = finalPayload && typeof finalPayload === "object" ? finalPayload : {};
+  const summary = extractFinalPayloadSummary(normalizedPayload, auth, tenant);
+  const section = inferFinalSubmissionSection(normalizedPayload);
+  const payloadHash = await sha256Base64Url(stableStringify(normalizedPayload));
+  const submittedAtClient = oneLine(summary.submittedAt || new Date().toISOString());
+  const logicalIdempotencyKey = [
+    normalizeOrganizationId(summary.organizationId || tenant?.organizationId || getPrimaryOrganizationId({})),
+    buildSubmissionIdentityValue(summary),
+    oneLine(summary.examId || "unknown-test").toLowerCase(),
+    section,
+    submittedAtClient,
+  ].map((part) => String(part || "").trim()).join("|");
+  const idempotencyKey = `${logicalIdempotencyKey}|hash:${payloadHash}`;
+  const submissionId = normalizeSubmissionId(
+    requestedSubmissionId ||
+    normalizedPayload.submissionId ||
+    `sub_${payloadHash.slice(0, 20)}_${Date.now()}`
+  );
+  normalizedPayload.submissionId = submissionId;
+  return {
+    submissionId,
+    idempotencyKey,
+    logicalIdempotencyKey,
+    payloadHash,
+    section,
+    summary,
+    finalPayload: normalizedPayload,
+    row: {
+      submission_id: submissionId,
+      idempotency_key: idempotencyKey,
+      logical_idempotency_key: logicalIdempotencyKey,
+      organization_id: normalizeOrganizationId(summary.organizationId || tenant?.organizationId || getPrimaryOrganizationId({})),
+      student_id: oneLine(summary.studentIdCode || summary.studentProfileId || ""),
+      student_name: oneLine(summary.studentFullName || ""),
+      official_email: normalizeEmail(summary.officialEmail || ""),
+      login_email: normalizeEmail(summary.loginEmail || summary.email || ""),
+      test_id: oneLine(summary.examId || ""),
+      section,
+      submitted_at_client: submittedAtClient,
+      payload_hash: payloadHash,
+      raw_payload: normalizedPayload,
+      processing_status: "received",
+      backup_status: "pending",
+    },
+  };
+}
+
+function validateFinalSubmissionPayload(finalPayload, summary) {
+  if (!finalPayload || typeof finalPayload !== "object") return { ok: false, error: "Submission payload is missing." };
+  if (!summary?.organizationId) return { ok: false, error: "Missing organization id." };
+  if (!summary?.studentFullName && !summary?.studentIdCode && !summary?.loginEmail && !summary?.officialEmail) {
+    return { ok: false, error: "Missing student identity." };
+  }
+  if (!summary?.examId) return { ok: false, error: "Missing test id." };
+  if (!summary?.submittedAt || Number.isNaN(Date.parse(summary.submittedAt))) {
+    return { ok: false, error: "Missing or invalid submitted_at timestamp." };
+  }
+  const hasPayload =
+    finalPayload.listening ||
+    finalPayload.reading ||
+    finalPayload.writing ||
+    finalPayload.speaking ||
+    finalPayload.answers;
+  if (!hasPayload) return { ok: false, error: "Submission does not contain any answer payload." };
+  return { ok: true };
+}
+
+async function getSubmissionInboxRow(env, submissionId) {
+  const id = normalizeSubmissionId(submissionId);
+  if (!id) return null;
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    query: {
+      select: "*",
+      submission_id: `eq.${id}`,
+      limit: "1",
+    },
+  });
+  if (!res.ok) return null;
+  return Array.isArray(res.data) ? res.data[0] || null : null;
+}
+
+async function getSubmissionInboxRowsByLogicalKey(env, logicalKey, organizationId = "") {
+  const key = oneLine(logicalKey || "");
+  if (!key) return [];
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    query: {
+      select: "*",
+      logical_idempotency_key: `eq.${key}`,
+      ...(organizationId ? { organization_id: `eq.${normalizeOrganizationId(organizationId)}` } : {}),
+      limit: "20",
+    },
+  });
+  if (!res.ok) return [];
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+async function patchSubmissionInboxRow(env, submissionId, patch = {}) {
+  const id = normalizeSubmissionId(submissionId);
+  if (!id) return { ok: false, status: 400, error: "Missing submission id." };
+  return supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    method: "PATCH",
+    query: {
+      submission_id: `eq.${id}`,
+      select: "*",
+    },
+    headers: { Prefer: "return=representation" },
+    body: patch,
+  });
+}
+
+async function storeSubmissionInboxFallback(env, record, reason = "") {
+  const recoveryRow = buildSubmissionRecoveryRow(record.summary, record.finalPayload, {
+    source: "durable-finalize-fallback",
+    sheetSyncStatus: "pending",
+    summary: {
+      durableInboxFallback: true,
+      durableInboxFallbackReason: oneLine(reason || "submission_inbox unavailable"),
+      submissionId: record.submissionId,
+      idempotencyKey: record.idempotencyKey,
+      logicalIdempotencyKey: record.logicalIdempotencyKey,
+      payloadHash: record.payloadHash,
+      processingStatus: "received",
+      backupStatus: "pending",
+      receivedAtServer: new Date().toISOString(),
+    },
+  });
+  if (!recoveryRow.ok) return { ok: false, status: recoveryRow.status || 400, error: recoveryRow.error || "Could not build fallback row." };
+  const existingRecovery = await getSubmissionRecoveryRow(env, recoveryRow.submissionKey).catch(() => null);
+  if (existingRecovery?.final_payload) {
+    const existingHash = await sha256Base64Url(stableStringify(existingRecovery.final_payload)).catch(() => "");
+    if (existingHash && existingHash !== record.payloadHash) {
+      await patchSubmissionSyncSummary(env, recoveryRow.submissionKey, {
+        durableInboxFallback: true,
+        processingStatus: "duplicate_conflict",
+        syncMonitorResyncStatus: "duplicate_conflict",
+        syncMonitorLastError: "Same fallback submission key was received with a different payload hash.",
+        conflictingPayloadHash: record.payloadHash,
+      }).catch(() => null);
+      return { ok: false, status: "duplicate_conflict", error: "A different payload already exists for this fallback submission key." };
+    }
+    return {
+      ok: true,
+      status: "already_received",
+      storage: "submission_recovery_fallback",
+      row: existingRecovery,
+      submissionId: record.submissionId,
+      submissionKey: recoveryRow.submissionKey,
+    };
+  }
+  const saved = await upsertSubmissionRecoveryRow(env, recoveryRow.row);
+  if (!saved.ok) return saved;
+  const row = Array.isArray(saved.data) ? saved.data[0] || recoveryRow.row : recoveryRow.row;
+  return {
+    ok: true,
+    status: "accepted",
+    storage: "submission_recovery_fallback",
+    row,
+    submissionId: record.submissionId,
+    submissionKey: row.submission_key || recoveryRow.submissionKey,
+  };
+}
+
+async function ensureSubmissionInboxStored(env, record) {
+  const existingBySubmission = await getSubmissionInboxRow(env, record.submissionId);
+  if (existingBySubmission) {
+    if (oneLine(existingBySubmission.payload_hash || "") === record.payloadHash) {
+      return { ok: true, status: "already_received", storage: "submission_inbox", row: existingBySubmission };
+    }
+    await patchSubmissionInboxRow(env, record.submissionId, {
+      processing_status: "duplicate_conflict",
+      last_error: "Same submission_id was received with a different payload hash.",
+    }).catch(() => null);
+    return { ok: false, status: "duplicate_conflict", storage: "submission_inbox", row: existingBySubmission, error: "Same submission id has a different payload." };
+  }
+
+  const conflicts = await getSubmissionInboxRowsByLogicalKey(env, record.logicalIdempotencyKey, record.summary.organizationId);
+  const conflictingPayload = conflicts.find((row) => oneLine(row?.payload_hash || "") !== record.payloadHash);
+  if (conflictingPayload) {
+    await patchSubmissionInboxRow(env, conflictingPayload.submission_id, {
+      processing_status: "duplicate_conflict",
+      last_error: "Same logical idempotency key was received with a different payload hash.",
+    }).catch(() => null);
+    return { ok: false, status: "duplicate_conflict", storage: "submission_inbox", row: conflictingPayload, error: "A different payload already exists for this submission identity." };
+  }
+  const duplicate = conflicts.find((row) => oneLine(row?.payload_hash || "") === record.payloadHash);
+  if (duplicate) {
+    return { ok: true, status: "already_received", storage: "submission_inbox", row: duplicate };
+  }
+
+  const inserted = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    method: "POST",
+    query: { select: "*" },
+    headers: { Prefer: "return=representation" },
+    body: record.row,
+  });
+  if (inserted.ok) {
+    return {
+      ok: true,
+      status: "accepted",
+      storage: "submission_inbox",
+      row: Array.isArray(inserted.data) ? inserted.data[0] || record.row : record.row,
+    };
+  }
+  if (isMissingSubmissionInboxTable(inserted)) {
+    return storeSubmissionInboxFallback(env, record, inserted.error || "submission_inbox table missing");
+  }
+  return inserted;
+}
+
+async function writeFinalSubmissionToAppsScriptBackup(env, request, finalPayload) {
+  const backend = String(env.ADMIN_BACKEND_URL || "").trim();
+  if (!backend) return { ok: false, status: 503, error: "ADMIN_BACKEND_URL is not configured." };
+  const bodyText = JSON.stringify(finalPayload || {});
+  const backendUrl = new URL(backend);
+  backendUrl.searchParams.set("action", "submitExam");
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "POST", bodyText, env);
+  const syntheticRequest = new Request("https://worker.local/api/admin?action=submitExam", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  });
+  const upstream = await fetch(signedUrl, {
+    method: "POST",
+    headers: await buildAppsScriptHeaders(request || syntheticRequest, env, signedUrl, bodyText),
+    body: bodyText,
+  });
+  const text = await upstream.text().catch(() => "");
+  let data = null;
+  try { data = JSON.parse(text); } catch (e) {}
+  const ok = upstream.ok && (/^OK\b/i.test(String(text || "").trim()) || data?.ok === true);
+  return {
+    ok,
+    status: upstream.status,
+    data,
+    error: ok ? "" : oneLine(data?.error || text || `Apps Script HTTP ${upstream.status}`),
+  };
+}
+
+async function updateFallbackProcessingSummary(env, row, patch = {}) {
+  const submissionKey = oneLine(row?.submission_key || "");
+  if (!submissionKey) return { ok: false, error: "Missing fallback submission key." };
+  const summary = {
+    ...getRecoverySummaryObject(row),
+    ...patch,
+    lastStatusUpdateAt: new Date().toISOString(),
+  };
+  return updateSubmissionRecoveryRow(env, submissionKey, {
+    summary,
+    sheet_sync_status: patch.backupStatus === "written" ? "synced" : (patch.backupStatus === "failed" ? "failed" : row.sheet_sync_status || "pending"),
+    sheet_synced_at: patch.backupStatus === "written" ? new Date().toISOString() : row.sheet_synced_at || null,
+    sheet_last_error: oneLine(patch.backupLastError || row.sheet_last_error || ""),
+  });
+}
+
+async function processDurableSubmission(env, durable, auth, tenant, request, options = {}) {
+  const storage = durable?.storage || "submission_inbox";
+  const row = durable?.row || durable;
+  const finalPayload = storage === "submission_inbox" ? row?.raw_payload : row?.final_payload;
+  const summary = extractFinalPayloadSummary(finalPayload, auth, tenant);
+  const validation = validateFinalSubmissionPayload(finalPayload, summary);
+  const now = new Date().toISOString();
+  const submissionId = oneLine(row?.submission_id || durable?.submissionId || finalPayload?.submissionId || "");
+  const initialProcessingStatus = oneLine(row?.processing_status || getRecoverySummaryObject(row).processingStatus || "");
+  const shouldSendResultEmail = !["processed", "backup_written", "failed_backup", "reviewed"].includes(initialProcessingStatus);
+  const patchStatus = async (patch) => {
+    if (storage === "submission_inbox") return patchSubmissionInboxRow(env, submissionId, patch);
+    return updateFallbackProcessingSummary(env, row, patch);
+  };
+
+  await patchStatus({
+    processing_status: validation.ok ? "processing" : "invalid_payload",
+    last_error: validation.ok ? "" : validation.error,
+    attempt_count: Number(row?.attempt_count || 0) + 1,
+  }).catch(() => null);
+
+  if (!validation.ok) {
+    console.warn("[submission-pipeline] invalid payload stored", { submissionId, error: validation.error });
+    return { ok: false, status: "invalid_payload", error: validation.error };
+  }
+
+  try {
+    console.log("[submission-pipeline] processing_started", { submissionId, examId: summary.examId });
+    await mirrorFullExamSubmissionToSupabase(env, finalPayload, {}, auth, tenant);
+    await patchStatus({
+      processing_status: "processed",
+      last_error: "",
+      last_processed_at: now,
+    }).catch(() => null);
+    try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+    console.log("[submission-pipeline] processing_succeeded", { submissionId, examId: summary.examId });
+  } catch (error) {
+    const message = oneLine(error?.message || error || "Supabase processing failed.");
+    await patchStatus({
+      processing_status: "failed_processing",
+      last_error: message,
+      last_processed_at: now,
+    }).catch(() => null);
+    console.warn("[submission-pipeline] processing_failed", { submissionId, error: message });
+    return { ok: false, status: "failed_processing", error: message };
+  }
+
+  const previousBackupStatus = oneLine(row?.backup_status || getRecoverySummaryObject(row).backupStatus || "");
+  if (previousBackupStatus !== "written" || options.forceBackup === true) {
+    try {
+      console.log("[submission-pipeline] backup_started", { submissionId, examId: summary.examId });
+      const backupResult = await writeFinalSubmissionToAppsScriptBackup(env, request, finalPayload);
+      if (!backupResult.ok) throw new Error(backupResult.error || `Apps Script HTTP ${backupResult.status}`);
+      await patchStatus({
+        processing_status: "backup_written",
+        backup_status: "written",
+        backupStatus: "written",
+        backup_last_error: "",
+        backupLastError: "",
+        last_backup_at: new Date().toISOString(),
+        backup_attempt_count: Number(row?.backup_attempt_count || 0) + 1,
+      }).catch(() => null);
+      console.log("[submission-pipeline] backup_succeeded", { submissionId, examId: summary.examId });
+    } catch (error) {
+      const message = oneLine(error?.message || error || "Sheets backup failed.");
+      await patchStatus({
+        processing_status: "failed_backup",
+        backup_status: "failed",
+        backupStatus: "failed",
+        backup_last_error: message,
+        backupLastError: message,
+        last_backup_at: new Date().toISOString(),
+        backup_attempt_count: Number(row?.backup_attempt_count || 0) + 1,
+      }).catch(() => null);
+      console.warn("[submission-pipeline] backup_failed", { submissionId, error: message });
+    }
+  }
+
+  if (shouldSendResultEmail) {
+    sendExamReportEmail(env, finalPayload, {}).then((emailResult) => {
+      console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
+    }).catch((error) => {
+      console.warn("[exam-email] failed after durable finalize", error?.message || error);
+    });
+  }
+
+  return { ok: true, status: "processed" };
+}
+
+async function handleFinalizeSubmission(request, env, ctx = null) {
+  if (request.method !== "POST") return json(405, { ok: false, status: "failed_non_retryable", error: "Method not allowed." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, status: "failed_non_retryable", error: auth.error });
+  const payload = await request.json().catch(() => null);
+  const finalPayload = payload?.finalPayload || payload?.payload || payload;
+  if (!finalPayload || typeof finalPayload !== "object") {
+    return json(400, { ok: false, status: "failed_non_retryable", error: "Missing final submission payload." });
+  }
+  const tenant = resolveTenantContext(request, env);
+  finalPayload.organizationId = normalizeOrganizationId(finalPayload.organizationId || tenant.organizationId);
+  finalPayload.studentEmail = normalizeEmail(finalPayload.studentEmail || auth?.user?.email || "");
+  finalPayload.signInMethod = oneLine(finalPayload.signInMethod || auth?.user?.app_metadata?.provider || "email") || "email";
+  await applyStudentProfileToSubmissionPayload(env, auth, finalPayload, finalPayload.organizationId).catch(() => null);
+
+  const requestedSubmissionId = normalizeSubmissionId(payload?.submissionId || finalPayload.submissionId || "");
+  const record = await buildSubmissionInboxRecord(finalPayload, auth, tenant, requestedSubmissionId);
+  const stored = await ensureSubmissionInboxStored(env, record);
+  if (!stored.ok) {
+    const status = stored.status === "duplicate_conflict" ? "failed_non_retryable" : "failed_retryable";
+    return json(stored.status === "duplicate_conflict" ? 409 : (stored.status || 503), {
+      ok: false,
+      status,
+      submissionStatus: stored.status || "inbox_write_failed",
+      submissionId: record.submissionId,
+      error: stored.error || "Could not durably store submission.",
+    });
+  }
+
+  console.log(stored.status === "already_received" ? "[submission-pipeline] duplicate_received" : "[submission-pipeline] submission_received", {
+    submissionId: record.submissionId,
+    storage: stored.storage,
+    examId: record.summary.examId,
+  });
+
+  const shouldProcess =
+    stored.status === "accepted" ||
+    ["received", "failed_processing", "failed_backup"].includes(oneLine(stored.row?.processing_status || getRecoverySummaryObject(stored.row).processingStatus || ""));
+  if (shouldProcess) {
+    const processWork = processDurableSubmission(env, stored, auth, tenant, request).catch((error) => {
+      console.warn("[submission-pipeline] waitUntil processing crashed", error?.message || error);
+    });
+    if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(processWork);
+    else processWork.catch(() => null);
+  }
+
+  return json(stored.status === "already_received" ? 200 : 202, {
+    ok: true,
+    status: stored.status === "already_received" ? "already_received" : "accepted",
+    submissionId: record.submissionId,
+    idempotencyKey: record.idempotencyKey,
+    storage: stored.storage,
+    processingStatus: oneLine(stored.row?.processing_status || getRecoverySummaryObject(stored.row).processingStatus || "received"),
+    backupStatus: oneLine(stored.row?.backup_status || getRecoverySummaryObject(stored.row).backupStatus || "pending"),
+    message: "Submission safely received by the server.",
+  });
+}
+
 function getRecoverySummaryObject(row) {
   const summary = row?.summary;
   if (summary && typeof summary === "object" && !Array.isArray(summary)) return summary;
@@ -3541,6 +4022,7 @@ async function buildSubmissionSyncMonitorRow(row, attemptIndex) {
     status = summary.syncMonitorResyncStatus === "resynced" ? "resynced" : "synced";
   }
   return {
+    sourceType: "recovery",
     submissionKey: oneLine(row?.submission_key || ""),
     deterministicKey: payloadHash
       ? `submission:${identity.organizationId}:${identity.examId}:${identity.submittedAt}:${payloadHash.slice(0, 16)}`
@@ -3565,6 +4047,65 @@ async function buildSubmissionSyncMonitorRow(row, attemptIndex) {
     supabaseAttemptIds: matches.map((match) => oneLine(match?.id || "")).filter(Boolean),
     lastCheckedAt: new Date().toISOString(),
   };
+}
+
+function buildSubmissionSyncMonitorRowFromInbox(row, attemptIndex) {
+  const finalPayload = row?.raw_payload && typeof row.raw_payload === "object" ? row.raw_payload : null;
+  const identity = buildSubmissionSyncIdentity({
+    organization_id: row?.organization_id || "",
+    submitted_at: row?.submitted_at_client || "",
+    exam_id: row?.test_id || "",
+    student_full_name: row?.student_name || "",
+    student_id_code: row?.student_id || "",
+    official_email: row?.official_email || "",
+    login_email: row?.login_email || "",
+  });
+  const matches = getSubmissionSyncMatches(attemptIndex, identity);
+  const status = oneLine(row?.processing_status || "received");
+  const backupStatus = oneLine(row?.backup_status || "pending");
+  const errorReason = oneLine(row?.last_error || row?.backup_last_error || "");
+  return {
+    sourceType: "inbox",
+    inboxSubmissionId: oneLine(row?.submission_id || ""),
+    submissionKey: `inbox:${oneLine(row?.submission_id || "")}`,
+    deterministicKey: oneLine(row?.idempotency_key || ""),
+    studentFullName: identity.studentFullName,
+    studentIdCode: identity.studentIdCode,
+    email: identity.officialEmail || identity.loginEmail || identity.userEmail,
+    classroomName: oneLine(finalPayload?.classroomName || ""),
+    testId: identity.examId,
+    section: oneLine(row?.section || inferSubmissionSection(row, finalPayload)),
+    attemptKind: oneLine(finalPayload?.attemptKind || (row?.section === "full mock" ? "full" : "practice")) || "full",
+    submittedAt: identity.submittedAt,
+    organizationId: identity.organizationId,
+    status,
+    errorReason,
+    reviewed: row?.reviewed === true,
+    sheetSyncStatus: backupStatus,
+    sheetLastError: oneLine(row?.backup_last_error || ""),
+    backupSource: "submission_inbox",
+    payloadHash: oneLine(row?.payload_hash || ""),
+    payloadBytes: finalPayload ? new TextEncoder().encode(stableStringify(finalPayload)).length : 0,
+    supabaseAttemptIds: matches.map((match) => oneLine(match?.id || "")).filter(Boolean),
+    lastCheckedAt: new Date().toISOString(),
+  };
+}
+
+async function loadSubmissionInboxMonitorRows(env, auth, organizationId, limit) {
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    query: {
+      select: "*",
+      order: "received_at_server.desc",
+      limit: String(limit),
+      ...(auth.isSuperAdmin ? {} : { organization_id: `eq.${organizationId}` }),
+    },
+  });
+  if (!res.ok) {
+    if (isMissingSubmissionInboxTable(res)) return [];
+    console.warn("[submission-pipeline] monitor inbox load failed", res.error || res.status);
+    return [];
+  }
+  return Array.isArray(res.data) ? res.data.filter((row) => canActorAccessOrganization(auth, row?.organization_id || "")) : [];
 }
 
 async function loadSubmissionSyncAttemptIndex(env, auth, organizationId) {
@@ -3600,9 +4141,10 @@ async function handleAdminSubmissionSyncMonitor(request, env, auth) {
     });
   }
   const attemptIndex = await loadSubmissionSyncAttemptIndex(env, auth, actorOrganizationId).catch(() => new Map());
+  const inboxRows = await loadSubmissionInboxMonitorRows(env, auth, actorOrganizationId, limit).catch(() => []);
   const sourceRows = (Array.isArray(recoveryRes.data) ? recoveryRes.data : [])
     .filter((row) => canActorAccessOrganization(auth, row?.organization_id || ""));
-  const rows = [];
+  const rows = inboxRows.map((row) => buildSubmissionSyncMonitorRowFromInbox(row, attemptIndex));
   for (const row of sourceRows) {
     rows.push(await buildSubmissionSyncMonitorRow(row, attemptIndex));
   }
@@ -3617,10 +4159,13 @@ async function handleAdminSubmissionSyncMonitor(request, env, auth) {
       scanned: rows.length,
       shown: filteredRows.length,
       missing: counts.missing_from_supabase || 0,
+      received: counts.received || 0,
+      failedProcessing: counts.failed_processing || 0,
+      failedBackup: counts.failed_backup || 0,
       synced: (counts.synced || 0) + (counts.resynced || 0),
       duplicatePossible: counts.duplicate_possible || 0,
       invalidPayload: counts.invalid_payload || 0,
-      failedResync: counts.failed_resync || 0,
+      failedResync: (counts.failed_resync || 0) + (counts.duplicate_conflict || 0),
     },
     rows: filteredRows,
   });
@@ -3748,10 +4293,120 @@ async function handleAdminResyncSubmission(request, env, auth) {
   }
 }
 
+function buildSyntheticSubmissionAuthFromInbox(row, adminAuth) {
+  const email = normalizeEmail(row?.login_email || row?.official_email || adminAuth?.user?.email || "");
+  return {
+    user: {
+      id: oneLine(row?.student_id || email || adminAuth?.user?.id || ""),
+      email,
+      app_metadata: { provider: "inbox-admin-retry" },
+      user_metadata: { name: oneLine(row?.student_name || "") },
+    },
+  };
+}
+
+async function handleAdminRetrySubmissionProcessing(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const submissionId = normalizeSubmissionId(payload?.submissionId || payload?.inboxSubmissionId || "");
+  const forceBackup = payload?.mode === "backup" || payload?.forceBackup === true;
+  if (!submissionId) return json(400, { ok: false, error: "Missing inbox submission id." });
+  const row = await getSubmissionInboxRow(env, submissionId);
+  if (!row) return json(404, { ok: false, error: "Submission inbox row was not found." });
+  if (!canActorAccessOrganization(auth, row.organization_id || "")) {
+    return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+  }
+  console.log("[submission-pipeline] admin_retry_started", { submissionId, forceBackup });
+  const retryAuth = buildSyntheticSubmissionAuthFromInbox(row, auth);
+  const tenant = { organizationId: normalizeOrganizationId(row.organization_id || getActorOrganizationId(auth) || getPrimaryOrganizationId(env)) };
+  const result = await processDurableSubmission(env, { storage: "submission_inbox", row }, retryAuth, tenant, request, { forceBackup });
+  if (!result.ok) {
+    console.warn("[submission-pipeline] admin_retry_failed", { submissionId, error: result.error || "" });
+    return json(500, { ok: false, status: result.status || "failed_processing", error: result.error || "Retry failed." });
+  }
+  console.log("[submission-pipeline] admin_retry_succeeded", { submissionId });
+  return json(200, { ok: true, status: result.status || "processed", message: "Submission retry completed." });
+}
+
+async function handleAdminSubmissionRaw(request, env, auth) {
+  const url = new URL(request.url);
+  const submissionId = normalizeSubmissionId(url.searchParams.get("submissionId") || "");
+  const submissionKey = oneLine(url.searchParams.get("submissionKey") || "");
+  if (submissionId) {
+    const row = await getSubmissionInboxRow(env, submissionId);
+    if (!row) return json(404, { ok: false, error: "Submission inbox row was not found." });
+    if (!canActorAccessOrganization(auth, row.organization_id || "")) {
+      return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+    }
+    return json(200, {
+      ok: true,
+      sourceType: "inbox",
+      submission: {
+        ...row,
+        raw_payload: row.raw_payload || null,
+      },
+    });
+  }
+  if (submissionKey) {
+    const row = await getSubmissionRecoveryRow(env, submissionKey);
+    if (!row) return json(404, { ok: false, error: "Submission recovery row was not found." });
+    if (!canActorAccessOrganization(auth, row.organization_id || "")) {
+      return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+    }
+    return json(200, { ok: true, sourceType: "recovery", submission: row });
+  }
+  return json(400, { ok: false, error: "Missing submission id or key." });
+}
+
+async function retryFailedInboxSubmissions(env, auth = null, options = {}) {
+  const limit = Math.min(100, Math.max(1, Number(options.limit || 20)));
+  const statuses = ["received", "failed_processing", "failed_backup"];
+  const res = await supabaseServiceRequest(env, `/rest/v1/${getSubmissionInboxTableName()}`, {
+    query: {
+      select: "*",
+      processing_status: `in.(${statuses.join(",")})`,
+      order: "received_at_server.asc",
+      limit: String(limit),
+    },
+  });
+  if (!res.ok) {
+    if (!isMissingSubmissionInboxTable(res)) {
+      console.warn("[submission-pipeline] scheduled retry load failed", res.error || res.status);
+    }
+    return { ok: false, processed: 0, failed: 0, error: res.error || "Could not load retry queue." };
+  }
+  let processed = 0;
+  let failed = 0;
+  for (const row of Array.isArray(res.data) ? res.data : []) {
+    if (auth && !canActorAccessOrganization(auth, row.organization_id || "")) continue;
+    const retryAuth = buildSyntheticSubmissionAuthFromInbox(row, auth || {});
+    const tenant = { organizationId: normalizeOrganizationId(row.organization_id || getPrimaryOrganizationId(env)) };
+    const result = await processDurableSubmission(env, { storage: "submission_inbox", row }, retryAuth, tenant, null, {
+      forceBackup: row.processing_status === "failed_backup",
+    }).catch((error) => ({ ok: false, error: error?.message || "Retry crashed." }));
+    if (result.ok) processed += 1;
+    else failed += 1;
+  }
+  return { ok: true, processed, failed };
+}
+
 async function handleAdminMarkSubmissionReviewed(request, env, auth) {
   const payload = await request.json().catch(() => null);
+  const inboxSubmissionId = normalizeSubmissionId(payload?.submissionId || payload?.inboxSubmissionId || "");
   const submissionKey = oneLine(payload?.submissionKey || payload?.key || "");
   const reviewed = payload?.reviewed !== false;
+  if (inboxSubmissionId) {
+    const row = await getSubmissionInboxRow(env, inboxSubmissionId);
+    if (!row) return json(404, { ok: false, error: "Submission inbox row was not found." });
+    if (!canActorAccessOrganization(auth, row.organization_id || "")) {
+      return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+    }
+    const result = await patchSubmissionInboxRow(env, inboxSubmissionId, {
+      reviewed,
+      processing_status: reviewed ? "reviewed" : (row.processing_status === "reviewed" ? "processed" : row.processing_status),
+    });
+    if (!result.ok) return json(result.status || 500, { ok: false, error: result.error || "Could not update reviewed status." });
+    return json(200, { ok: true, reviewed });
+  }
   if (!submissionKey) return json(400, { ok: false, error: "Missing submission key." });
   const recovery = await getSubmissionRecoveryRow(env, submissionKey);
   if (!recovery) return json(404, { ok: false, error: "Submission recovery row was not found." });

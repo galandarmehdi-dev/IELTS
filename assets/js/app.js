@@ -3375,16 +3375,24 @@
         if (el) el.textContent = String(value ?? 0);
       };
       set("syncSummaryScanned", safe.scanned || 0);
-      set("syncSummaryMissing", safe.missing || 0);
+      set("syncSummaryMissing", (safe.missing || 0) + (safe.received || 0) + (safe.failedProcessing || 0));
       set("syncSummarySynced", safe.synced || 0);
       set("syncSummaryDuplicate", safe.duplicatePossible || 0);
       set("syncSummaryInvalid", safe.invalidPayload || 0);
-      set("syncSummaryFailed", safe.failedResync || 0);
+      set("syncSummaryFailed", (safe.failedResync || 0) + (safe.failedBackup || 0));
     }
 
     function submissionSyncStatusLabel(status) {
       const value = String(status || "");
       const labels = {
+        received: "Received, not processed",
+        processing: "Processing",
+        processed: "Processed",
+        backup_written: "Backup written",
+        failed_processing: "Failed processing",
+        failed_backup: "Backup failed",
+        duplicate_conflict: "Duplicate conflict",
+        reviewed: "Reviewed",
         synced: "Synced",
         resynced: "Resynced",
         missing_from_supabase: "Missing from Supabase",
@@ -3401,7 +3409,12 @@
       const safeRows = Array.isArray(rows) ? rows : [];
       tbody.innerHTML = safeRows.map((row) => {
         const key = String(row.submissionKey || "");
-        const canResync = row.status === "missing_from_supabase" || row.status === "failed_resync";
+        const inboxId = String(row.inboxSubmissionId || "");
+        const canResync = row.status === "missing_from_supabase" ||
+          row.status === "failed_resync" ||
+          row.status === "received" ||
+          row.status === "failed_processing" ||
+          row.status === "failed_backup";
         return `
           <tr class="ui-data-row">
             <td><span class="badge">${escapeHtml(submissionSyncStatusLabel(row.status))}</span>${row.reviewed ? ` <span class="badge badge-muted">Reviewed</span>` : ""}</td>
@@ -3416,9 +3429,9 @@
             <td>${escapeHtml(row.errorReason || row.sheetLastError || "—")}</td>
             <td>
               <div class="admin-row-actions">
-                <button class="btn secondary" type="button" data-sync-raw="${escapeHtml(key)}">View raw</button>
-                <button class="btn secondary" type="button" data-sync-reviewed="${escapeHtml(key)}">${row.reviewed ? "Unreview" : "Mark reviewed"}</button>
-                <button class="btn" type="button" data-sync-resync="${escapeHtml(key)}" ${canResync ? "" : "disabled"}>Resync</button>
+                <button class="btn secondary" type="button" data-sync-raw="${escapeHtml(key)}" data-sync-inbox="${escapeHtml(inboxId)}">View raw</button>
+                <button class="btn secondary" type="button" data-sync-reviewed="${escapeHtml(key)}" data-sync-reviewed-inbox="${escapeHtml(inboxId)}">${row.reviewed ? "Unreview" : "Mark reviewed"}</button>
+                <button class="btn" type="button" data-sync-resync="${escapeHtml(key)}" data-sync-resync-inbox="${escapeHtml(inboxId)}" ${canResync ? "" : "disabled"}>Retry</button>
               </div>
             </td>
           </tr>
@@ -3426,13 +3439,22 @@
       }).join("") || `<tr class="ui-table-state-row"><td colspan="8">No submission sync rows matched this filter.</td></tr>`;
 
       Array.from(tbody.querySelectorAll("[data-sync-raw]")).forEach((button) => {
-        button.addEventListener("click", () => viewSubmissionSyncRaw(String(button.getAttribute("data-sync-raw") || "")));
+        button.addEventListener("click", () => viewSubmissionSyncRaw(
+          String(button.getAttribute("data-sync-raw") || ""),
+          String(button.getAttribute("data-sync-inbox") || "")
+        ));
       });
       Array.from(tbody.querySelectorAll("[data-sync-reviewed]")).forEach((button) => {
-        button.addEventListener("click", () => markSubmissionSyncReviewed(String(button.getAttribute("data-sync-reviewed") || "")));
+        button.addEventListener("click", () => markSubmissionSyncReviewed(
+          String(button.getAttribute("data-sync-reviewed") || ""),
+          String(button.getAttribute("data-sync-reviewed-inbox") || "")
+        ));
       });
       Array.from(tbody.querySelectorAll("[data-sync-resync]")).forEach((button) => {
-        button.addEventListener("click", () => resyncSubmissionRow(String(button.getAttribute("data-sync-resync") || "")));
+        button.addEventListener("click", () => resyncSubmissionRow(
+          String(button.getAttribute("data-sync-resync") || ""),
+          String(button.getAttribute("data-sync-resync-inbox") || "")
+        ));
       });
     }
 
@@ -3493,11 +3515,13 @@
       return data;
     }
 
-    async function resyncSubmissionRow(submissionKey) {
-      if (!submissionKey) return;
+    async function resyncSubmissionRow(submissionKey, inboxSubmissionId = "") {
+      if (!submissionKey && !inboxSubmissionId) return;
       setSubmissionSyncStatus("Resyncing submission...");
       try {
-        const data = await postSubmissionSyncAction("resyncSubmission", { submissionKey });
+        const data = inboxSubmissionId
+          ? await postSubmissionSyncAction("retrySubmissionProcessing", { submissionId: inboxSubmissionId })
+          : await postSubmissionSyncAction("resyncSubmission", { submissionKey });
         setSubmissionSyncStatus(data.message || "Submission resynced.", "success");
         await loadSubmissionSyncMonitor(true);
       } catch (error) {
@@ -3506,12 +3530,15 @@
       }
     }
 
-    async function markSubmissionSyncReviewed(submissionKey) {
-      if (!submissionKey) return;
-      const current = submissionSyncState.rows.find((row) => row.submissionKey === submissionKey);
+    async function markSubmissionSyncReviewed(submissionKey, inboxSubmissionId = "") {
+      if (!submissionKey && !inboxSubmissionId) return;
+      const current = submissionSyncState.rows.find((row) =>
+        (inboxSubmissionId && row.inboxSubmissionId === inboxSubmissionId) ||
+        (submissionKey && row.submissionKey === submissionKey)
+      );
       const reviewed = !(current && current.reviewed);
       try {
-        await postSubmissionSyncAction("markSubmissionReviewed", { submissionKey, reviewed });
+        await postSubmissionSyncAction("markSubmissionReviewed", { submissionKey, submissionId: inboxSubmissionId, reviewed });
         setSubmissionSyncStatus(reviewed ? "Submission marked reviewed." : "Submission unreviewed.", "success");
         await loadSubmissionSyncMonitor(true);
       } catch (error) {
@@ -3519,21 +3546,25 @@
       }
     }
 
-    async function viewSubmissionSyncRaw(submissionKey) {
-      if (!submissionKey) return;
+    async function viewSubmissionSyncRaw(submissionKey, inboxSubmissionId = "") {
+      if (!submissionKey && !inboxSubmissionId) return;
       const target = $("submissionSyncRawPayload");
       const panel = $("submissionSyncRawPanel");
       if (target) target.textContent = "Loading raw payload...";
       try { if (panel) panel.open = true; } catch (e) {}
       try {
-        const url = R()?.buildAdminApiUrl?.({ action: "submissionBackup", key: `submission-backup:${submissionKey}` });
+        const url = R()?.buildAdminApiUrl?.({
+          action: "submissionRaw",
+          submissionId: inboxSubmissionId || "",
+          submissionKey: inboxSubmissionId ? "" : submissionKey,
+        });
         if (!url) throw new Error("Could not build raw payload URL.");
         const res = await fetch(url.toString(), { cache: "no-store", headers: await getAuthHeaders() }).catch(() => null);
         const data = res ? await res.json().catch(() => null) : null;
         if (!res || !res.ok || !data || data.ok !== true) {
           throw new Error(data?.error || "Could not load raw payload.");
         }
-        if (target) target.textContent = JSON.stringify(data.backup || data, null, 2);
+        if (target) target.textContent = JSON.stringify(data.submission || data.backup || data, null, 2);
       } catch (error) {
         if (target) target.textContent = error?.message || "Could not load raw payload.";
       }
@@ -3541,7 +3572,11 @@
 
     async function retryAllMissingSubmissionRows() {
       const rows = (Array.isArray(submissionSyncState.rows) ? submissionSyncState.rows : [])
-        .filter((row) => row.status === "missing_from_supabase" || row.status === "failed_resync");
+        .filter((row) => row.status === "missing_from_supabase" ||
+          row.status === "failed_resync" ||
+          row.status === "received" ||
+          row.status === "failed_processing" ||
+          row.status === "failed_backup");
       if (!rows.length) {
         setSubmissionSyncStatus("No missing submissions are visible in the current filter.", "success");
         return;
@@ -3550,7 +3585,11 @@
       let failed = 0;
       for (const row of rows) {
         try {
-          await postSubmissionSyncAction("resyncSubmission", { submissionKey: row.submissionKey });
+          if (row.inboxSubmissionId) {
+            await postSubmissionSyncAction("retrySubmissionProcessing", { submissionId: row.inboxSubmissionId });
+          } else {
+            await postSubmissionSyncAction("resyncSubmission", { submissionKey: row.submissionKey });
+          }
           success += 1;
         } catch (e) {
           failed += 1;
@@ -3663,9 +3702,10 @@
     const pendingPlacementStartupRoute = window.location.pathname === "/placement-test/";
     const pendingVocabularyStartupRoute = window.location.pathname === "/vocabulary/";
     const pendingRecentQuestionsStartupRoute = window.location.pathname === "/recent-questions/";
+    const pendingGrammarStartupRoute = window.location.pathname === "/grammar/";
     const hasPendingHashStartupRoute = !!(route && route.view && route.view !== "home");
     const hasPendingHubStartupRoute = !!pendingResourceHubKind;
-    const hasPendingStartupRoute = hasPendingHashStartupRoute || hasPendingHubStartupRoute || pendingPlacementStartupRoute || pendingVocabularyStartupRoute || pendingRecentQuestionsStartupRoute;
+    const hasPendingStartupRoute = hasPendingHashStartupRoute || hasPendingHubStartupRoute || pendingPlacementStartupRoute || pendingVocabularyStartupRoute || pendingRecentQuestionsStartupRoute || pendingGrammarStartupRoute;
 
     // -----------------------------
     // Default to home
@@ -6550,6 +6590,10 @@ function startFreshExam() {
         UI().showOnly("recentQuestions");
         window.IELTS?.RecentQuestions?.render?.();
       } catch (e) {}
+    }
+    if (pendingGrammarStartupRoute) {
+      try { UI().showOnly("grammar"); } catch (e) {}
+      try { window.IELTS?.Grammar?.render?.(); } catch (e) {}
     }
     if (resourceHubBackBtn) resourceHubBackBtn.onclick = () => {
       UI().showOnly("home");

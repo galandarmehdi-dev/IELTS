@@ -104,6 +104,7 @@ function shouldServeAppShell(pathname = "", method = "GET") {
     "/placement-test/",
     "/vocabulary/",
     "/recent-questions/",
+    "/grammar/",
     "/admin/",
     "/admin/results/",
     "/admin/classes/",
@@ -943,6 +944,54 @@ async function handleAdminApi(request, env, ctx = null) {
       ok: true,
       tenant,
     });
+  }
+
+  if (request.method === "GET" && action === "listRecentQuestions") {
+    const tenant = resolveTenantContext(request, env);
+    const organizationId = normalizeOrganizationId(tenant.organizationId || "ieltsmock");
+    const res = await supabaseServiceRequest(env, "/rest/v1/recent_questions", {
+      query: {
+        select: "id,module,test_type,country,exam_date,question_text,difficulty,created_at",
+        organization_id: `eq.${organizationId}`,
+        status: "eq.approved",
+        order: "created_at.desc",
+        limit: "100",
+      },
+    });
+    if (!res.ok) return json(200, { ok: true, posts: [] });
+    return json(200, { ok: true, posts: Array.isArray(res.data) ? res.data : [] });
+  }
+
+  if (request.method === "POST" && action === "submitRecentQuestion") {
+    const auth = await authenticateUser(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    const tenant = resolveTenantContext(request, env);
+    const organizationId = normalizeOrganizationId(tenant.organizationId || "ieltsmock");
+    let body;
+    try { body = await request.json(); } catch (e) { return json(400, { ok: false, error: "Invalid JSON body." }); }
+    const question_text = oneLine(body?.question_text || "").slice(0, 2000);
+    const module = oneLine(body?.module || "").slice(0, 64);
+    const test_type = oneLine(body?.test_type || "Academic").slice(0, 32);
+    const country = oneLine(body?.country || "").slice(0, 64);
+    const exam_date = oneLine(body?.exam_date || "").slice(0, 16);
+    const difficulty = Math.min(5, Math.max(1, parseInt(body?.difficulty || 3, 10) || 3));
+    if (!question_text || !module) return json(400, { ok: false, error: "question_text and module are required." });
+    const res = await supabaseServiceRequest(env, "/rest/v1/recent_questions", {
+      method: "POST",
+      body: JSON.stringify({
+        organization_id: organizationId,
+        submitted_by: auth.user.email || "",
+        question_text,
+        module,
+        test_type,
+        country: country || null,
+        exam_date: exam_date || null,
+        difficulty,
+        status: "pending",
+      }),
+    });
+    if (!res.ok) return json(500, { ok: false, error: "Could not save your submission. Please try again." });
+    return json(200, { ok: true });
   }
 
   if (request.method === "GET" && action === "classroomStudents") {

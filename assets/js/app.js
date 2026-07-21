@@ -3807,6 +3807,29 @@
         return;
       }
 
+      // Subscription bypass — ieltsmock.org individual paid users skip the password.
+      const sub = window.IELTS?.Access?.getSubscription?.();
+      if (sub?.active && sub?.plan === "three_month") {
+        onOk();
+        return;
+      }
+      if (sub?.creditsRemaining > 0) {
+        Promise.resolve(window.IELTS?.Auth?.getAccessToken?.()).then((token) => {
+          return fetch("/api/subscription/consume-credit", {
+            method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+        }).then((r) => r.json()).then((data) => {
+          if (data?.ok) {
+            if (sub) sub.creditsRemaining = data.creditsRemaining;
+            onOk();
+          } else {
+            showPasswordModal();
+          }
+        }).catch(() => showPasswordModal());
+        return;
+      }
+
       function showPasswordModal() {
         window.IELTS?.Modal?.showModal?.(
           "Enter password",
@@ -6639,11 +6662,14 @@ function startFreshExam() {
       if (!isAdminView() && window.IELTS?.Auth?.isSignedIn?.()) {
         window.IELTS?.Assignments?.loadStudentAssignments?.();
       }
+      window.IELTS?.Access?.loadSubscription?.().catch(() => {});
     });
     // Load student assignments on first load if already signed in
     if (!isAdminView() && window.IELTS?.Auth?.isSignedIn?.()) {
       try { window.IELTS?.Assignments?.loadStudentAssignments?.(); } catch (e) {}
     }
+    // Pre-fetch subscription status on first load (primary tenant only, signed-in users)
+    window.IELTS?.Access?.loadSubscription?.().catch(() => {});
     refreshHomePlacementPreview().catch(() => {});
     // ── End Assignments init ─────────────────────────────────────────────────
 

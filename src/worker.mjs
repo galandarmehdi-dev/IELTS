@@ -70,6 +70,22 @@ export default {
       return handleFinalizeSubmission(request, env, ctx);
     }
 
+    if (url.pathname === "/api/subscription/status") {
+      return handleSubscriptionStatus(request, env);
+    }
+
+    if (url.pathname === "/api/subscription/consume-credit") {
+      return handleConsumeCredit(request, env);
+    }
+
+    if (url.pathname === "/api/checkout") {
+      return handleCheckout(request, env);
+    }
+
+    if (url.pathname === "/api/paddle-webhook") {
+      return handlePaddleWebhook(request, env);
+    }
+
     if (shouldServeAppShell(url.pathname, request.method)) {
       const appShellUrl = new URL("/", url.origin);
       const appShellRequest = new Request(appShellUrl.toString(), request);
@@ -113,6 +129,9 @@ function shouldServeAppShell(pathname = "", method = "GET") {
     "/dashboard/",
     "/history/",
     "/assignments/",
+    "/pricing/",
+    "/subscribe/success/",
+    "/subscribe/cancel/",
   ]);
   return appShellPaths.has(normalizedPath);
 }
@@ -8885,4 +8904,222 @@ function json(status, payload, extraHeaders = {}) {
       ...extraHeaders,
     },
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PADDLE SUBSCRIPTION — ieltsmock.org only
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isPrimaryTenantRequest(request, env) {
+  const tenant = resolveTenantContext(request, env);
+  return tenant.isPrimaryTenant;
+}
+
+async function getSubscriptionRow(env, email) {
+  const res = await supabaseServiceRequest(env, "/rest/v1/user_subscriptions", {
+    query: { email: `eq.${email.toLowerCase()}`, select: "*", limit: "1" },
+  });
+  return (res.ok && Array.isArray(res.data) && res.data.length > 0) ? res.data[0] : null;
+}
+
+async function getCreditsRow(env, email) {
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_credits", {
+    query: { email: `eq.${email.toLowerCase()}`, select: "*", limit: "1" },
+  });
+  return (res.ok && Array.isArray(res.data) && res.data.length > 0) ? res.data[0] : null;
+}
+
+function subscriptionIsActive(row) {
+  if (!row || row.status !== "active") return false;
+  if (!row.current_period_end) return true;
+  return new Date(row.current_period_end) > new Date();
+}
+
+async function handleSubscriptionStatus(request, env) {
+  if (!isPrimaryTenantRequest(request, env)) return json(404, { ok: false, error: "Not found." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(200, { ok: true, plan: "free", active: false, creditsRemaining: 0, expiresAt: null });
+
+  const email = String(auth.user?.email || "").toLowerCase();
+  if (!email) return json(200, { ok: true, plan: "free", active: false, creditsRemaining: 0, expiresAt: null });
+
+  const [subRow, credRow] = await Promise.all([
+    getSubscriptionRow(env, email),
+    getCreditsRow(env, email),
+  ]);
+
+  const active = subscriptionIsActive(subRow);
+  return json(200, {
+    ok: true,
+    plan: active ? (subRow?.plan || "free") : "free",
+    active,
+    creditsRemaining: credRow?.credits_remaining || 0,
+    expiresAt: subRow?.current_period_end || null,
+  });
+}
+
+async function handleConsumeCredit(request, env) {
+  if (!isPrimaryTenantRequest(request, env)) return json(404, { ok: false, error: "Not found." });
+  if (request.method !== "POST") return json(405, { ok: false, error: "Method not allowed." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+
+  const email = String(auth.user?.email || "").toLowerCase();
+  if (!email) return json(400, { ok: false, error: "No email on account." });
+
+  // Check current credits first
+  const credRow = await getCreditsRow(env, email);
+  if (!credRow || credRow.credits_remaining < 1) {
+    return json(403, { ok: false, error: "No exam credits remaining." });
+  }
+
+  // Decrement atomically via RPC or a conditional update
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_credits", {
+    method: "PATCH",
+    query: {
+      email: `eq.${email}`,
+      credits_remaining: `gt.0`,
+      select: "credits_remaining",
+    },
+    headers: { Prefer: "return=representation" },
+    body: {
+      credits_remaining: credRow.credits_remaining - 1,
+      updated_at: new Date().toISOString(),
+    },
+  });
+
+  if (!res.ok || !Array.isArray(res.data) || res.data.length === 0) {
+    return json(403, { ok: false, error: "No exam credits remaining." });
+  }
+
+  return json(200, { ok: true, creditsRemaining: res.data[0].credits_remaining });
+}
+
+async function handleCheckout(request, env) {
+  if (!isPrimaryTenantRequest(request, env)) return json(404, { ok: false, error: "Not found." });
+  if (request.method !== "GET") return json(405, { ok: false, error: "Method not allowed." });
+
+  const paddleApiKey = String(env?.PADDLE_API_KEY || "").trim();
+  if (!paddleApiKey) return json(503, { ok: false, error: "Payment system not configured." });
+
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) {
+    // Redirect to home with login prompt instead of JSON error
+    return Response.redirect(new URL("/?requireLogin=1", request.url).toString(), 302);
+  }
+
+  const url = new URL(request.url);
+  const plan = oneLine(url.searchParams.get("plan") || "").toLowerCase();
+  const origin = url.origin;
+
+  const priceIdPass   = String(env?.PADDLE_PRICE_ID_PASS   || "").trim();
+  const priceIdBundle = String(env?.PADDLE_PRICE_ID_BUNDLE || "").trim();
+
+  let priceId;
+  if (plan === "pass")   priceId = priceIdPass;
+  if (plan === "bundle") priceId = priceIdBundle;
+  if (!priceId) return json(400, { ok: false, error: "Invalid plan. Use ?plan=pass or ?plan=bundle." });
+
+  const email = String(auth.user?.email || "").toLowerCase();
+
+  // Create a Paddle checkout session
+  const paddleRes = await fetch("https://api.paddle.com/transactions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${paddleApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      items: [{ price_id: priceId, quantity: 1 }],
+      customer: { email },
+      custom_data: { email, plan },
+      checkout: {
+        url: `${origin}/subscribe/success/`,
+      },
+    }),
+  });
+
+  const paddleData = await paddleRes.json().catch(() => null);
+  if (!paddleRes.ok || !paddleData?.data?.checkout?.url) {
+    return json(502, { ok: false, error: "Could not create checkout session. Please try again." });
+  }
+
+  return Response.redirect(paddleData.data.checkout.url, 302);
+}
+
+async function handlePaddleWebhook(request, env) {
+  if (!isPrimaryTenantRequest(request, env)) return json(404, { ok: false, error: "Not found." });
+  if (request.method !== "POST") return json(405, { ok: false, error: "Method not allowed." });
+
+  const webhookSecret = String(env?.PADDLE_WEBHOOK_SECRET || "").trim();
+  const signatureHeader = request.headers.get("paddle-signature") || "";
+  const rawBody = await request.text();
+
+  // Verify Paddle webhook signature (HMAC-SHA256)
+  if (webhookSecret && signatureHeader) {
+    const parts = Object.fromEntries(signatureHeader.split(";").map((p) => p.split("=")));
+    const ts = parts.ts || "";
+    const h1 = parts.h1 || "";
+    const signed = `${ts}:${rawBody}`;
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(webhookSecret),
+      { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signed));
+    const expected = Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    if (expected !== h1) return json(400, { ok: false, error: "Invalid signature." });
+  }
+
+  let event;
+  try { event = JSON.parse(rawBody); } catch { return json(400, { ok: false, error: "Invalid JSON." }); }
+
+  const eventType = event?.event_type || "";
+  const data = event?.data || {};
+
+  if (eventType === "transaction.completed") {
+    const customData = data?.custom_data || {};
+    const email = oneLine(customData?.email || "").toLowerCase();
+    const plan  = oneLine(customData?.plan  || "").toLowerCase();
+    const paddleTransactionId = oneLine(data?.id || "");
+    const paddleCustomerId    = oneLine(data?.customer_id || "");
+
+    if (!email) return json(200, { ok: true, note: "No email in custom_data, skipped." });
+
+    if (plan === "bundle") {
+      const periodEnd = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+      await supabaseServiceRequest(env, "/rest/v1/user_subscriptions", {
+        method: "POST",
+        query: { on_conflict: "email" },
+        headers: { Prefer: "resolution=merge-duplicates" },
+        body: {
+          email,
+          paddle_customer_id: paddleCustomerId,
+          paddle_transaction_id: paddleTransactionId,
+          plan: "three_month",
+          status: "active",
+          current_period_end: periodEnd,
+          updated_at: new Date().toISOString(),
+        },
+      });
+    }
+
+    if (plan === "pass") {
+      // Get current credits and increment
+      const credRow = await getCreditsRow(env, email);
+      const current = credRow?.credits_remaining || 0;
+      await supabaseServiceRequest(env, "/rest/v1/exam_credits", {
+        method: "POST",
+        query: { on_conflict: "email" },
+        headers: { Prefer: "resolution=merge-duplicates" },
+        body: {
+          email,
+          paddle_transaction_id: paddleTransactionId,
+          credits_remaining: current + 1,
+          updated_at: new Date().toISOString(),
+        },
+      });
+    }
+  }
+
+  return json(200, { ok: true });
 }

@@ -15,6 +15,7 @@
 
   let listenersBound = false;
   let initRan = false;
+  let _subscription = null;
 
   function nowMs() {
     return Date.now();
@@ -403,5 +404,28 @@
     getTenant,
     getOrganizationId,
     getAdminRole,
+    loadSubscription,
+    getSubscription,
   };
+
+  async function loadSubscription() {
+    const tenant = getTenant();
+    if (!tenant?.isPrimaryTenant) return;
+    const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
+    if (!token) { _subscription = null; return; }
+    try {
+      const res = await fetch("/api/subscription/status", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) _subscription = await res.json();
+    } catch (e) {}
+  }
+
+  function getSubscription() {
+    return _subscription;
+  }
 })();
+
+  function getSubscription() {
+    return _subscription;
+  }

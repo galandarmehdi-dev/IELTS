@@ -3583,14 +3583,25 @@ const test9 = {
     `,
   },
   writing: {
-    task1Type: "Line graph",
-    task2Type: "Agree or disagree",
-    task1Html: `<p>The chart below gives information about European people of different age groups who went to the gym once a month or more between 1990 and 2010.</p>`,
-    task1ImageSrc: "https://audio.ieltsmock.org/654416156_1285183377045727_339760894409887745_n.jpg",
-    task2Html: `<p>Some people believe that not all students have a natural ability for learning other languages, so schools should not force them to learn new languages. To what extent do you agree or disagree?</p>`,
-    samples: { task1: [], task2: [] },
-  },
-  reading: {
+  task1Type: "Pie chart",
+  task2Type: "Advantages and disadvantages",
+  task1Html: `
+    You should spend about 20 minutes on this task.<br>
+    The charts below show the reasons why students in different age categories voted for a particular candidate to be their student representative.<br>
+    Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
+    <b>Write at least 150 words.</b>
+  `,
+  task1ImageSrc: "https://audio.ieltsmock.org/825271669_3534045483410518_6193748867700455516_n.jpg",
+  task2Html: `
+    You should spend about 40 minutes on this task.<br><br>
+    Some people think international exchange programs would benefit teenagers in high school.<br><br>
+    Do the advantages of this outweigh the disadvantages?<br>
+    Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
+    <b>Write at least 250 words.</b>
+  `,
+  samples: { task1: [], task2: [] },
+},
+   reading: {
     parts: [
       {
         id: "part1",
@@ -4051,25 +4062,15 @@ const test10 = {
       </div>
     `,
   },
-writing: {
-  task1Type: "Pie chart",
-  task2Type: "Advantages and disadvantages",
-  task1Html: `
-    You should spend about 20 minutes on this task.<br>
-    The charts below show the reasons why students in different age categories voted for a particular candidate to be their student representative.<br>
-    Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
-    <b>Write at least 150 words.</b>
-  `,
-  task1ImageSrc: "https://audio.ieltsmock.org/825271669_3534045483410518_6193748867700455516_n.jpg",
-  task2Html: `
-    You should spend about 40 minutes on this task.<br><br>
-    Some people think international exchange programs would benefit teenagers in high school.<br><br>
-    Do the advantages of this outweigh the disadvantages?<br>
-    Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
-    <b>Write at least 250 words.</b>
-  `,
-  samples: { task1: [], task2: [] },
-},
+
+  writing: {
+    task1Type: "Line graph",
+    task2Type: "Agree or disagree",
+    task1Html: `<p>The chart below gives information about European people of different age groups who went to the gym once a month or more between 1990 and 2010.</p>`,
+    task1ImageSrc: "https://audio.ieltsmock.org/654416156_1285183377045727_339760894409887745_n.jpg",
+    task2Html: `<p>Some people believe that not all students have a natural ability for learning other languages, so schools should not force them to learn new languages. To what extent do you agree or disagree?</p>`,
+    samples: { task1: [], task2: [] },
+  },
   reading: {
     parts: [
       {

@@ -4052,20 +4052,19 @@ const test10 = {
     `,
   },
 writing: {
-  task1Type: "Map",
-  task2Type: "Two-part question",
+  task1Type: "Pie chart",
+  task2Type: "Advantages and disadvantages",
   task1Html: `
     You should spend about 20 minutes on this task.<br>
-    The two maps below show the changes that have taken place in the town of Westley since 1815.<br>
+    The charts below show the reasons why students in different age categories voted for a particular candidate to be their student representative.<br>
     Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br>
     <b>Write at least 150 words.</b>
   `,
-  task1ImageSrc: "https://audio.ieltsmock.org/Map10.png",
+  task1ImageSrc: "https://audio.ieltsmock.org/825271669_3534045483410518_6193748867700455516_n.jpg",
   task2Html: `
     You should spend about 40 minutes on this task.<br><br>
-    Many people try to achieve success through their career or education.<br><br>
-    What can success mean to different people?<br>
-    What is your view of success?<br><br>
+    Some people think international exchange programs would benefit teenagers in high school.<br><br>
+    Do the advantages of this outweigh the disadvantages?<br>
     Give reasons for your answer and include any relevant examples from your own knowledge or experience.<br>
     <b>Write at least 250 words.</b>
   `,

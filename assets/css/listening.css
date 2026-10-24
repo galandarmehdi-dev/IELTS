@@ -233,16 +233,12 @@
 }
 .listen-notes .note-row{ margin:12px 0; }
 .note-row{
-  display:flex;
-  align-items:flex-start;
-  gap:10px;
-  flex-wrap:wrap;
-  line-height:1.5;
+  display:block;
+  line-height:2;
   color:var(--text);
 }
 .note-row.bullet{ margin-left:18px; }
 .qnum{
-  flex:0 0 auto;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -255,11 +251,12 @@
   font-weight:900;
   font-size:13px;
   box-shadow:0 8px 16px rgba(18,26,36,.05);
+  vertical-align:middle;
 }
-.l-input{ flex:0 1 280px; max-width:280px; }
-.l-input.small{ max-width:150px; }
-.l-input.tiny{ max-width:120px; }
-.l-select{ width:auto; min-width:100px; }
+.l-input{ display:inline-block; width:160px; max-width:280px; vertical-align:middle; }
+.l-input.small{ width:100px; max-width:150px; }
+.l-input.tiny{ width:80px; max-width:120px; }
+.l-select{ display:inline-block; width:auto; min-width:100px; vertical-align:middle; }
 .listen-table-wrap{ overflow-x:auto; }
 .listen-table{ min-width:600px; }
 .listen-table th,

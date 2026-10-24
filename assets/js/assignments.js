@@ -203,7 +203,8 @@
       return;
     }
     listEl.innerHTML = state.assignments.map((a) => {
-      const badge = `<span class="assignment-badge ${esc(a.status)}">${esc(a.status)}</span>`;
+      const badge = `<span class="assignment-badge ${esc(a.status)}">${esc(a.status)}</span>`
+        + (a.send_emails === false ? ` <span class="assignment-badge exam">exam · no emails</span>` : "");
       const due = a.due_date ? `<span>Due: ${esc(fmtDate(a.due_date))}</span>` : "";
       const testLabel = formatAssignmentTarget(a.test_id);
       return `
@@ -220,6 +221,7 @@
           <div class="assignment-card-actions ui-card-actions">
             <button class="btn secondary" type="button" data-action="edit" data-id="${esc(a.id)}">Edit</button>
             ${a.status === "draft" ? `<button class="btn" type="button" data-action="publish" data-id="${esc(a.id)}">Publish</button>` : ""}
+            ${a.status === "draft" ? `<button class="btn secondary" type="button" data-action="publish-exam" data-id="${esc(a.id)}">Publish as exam</button>` : ""}
             ${a.status === "published" ? `<button class="btn secondary" type="button" data-action="archive" data-id="${esc(a.id)}">Archive</button>` : ""}
             <button class="btn secondary" type="button" data-action="students" data-id="${esc(a.id)}">Students</button>
           </div>
@@ -399,6 +401,21 @@
       await loadAndRenderAssignments();
     } catch (e) {
       window.IELTS?.Modal?.showModal?.("Error", e.message || "Could not delete assignment.", { mode: "confirm" });
+    }
+  }
+
+  async function publishAssignmentAsExam(id) {
+    try {
+      const data = await apiPost("updateAssignment", { id, status: "published", sendEmails: false });
+      const assigned = Number(data?.emailSummary?.assignedCount || 0);
+      window.IELTS?.Modal?.showModal?.(
+        "Published as exam",
+        `No emails were sent.\nStudents assigned: ${assigned}`,
+        { mode: "confirm" }
+      );
+      await loadAndRenderAssignments();
+    } catch (e) {
+      window.IELTS?.Modal?.showModal?.("Error", e.message || "Could not publish assignment.", { mode: "confirm" });
     }
   }
 
@@ -638,6 +655,17 @@
   // ─── STUDENT UI ───────────────────────────────────────────────────────────
 
   async function loadStudentAssignments() {
+    // Immediately show the assignments panel and hide the Full Mock Test fallback
+    const section = $("studentAssignmentsSection");
+    const heroFallback = $("homeHeroFocusFallback");
+    if (section) section.classList.remove("hidden");
+    if (heroFallback) heroFallback.classList.add("hidden");
+    // Show loading state while fetching
+    const list = $("studentAssignmentsList");
+    if (list && !list.dataset.loaded) {
+      list.innerHTML = `<div class="sa-empty"><span class="sa-empty-icon">⏳</span>Loading…</div>`;
+    }
+
     if (state.studentAssignmentsLoaded) {
       renderStudentAssignments();
       return;
@@ -648,7 +676,7 @@
       state.studentAssignmentsLoaded = true;
       renderStudentAssignments();
     } catch (e) {
-      // Non-fatal — student assignments section stays empty
+      if (list) list.innerHTML = `<div class="sa-empty">Could not load assignments.</div>`;
     }
   }
 
@@ -664,14 +692,15 @@
     const done = state.studentAssignments.filter((a) => a.completed);
     const all = [...active, ...attempted, ...done];
 
-    if (!all.length) {
-      section.classList.add("hidden");
-      if (heroFallback) heroFallback.classList.remove("hidden");
-      return;
-    }
-
+    // Always show section for signed-in students; never show Full Mock Test fallback
     section.classList.remove("hidden");
     if (heroFallback) heroFallback.classList.add("hidden");
+    list.dataset.loaded = "1";
+
+    if (!all.length) {
+      list.innerHTML = `<div class="sa-empty"><span class="sa-empty-icon">📋</span>No assignments yet</div>`;
+      return;
+    }
     list.innerHTML = all.map((a) => {
       const testLabel = formatAssignmentTarget(a.testId);
       let dueHtml = "";
@@ -1219,6 +1248,7 @@
         if (!id) return;
         if (action === "edit") return void editAssignment(id);
         if (action === "publish") return void publishAssignment(id);
+        if (action === "publish-exam") return void publishAssignmentAsExam(id);
         if (action === "archive") return void archiveAssignment(id);
         if (action === "students") return void manageStudents(id);
       });

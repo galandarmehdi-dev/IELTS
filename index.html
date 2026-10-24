@@ -331,7 +331,6 @@
                   </div>
                 </div>
                 <button class="hpc-cta" type="button" id="homeHeroFocusStartBtn">Start a Free Mock Test →</button>
-                <button class="hpc-load-btn" type="button" id="heroLoadAssignmentsBtn" onclick="window.IELTS?.Assignments?.loadStudentAssignments?.()">↻ Load my assignments</button>
               </div>
             </div>
           </div>
@@ -359,8 +358,10 @@
         </div>
         <div class="hs-stat-divider" aria-hidden="true"></div>
         <div class="hs-stat-item">
-          <div class="hs-stat-val">Free</div>
-          <div class="hs-stat-desc">No subscription needed</div>
+          <a class="hs-stat-pricing-link" href="/pricing/">
+            <div class="hs-stat-val">From 5 ₼</div>
+            <div class="hs-stat-desc">See plans →</div>
+          </a>
         </div>
       </div>
     </div>
@@ -636,6 +637,7 @@
           <div class="dashboard-profile-hero-meta">
             <div class="dashboard-meta-chip" id="dashboardMemberSince">Member since —</div>
             <div class="dashboard-meta-chip" id="dashboardLastActive">Last activity —</div>
+            <div class="dashboard-meta-chip dashboard-sub-badge" id="dashboardSubscriptionBadge" style="display:none"></div>
             <div class="dashboard-profile-prompt" id="dashboardWelcomeTitle">Welcome back.</div>
           </div>
         </div>
@@ -1644,7 +1646,7 @@
           <div>
             <p class="eyebrow">Recovery / Resync</p>
             <h2>Submission Sync Monitor</h2>
-            <p class="small">Compare server-side submission backups with Supabase admin results and safely resync missing rows.</p>
+            <p class="small">Track durable submission receipt, Supabase processing, Sheets backup status, and safely retry failed rows.</p>
           </div>
           <div class="admin-row-actions">
             <button class="btn secondary" type="button" id="adminSubmissionSyncRefreshBtn">Refresh</button>
@@ -1654,7 +1656,7 @@
         <p class="small" id="adminSubmissionSyncStatus">Loading submission sync monitor…</p>
 
         <div class="admin-results-summary ui-grid ui-grid-6">
-          <div class="admin-stat-card"><div class="admin-stat-label">Backups scanned</div><div class="admin-stat-value" id="syncSummaryScanned">0</div></div>
+          <div class="admin-stat-card"><div class="admin-stat-label">Rows scanned</div><div class="admin-stat-value" id="syncSummaryScanned">0</div></div>
           <div class="admin-stat-card"><div class="admin-stat-label">Missing from Supabase</div><div class="admin-stat-value" id="syncSummaryMissing">0</div></div>
           <div class="admin-stat-card"><div class="admin-stat-label">Synced / resynced</div><div class="admin-stat-value" id="syncSummarySynced">0</div></div>
           <div class="admin-stat-card"><div class="admin-stat-label">Duplicate possible</div><div class="admin-stat-value" id="syncSummaryDuplicate">0</div></div>
@@ -1666,9 +1668,15 @@
           <label class="admin-field"><span>Status</span>
             <select id="submissionSyncStatusFilter">
               <option value="">All statuses</option>
+              <option value="received">Received, not processed</option>
+              <option value="failed_processing">Failed processing</option>
+              <option value="failed_backup">Backup failed</option>
+              <option value="backup_written">Backup written</option>
+              <option value="processed">Processed</option>
               <option value="missing_from_supabase">Missing from Supabase</option>
               <option value="synced">Synced</option>
               <option value="resynced">Resynced</option>
+              <option value="duplicate_conflict">Duplicate conflict</option>
               <option value="duplicate_possible">Duplicate possible</option>
               <option value="invalid_payload">Invalid payload</option>
               <option value="failed_resync">Failed resync</option>
@@ -2564,7 +2572,7 @@
 
 <script src="/assets/js/engines/listeningEngine.js"></script>
 <script src="/assets/js/engines/readingEngine.js?v=20260605a"></script>
-<script src="/assets/js/engines/writingEngine.js?v=20260609a"></script>
+<script src="/assets/js/engines/writingEngine.js?v=20260609b"></script>
 
 <script type="module" src="/assets/js/auth.js?v=20260619b"></script>
 <script src="/assets/js/dashboard.js?v=20260405"></script>
@@ -2572,12 +2580,12 @@
 <script src="/assets/js/vocabulary/sample-data.js?v=20260428"></script>
 <script src="/assets/js/vocabulary/vocabulary.js?v=20260428"></script>
 <script src="/assets/js/engines/speakingEngine.js"></script>
-<script src="/assets/js/assignments.js?v=20260508g"></script>
+<script src="/assets/js/assignments.js?v=20261024a"></script>
 <script src="/assets/js/grammar.js"></script>
 <script src="/assets/js/placement-test.js"></script>
 <script src="/assets/js/resources-page.js"></script>
 <script src="/assets/js/recent-questions.js"></script>
-<script src="/assets/js/app.js?v=20260609a"></script>
+<script src="/assets/js/app.js?v=20260609b"></script>
 <script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

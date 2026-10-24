@@ -1121,6 +1121,11 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   font-size: 12px;
   font-weight: 700;
 }
+.dashboard-sub-badge.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
 .dashboard-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
 
 .dashboard-avatar-upload {
@@ -2644,6 +2649,16 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
   background: var(--hs-border);
   flex-shrink: 0;
 }
+.hs-stat-pricing-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: opacity 0.15s;
+}
+.hs-stat-pricing-link:hover { opacity: 0.75; }
 
 /* ── Section base ───────────────────────────────────────────── */
 .hs-section { padding: 96px 0; }
@@ -3095,24 +3110,19 @@ a.footer-link-btn { display: inline-flex; align-items: center; text-decoration: 
 .hs-product-card-body .hero-focus-btn:hover {
   background: #1d4ed8;
 }
-.hs-product-card-body .hpc-load-btn {
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 0;
-  height: 32px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 12px;
+/* ── Empty / loading state for assignment panel ─────────────── */
+.hs-product-card-body .sa-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 0;
+  font-size: 13px;
+  color: rgba(255,255,255,.4);
   font-weight: 500;
-  color: rgba(255,255,255,.3);
-  letter-spacing: .01em;
-  transition: color .15s;
 }
-.hs-product-card-body .hpc-load-btn:hover {
-  color: rgba(255,255,255,.6);
+.hs-product-card-body .sa-empty-icon {
+  font-size: 16px;
+  opacity: .7;
 }
 
 /* ── Responsive ─────────────────────────────────────────────── */

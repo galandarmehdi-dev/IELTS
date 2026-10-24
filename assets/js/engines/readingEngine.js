@@ -1864,54 +1864,57 @@ qnum.textContent = `${item.q}`;
       const summaryBox = document.createElement("div");
       summaryBox.className = "optionsBox";
 
-      cfg.summaryLines.forEach((line) => {
-        const p = document.createElement("div");
-        p.style.lineHeight = "2";
-        p.style.margin = "10px 0";
-        p.dataset.readingQuestionHost = String(line.blankQ);
+      // Render all summary lines as one continuous flowing paragraph
+      const summaryPara = document.createElement("div");
+      summaryPara.style.lineHeight = "2.2";
 
+      const makeSelect = (blankQ) => {
         const select = document.createElement("select");
         select.className = "qselect";
-        select.setAttribute("data-reading-q", String(line.blankQ));
-
+        select.setAttribute("data-reading-q", String(blankQ));
+        select.style.display = "inline-block";
+        select.style.width = "60px";
+        select.style.verticalAlign = "middle";
+        select.style.margin = "0 5px";
         const opt0 = document.createElement("option");
         opt0.value = "";
         opt0.textContent = "—";
         select.appendChild(opt0);
-
         cfg.options.forEach((o) => {
           const opt = document.createElement("option");
           opt.value = o.letter;
           opt.textContent = o.letter;
           select.appendChild(opt);
         });
-
-        select.value = answers[line.blankQ] || "";
+        select.value = answers[blankQ] || "";
         select.disabled = hasSubmittedReading;
-
         select.addEventListener("change", () => {
           if (hasSubmittedReading) return;
-          answers[line.blankQ] = select.value;
+          answers[blankQ] = select.value;
           saveAnswers(answers);
         });
+        return select;
+      };
+
+      cfg.summaryLines.forEach((line) => {
+        const host = document.createElement("span");
+        host.dataset.readingQuestionHost = String(line.blankQ);
 
         const qLabel = document.createElement("b");
         qLabel.textContent = `${line.blankQ}. `;
+        host.appendChild(qLabel);
 
-        if (line.text) {
-          p.appendChild(qLabel);
-          p.appendChild(document.createTextNode(line.text + " "));
-          p.appendChild(select);
-          p.appendChild(document.createTextNode(line.tail || ""));
-        } else {
-          p.appendChild(qLabel);
-          p.appendChild(document.createTextNode(line.before || ""));
-          p.appendChild(select);
-          p.appendChild(document.createTextNode(line.after || ""));
-        }
+        const textBefore = line.text || line.before || "";
+        if (textBefore) host.appendChild(document.createTextNode(textBefore + " "));
+        host.appendChild(makeSelect(line.blankQ));
+        const textAfter = line.tail || line.after || "";
+        if (textAfter) host.appendChild(document.createTextNode(" " + textAfter));
 
-        summaryBox.appendChild(p);
+        summaryPara.appendChild(host);
+        summaryPara.appendChild(document.createTextNode(" "));
       });
+
+      summaryBox.appendChild(summaryPara);
 
       panel.appendChild(summaryBox);
 

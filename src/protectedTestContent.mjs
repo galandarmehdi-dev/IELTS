@@ -10451,11 +10451,11 @@ const test22 = {
   },
 
   writing: {
-    task1Type: "Chart and table",
-    task2Type: "Two-part opinion essay",
-    task1Html: "You should spend about 20 minutes on this task.<br/>The chart and table below show the results of a survey of library users at a university.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
-    task1ImageSrc: "https://audio.ieltsmock.org/T1%2022.png",
-    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>Some people argue that primary schools focus too much on formal learning. To what extent do you agree with this opinion?<br/>How important do you think it is for children to play as well as learn in the primary school classroom?<br/><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words.</b>"
+    task1Type: "Pie Chart",
+    task2Type: "Advantages and Disadvantages",
+    task1Html: "You should spend about 20 minutes on this task.<br/>The charts show the sources of electricity produced in 4 countries between 2003 and 2008.<br/>Summarise the information by selecting and reporting the main features, and make comparisons where relevant.<br/><b>You should write at least 150 words.</b>",
+    task1ImageSrc: "https://audio.ieltsmock.org/da4ba538a4a4595a.jpeg",
+    task2Html: "You should spend about 40 minutes on this task.<br/>Write about the following topic:<br/><br/>In some countries, more young adults continue to live with their parents even after they have completed education and found jobs.<br/>Do the advantages outweigh the disadvantages?<br/><br/>Give reasons for your answer and include any relevant examples from your own knowledge and experience.<br/><b>Write at least 250 words.</b>"
   },
 
   reading: {

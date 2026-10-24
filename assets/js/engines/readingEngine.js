@@ -1459,7 +1459,7 @@ The same goes for all of us, almost all the time. We think we're smart; we're co
 
   const appendInlineSegments = (host, segments, bullet = false) => {
     const line = document.createElement("div");
-    line.style.lineHeight = "1.7";
+    line.style.lineHeight = "2";
     line.style.margin = "8px 0";
     if (bullet) {
       line.style.paddingLeft = "18px";
@@ -1866,17 +1866,13 @@ qnum.textContent = `${item.q}`;
 
       cfg.summaryLines.forEach((line) => {
         const p = document.createElement("div");
-        p.style.lineHeight = "1.65";
+        p.style.lineHeight = "2";
         p.style.margin = "10px 0";
         p.dataset.readingQuestionHost = String(line.blankQ);
 
         const select = document.createElement("select");
         select.className = "qselect";
         select.setAttribute("data-reading-q", String(line.blankQ));
-        select.style.width = "120px";
-        select.style.display = "inline-block";
-        select.style.verticalAlign = "baseline";
-        select.style.margin = "0 6px";
 
         const opt0 = document.createElement("option");
         opt0.value = "";

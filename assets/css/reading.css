@@ -251,3 +251,21 @@
 #container .mcqPrompt{
   color:#000000 !important;
 }
+
+/* Keep blanks/selects inline with their sentence text */
+.qselect{
+  display:inline-block;
+  vertical-align:middle;
+  width:120px;
+  margin:0 6px;
+}
+.gapInput{
+  display:inline-block;
+  vertical-align:middle;
+}
+.qbox{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
+}

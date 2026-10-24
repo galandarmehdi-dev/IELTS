@@ -2289,6 +2289,8 @@ async function handleAdminApi(request, env, ctx = null) {
       if (body.dueDate !== undefined) patch.due_date = body.dueDate || null;
       if (body.note !== undefined) patch.note = body.note ? oneLine(String(body.note)) : null;
       if (body.status !== undefined) patch.status = oneLine(String(body.status || ""));
+      // "Publish as exam": assign students but never email them (send_emails = false).
+      if (body.sendEmails === false) patch.send_emails = false;
       const res = await supabaseServiceRequest(env, "/rest/v1/assignments", {
         method: "PATCH",
         query: { id: `eq.${id}`, organization_id: `eq.${organizationId}`, select: "*" },
@@ -2299,6 +2301,34 @@ async function handleAdminApi(request, env, ctx = null) {
       const updated = Array.isArray(res.data) ? res.data[0] : res.data;
       let emailSummary = null;
       if (patch.status === "published") {
+        // A class-wide assignment only stores classroom_id, so enrol that class's
+        // active students first; otherwise nobody is assigned or emailed.
+        const classroomId = oneLine(updated?.classroom_id || "");
+        if (classroomId) {
+          const classStudentsRes = await supabaseServiceRequest(env, "/rest/v1/student_profiles", {
+            query: {
+              select: "id",
+              classroom_id: `eq.${classroomId}`,
+              organization_id: `eq.${organizationId}`,
+              is_active: "eq.true",
+            },
+          });
+          const classStudentIds = classStudentsRes.ok && Array.isArray(classStudentsRes.data)
+            ? classStudentsRes.data.map((r) => r.id).filter(Boolean)
+            : [];
+          if (classStudentIds.length > 0) {
+            await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
+              method: "POST",
+              query: { on_conflict: "assignment_id,student_profile_id" },
+              headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+              body: classStudentIds.map((spId) => ({
+                assignment_id: id,
+                student_profile_id: spId,
+                organization_id: organizationId,
+              })),
+            });
+          }
+        }
         const studentsRes = await supabaseServiceRequest(env, "/rest/v1/assignment_students", {
           query: {
             select: "student_profiles(id,name,surname,official_email,student_id_code)",
@@ -2308,7 +2338,9 @@ async function handleAdminApi(request, env, ctx = null) {
         });
         const rows = studentsRes.ok && Array.isArray(studentsRes.data) ? studentsRes.data : [];
         const profiles = rows.map((r) => r.student_profiles).filter(Boolean);
-        emailSummary = await sendAssignmentEmails(env, profiles, updated || {});
+        emailSummary = updated?.send_emails === false
+          ? { attempted: 0, sent: 0, failed: 0, skippedNoEmail: 0, skippedDuplicate: 0, failures: [], emailsDisabled: true, assignedCount: profiles.length }
+          : await sendAssignmentEmails(env, profiles, updated || {});
       }
       return json(200, { ok: true, assignment: normalizeAssignmentRow(updated), ...(emailSummary ? { emailSummary } : {}) });
     }
@@ -2368,12 +2400,15 @@ async function handleAdminApi(request, env, ctx = null) {
             },
           }),
           supabaseServiceRequest(env, "/rest/v1/assignments", {
-            query: { select: "id,title,due_date", id: `eq.${assignmentId}` },
+            query: { select: "*", id: `eq.${assignmentId}` },
           }),
         ]);
         const profiles = profilesRes.ok && Array.isArray(profilesRes.data) ? profilesRes.data : [];
         const assignment = assignmentRes.ok && Array.isArray(assignmentRes.data) ? assignmentRes.data[0] : null;
-        emailSummary = await sendAssignmentEmails(env, profiles, assignment || {});
+        // Drafts get their emails at publish time; exams never get emails.
+        if (assignment?.status === "published" && assignment?.send_emails !== false) {
+          emailSummary = await sendAssignmentEmails(env, profiles, assignment || {});
+        }
       }
       return json(200, { ok: true, added: toAdd.length, removed: toRemove.length, emailSummary });
     }
@@ -5662,7 +5697,9 @@ async function loadScopedClassroomData(env, auth) {
   const organizationId = getActorOrganizationId(auth);
   const classroomQuery = { select: "*", order: "created_at.desc" };
   const studentQuery = { select: "*,classroom:classrooms(id,name)", order: "created_at.desc" };
-  if (!auth.isSuperAdmin && organizationId) {
+  // Scope classrooms to the current site even for super admins, so ieltsmock.org
+  // doesn't list leznikmock classes (manage those from leznikmock.online/admin).
+  if (organizationId) {
     classroomQuery.organization_id = `eq.${organizationId}`;
     studentQuery.organization_id = `eq.${organizationId}`;
   }

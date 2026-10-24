@@ -6811,7 +6811,7 @@ task1Type: "Line graph",
     task2Html: `
       You should spend about 40 minutes on this task.<br><br>
       Write about the following topic:<br><br>
-      Films and computer games containing violence are popular. Some people say they have a negative effect on society and should be banned. Others say they are just harmless relaxation. Discuss both views and give your own opinion.<br><br>
+      Some people argue that parents of children who break the law should be punished in some way, because they are responsible for their children’s actions. To what extent do you agree or disagree?<br><br>
       <b>Write at least 250 words.</b>
     `
   },

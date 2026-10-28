@@ -1184,6 +1184,7 @@
           {
             mode: "confirm",
             submitText: "Leave exam",
+            showCancel: true,
             cancelText: "Continue exam",
             onConfirm: () => {
               clearStudentAttemptForExit();
@@ -1215,10 +1216,10 @@
     });
 
     // ── In-app navigation guard ──────────────────────────────────────────────
-    // Intercept hash changes that would take a student away from an active exam
-    // (e.g. clicking Home in the exam-nav or any setHashRoute call to "home").
-    // We revert the URL silently, then show the Leave/Continue modal.
-    // Between-section navigation (listening→reading→writing) is always allowed.
+    // Hash changes during an active exam are often automatic (section switches,
+    // auth refreshes), not the student leaving. So we never ask here: we just put
+    // the URL back to the section on screen and keep the student in the exam.
+    // Deliberate exits (History, Speaking, Resources) still ask via confirmLeaveStudentExam.
     window.addEventListener("hashchange", (event) => {
       if (!isStudentExamRouteActive() || !hasResumableStudentAttempt()) return;
       const newView = (safe(() => Router().parseHashRoute()?.view)) || "";
@@ -1226,20 +1227,12 @@
 
       // Revert the URL change without firing another hashchange event.
       try {
-        const prevHash = new URL(event.oldURL).hash;
+        const activeView = String(document.body?.dataset?.activeView || "");
+        const prevHash = isExamRouteView(activeView)
+          ? `#/${encodeURIComponent(getActiveTestId())}/${activeView}`
+          : new URL(event.oldURL).hash;
         if (prevHash && location.hash !== prevHash) history.replaceState(null, "", prevHash);
       } catch (e) {}
-
-      // Show Leave / Continue exam dialog.
-      confirmLeaveStudentExam(() => {
-        // Student confirmed "Leave exam" — clear state and go home cleanly.
-        try { window.__IELTS_SUPPRESS_AUTO_GATES__ = true; } catch (e) {}
-        try { UI().showOnly("home"); } catch (e) {}
-        try { history.replaceState({}, "", "/"); } catch (e) {}
-        try { UI().updateHomeStatusLine(); } catch (e) {}
-        try { renderHomeResumeAction(); } catch (e) {}
-        try { UI().setExamNavStatus("Status: Home"); } catch (e) {}
-      });
     });
 
     // -----------------------------

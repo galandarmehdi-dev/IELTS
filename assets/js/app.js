@@ -2053,6 +2053,16 @@
       renderObjectiveReviewInto(readingEl, result?.reading, "Reading answer review is not available for this submission yet.", opts("reading"));
     }
 
+    function collectShownOverrides(result) {
+      const out = {};
+      ["listening", "reading"].forEach((skill) => {
+        (Array.isArray(result?.[skill]) ? result[skill] : []).forEach((entry) => {
+          if (entry?.overridden) (out[skill] = out[skill] || {})[String(entry.q)] = entry.mark === true;
+        });
+      });
+      return out;
+    }
+
     // Admin correction of a single Listening/Reading mark. The server recalculates the score,
     // band and overall band, and keeps the change for the student's own result view too.
     async function toggleAdminObjectiveMark(row, result, skill, item) {
@@ -2071,6 +2081,7 @@
           skill,
           q: Number(item.q),
           mark,
+          currentOverrides: collectShownOverrides(result),
         }),
       }).catch(() => null);
       const data = res ? await res.json().catch(() => null) : null;

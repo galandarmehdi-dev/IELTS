@@ -1971,7 +1971,7 @@ async function handleAdminApi(request, env, ctx = null) {
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
-      const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+      const overrides = await readObjectiveAnswerOverrides(env, submissionLookup, submissionOrganizationId);
       return json(200, { ok: true, result: applyObjectiveAnswerOverrides(cached, overrides), cached: true });
     }
 
@@ -1988,7 +1988,7 @@ async function handleAdminApi(request, env, ctx = null) {
       return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load objective detail." });
     }
     setCachedObjectiveDetail(cacheKey, data.result);
-    const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+    const overrides = await readObjectiveAnswerOverrides(env, submissionLookup, submissionOrganizationId);
     return json(200, { ok: true, result: applyObjectiveAnswerOverrides(data.result, overrides) });
   }
 
@@ -4820,9 +4820,36 @@ async function handleAdminMarkSubmissionReviewed(request, env, auth) {
 // Returns { listeningBand, readingBand, finalWritingBand, speakingBand, overallBand }.
 // ---------- Admin corrections to Listening/Reading answer marks ----------
 // Overrides live in the submission's score meta (KV) as { listening: { "12": true }, reading: { ... } }.
-async function readObjectiveAnswerOverrides(env, lookup) {
-  const meta = await readSubmissionScoreMeta(env, lookup).catch(() => ({}));
-  return meta?.answerOverrides && typeof meta.answerOverrides === "object" ? meta.answerOverrides : null;
+// Corrections are written to both the site-scoped key and the plain key (see writeObjectiveScoreMetaEverywhere),
+// so every reader finds them whether or not it knows the organization.
+async function readObjectiveAnswerOverrides(env, lookup, organizationId = "") {
+  if (!env?.STUDENT_REGISTRY) return null;
+  for (const key of buildSubmissionLookupKeys(lookup, organizationId)) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, `score:${key}`).catch(() => null);
+    if (record?.answerOverrides && typeof record.answerOverrides === "object") return record.answerOverrides;
+  }
+  return null;
+}
+
+async function writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, patch) {
+  const plain = { ...lookup, organizationId: "" };
+  await writeSubmissionScoreMeta(env, plain, patch);
+  if (organizationId) await writeSubmissionScoreMeta(env, { ...lookup, organizationId }, patch);
+}
+
+function sanitizeObjectiveOverrides(value) {
+  const out = {};
+  ["listening", "reading"].forEach((skill) => {
+    const map = value?.[skill];
+    if (!map || typeof map !== "object") return;
+    Object.keys(map).forEach((key) => {
+      const q = Number(key);
+      if (Number.isInteger(q) && q >= 1 && q <= 40 && typeof map[key] === "boolean") {
+        (out[skill] = out[skill] || {})[String(q)] = map[key];
+      }
+    });
+  });
+  return out;
 }
 
 function applyObjectiveAnswerOverrides(result, overrides) {
@@ -4885,8 +4912,12 @@ async function handleAdminObjectiveAnswerOverride(request, env, auth) {
   const rawItem = rawItems.find((item) => Number(item?.q) === q);
   if (!rawItem) return json(404, { ok: false, error: "Answer review is not available for this result." });
 
-  const meta = await readSubmissionScoreMeta(env, lookup).catch(() => ({}));
-  const overrides = JSON.parse(JSON.stringify(meta?.answerOverrides && typeof meta.answerOverrides === "object" ? meta.answerOverrides : {}));
+  // The page sends the corrections it is showing, which avoids losing one to a stale KV read.
+  // Without that, fall back to what is stored.
+  const stored = await readObjectiveAnswerOverrides(env, lookup, organizationId);
+  const overrides = sanitizeObjectiveOverrides(
+    payload?.currentOverrides && typeof payload.currentOverrides === "object" ? payload.currentOverrides : stored || {}
+  );
   overrides[skill] = overrides[skill] && typeof overrides[skill] === "object" ? overrides[skill] : {};
   if (mark === null || mark === (rawItem.mark === true)) delete overrides[skill][String(q)];
   else overrides[skill][String(q)] = mark;
@@ -4896,7 +4927,7 @@ async function handleAdminObjectiveAnswerOverride(request, env, auth) {
   const band = objectiveBandFromRaw(skill, total, (adjusted[skill] || []).length);
   const skillPatch = skill === "listening" ? { listeningTotal: total, listeningBand: band } : { readingTotal: total, readingBand: band };
 
-  await writeSubmissionScoreMeta(env, { ...lookup, organizationId }, { answerOverrides: overrides, ...skillPatch });
+  await writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, { answerOverrides: overrides, ...skillPatch });
 
   const examAttemptQuery = {
     submitted_at: `eq.${lookup.submittedAt}`,

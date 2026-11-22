@@ -19,6 +19,8 @@ const CSS = `
 .xc{display:grid;gap:16px}.xc h2,.xc h3{margin:0}.xc .xc-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .xc .xc-drop{border:2px dashed var(--border,#cbd5e1);border-radius:14px;padding:26px;text-align:center;cursor:pointer;background:rgba(23,50,77,.03)}
 .xc .xc-drop.over{border-color:#17324d;background:rgba(23,50,77,.08)}
+.xc .xc-slot{border:2px dashed transparent;transition:border-color .15s,background .15s}
+.xc .xc-slot.over{border-color:#17324d;background:rgba(23,50,77,.06)}
 .xc input[type=text],.xc input[type=url],.xc select{min-height:36px;padding:0 10px;border:1px solid var(--border,#cbd5e1);border-radius:8px;font:inherit;background:#fff}
 .xc table{width:100%;border-collapse:collapse;font-size:13px}.xc th,.xc td{text-align:left;padding:7px 8px;border-bottom:1px solid rgba(23,50,77,.1);vertical-align:top}
 .xc .xc-tablewrap{overflow-x:auto}.xc .xc-bar{height:8px;border-radius:6px;background:rgba(23,50,77,.1);overflow:hidden}.xc .xc-bar>i{display:block;height:100%;background:#17324d;width:0}
@@ -368,10 +370,21 @@ export function mountExamConverter(root, { getToken }) {
     const slotNodes = slots.map(([skill, label, hint]) => {
       const item = state.full.items[skill];
       const input = el("input", { type: "file", accept: ".html,.htm", id: `xcFull-${skill}`, onchange: (e) => e.target.files[0] && loadSlot(skill, e.target.files[0]) });
-      return el("div", { class: "admin-result-detail ui-panel xc-slot" },
+      const pickHtml = (files) => [...files].find((f) => /\.html?$/i.test(f.name));
+      const slot = el("div", { class: "admin-result-detail ui-panel xc-slot", "aria-label": `${label} file: choose or drop an HTML file`,
+        ondragover: (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; slot.classList.add("over"); },
+        ondragleave: (e) => { if (!slot.contains(e.relatedTarget)) slot.classList.remove("over"); },
+        ondrop: (e) => {
+          e.preventDefault(); slot.classList.remove("over");
+          const file = pickHtml(e.dataTransfer.files);
+          if (file) loadSlot(skill, file);
+          else { const msg = slot.querySelector(".xc-slot-msg"); if (msg) msg.textContent = "Drop an .html file here."; }
+        } },
         el("strong", {}, label), el("div", { class: "small" }, hint), input,
+        el("div", { class: "small xc-slot-msg", style: "margin-top:4px" }, "or drop the HTML file here"),
         item ? el("div", { class: "small", style: "margin-top:6px;word-break:break-all" }, item.name, " ", chip(item.status), item.error ? el("div", { class: "xc-issue error" }, item.error) : null,
           item.parsed ? el("div", {}, skill === "writing" ? "2 tasks" : `${item.parsed.stats.questionsCovered}/40 questions · ${Object.keys(item.answerKeys).length} answers`, " ", el("button", { class: "btn secondary", type: "button", onclick: () => { state.selected = item.id; render(); } }, "Review")) : null) : null);
+      return slot;
     });
     const saved = state.full.status === "saved";
     return el("div", { class: "admin-result-detail ui-panel xc" },

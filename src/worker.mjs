@@ -1352,6 +1352,12 @@ async function handleAdminApi(request, env, ctx = null) {
     return handleAdminAssignStudentCodeFromResult(request, env, auth);
   }
 
+  if (request.method === "POST" && action === "updateStudentClassroom") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminUpdateStudentClassroom(request, env, auth);
+  }
+
   if (request.method === "POST" && action === "resetStudentProfileLink") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -7362,6 +7368,54 @@ async function handleAdminSaveClassroom(request, env, auth) {
   });
   if (!res.ok) return json(res.status, { ok: false, error: res.error });
   return json(200, { ok: true, classroom: Array.isArray(res.data) ? res.data[0] || null : null });
+}
+
+// Moves a student to another class, or removes them from their class (classroom_id = null).
+// Only the class link changes: the student account, sign-in code and history are kept.
+async function handleAdminUpdateStudentClassroom(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const studentIdCode = oneLine(payload?.studentIdCode || "");
+  const fromClassroomId = oneLine(payload?.fromClassroomId || "");
+  const toClassroomId = oneLine(payload?.toClassroomId || "") || null;
+  if (!studentIdCode || !fromClassroomId) return json(400, { ok: false, error: "Student and current class are required." });
+  if (toClassroomId && toClassroomId === fromClassroomId) return json(400, { ok: false, error: "The student is already in that class." });
+
+  const loadClassroom = async (id) => {
+    const res = await supabaseServiceRequest(env, "/rest/v1/classrooms", { query: { select: "id,name,organization_id", id: `eq.${id}`, limit: "1" } });
+    return res.ok && Array.isArray(res.data) ? res.data[0] || null : null;
+  };
+  const fromClassroom = await loadClassroom(fromClassroomId);
+  if (!fromClassroom) return json(404, { ok: false, error: "Current class not found." });
+  const organizationId = normalizeOrganizationId(fromClassroom.organization_id || "");
+  if (!canActorAccessOrganization(auth, organizationId)) {
+    return json(403, { ok: false, error: "You can only change students in your own classes." });
+  }
+  let toClassroom = null;
+  if (toClassroomId) {
+    toClassroom = await loadClassroom(toClassroomId);
+    if (!toClassroom) return json(404, { ok: false, error: "Target class not found." });
+    if (normalizeOrganizationId(toClassroom.organization_id || "") !== organizationId) {
+      return json(400, { ok: false, error: "Students can only be moved between classes of the same site." });
+    }
+  }
+  const student = await getStudentProfileByCode(env, studentIdCode, organizationId);
+  if (!student?.id) return json(404, { ok: false, error: "Student not found." });
+  if (oneLine(student.classroom_id || "") !== fromClassroomId) {
+    return json(409, { ok: false, error: "This student is no longer in that class. Refresh and try again." });
+  }
+  let updated;
+  try {
+    updated = await updateStudentProfileById(env, student.id, { classroom_id: toClassroomId });
+  } catch (error) {
+    return json(500, { ok: false, error: error?.message || "Could not update the student." });
+  }
+  try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (error) {}
+  return json(200, {
+    ok: true,
+    student: publicStudentProfile(updated),
+    from: { id: fromClassroom.id, name: fromClassroom.name },
+    to: toClassroom ? { id: toClassroom.id, name: toClassroom.name } : null,
+  });
 }
 
 async function handleAdminSaveStudentProfile(request, env, auth) {

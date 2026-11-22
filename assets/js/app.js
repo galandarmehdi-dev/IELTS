@@ -4518,11 +4518,33 @@
       }).join("");
     }
 
+    async function changeStudentClassroom(studentIdCode, fromClassroomId, toClassroomId, toName) {
+      if (!studentIdCode || !fromClassroomId) return;
+      const url = R()?.buildAdminApiUrl?.({ action: "updateStudentClassroom" });
+      if (!url) return;
+      setClassroomProgressStatus(toClassroomId ? "Moving student..." : "Removing student from class...");
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ studentIdCode, fromClassroomId, toClassroomId: toClassroomId || null }),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setClassroomProgressStatus(data?.error || "Could not update the student.", "error");
+        return;
+      }
+      if (String(classroomProgressState.selectedStudentId || "") === String(studentIdCode)) classroomProgressState.selectedStudentId = "";
+      await loadClassroomProgressData(true);
+      setClassroomProgressStatus(toClassroomId ? `Student ${studentIdCode} moved to ${toName || "the new class"}.` : `Student ${studentIdCode} removed from the class. Their account and results are kept.`, "success");
+    }
+
     function renderSelectedClassroomStudents(classroom) {
       const tbody = $("adminClassroomStudentsTbody");
       if (!tbody) return;
       const query = String(adminClassroomStudentSearchInput?.value || "").trim().toLowerCase();
       const rows = Array.isArray(classroom?.students) ? classroom.students : [];
+      const otherClassrooms = (Array.isArray(classroomProgressState.classrooms) ? classroomProgressState.classrooms : [])
+        .filter((room) => room?.id && String(room.id) !== String(classroom?.id || ""));
       const filtered = rows.filter((student) => {
         const hay = [student?.studentIdCode, student?.fullName]
           .map((value) => String(value || "").toLowerCase())
@@ -4538,9 +4560,35 @@
           <td>${escapeHtml(String(student?.practiceAttemptCount || 0))}</td>
           <td>${escapeHtml(student?.avgOverallBand === null || student?.avgOverallBand === undefined ? "—" : `Band ${bandText(student?.avgOverallBand)}`)}</td>
           <td>${escapeHtml(fmtDate(student?.latestSubmittedAt))}</td>
-          <td><button class="btn secondary ui-row-action" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">Open</button></td>
+          <td>
+            <div class="admin-row-actions" style="flex-wrap:wrap;gap:6px">
+              <button class="btn secondary ui-row-action" type="button" data-classroom-student="${escapeHtml(student?.studentIdCode || "")}">Open</button>
+              ${otherClassrooms.length ? `<select class="ui-row-action" data-move-student="${escapeHtml(student?.studentIdCode || "")}" aria-label="Move ${escapeHtml(student?.fullName || "student")} to another class">
+                <option value="">Move to…</option>
+                ${otherClassrooms.map((room) => `<option value="${escapeHtml(room?.id || "")}">${escapeHtml(room?.name || "Classroom")}</option>`).join("")}
+              </select>` : ""}
+              <button class="btn secondary ui-row-action" type="button" data-remove-student="${escapeHtml(student?.studentIdCode || "")}" data-student-name="${escapeHtml(student?.fullName || "this student")}">Remove</button>
+            </div>
+          </td>
         </tr>
       `).join("") || `<tr class="ui-table-state-row"><td colspan="8">No students matched this class view yet.</td></tr>`;
+      Array.from(tbody.querySelectorAll("[data-move-student]")).forEach((select) => {
+        select.addEventListener("change", () => {
+          const toId = select.value;
+          if (!toId) return;
+          const target = otherClassrooms.find((room) => String(room?.id || "") === toId);
+          const name = select.closest("tr")?.children?.[1]?.textContent || "this student";
+          if (!window.confirm(`Move ${name} to ${target?.name || "the selected class"}? Their account and results are kept.`)) { select.value = ""; return; }
+          changeStudentClassroom(select.getAttribute("data-move-student") || "", classroom?.id, toId, target?.name || "");
+        });
+      });
+      Array.from(tbody.querySelectorAll("[data-remove-student]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          const name = button.getAttribute("data-student-name") || "this student";
+          if (!window.confirm(`Remove ${name} from ${classroom?.name || "this class"}? The student account, sign-in code and results are kept; they just won't belong to a class.`)) return;
+          changeStudentClassroom(button.getAttribute("data-remove-student") || "", classroom?.id, null, "");
+        });
+      });
       Array.from(tbody.querySelectorAll("[data-classroom-student]")).forEach((button) => {
         button.addEventListener("click", () => {
           const studentIdCode = button.getAttribute("data-classroom-student") || "";

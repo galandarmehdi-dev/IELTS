@@ -3,6 +3,8 @@ import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
 import { getProtectedTestContent } from "./protectedTestContent.mjs";
 import {
   getImportedAnswerMap,
+  getImportedTestNumber,
+  getPublishedImportedExamByNumber,
   getPublishedImportedExam,
   hydrateImportedExams,
   invalidateImportedExamCache,
@@ -344,7 +346,7 @@ async function handleImportedExamListApi(request, env) {
   const wantsDrafts = new URL(request.url).searchParams.get("includeDrafts") === "1" && (await authenticateAdmin(request, env)).ok;
   const res = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
     query: {
-      select: "test_id,title,skill,module,status",
+      select: "test_id,title,skill,module,status,validation",
       status: wantsDrafts ? "in.(published,draft)" : "eq.published",
       organization_id: `eq.${tenant?.organizationId || DEFAULT_PRIMARY_ORGANIZATION_ID}`,
       order: "published_at.desc",
@@ -352,7 +354,8 @@ async function handleImportedExamListApi(request, env) {
     },
   });
   if (!res.ok) return json(200, { ok: true, exams: [] });
-  return json(200, { ok: true, exams: res.data || [] }, { "Cache-Control": wantsDrafts ? "private, no-store" : "private, max-age=60" });
+  const exams = (res.data || []).map(({ validation, ...exam }) => ({ ...exam, testNumber: getImportedTestNumber({ validation }) }));
+  return json(200, { ok: true, exams }, { "Cache-Control": wantsDrafts ? "private, no-store" : "private, max-age=60" });
 }
 
 async function handleProtectedTestContentApi(request, env) {
@@ -994,6 +997,7 @@ async function handleImportedExamAdmin(request, env, url, action) {
   const listColumns = "test_id,title,skill,module,status,source_name,source_hash,rights_confirmed,validation,created_at,updated_at,published_at";
 
   if (request.method === "GET" && action === "importedExamList") {
+    await ensureImportedTestNumbers(env, request).catch((error) => console.warn("[imported-numbers]", error?.message || error));
     const res = await supabaseServiceRequest(env, table, {
       query: { select: listColumns, organization_id: `eq.${organizationId}`, order: "updated_at.desc", limit: "1000" },
     });
@@ -1068,7 +1072,7 @@ async function handleImportedExamAdmin(request, env, url, action) {
       return json(400, { ok: false, error: validation.errors.join(" ") || "Invalid exam.", validation });
     }
     const existing = await supabaseServiceRequest(env, table, {
-      query: { select: "test_id,status", organization_id: `eq.${organizationId}`, source_hash: `eq.${sourceHash}`, limit: "1" },
+      query: { select: "test_id,status,validation", organization_id: `eq.${organizationId}`, source_hash: `eq.${sourceHash}`, limit: "1" },
     });
     if (!existing.ok) return json(500, { ok: false, error: existing.error });
     const found = existing.data?.[0];
@@ -1093,7 +1097,7 @@ async function handleImportedExamAdmin(request, env, url, action) {
       const res = await supabaseServiceRequest(env, table, {
         method: "PATCH",
         query: { organization_id: `eq.${organizationId}`, test_id: `eq.${found.test_id}` },
-        body: { ...row, status: "draft", rights_confirmed: false, published_at: null },
+        body: { ...row, validation: withTestNumber(row.validation, found.validation), status: "draft", rights_confirmed: false, published_at: null },
         headers: { Prefer: "return=minimal" },
       });
       if (!res.ok) return json(500, { ok: false, error: res.error });
@@ -1144,12 +1148,18 @@ async function handleImportedExamAdmin(request, env, url, action) {
     const res = await supabaseServiceRequest(env, table, {
       method: "PATCH",
       query: scope,
-      body: { title: next.title, content: next.content, answer_keys: next.answerKeys, validation: { ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 }, updated_at: new Date().toISOString() },
+      body: { title: next.title, content: next.content, answer_keys: next.answerKeys, validation: withTestNumber({ ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 }, row.validation), updated_at: new Date().toISOString() },
       headers: { Prefer: "return=minimal" },
     });
     if (!res.ok) return json(500, { ok: false, error: res.error });
     invalidateImportedExamCache();
-    return json(200, { ok: true, testId, validation, status: row.status });
+    // A live exam's corrected answers must reach the Answer Key sheet too.
+    let answerKeySheet = null;
+    const number = getImportedTestNumber(row);
+    if (row.status === "published" && number) {
+      answerKeySheet = await pushImportedAnswerKeysToSheet(env, request, number, { skill: row.skill, answer_keys: next.answerKeys }).catch((error) => ({ ok: false, error: error?.message || String(error) }));
+    }
+    return json(200, { ok: true, testId, validation, status: row.status, testNumber: number, answerKeySheet });
   }
 
   if (action === "importedExamPublish") {
@@ -1164,12 +1174,18 @@ async function handleImportedExamAdmin(request, env, url, action) {
     const res = await supabaseServiceRequest(env, table, {
       method: "PATCH",
       query: scope,
-      body: { status: "published", rights_confirmed: true, published_by: actorEmail, published_at: new Date().toISOString(), validation: { ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 } },
+      body: { status: "published", rights_confirmed: true, published_by: actorEmail, published_at: new Date().toISOString(), validation: withTestNumber({ ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 }, row.validation) },
       headers: { Prefer: "return=minimal" },
     });
     if (!res.ok) return json(500, { ok: false, error: res.error });
     invalidateImportedExamCache();
-    return json(200, { ok: true, testId, validation });
+    const numbering = await ensureImportedTestNumbers(env, request, testId).catch((error) => ({ error: error?.message || String(error) }));
+    return json(200, { ok: true, testId, validation, testNumber: numbering?.testNumbers?.[testId] || getImportedTestNumber(row), answerKeySheet: numbering?.sheet?.[testId] || null });
+  }
+
+  if (action === "importedExamSyncAnswerKeys") {
+    const result = await ensureImportedTestNumbers(env, request, "*");
+    return json(200, { ok: true, ...result });
   }
 
   if (action === "importedExamUnpublish" || action === "importedExamDelete") {
@@ -1192,6 +1208,91 @@ async function handleImportedExamAdmin(request, env, url, action) {
   }
 
   return json(404, { ok: false, error: "Unknown imported exam action." });
+}
+
+// ---------- Imported exam numbering (24, 25, ... after the built-in tests) ----------
+const BUILTIN_TEST_COUNT = Math.max(0, ...Object.keys(OBJECTIVE_ANSWER_KEYS || {}).map((key) => Number(String(key).replace(/\D/g, "")) || 0));
+
+function withTestNumber(nextValidation, previousValidation) {
+  const n = Number(previousValidation?.testNumber);
+  return Number.isInteger(n) && n > 0 ? { ...(nextValidation || {}), testNumber: n } : (nextValidation || {});
+}
+
+function importedSkillKeyArray(row, skill) {
+  const source = row?.skill === "full" ? row?.answer_keys?.[skill] : (row?.skill === skill ? row?.answer_keys : null);
+  if (!source || typeof source !== "object") return null;
+  return Array.from({ length: 40 }, (_, i) => String(source[String(i + 1)] ?? source[i + 1] ?? "").trim());
+}
+
+// Writes an imported exam's answers into its Answer Key sheet columns, exactly where a built-in test's live.
+async function pushImportedAnswerKeysToSheet(env, request, testNumber, row) {
+  const backend = String(env.ADMIN_BACKEND_URL || "").trim();
+  if (!backend) return { ok: false, error: "ADMIN_BACKEND_URL is not configured." };
+  const bodyText = JSON.stringify({
+    action: "upsertAnswerKeyColumns",
+    testNumber,
+    listening: importedSkillKeyArray(row, "listening"),
+    reading: importedSkillKeyArray(row, "reading"),
+  });
+  const backendUrl = new URL(backend);
+  backendUrl.searchParams.set("action", "upsertAnswerKeyColumns");
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "POST", bodyText, env);
+  const synthetic = new Request("https://worker.local/api/admin?action=upsertAnswerKeyColumns", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+  });
+  const upstream = await fetch(signedUrl, {
+    method: "POST",
+    headers: await buildAppsScriptHeaders(request || synthetic, env, signedUrl, bodyText),
+    body: bodyText,
+  });
+  const text = await upstream.text().catch(() => "");
+  let data = null;
+  try { data = JSON.parse(text); } catch (e) {}
+  if (!upstream.ok || data?.ok !== true) {
+    return { ok: false, error: data?.error || `Apps Script did not accept the answer key (HTTP ${upstream.status}). Deploy the latest Apps Script.` };
+  }
+  return { ok: true, columns: data.columns || null };
+}
+
+// Gives every published imported exam a test number and keeps its answers in the sheet.
+// New numbers go to full exams first, then single-skill exams, each oldest first.
+// pushFor: a test id to (re)send to the sheet, "*" for all numbered published exams, or "" for new ones only.
+async function ensureImportedTestNumbers(env, request, pushFor = "") {
+  const res = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
+    query: { select: "test_id,skill,status,answer_keys,validation,created_at,organization_id", limit: "2000" },
+  });
+  if (!res.ok) throw new Error(res.error || "Could not load imported exams.");
+  const rows = Array.isArray(res.data) ? res.data : [];
+  let next = Math.max(BUILTIN_TEST_COUNT, ...rows.map((row) => getImportedTestNumber(row) || 0)) + 1;
+  const waiting = rows
+    .filter((row) => row.status === "published" && !getImportedTestNumber(row) && row.skill !== "writing")
+    .sort((a, b) => (a.skill === "full" ? 0 : 1) - (b.skill === "full" ? 0 : 1) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
+  const testNumbers = {};
+  const assigned = new Set();
+  for (const row of waiting) {
+    const number = next++;
+    const validation = { ...(row.validation || {}), testNumber: number };
+    const patch = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
+      method: "PATCH",
+      query: { test_id: `eq.${row.test_id}`, organization_id: `eq.${row.organization_id}` },
+      body: { validation },
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!patch.ok) throw new Error(patch.error || "Could not save the test number.");
+    row.validation = validation;
+    assigned.add(row.test_id);
+  }
+  rows.forEach((row) => { const n = getImportedTestNumber(row); if (n) testNumbers[row.test_id] = n; });
+  const sheet = {};
+  for (const row of rows) {
+    const number = getImportedTestNumber(row);
+    if (!number || row.status !== "published") continue;
+    if (!(assigned.has(row.test_id) || pushFor === "*" || pushFor === row.test_id)) continue;
+    sheet[row.test_id] = await pushImportedAnswerKeysToSheet(env, request, number, row).catch((error) => ({ ok: false, error: error?.message || String(error) }));
+  }
+  if (assigned.size) invalidateImportedExamCache();
+  return { testNumbers, assigned: Array.from(assigned), sheet };
 }
 
 async function handleAdminApi(request, env, ctx = null) {
@@ -7841,6 +7942,13 @@ function buildObjectiveAnswerMap(testId, skill) {
   const skillKey = String(skill || "").trim().toLowerCase();
   const imported = isImportedTestId(testKey) ? getImportedAnswerMap(testKey, skillKey) : null;
   if (imported) return imported;
+  // ielts24, ielts25, ... are imported exams numbered after the built-in tests.
+  const numbered = !OBJECTIVE_ANSWER_KEYS?.[testKey] ? testKey.match(/^ielts(\d+)$/) : null;
+  if (numbered) {
+    const row = getPublishedImportedExamByNumber(Number(numbered[1]));
+    const map = row ? getImportedAnswerMap(row.test_id, skillKey) : null;
+    if (map) return map;
+  }
   const source = OBJECTIVE_ANSWER_KEYS?.[testKey]?.[skillKey];
   if (!source || typeof source !== "object") return {};
   const map = {};

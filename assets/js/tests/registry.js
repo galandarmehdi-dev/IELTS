@@ -313,16 +313,18 @@
     const draft = exam.status === "draft";
     const title = draft ? `${String(exam.title || id)} (draft preview)` : String(exam.title || id);
     const skills = exam.skill === "full" ? ["listening", "reading", "writing"] : [exam.skill];
+    // Imported exams are numbered after the built-in tests (24, 25, ...); the number becomes the exam id.
+    const testNumber = Number(exam.testNumber) > 0 ? Number(exam.testNumber) : null;
     const existing = TESTS.byId[id];
     if (!existing) {
-      TESTS.byId[id] = { id, readingTestId: id, writingTestId: id, imported: true, draft, title, skills, content: { reading: null, writing: null, listening: null } };
+      TESTS.byId[id] = { id, readingTestId: id, writingTestId: id, imported: true, draft, title, skills, testNumber, content: { reading: null, writing: null, listening: null } };
       REMOTE_TEST_CONTENT.add(id);
       return { id, changed: true };
     }
     if (!existing.imported) return { id, changed: false };
-    if (existing.stub || existing.draft !== draft || existing.title !== title) {
+    if (existing.stub || existing.draft !== draft || existing.title !== title || existing.testNumber !== testNumber) {
       if (existing.draft !== draft) existing.content = { reading: null, writing: null, listening: null };
-      Object.assign(existing, { stub: false, draft, title, skills });
+      Object.assign(existing, { stub: false, draft, title, skills, testNumber });
       return { id, changed: true };
     }
     return { id, changed: false };

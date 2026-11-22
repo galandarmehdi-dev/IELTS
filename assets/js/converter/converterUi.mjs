@@ -272,6 +272,21 @@ export function mountExamConverter(root, { getToken }) {
   async function libraryAction(action, exam, extra = {}) {
     const res = await api(action, { method: "POST", json: { testId: exam.test_id, ...extra } });
     state.message = res.ok ? "" : (res.data.error || "Action failed.") + (res.data.validation?.errors?.length ? ` ${res.data.validation.errors.join(" ")}` : "");
+    const sheet = res.ok ? res.data.answerKeySheet : null;
+    if (sheet && sheet.ok === false) state.message = `Saved${res.data.testNumber ? ` as Test ${res.data.testNumber}` : ""}, but the answers could not be written to the Answer Key sheet: ${sheet.error} Then click "Send answers to sheet".`;
+    await loadLibrary();
+  }
+
+  async function syncAnswerKeys() {
+    state.message = "Sending answers to the Answer Key sheet…";
+    render();
+    const res = await api("importedExamSyncAnswerKeys", { method: "POST", json: {} });
+    if (!res.ok) { state.message = res.data.error || "Could not send the answers."; render(); return; }
+    const results = Object.entries(res.data.sheet || {});
+    const failed = results.filter(([, r]) => r && r.ok === false);
+    state.message = failed.length
+      ? `Could not write ${failed.length} of ${results.length} exam(s): ${failed[0][1].error}`
+      : `Answers for ${results.length} imported exam(s) are in the Answer Key sheet.`;
     await loadLibrary();
   }
 
@@ -600,12 +615,13 @@ export function mountExamConverter(root, { getToken }) {
           ];
       const errs = exam.validation?.errors?.length || 0;
       const stale = (exam.validation?.converterVersion || 0) < CONVERTER_VERSION;
-      return el("tr", {}, el("td", {}, el("input", { type: "text", value: exam.title, "aria-label": `Title of ${exam.title}`, style: "width:100%;min-width:200px", onchange: (e) => e.target.value.trim() && libraryAction("importedExamRename", exam, { title: e.target.value.trim() }) })), el("td", {}, exam.skill), el("td", {}, el("span", { class: `xc-chip ${published ? "ok" : ""}` }, published ? "Published" : "Draft"), errs ? el("div", { class: "small" }, `${errs} blocking issue${errs > 1 ? "s" : ""}`) : null, stale ? el("div", { class: "xc-issue warning" }, "Made with an older converter. Drop the original file again and replace it to get the latest fixes.") : null),
+      const testNumber = Number(exam.validation?.testNumber) || null;
+      return el("tr", {}, el("td", { class: "small", title: "Test number used for marking (after the built-in Tests 1-23)" }, testNumber ? `Test ${testNumber}` : published ? "Numbering…" : "—"), el("td", {}, el("input", { type: "text", value: exam.title, "aria-label": `Title of ${exam.title}`, style: "width:100%;min-width:200px", onchange: (e) => e.target.value.trim() && libraryAction("importedExamRename", exam, { title: e.target.value.trim() }) })), el("td", {}, exam.skill), el("td", {}, el("span", { class: `xc-chip ${published ? "ok" : ""}` }, published ? "Published" : "Draft"), errs ? el("div", { class: "small" }, `${errs} blocking issue${errs > 1 ? "s" : ""}`) : null, stale ? el("div", { class: "xc-issue warning" }, "Made with an older converter. Drop the original file again and replace it to get the latest fixes.") : null),
         el("td", { class: "small" }, new Date(exam.updated_at).toLocaleString()), el("td", { style: "min-width:260px" }, ...actions));
     });
     return el("div", { class: "admin-result-detail ui-panel xc" },
-      el("div", { class: "xc-row" }, el("h3", {}, "Saved exams"), el("button", { class: "btn secondary", type: "button", onclick: loadLibrary }, "Refresh")),
-      state.library.length ? el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Title", "Skill", "Status", "Updated", ""].map((h) => el("th", {}, h)))), el("tbody", {}, ...rows))) : el("p", { class: "small" }, "Nothing saved yet."));
+      el("div", { class: "xc-row" }, el("h3", {}, "Saved exams"), el("button", { class: "btn secondary", type: "button", onclick: loadLibrary }, "Refresh"), el("button", { class: "btn secondary", type: "button", title: "Write every published imported exam's answers into its columns of the Answer Key sheet", onclick: syncAnswerKeys }, "Send answers to sheet")),
+      state.library.length ? el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["No.", "Title", "Skill", "Status", "Updated", ""].map((h) => el("th", {}, h)))), el("tbody", {}, ...rows))) : el("p", { class: "small" }, "Nothing saved yet."));
   }
 
   function render() {

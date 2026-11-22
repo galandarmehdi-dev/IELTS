@@ -113,7 +113,7 @@ export function validateImportedExam(exam) {
 async function refresh(env, serviceRequest) {
   if (Date.now() - published.at < CACHE_TTL_MS) return;
   const res = await serviceRequest(env, "/rest/v1/imported_exams", {
-    query: { select: "test_id,skill,content,answer_keys,organization_id", status: "eq.published", limit: "1000" },
+    query: { select: "test_id,skill,content,answer_keys,organization_id,validation", status: "eq.published", limit: "1000" },
   });
   if (!res.ok) {
     published.at = Date.now();
@@ -133,6 +133,21 @@ export async function hydrateImportedExams(env, serviceRequest) {
   } catch {
     // Imported exams are optional; never break the request path.
   }
+}
+
+// Imported exams are numbered after the built-in tests (built-in 1-23, then 24, 25, ...).
+// The number lives in validation.testNumber and decides the exam id and the Answer Key sheet columns.
+export function getImportedTestNumber(row) {
+  const n = Number(row?.validation?.testNumber);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export function getPublishedImportedExamByNumber(testNumber) {
+  const wanted = Number(testNumber);
+  for (const row of published.byId.values()) {
+    if (getImportedTestNumber(row) === wanted) return row;
+  }
+  return null;
 }
 
 export function getPublishedImportedExam(testId) {

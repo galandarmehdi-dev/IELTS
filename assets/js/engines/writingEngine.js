@@ -785,7 +785,9 @@
           ? R().getActiveTestId()
           : (window.IELTS?.Storage?.get("IELTS:EXAM:activeTestId") || "ielts1");
 
-        const testNumber = String(activeTestId).replace("ielts", "");
+        // Imported exams use their assigned number (24, 25, ...) so they are marked like built-in tests.
+        const importedNumber = Number(R().getTestConfig?.(activeTestId)?.testNumber) || 0;
+        const testNumber = importedNumber ? String(importedNumber) : String(activeTestId).replace("ielts", "");
         const launchContext = R().getLaunchContext?.() || null;
         const isPracticeWriting = launchContext?.mode === "section";
         const practiceScope = String(launchContext?.focusTask || "").trim().toLowerCase();

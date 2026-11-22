@@ -284,6 +284,29 @@ export function mountExamConverter(root, { getToken }) {
     render();
   }
 
+  function setMediaLink(item, original, value) {
+    const url = String(value || "").trim();
+    if (!url) { delete item.edits.media[original]; }
+    else if (!/^(https?:\/\/|\/)/i.test(url)) { state.message = "Enter a full link starting with https:// (or a site path starting with /)."; render(); return; }
+    else { item.edits.media[original] = url; }
+    if (item.mediaCheck) delete item.mediaCheck[url];
+    convert(item);
+    state.message = "";
+    render();
+  }
+
+  // Replacement controls for one audio/image: paste a link, or upload a file.
+  function mediaReplace(item, m, accept) {
+    const current = item.edits.media[m.original] || "";
+    const link = el("input", { type: "url", value: current, placeholder: "Paste a link, e.g. https://…/audio.mp3", "aria-label": `Link for ${m.kind || "file"}`, style: "min-width:220px;flex:1",
+      onkeydown: (e) => { if (e.key === "Enter") { e.preventDefault(); setMediaLink(item, m.original, link.value); } } });
+    return el("div", { style: "display:grid;gap:6px" },
+      el("div", { style: "display:flex;gap:6px;flex-wrap:wrap" }, link,
+        el("button", { class: "btn secondary", type: "button", onclick: () => setMediaLink(item, m.original, link.value) }, "Use link")),
+      el("div", { class: "small" }, "or upload: ",
+        el("input", { type: "file", accept, onchange: (e) => e.target.files[0] && uploadMedia(item, m.original, e.target.files[0]) })));
+  }
+
   async function checkMedia(item) {
     const urls = (item.parsed?.media || []).map((m) => m.resolved || item.edits.media[m.original]).filter(Boolean);
     if (!urls.length) { state.message = "Set the source site URL or upload the files first."; render(); return; }
@@ -340,7 +363,7 @@ export function mountExamConverter(root, { getToken }) {
     const media = item.parsed.media.map((m) => {
       const url = item.edits.media[m.original] || m.resolved;
       return el("tr", {}, el("td", { style: "word-break:break-all" }, m.original), el("td", { style: "word-break:break-all" }, url || "Not available yet"),
-        el("td", {}, el("input", { type: "file", accept: "image/*", onchange: (e) => e.target.files[0] && uploadMedia(item, m.original, e.target.files[0]) })));
+        el("td", {}, mediaReplace(item, m, "image/*")));
     });
     const plainLines = (lines) => lines.map((l) => { const t = document.createElement("div"); t.innerHTML = l; return t.textContent.trim(); }).join("\n");
     const editor = (n, key, lines, types, current) => el("div", {},
@@ -356,7 +379,7 @@ export function mountExamConverter(root, { getToken }) {
       editor(1, "task1", item.parsed.task1.lines, TASK1_TYPES, w.task1Type),
       task("Task 1", w.task1Html, w.task1Type),
       w.task1ImageSrc ? el("div", {}, el("p", { class: "small" }, `Task 1 image: ${w.task1ImageSrc}`), /^https:/.test(w.task1ImageSrc) ? el("img", { src: w.task1ImageSrc, alt: "Task 1", style: "max-width:420px;border-radius:8px" }) : null) : null,
-      media.length ? el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["In the HTML", "Using", "Upload replacement"].map((h) => el("th", {}, h)))), el("tbody", {}, ...media))) : null,
+      media.length ? el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["In the HTML", "Using", "Replace with link or file"].map((h) => el("th", {}, h)))), el("tbody", {}, ...media))) : null,
       editor(2, "task2", item.parsed.task2.lines, TASK2_TYPES, w.task2Type),
       task("Task 2", w.task2Html, w.task2Type),
       el("p", { class: "small" }, "This part is saved together with the other two from the Full exam panel."));
@@ -433,7 +456,7 @@ export function mountExamConverter(root, { getToken }) {
       const url = item.edits.media[m.original] || m.resolved;
       const chk = item.mediaCheck?.[url];
       return el("tr", {}, el("td", {}, m.kind), el("td", { style: "word-break:break-all" }, m.original), el("td", { style: "word-break:break-all" }, url || "Not available yet", chk ? ` — ${chk.ok ? "reachable" : `not reachable (${chk.status || "error"})`}` : ""),
-        el("td", {}, el("input", { type: "file", accept: m.kind === "audio" ? "audio/*" : "image/*", onchange: (e) => e.target.files[0] && uploadMedia(item, m.original, e.target.files[0]) })));
+        el("td", {}, mediaReplace(item, m, m.kind === "audio" ? "audio/*" : "image/*")));
     });
     const answers = el("div", { class: "xc-answers" });
     for (let q = 1; q <= 40; q += 1) {
@@ -444,7 +467,7 @@ export function mountExamConverter(root, { getToken }) {
       el("div", { class: "xc-row" }, el("label", { class: "small" }, "Title "), el("input", { type: "text", value: p.title, style: "min-width:320px", onchange: (e) => { item.edits.title = e.target.value.trim(); convert(item); render(); } }), chip(item.status), el("span", { class: "small" }, `${p.stats.questionsCovered} questions, ${Object.keys(item.answerKeys).length} answers`), p.inferredBase && !state.baseUrl ? el("span", { class: "small" }, `Images load from ${p.inferredBase.replace(/^https?:\/\//, "")} (found in the file)`) : null),
       item.issues.length ? el("div", {}, ...item.issues.map((i) => el("div", { class: `xc-issue ${i.severity}` }, `${i.severity === "error" ? "Blocks publishing: " : ""}${i.message}`, i.severity === "error" && HINTS[i.code] ? el("div", { class: "small" }, HINTS[i.code]) : null))) : el("p", { class: "small" }, "No issues found."),
       el("h3", {}, "Question groups"), el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Part", "Questions", "Type", "Source"].map((h) => el("th", {}, h)))), el("tbody", {}, ...groupRows))),
-      mediaRows.length ? el("div", {}, el("h3", {}, "Audio and images"), el("div", { class: "xc-row" }, el("button", { class: "btn secondary", type: "button", onclick: () => checkMedia(item) }, "Check availability")), el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Type", "In the HTML", "Using", "Upload replacement"].map((h) => el("th", {}, h)))), el("tbody", {}, ...mediaRows)))) : null,
+      mediaRows.length ? el("div", {}, el("h3", {}, "Audio and images"), el("div", { class: "xc-row" }, el("button", { class: "btn secondary", type: "button", onclick: () => checkMedia(item) }, "Check availability")), el("div", { class: "xc-tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Type", "In the HTML", "Using", "Replace with link or file"].map((h) => el("th", {}, h)))), el("tbody", {}, ...mediaRows)))) : null,
       item.out.content.reading ? passagesEditor(item) : null,
       el("h3", {}, "Answer key"), answers,
       el("h3", {}, "Preview"), previewNode(item),

@@ -19,3 +19,4 @@ wrangler.jsonc
 *.map
 *.sql
 supabase
+/tests

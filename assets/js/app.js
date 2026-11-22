@@ -2,6 +2,9 @@
 (function () {
   "use strict";
 
+  // Capture URL search params immediately before any code (including auth) can clear them.
+  const _startupSearchParams = new URLSearchParams(window.location.search);
+
   const UI = () => window.IELTS.UI;
   const S = () => window.IELTS.Storage;
   const R = () => window.IELTS.Registry;
@@ -883,7 +886,7 @@
           "IELTS:AUTH:profileByEmail",
           "IELTS:LOCAL:HISTORY:lastOpen",
         ]);
-        const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"];
+        const prefixes = ["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-", "imp-"];
         const toRemove = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
@@ -3098,7 +3101,7 @@
     }
 
     function setAdminPage(page) {
-      const validPages = ["results", "classrooms", "assignments", "questions", "questionAnalytics", "submissionSync"];
+      const validPages = ["results", "classrooms", "assignments", "questions", "questionAnalytics", "submissionSync", "examConverter"];
       const nextPage = validPages.includes(page) ? page : "results";
       adminState.page = nextPage;
       $("adminResultsBanner")?.classList.toggle("hidden", nextPage !== "results");
@@ -3106,6 +3109,7 @@
       $("adminClassroomsPage")?.classList.toggle("hidden", nextPage !== "classrooms");
       $("adminAssignmentsPage")?.classList.toggle("hidden", nextPage !== "assignments");
       $("adminQuestionsPage")?.classList.toggle("hidden", nextPage !== "questions");
+      $("adminExamConverterPage")?.classList.toggle("hidden", nextPage !== "examConverter");
       $("adminQuestionAnalyticsPage")?.classList.toggle("hidden", nextPage !== "questionAnalytics");
       $("adminSubmissionSyncPage")?.classList.toggle("hidden", nextPage !== "submissionSync");
       const resultsBtn = $("adminPageResultsBtn");
@@ -3113,6 +3117,11 @@
       const assignmentsBtn = $("adminPageAssignmentsBtn");
       const questionsBtn = $("adminPageQuestionsBtn");
       const analyticsBtn = $("adminPageQuestionAnalyticsBtn");
+      const converterBtn = $("adminPageConverterBtn");
+      if (converterBtn) {
+        converterBtn.className = nextPage === "examConverter" ? "btn" : "btn secondary";
+        converterBtn.setAttribute("aria-pressed", nextPage === "examConverter" ? "true" : "false");
+      }
       const syncBtn = $("adminPageSubmissionSyncBtn");
       const toggleBtn = $("adminClassroomsToggleBtn");
       if (resultsBtn) {
@@ -3575,7 +3584,8 @@
         return;
       }
       let success = 0;
-      let failed = 0;
+      const errors = [];
+      setSubmissionSyncStatus(`Retrying ${rows.length} submission(s)…`);
       for (const row of rows) {
         try {
           if (row.inboxSubmissionId) {
@@ -3585,10 +3595,14 @@
           }
           success += 1;
         } catch (e) {
-          failed += 1;
+          errors.push(`${row.studentFullName || row.inboxSubmissionId || row.submissionKey}: ${e?.message || "unknown error"}`);
         }
       }
-      setSubmissionSyncStatus(`Retry complete. Resynced: ${success}. Failed: ${failed}.`, failed ? "error" : "success");
+      const failed = errors.length;
+      const summary = failed
+        ? `Retry complete. Resynced: ${success}. Failed: ${failed}. First error: ${errors[0]}`
+        : `Retry complete. All ${success} resynced successfully.`;
+      setSubmissionSyncStatus(summary, failed ? "error" : "success");
       await loadSubmissionSyncMonitor(true);
     }
 
@@ -3711,6 +3725,20 @@
     }
     UI().updateHomeStatusLine();
     renderHomeResumeAction();
+
+    if (_startupSearchParams.get("requireLogin") === "1") {
+      setTimeout(() => window.IELTS?.Auth?.openLoginGate?.("Sign in to complete your purchase."), 300);
+    }
+
+    const _pendingCheckoutPlan = _startupSearchParams.get("checkout");
+    if (_pendingCheckoutPlan === "pass" || _pendingCheckoutPlan === "bundle") {
+      if (window.IELTS?.Auth?.isSignedIn?.()) {
+        triggerCheckout(_pendingCheckoutPlan);
+      } else {
+        sessionStorage.setItem("pendingCheckoutPlan", _pendingCheckoutPlan);
+        setTimeout(() => window.IELTS?.Auth?.openLoginGate?.("Sign in to complete your purchase."), 300);
+      }
+    }
 
     // -----------------------------
     // Home buttons: START ALWAYS = NEW ATTEMPT
@@ -3868,6 +3896,40 @@
 
 
 
+
+    function _loadPaddleJs() {
+      return new Promise((resolve, reject) => {
+        if (window.Paddle) { resolve(); return; }
+        const s = document.createElement("script");
+        s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+
+    async function triggerCheckout(plan) {
+      try {
+        const token = await window.IELTS?.Auth?.getAccessToken?.();
+        const res = await fetch(`/api/checkout?plan=${encodeURIComponent(plan)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const data = await res.json().catch(() => ({}));
+        if (data?.ok && data?.transactionId) {
+          await _loadPaddleJs();
+          Paddle.Environment.set("sandbox");
+          Paddle.Initialize({ token: "test_af99754da89002cc002f81e2dcc" });
+          Paddle.Checkout.open({ transactionId: data.transactionId });
+        } else if (data?.requireLogin) {
+          sessionStorage.setItem("pendingCheckoutPlan", plan);
+          window.IELTS?.Auth?.openLoginGate?.("Sign in to complete your purchase.");
+        } else {
+          alert(data?.error || "Could not start checkout. Please try again.");
+        }
+      } catch (e) {
+        alert("Could not start checkout. Please try again.");
+      }
+    }
 
     function resetEngineInitFlags() {
       try { window.__IELTS_LISTENING_INIT__ = false; } catch (e) {}
@@ -5786,11 +5848,15 @@
     }
 
     function groupFullExamCatalogItems(items) {
-      const byNumber = new Map((items || []).map((item) => [getExamNumberFromId(item.id), item]));
-      return FULL_EXAM_GROUPS.map((group) => ({
-        ...group,
-        items: group.testNumbers.map((n) => byNumber.get(n)).filter(Boolean),
-      })).filter((group) => group.items.length);
+      const imported = (items || []).filter((item) => String(item.id).startsWith("imp-"));
+      const byNumber = new Map((items || []).filter((item) => !String(item.id).startsWith("imp-")).map((item) => [getExamNumberFromId(item.id), item]));
+      return [
+        ...FULL_EXAM_GROUPS.map((group) => ({
+          ...group,
+          items: group.testNumbers.map((n) => byNumber.get(n)).filter(Boolean),
+        })),
+        { key: "imported", label: "Imported exams", items: imported },
+      ].filter((group) => group.items.length);
     }
 
     function renderHomeMenus() {
@@ -5868,6 +5934,7 @@
     function renderResourceHub(kind, focusId) {
       if (!resourceHubContent || !resourceHubTitle || !resourceHubSubtitle || !resourceHubBadge || !resourceHubAnchorbar) return;
 
+      R()?.loadImportedTests?.()?.then((changed) => { if (changed) renderResourceHub(kind, focusId); });
       const catalog = R()?.buildHomeCatalog?.() || { fullExams: [], sections: {}, practice: { reading: [] } };
       clearElement(resourceHubContent);
       clearElement(resourceHubAnchorbar);
@@ -6503,6 +6570,20 @@ function startFreshExam() {
     if (adminPageSubmissionSyncBtn) adminPageSubmissionSyncBtn.onclick = () => {
       openAdminSubmissionSyncView().catch((e) => setSubmissionSyncStatus(e?.message || "Could not open submission sync monitor.", "error"));
     };
+    const adminPageConverterBtn = $("adminPageConverterBtn");
+    if (adminPageConverterBtn) adminPageConverterBtn.onclick = async () => {
+      UI().showOnly("adminResults");
+      setAdminPage("examConverter");
+      const rootEl = $("examConverterRoot");
+      if (!rootEl || rootEl.dataset.mounted) return;
+      try {
+        const mod = await import("/assets/js/converter/converterUi.mjs");
+        rootEl.dataset.mounted = "1";
+        mod.mountExamConverter(rootEl, { getToken: () => window.IELTS?.Auth?.getAccessToken?.() });
+      } catch (e) {
+        rootEl.textContent = "Could not load the exam converter. Reload the page and try again.";
+      }
+    };
     const adminPageQuestionsBtn = $("adminPageQuestionsBtn");
     if (adminPageQuestionsBtn) adminPageQuestionsBtn.onclick = () => { UI().showOnly("adminResults"); setAdminPage("questions"); loadAdminPendingQuestions(); };
     const adminQuestionsRefreshBtn = $("adminQuestionsRefreshBtn");
@@ -6656,6 +6737,11 @@ function startFreshExam() {
         window.IELTS?.Assignments?.loadStudentAssignments?.();
       }
       window.IELTS?.Access?.loadSubscription?.().catch(() => {});
+      const pendingPlan = sessionStorage.getItem("pendingCheckoutPlan");
+      if (pendingPlan && window.IELTS?.Auth?.isSignedIn?.()) {
+        sessionStorage.removeItem("pendingCheckoutPlan");
+        triggerCheckout(pendingPlan);
+      }
     });
     // Load student assignments on first load if already signed in
     if (!isAdminView() && window.IELTS?.Auth?.isSignedIn?.()) {

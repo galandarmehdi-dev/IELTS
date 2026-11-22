@@ -1,6 +1,18 @@
 import { EmailMessage } from "cloudflare:email";
 import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
 import { getProtectedTestContent } from "./protectedTestContent.mjs";
+import {
+  getImportedAnswerMap,
+  getPublishedImportedExam,
+  hydrateImportedExams,
+  invalidateImportedExamCache,
+  isImportedTestId,
+  makeImportedTestId,
+  normalizeAnswerKeys,
+  normalizeFullAnswerKeys,
+  sanitizeImportedContent,
+  validateImportedExam,
+} from "./importedExams.mjs";
 
 const OBJECTIVE_DETAIL_CACHE = new Map();
 const OBJECTIVE_DETAIL_TTL_MS = 5 * 60 * 1000;
@@ -21,6 +33,7 @@ export default {
     }
     const unknownTenantResponse = rejectUnknownTenant(request, env);
     if (unknownTenantResponse) return unknownTenantResponse;
+    if (url.pathname.startsWith("/api/")) await hydrateImportedExams(env, supabaseServiceRequest);
 
     if (url.pathname === "/api/contact") {
       return handleContactApi(request, env);
@@ -56,6 +69,10 @@ export default {
 
     if (url.pathname === "/api/test-content") {
       return handleProtectedTestContentApi(request, env);
+    }
+
+    if (url.pathname === "/api/imported-exams") {
+      return handleImportedExamListApi(request, env);
     }
 
     if (url.pathname === "/api/test-content-script") {
@@ -125,13 +142,11 @@ function shouldServeAppShell(pathname = "", method = "GET") {
     "/admin/results/",
     "/admin/classes/",
     "/admin/assignments/",
+    "/admin/exam-converter/",
     "/admin/questions/",
     "/dashboard/",
     "/history/",
     "/assignments/",
-    "/pricing/",
-    "/subscribe/success/",
-    "/subscribe/cancel/",
   ]);
   return appShellPaths.has(normalizedPath);
 }
@@ -155,6 +170,7 @@ function isSensitiveAssetPath(pathname = "") {
   if (path.startsWith("/tools/")) return true;
   if (path.startsWith("/supabase/")) return true;
   if (path.startsWith("/docs/")) return true;
+  if (path.startsWith("/tests/")) return true;
   return false;
 }
 
@@ -307,17 +323,36 @@ function buildContentSecurityPolicy() {
     "object-src 'none'",
     "frame-ancestors 'self'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline' https://esm.sh https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com https://pagead2.googlesyndication.com",
+    "script-src 'self' 'unsafe-inline' https://esm.sh https://www.googletagmanager.com https://www.google-analytics.com https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://cdn.paddle.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://audio.ieltsmock.org https://static.wixstatic.com https://www.ieltsbuddy.com https://ieltscity.vn https://practicepteonline.com https://bgujwyknnszwborgbkxq.supabase.co https://lh3.googleusercontent.com https://www.google-analytics.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
-    "media-src 'self' blob: https://audio.ieltsmock.org",
+    "media-src 'self' blob: https://audio.ieltsmock.org https://bgujwyknnszwborgbkxq.supabase.co",
     // Removed: script.google.com and script.googleusercontent.com — the frontend never
     // calls Apps Script directly (worker proxies all calls), so these entries only widen
     // the attack surface without providing any benefit.
-    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net",
-    "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+    "connect-src 'self' https://bgujwyknnszwborgbkxq.supabase.co wss://bgujwyknnszwborgbkxq.supabase.co https://ielts-speaking-realtime.galandar-mehdi.workers.dev https://esm.sh https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://static.cloudflareinsights.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://sandbox-api.paddle.com https://api.paddle.com",
+    "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://sandbox-buy.paddle.com https://buy.paddle.com",
   ].join("; ");
+}
+
+async function handleImportedExamListApi(request, env) {
+  if (request.method !== "GET") return json(405, { ok: false, error: "Method not allowed." });
+  const auth = await authenticateUser(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+  const tenant = resolveTenantContext(request, env);
+  const wantsDrafts = new URL(request.url).searchParams.get("includeDrafts") === "1" && (await authenticateAdmin(request, env)).ok;
+  const res = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
+    query: {
+      select: "test_id,title,skill,module,status",
+      status: wantsDrafts ? "in.(published,draft)" : "eq.published",
+      organization_id: `eq.${tenant?.organizationId || DEFAULT_PRIMARY_ORGANIZATION_ID}`,
+      order: "published_at.desc",
+      limit: "500",
+    },
+  });
+  if (!res.ok) return json(200, { ok: true, exams: [] });
+  return json(200, { ok: true, exams: res.data || [] }, { "Cache-Control": wantsDrafts ? "private, no-store" : "private, max-age=60" });
 }
 
 async function handleProtectedTestContentApi(request, env) {
@@ -330,7 +365,17 @@ async function handleProtectedTestContentApi(request, env) {
 
   const url = new URL(request.url);
   const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
-  const content = getProtectedTestContent(testId);
+  let content = getProtectedTestContent(testId);
+  if (!content && isImportedTestId(testId)) {
+    const row = getPublishedImportedExam(testId);
+    if (row) content = row.content;
+    else if (url.searchParams.get("preview") === "1" && (await authenticateAdmin(request, env)).ok) {
+      const res = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
+        query: { select: "content", test_id: `eq.${testId}`, limit: "1" },
+      });
+      content = Array.isArray(res.data) && res.data[0] ? res.data[0].content : null;
+    }
+  }
   if (!content) {
     await logSecurityEvent(null, request, "protected_test_content_not_found", { testId });
     return json(404, { ok: false, error: "Test content not found." });
@@ -940,9 +985,219 @@ async function handleContactApi(request, env) {
   return json(200, { ok: true, message: "Your message has been sent to IELTS Mock support." });
 }
 
+async function handleImportedExamAdmin(request, env, url, action) {
+  const auth = await authenticateAdmin(request, env);
+  if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+  const organizationId = getActorOrganizationId(auth) || DEFAULT_PRIMARY_ORGANIZATION_ID;
+  const actorEmail = oneLine(auth?.user?.email || "");
+  const table = "/rest/v1/imported_exams";
+  const listColumns = "test_id,title,skill,module,status,source_name,source_hash,rights_confirmed,validation,created_at,updated_at,published_at";
+
+  if (request.method === "GET" && action === "importedExamList") {
+    const res = await supabaseServiceRequest(env, table, {
+      query: { select: listColumns, organization_id: `eq.${organizationId}`, order: "updated_at.desc", limit: "1000" },
+    });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    return json(200, { ok: true, exams: res.data || [] });
+  }
+
+  if (request.method === "GET" && action === "importedExamGet") {
+    const testId = oneLine(url.searchParams.get("testId") || "").toLowerCase();
+    const res = await supabaseServiceRequest(env, table, {
+      query: { select: "*", organization_id: `eq.${organizationId}`, test_id: `eq.${testId}`, limit: "1" },
+    });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    if (!res.data?.[0]) return json(404, { ok: false, error: "Imported exam not found." });
+    return json(200, { ok: true, exam: res.data[0] });
+  }
+
+  if (request.method !== "POST") return json(405, { ok: false, error: "Method not allowed." });
+
+  if (action === "importedExamMediaUpload") {
+    const types = { "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/wav": "wav", "audio/x-wav": "wav", "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif" };
+    const contentType = oneLine(request.headers.get("content-type") || "").split(";")[0].toLowerCase();
+    const ext = types[contentType];
+    if (!ext) return json(415, { ok: false, error: "Only MP3, M4A, WAV, PNG, JPG, WEBP or GIF files can be uploaded." });
+    const body = await request.arrayBuffer();
+    if (!body.byteLength || body.byteLength > 60 * 1024 * 1024) return json(413, { ok: false, error: "File is empty or larger than 60 MB." });
+    const base = String(env?.SUPABASE_URL || "").replace(/\/$/, "");
+    const key = getSupabaseServiceKey(env);
+    if (!base || !key) return json(503, { ok: false, error: "Storage is not configured." });
+    const objectPath = `${organizationId}/${crypto.randomUUID()}.${ext}`;
+    const up = await fetch(`${base}/storage/v1/object/exam-media/${objectPath}`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": contentType, "x-upsert": "false" },
+      body,
+    }).catch(() => null);
+    if (!up || !up.ok) return json(502, { ok: false, error: "Upload failed. Check that the exam-media storage bucket exists." });
+    return json(200, { ok: true, url: `${base}/storage/v1/object/public/exam-media/${objectPath}`, bytes: body.byteLength });
+  }
+
+  const payload = await request.json().catch(() => null);
+  if (!payload || typeof payload !== "object") return json(400, { ok: false, error: "Invalid JSON body." });
+
+  if (action === "importedExamCheckMedia") {
+    const urls = (Array.isArray(payload.urls) ? payload.urls : []).slice(0, 20).map((u) => oneLine(u));
+    const results = await Promise.all(
+      urls.map(async (u) => {
+        let parsed = null;
+        try { parsed = new URL(u); } catch { /* invalid */ }
+        if (!parsed || parsed.protocol !== "https:" || /^(localhost|.*\.(local|internal))$/i.test(parsed.hostname) || /^[\d.]+$|^\[/.test(parsed.hostname)) {
+          return { url: u, ok: false, status: 0, error: "Only public https:// URLs can be checked." };
+        }
+        const res = await fetch(parsed.toString(), { method: "HEAD", redirect: "follow", signal: AbortSignal.timeout(8000) }).catch(() => null);
+        return { url: u, ok: !!res && res.ok, status: res ? res.status : 0, type: res ? res.headers.get("content-type") || "" : "" };
+      })
+    );
+    return json(200, { ok: true, results });
+  }
+
+  if (action === "importedExamSave") {
+    const sourceHash = oneLine(payload.sourceHash || "").toLowerCase();
+    if (!/^[a-f0-9]{16,64}$/.test(sourceHash)) return json(400, { ok: false, error: "sourceHash must be a hex digest." });
+    const exam = {
+      skill: oneLine(payload.skill || "").toLowerCase(),
+      title: oneLine(payload.title || "").slice(0, 200),
+      content: sanitizeImportedContent(payload.content),
+      answerKeys: oneLine(payload.skill || "").toLowerCase() === "full" ? normalizeFullAnswerKeys(payload.answerKeys) : normalizeAnswerKeys(payload.answerKeys),
+      expectedQuestions: Number(payload.expectedQuestions) || 40,
+    };
+    if (!["reading", "listening", "full"].includes(exam.skill)) return json(400, { ok: false, error: "Skill must be reading, listening or full." });
+    const validation = validateImportedExam(exam);
+    if (!exam.skill || !exam.title || !exam.content) {
+      return json(400, { ok: false, error: validation.errors.join(" ") || "Invalid exam.", validation });
+    }
+    const existing = await supabaseServiceRequest(env, table, {
+      query: { select: "test_id,status", organization_id: `eq.${organizationId}`, source_hash: `eq.${sourceHash}`, limit: "1" },
+    });
+    if (!existing.ok) return json(500, { ok: false, error: existing.error });
+    const found = existing.data?.[0];
+    const row = {
+      title: exam.title,
+      skill: exam.skill,
+      module: payload.module === "general" ? "general" : "academic",
+      content: exam.content,
+      answer_keys: exam.answerKeys,
+      media: Array.isArray(payload.media) ? payload.media.slice(0, 500) : [],
+      validation: { ...validation, converterVersion: Number(payload.converterVersion) || 0 },
+      source_name: oneLine(payload.sourceName || "").slice(0, 300),
+      updated_at: new Date().toISOString(),
+    };
+    if (found) {
+      if (found.status === "published" && !payload.replacePublished) {
+        return json(409, { ok: false, published: true, error: "This exam is already published. Replace it to unpublish it and save this version as a draft.", testId: found.test_id });
+      }
+      if (found.status !== "published" && !payload.overwriteDraft) {
+        return json(409, { ok: false, duplicate: true, testId: found.test_id, error: "A draft of this file already exists." });
+      }
+      const res = await supabaseServiceRequest(env, table, {
+        method: "PATCH",
+        query: { organization_id: `eq.${organizationId}`, test_id: `eq.${found.test_id}` },
+        body: { ...row, status: "draft", rights_confirmed: false, published_at: null },
+        headers: { Prefer: "return=minimal" },
+      });
+      if (!res.ok) return json(500, { ok: false, error: res.error });
+      invalidateImportedExamCache();
+      return json(200, { ok: true, testId: found.test_id, validation, replaced: found.status === "published" });
+    }
+    const testId = makeImportedTestId(exam.skill, exam.title, sourceHash);
+    const res = await supabaseServiceRequest(env, table, {
+      method: "POST",
+      body: { ...row, test_id: testId, organization_id: organizationId, status: "draft", source_hash: sourceHash, created_by: actorEmail },
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!res.ok) {
+      const outdated = /skill_check|violates check constraint/i.test(String(res.error || ""));
+      return json(500, { ok: false, error: outdated ? "The database needs the latest imported_exams.sql (full exams). Run it in Supabase, then save again." : res.error });
+    }
+    return json(200, { ok: true, testId, validation });
+  }
+
+  const testId = oneLine(payload.testId || "").toLowerCase();
+  if (!isImportedTestId(testId)) return json(400, { ok: false, error: "Not an imported exam id." });
+  const scope = { organization_id: `eq.${organizationId}`, test_id: `eq.${testId}` };
+
+  if (action === "importedExamRename") {
+    const title = oneLine(payload.title || "").slice(0, 200);
+    if (!title) return json(400, { ok: false, error: "Give the exam a title." });
+    const res = await supabaseServiceRequest(env, table, { method: "PATCH", query: scope, body: { title, updated_at: new Date().toISOString() }, headers: { Prefer: "return=minimal" } });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    invalidateImportedExamCache();
+    return json(200, { ok: true, testId, title });
+  }
+
+  if (action === "importedExamUpdate") {
+    const cur = await supabaseServiceRequest(env, table, { query: { select: "skill,status,validation,title", ...scope, limit: "1" } });
+    const row = cur.data?.[0];
+    if (!row) return json(404, { ok: false, error: "Imported exam not found." });
+    const next = {
+      skill: row.skill,
+      title: oneLine(payload.title || row.title).slice(0, 200),
+      content: sanitizeImportedContent(payload.content),
+      answerKeys: row.skill === "full" ? normalizeFullAnswerKeys(payload.answerKeys) : normalizeAnswerKeys(payload.answerKeys),
+    };
+    if (!next.content || typeof next.content !== "object") return json(400, { ok: false, error: "Missing content." });
+    const validation = validateImportedExam(next);
+    if (row.status === "published" && !validation.ok) {
+      return json(422, { ok: false, error: "This exam is live, so changes that would break it are not saved. Fix: " + validation.errors.join(" "), validation });
+    }
+    const res = await supabaseServiceRequest(env, table, {
+      method: "PATCH",
+      query: scope,
+      body: { title: next.title, content: next.content, answer_keys: next.answerKeys, validation: { ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 }, updated_at: new Date().toISOString() },
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    invalidateImportedExamCache();
+    return json(200, { ok: true, testId, validation, status: row.status });
+  }
+
+  if (action === "importedExamPublish") {
+    if (payload.rightsConfirmed !== true) {
+      return json(400, { ok: false, error: "Confirm you have the right to reuse this content before publishing." });
+    }
+    const cur = await supabaseServiceRequest(env, table, { query: { select: "*", ...scope, limit: "1" } });
+    const row = cur.data?.[0];
+    if (!row) return json(404, { ok: false, error: "Imported exam not found." });
+    const validation = validateImportedExam({ skill: row.skill, title: row.title, content: row.content, answerKeys: row.answer_keys });
+    if (!validation.ok) return json(422, { ok: false, error: "Fix the blocking errors first.", validation });
+    const res = await supabaseServiceRequest(env, table, {
+      method: "PATCH",
+      query: scope,
+      body: { status: "published", rights_confirmed: true, published_by: actorEmail, published_at: new Date().toISOString(), validation: { ...validation, converterVersion: Number(row.validation?.converterVersion) || 0 } },
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    invalidateImportedExamCache();
+    return json(200, { ok: true, testId, validation });
+  }
+
+  if (action === "importedExamUnpublish" || action === "importedExamDelete") {
+    const isDelete = action === "importedExamDelete";
+    if (isDelete) {
+      const cur = await supabaseServiceRequest(env, table, { query: { select: "status", ...scope, limit: "1" } });
+      if (cur.data?.[0]?.status === "published") {
+        return json(409, { ok: false, error: "Unpublish before deleting." });
+      }
+    }
+    const res = await supabaseServiceRequest(env, table, {
+      method: isDelete ? "DELETE" : "PATCH",
+      query: scope,
+      ...(isDelete ? {} : { body: { status: "draft", updated_at: new Date().toISOString() } }),
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!res.ok) return json(500, { ok: false, error: res.error });
+    invalidateImportedExamCache();
+    return json(200, { ok: true, testId });
+  }
+
+  return json(404, { ok: false, error: "Unknown imported exam action." });
+}
+
 async function handleAdminApi(request, env, ctx = null) {
   const url = new URL(request.url);
   const action = String(url.searchParams.get("action") || "").trim();
+  if (action.startsWith("importedExam")) return handleImportedExamAdmin(request, env, url, action);
   if (request.method === "GET" && action === "session") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error, authorized: false });
@@ -3294,6 +3549,10 @@ function buildWritingSamplesFromSheet(csvText) {
   return samples;
 }
 
+function isValidUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
+
 function normalizeEmail(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -3529,7 +3788,7 @@ async function buildExamAttemptRowFromFinalPayload(env, finalPayload, appsRespon
   );
 
   return {
-    user_id: oneLine(auth?.user?.id || auth?.user?.sub || summary.loginEmail || summary.email || "") || null,
+    user_id: (() => { const id = oneLine(auth?.user?.id || auth?.user?.sub || ""); return isValidUuid(id) ? id : null; })(),
     user_email: normalizeEmail(summary.loginEmail || summary.email || auth?.user?.email || "") || null,
     organization_id: summary.organizationId || getPrimaryOrganizationId(env),
     student_full_name: profile?.fullName || summary.studentFullName,
@@ -3560,15 +3819,29 @@ async function buildExamAttemptRowFromFinalPayload(env, finalPayload, appsRespon
   };
 }
 
+function isUserIdConstraintError(error) {
+  const msg = String(error || "").toLowerCase();
+  return msg.includes("user_id") && (msg.includes("foreign key") || msg.includes("uuid") || msg.includes("invalid input syntax"));
+}
+
 async function mirrorFullExamSubmissionToSupabase(env, finalPayload, appsResponse, auth, tenant) {
   const row = await buildExamAttemptRowFromFinalPayload(env, finalPayload, appsResponse, auth, tenant);
   if (!row) return { ok: false, error: "No exam attempt row built." };
-  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+  let res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
     method: "POST",
     query: { on_conflict: "submitted_at,student_full_name,exam_id" },
     headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
     body: row,
   });
+  if (!res.ok && isUserIdConstraintError(res.error)) {
+    console.warn("[submission-sync] user_id constraint error, retrying with null", { error: res.error });
+    res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "POST",
+      query: { on_conflict: "submitted_at,student_full_name,exam_id" },
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: { ...row, user_id: null },
+    });
+  }
   if (!res.ok) throw new Error(res.error || `Supabase HTTP ${res.status}`);
   console.log("[submission-sync] supabase mirror complete", {
     examId: row.exam_id || "",
@@ -4294,9 +4567,10 @@ async function findExistingExamAttemptsForRecovery(env, recoveryRow) {
 
 function buildSyntheticSubmissionAuthFromRecovery(row, adminAuth) {
   const email = normalizeEmail(row?.login_email || row?.user_email || row?.official_email || adminAuth?.user?.email || "");
+  const profileId = oneLine(row?.student_profile_id || "");
   return {
     user: {
-      id: oneLine(row?.student_profile_id || row?.student_id_code || email || adminAuth?.user?.id || ""),
+      id: isValidUuid(profileId) ? profileId : "",
       email,
       app_metadata: { provider: oneLine(row?.sign_in_method || "recovery-resync") },
       user_metadata: { name: oneLine(row?.student_full_name || "") },
@@ -4398,9 +4672,10 @@ async function handleAdminResyncSubmission(request, env, auth) {
 
 function buildSyntheticSubmissionAuthFromInbox(row, adminAuth) {
   const email = normalizeEmail(row?.login_email || row?.official_email || adminAuth?.user?.email || "");
+  const studentId = oneLine(row?.student_id || "");
   return {
     user: {
-      id: oneLine(row?.student_id || email || adminAuth?.user?.id || ""),
+      id: isValidUuid(studentId) ? studentId : "",
       email,
       app_metadata: { provider: "inbox-admin-retry" },
       user_metadata: { name: oneLine(row?.student_name || "") },
@@ -7359,6 +7634,8 @@ function formatBand(value) {
 function buildObjectiveAnswerMap(testId, skill) {
   const testKey = String(testId || "").trim().toLowerCase();
   const skillKey = String(skill || "").trim().toLowerCase();
+  const imported = isImportedTestId(testKey) ? getImportedAnswerMap(testKey, skillKey) : null;
+  if (imported) return imported;
   const source = OBJECTIVE_ANSWER_KEYS?.[testKey]?.[skillKey];
   if (!source || typeof source !== "object") return {};
   const map = {};
@@ -8456,6 +8733,7 @@ function inferObjectiveTestId(row, finalPayload) {
     .filter(Boolean);
 
   for (const value of candidates) {
+    if (isImportedTestId(value)) return value;
     const direct = value.match(/^ielts(\d+)$/i);
     if (direct) return `ielts${Number(direct[1])}`;
     const full = value.match(/^ielts-full-(\d+)$/i);
@@ -9041,8 +9319,7 @@ async function handleCheckout(request, env) {
 
   const auth = await authenticateUser(request, env);
   if (!auth.ok) {
-    // Redirect to home with login prompt instead of JSON error
-    return Response.redirect(new URL("/?requireLogin=1", request.url).toString(), 302);
+    return json(401, { ok: false, requireLogin: true });
   }
 
   const url = new URL(request.url);
@@ -9060,7 +9337,7 @@ async function handleCheckout(request, env) {
   const email = String(auth.user?.email || "").toLowerCase();
 
   // Create a Paddle checkout session
-  const paddleRes = await fetch("https://api.paddle.com/transactions", {
+  const paddleRes = await fetch("https://sandbox-api.paddle.com/transactions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${paddleApiKey}`,
@@ -9077,11 +9354,13 @@ async function handleCheckout(request, env) {
   });
 
   const paddleData = await paddleRes.json().catch(() => null);
-  if (!paddleRes.ok || !paddleData?.data?.checkout?.url) {
-    return json(502, { ok: false, error: "Could not create checkout session. Please try again." });
+  const txnId = paddleData?.data?.id;
+  if (!paddleRes.ok || !txnId) {
+    const paddleErr = paddleData?.error?.detail || paddleData?.error?.code || JSON.stringify(paddleData).slice(0, 300);
+    return json(502, { ok: false, error: `Paddle error: ${paddleErr}` });
   }
 
-  return Response.redirect(paddleData.data.checkout.url, 302);
+  return json(200, { ok: true, transactionId: txnId });
 }
 
 async function handlePaddleWebhook(request, env) {

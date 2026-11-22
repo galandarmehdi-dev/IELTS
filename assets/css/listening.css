@@ -96,6 +96,32 @@
 }
 .listen-nav-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 
+.listen-volume{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.listen-vol-icon{
+  width:20px;
+  height:20px;
+  color:var(--navy);
+  opacity:.7;
+  flex-shrink:0;
+  cursor:pointer;
+  transition:opacity .15s;
+}
+.listen-vol-icon:hover{ opacity:1; }
+.listen-vol-icon.muted path[id="listenVolWave1"],
+.listen-vol-icon.muted path[id="listenVolWave2"]{ opacity:0; }
+.listen-vol-slider{
+  width:80px;
+  height:4px;
+  cursor:pointer;
+  accent-color:#234134;
+  vertical-align:middle;
+}
+
 .listening-screen:not(.started) .listening-shell{
   min-height:calc(100vh - 48px);
 }

@@ -487,6 +487,25 @@
     if ($("dashboardMemberSince")) $("dashboardMemberSince").textContent = `Member since ${formatDate(user?.createdAt)}`;
     const latestActivity = state.rows[0]?.submitted_at || user?.lastSignInAt || "";
     if ($("dashboardLastActive")) $("dashboardLastActive").textContent = `Last activity ${formatDate(latestActivity)}`;
+
+    const subBadge = $("dashboardSubscriptionBadge");
+    if (subBadge) {
+      const sub = window.IELTS?.Access?.getSubscription?.();
+      if (sub?.active) {
+        const planLabel = sub.plan === "three_month" ? "3-Month Bundle" : "Mock Pass";
+        const detail = sub.plan === "three_month" && sub.expiresAt
+          ? `Expires ${formatDate(sub.expiresAt)}`
+          : sub.creditsRemaining != null
+          ? `${sub.creditsRemaining} credit${sub.creditsRemaining !== 1 ? "s" : ""} remaining`
+          : "Active";
+        subBadge.textContent = `${planLabel} · ${detail}`;
+        subBadge.style.display = "";
+        subBadge.classList.add("is-active");
+      } else {
+        subBadge.style.display = "none";
+        subBadge.classList.remove("is-active");
+      }
+    }
   }
 
   function renderSettings() {

@@ -26,6 +26,7 @@
     "/admin/results/": () => { try { window.IELTS?.UI?.showOnly?.("adminResults"); } catch (e) {} },
     "/admin/classes/": () => { try { window.IELTS?.UI?.showOnly?.("adminResults"); } catch (e) {} setTimeout(() => { document.getElementById("adminPageClassroomsBtn")?.click(); }, 200); },
     "/admin/assignments/": () => { try { window.IELTS?.UI?.showOnly?.("adminResults"); } catch (e) {} setTimeout(() => { document.getElementById("adminPageAssignmentsBtn")?.click(); }, 200); },
+    "/admin/exam-converter/": () => { try { window.IELTS?.UI?.showOnly?.("adminResults"); } catch (e) {} setTimeout(() => { document.getElementById("adminPageConverterBtn")?.click(); }, 200); },
     "/admin/questions/": () => { try { window.IELTS?.UI?.showOnly?.("adminResults"); } catch (e) {} setTimeout(() => { document.getElementById("adminPageQuestionsBtn")?.click(); }, 200); },
     "/placement-test/": () => { try { window.IELTS?.UI?.showOnly?.("placementTest"); } catch (e) {} },
     "/vocabulary/": () => {

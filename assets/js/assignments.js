@@ -45,14 +45,20 @@
     try { return new Date(iso) < Date.now(); } catch (e) { return false; }
   }
 
+  function testName(id) {
+    const value = String(id || "").trim();
+    if (value.startsWith("imp-")) return registry()?.getTestLabel?.(value) || "Imported exam";
+    return value.replace("ielts", "IELTS Test ");
+  }
+
   function formatAssignmentTarget(testId) {
     const value = String(testId || "").trim();
     if (!value) return "Assigned activity";
-    if (!value.startsWith("practice|")) return value.replace("ielts", "IELTS Test ");
+    if (!value.startsWith("practice|")) return testName(value);
     const parts = value.split("|");
     const type = parts[1] || "";
     if (type === "reading-task") return `Reading practice · ${parts[2] || "task type"}`;
-    const sourceTest = (parts[2] || "ielts").replace("ielts", "IELTS Test ");
+    const sourceTest = testName(parts[2] || "ielts");
     const scope = parts[3] || "full";
     if (scope === "full") return `${sourceTest} · ${type} practice`;
     if (scope.startsWith("section")) return `${sourceTest} · ${type} ${scope.replace("section", "Section ")}`;
@@ -123,6 +129,17 @@
     });
     const options = [];
     ids.forEach((id) => {
+      const imported = testsById[id]?.imported && !testsById[id]?.stub;
+      if (testsById[id]?.stub) return;
+      if (imported) {
+        const cfg = testsById[id];
+        const title = cfg.title || id;
+        if (cfg.skills?.length === 3) options.push({ id, label: `Full exam · ${title}`, kind: "test", testId: id });
+        ["reading", "listening", "writing"].filter((k) => cfg.skills?.includes(k)).forEach((k) => {
+          options.push({ id: `practice|${k}|${id}|full`, label: `${title} · ${k.charAt(0).toUpperCase()}${k.slice(1)}`, kind: "practice" });
+        });
+        return;
+      }
       const label = id.replace("ielts", "IELTS Test ");
       options.push({ id, label: `Full Test ${label.replace("IELTS Test ", "")}`, kind: "test", testId: id });
       options.push({ id: `practice|reading|${id}|full`, label: `${label} · Reading (full)`, kind: "practice" });
@@ -157,7 +174,9 @@
     });
     const taskTypes = Array.from(taskTypeMap.values());
     ids.forEach((id) => {
-      const testLabel = id.replace("ielts", "Test ");
+      const cfg = testsById[id];
+      if (cfg?.stub || (cfg?.imported && !cfg.skills?.includes("reading"))) return;
+      const testLabel = cfg?.imported ? cfg.title : id.replace("ielts", "Test ");
       taskTypes.forEach((task) => {
         options.push({
           id: `practice|reading-task|${task.type}|${id}`,
@@ -1294,6 +1313,8 @@
 
   window.IELTS = window.IELTS || {};
   window.IELTS.Assignments = {
+    formatAssignmentTarget,
+    getTestIdOptions,
     init,
     openAssignmentsPage,
     loadStudentAssignments,

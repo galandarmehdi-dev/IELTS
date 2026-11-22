@@ -198,19 +198,32 @@
     }
   }
 
+  // An imported exam can be opened (for example from an assignment) before the exam list has loaded.
+  // Register a placeholder so the id is kept instead of silently falling back to the default test.
+  function ensureImportedStub(id) {
+    const key = String(id || "").trim().toLowerCase();
+    if (!key.startsWith("imp-") || TESTS.byId[key]) return;
+    TESTS.byId[key] = { id: key, readingTestId: key, writingTestId: key, imported: true, stub: true, title: "Imported exam", content: { reading: null, writing: null, listening: null } };
+    REMOTE_TEST_CONTENT.add(key);
+    loadImportedTests(true).catch(() => {});
+  }
+
   function setActiveTestId(id) {
+    ensureImportedStub(id);
     const next = TESTS.byId[id] ? id : TESTS.defaultTestId;
     setSessionValue(KEYS.ACTIVE_TEST_ID, next);
     return next;
   }
 
   function getTestConfig(testId) {
+    ensureImportedStub(testId);
     return TESTS.byId[testId] || TESTS.byId[TESTS.defaultTestId];
   }
 
   function getTestLabel(testId) {
     const cfg = getTestConfig(testId);
     if (!cfg) return "IELTS Test";
+    if (cfg.imported && cfg.title) return cfg.title;
     const digits = String(cfg.id || testId || "").match(/(\d+)$/);
     return digits ? `IELTS Test ${digits[1]}` : String(cfg.id || "IELTS Test");
   }
@@ -267,6 +280,7 @@
     const task = (async () => {
       const url = new URL("/api/test-content", window.location.origin);
       url.searchParams.set("testId", id);
+      if (cfg.draft) url.searchParams.set("preview", "1");
       const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
       const res = await fetch(url.toString(), {
         method: "GET",
@@ -287,6 +301,89 @@
     remoteTestContentPromises.set(id, task);
     return task;
   }
+
+  let importedLoadedAt = 0;
+  let importedPromise = null;
+
+  const IMPORTED_CACHE_KEY = "IELTS:importedExams:v1";
+
+  function registerImportedExam(exam) {
+    const id = String(exam?.test_id || "").toLowerCase();
+    if (!id.startsWith("imp-") || !["reading", "listening", "full"].includes(exam.skill)) return { id: "", changed: false };
+    const draft = exam.status === "draft";
+    const title = draft ? `${String(exam.title || id)} (draft preview)` : String(exam.title || id);
+    const skills = exam.skill === "full" ? ["listening", "reading", "writing"] : [exam.skill];
+    const existing = TESTS.byId[id];
+    if (!existing) {
+      TESTS.byId[id] = { id, readingTestId: id, writingTestId: id, imported: true, draft, title, skills, content: { reading: null, writing: null, listening: null } };
+      REMOTE_TEST_CONTENT.add(id);
+      return { id, changed: true };
+    }
+    if (!existing.imported) return { id, changed: false };
+    if (existing.stub || existing.draft !== draft || existing.title !== title) {
+      if (existing.draft !== draft) existing.content = { reading: null, writing: null, listening: null };
+      Object.assign(existing, { stub: false, draft, title, skills });
+      return { id, changed: true };
+    }
+    return { id, changed: false };
+  }
+
+  function loadCachedImportedTests() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(IMPORTED_CACHE_KEY) || "null");
+      if (!cached || Date.now() - Number(cached.at || 0) > 6 * 60 * 60 * 1000) return;
+      (cached.exams || []).forEach((exam) => registerImportedExam({ ...exam, status: "published" }));
+    } catch (e) {
+      // A missing or broken cache only means the list loads a moment later.
+    }
+  }
+
+  async function loadImportedTests(force = false) {
+    if (!force && Date.now() - importedLoadedAt < 60000) return false;
+    if (importedPromise) return importedPromise;
+    importedPromise = (async () => {
+      let changed = false;
+      try {
+        const token = await window.IELTS?.Auth?.getAccessToken?.().catch(() => null);
+        if (!token) return false;
+        const res = await fetch("/api/imported-exams?includeDrafts=1", { credentials: "same-origin", headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.ok) return false;
+        const live = new Set();
+        (data.exams || []).forEach((exam) => {
+          const r = registerImportedExam(exam);
+          if (r.id) live.add(r.id);
+          if (r.changed) changed = true;
+        });
+        Object.keys(TESTS.byId).forEach((id) => {
+          const cfg = TESTS.byId[id];
+          if (cfg.imported && !cfg.stub && !live.has(id)) {
+            delete TESTS.byId[id];
+            changed = true;
+          }
+        });
+        try {
+          sessionStorage.setItem(IMPORTED_CACHE_KEY, JSON.stringify({ at: Date.now(), exams: (data.exams || []).filter((e) => e.status === "published") }));
+        } catch (e) {
+          // Storage can be unavailable; the cache is only a speed-up.
+        }
+        importedLoadedAt = Date.now();
+        if (changed) window.dispatchEvent(new CustomEvent("ielts:imported-tests-changed"));
+      } catch (e) {
+        // Imported exams are optional; the built-in tests keep working.
+      }
+      return changed;
+    })().finally(() => {
+      importedPromise = null;
+    });
+    return importedPromise;
+  }
+
+  // Show imported exams straight away from the last session's list, then refresh as soon as sign-in is ready.
+  loadCachedImportedTests();
+  [800, 2500, 6000, 12000].forEach((ms) => setTimeout(() => {
+    if (!importedLoadedAt) loadImportedTests(true).catch(() => {});
+  }, ms));
 
   function ensureActiveTestContent() {
     return ensureTestContent(getActiveTestId());
@@ -627,7 +724,7 @@
   }
 
   function buildFullExamCatalog() {
-    return Object.values(TESTS.byId).map((cfg) => {
+    return Object.values(TESTS.byId).filter((cfg) => !cfg.stub && (!cfg.imported || cfg.skills?.length === 3)).map((cfg) => {
       const content = cfg.content || {};
       return {
         id: cfg.id,
@@ -652,12 +749,12 @@
       }];
     }
     return Object.values(TESTS.byId)
-      .filter((cfg) => !!cfg?.id)
+      .filter((cfg) => !!cfg?.id && !cfg.stub && (!cfg.skills || cfg.skills.includes(section)))
       .map((cfg) => ({
         id: cfg.id,
         testId: cfg.id,
         section,
-        label: `${getTestLabel(cfg.id)} ${SECTION_META[section]?.label || section}`,
+        label: cfg.imported && cfg.skills?.length === 1 ? cfg.title : `${getTestLabel(cfg.id)} ${SECTION_META[section]?.label || section}`,
         description: `Open only the ${SECTION_META[section]?.label?.toLowerCase() || section} part from ${getTestLabel(cfg.id)}.`,
         meta: [
           section === "listening" ? "Audio section only" : null,
@@ -887,6 +984,7 @@
     getActiveTestContent,
     ensureTestContent,
     ensureActiveTestContent,
+    loadImportedTests,
     setLaunchContext,
     getLaunchContext,
     clearLaunchContext,

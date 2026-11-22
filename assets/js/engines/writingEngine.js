@@ -632,6 +632,119 @@
       setTimeout(tick, 4000);
     }
 
+    const PENDING_FINAL_SUBMISSIONS_KEY = "IELTS:SUBMISSIONS:pendingFinal";
+
+    function getPendingFinalSubmissions() {
+      try {
+        const rows = JSON.parse(localStorage.getItem(PENDING_FINAL_SUBMISSIONS_KEY) || "[]");
+        return Array.isArray(rows) ? rows.filter((row) => row && typeof row === "object") : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function savePendingFinalSubmissions(rows) {
+      try {
+        localStorage.setItem(PENDING_FINAL_SUBMISSIONS_KEY, JSON.stringify(Array.isArray(rows) ? rows : []));
+      } catch (e) {}
+    }
+
+    function createSubmissionId(finalPayload) {
+      const existing = String(finalPayload?.submissionId || "").trim();
+      if (existing) return existing;
+      if (window.crypto?.randomUUID) return `sub_${window.crypto.randomUUID()}`;
+      const stamp = String(finalPayload?.submittedAt || Date.now()).replace(/[^0-9a-zA-Z]+/g, "");
+      return `sub_${stamp}_${Math.random().toString(36).slice(2, 12)}`;
+    }
+
+    function queuePendingFinalSubmission(finalPayload) {
+      if (!finalPayload || typeof finalPayload !== "object") return "";
+      const submissionId = createSubmissionId(finalPayload);
+      finalPayload.submissionId = submissionId;
+      const rows = getPendingFinalSubmissions();
+      const nextRow = {
+        submissionId,
+        examId: finalPayload.examId || "",
+        submittedAt: finalPayload.submittedAt || new Date().toISOString(),
+        queuedAt: new Date().toISOString(),
+        retryCount: 0,
+        finalPayload,
+      };
+      const index = rows.findIndex((row) => row.submissionId === submissionId);
+      if (index >= 0) rows[index] = { ...rows[index], ...nextRow, retryCount: rows[index].retryCount || 0 };
+      else rows.push(nextRow);
+      savePendingFinalSubmissions(rows.slice(-25));
+      return submissionId;
+    }
+
+    function removePendingFinalSubmission(submissionId) {
+      const id = String(submissionId || "").trim();
+      if (!id) return;
+      savePendingFinalSubmissions(getPendingFinalSubmissions().filter((row) => row.submissionId !== id));
+    }
+
+    async function finalizeSubmissionOnServer(finalPayload) {
+      const submissionId = queuePendingFinalSubmission(finalPayload);
+      const token = await getSubmissionAccessToken();
+      if (!token) throw new Error("Missing student access token.");
+      const res = await fetch("/api/submissions/finalize", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ submissionId, finalPayload }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || data.ok !== true) {
+        const err = new Error(data?.error || `Server receipt failed (${res.status})`);
+        err.finalizeStatus = data?.status || "failed_retryable";
+        throw err;
+      }
+      if (data.status === "accepted" || data.status === "already_received") {
+        removePendingFinalSubmission(submissionId);
+      }
+      return data;
+    }
+
+    async function retryPendingFinalSubmissions() {
+      const rows = getPendingFinalSubmissions();
+      if (!rows.length) return { ok: true, retried: 0 };
+      let retried = 0;
+      for (const row of rows) {
+        try {
+          const finalPayload = row.finalPayload || null;
+          if (!finalPayload) continue;
+          finalPayload.submissionId = row.submissionId || finalPayload.submissionId || createSubmissionId(finalPayload);
+          await finalizeSubmissionOnServer(finalPayload);
+          retried += 1;
+        } catch (error) {
+          const current = getPendingFinalSubmissions();
+          const index = current.findIndex((item) => item.submissionId === row.submissionId);
+          if (index >= 0) {
+            current[index] = {
+              ...current[index],
+              retryCount: Number(current[index].retryCount || 0) + 1,
+              lastError: String(error?.message || error || ""),
+              lastRetryAt: new Date().toISOString(),
+            };
+            savePendingFinalSubmissions(current);
+          }
+        }
+      }
+      return { ok: true, retried };
+    }
+
+    window.IELTS = window.IELTS || {};
+    window.IELTS.Submissions = {
+      ...(window.IELTS.Submissions || {}),
+      retryPendingFinalSubmissions,
+      getPendingFinalSubmissions,
+    };
+    window.addEventListener("online", () => retryPendingFinalSubmissions().catch(() => null));
+    setTimeout(() => retryPendingFinalSubmissions().catch(() => null), 2000);
+
     async function submitFinalExam(reason) {
       if (hasSubmitted) return;
 
@@ -711,124 +824,54 @@
           attemptKind: finalPayload.attemptKind,
         });
 
+        const submissionId = queuePendingFinalSubmission(finalPayload);
         S().setJSON(R().EXAM.keys.finalSubmission, finalPayload);
-        S().set(R().EXAM.keys.finalSubmitted, "true");
-
-        // Mark any active assignment for this test as complete (non-blocking).
-        try {
-          window.IELTS?.Assignments?.markAssignmentCompleteForTest?.(activeTestId);
-        } catch (e) {}
 
         const hasWritingText = hasAnyWritingText(writingPayload);
-        const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: true });
-        const backupResult = await recordSubmissionBackup(finalPayload);
-        console.info("[submission] server backup result", {
-          ok: !!backupResult.ok,
-          examId: finalPayload.examId,
-          error: backupResult.ok ? "" : String(backupResult.error || ""),
-        });
-        if (!backupResult.ok) {
-          console.error("Submission backup was not confirmed before sheet submit:", backupResult.error || backupResult);
-          const recoveryError = new Error("We could not save a secure server backup for this submission. Please check the internet connection and press submit again. Do not close this page.");
-          recoveryError.serverRecoveryFailed = true;
-          recoveryError.detail = backupResult.error || backupResult;
-          throw recoveryError;
-        }
-        await recordSubmissionMeta(finalPayload);
+        const localHistoryRow = window.IELTS?.History?.rememberLocalAttempt?.(finalPayload, { openAfterSubmit: false });
+        Modal().showModal(
+          "Submitting exam",
+          "Submitting... do not close this page. Your answers are also saved on this device until the server confirms receipt.",
+          { mode: "confirm" }
+        );
 
+        const finalizeResult = await finalizeSubmissionOnServer(finalPayload);
+        console.info("[submission] durable server receipt", {
+          ok: !!finalizeResult.ok,
+          status: finalizeResult.status || "",
+          submissionId,
+          processingStatus: finalizeResult.processingStatus || "",
+          backupStatus: finalizeResult.backupStatus || "",
+        });
+
+        S().set(R().EXAM.keys.finalSubmitted, "true");
         S().set(W.keys.submitted, "true");
         UI().lockWholeExamAfterFinalSubmit();
 
-        // Save history immediately so a flaky backend response does not erase the student's record.
-        const historyResult = await saveAttemptToSupabase(finalPayload);
-        console.info("[submission] browser supabase history result", {
-          ok: !!historyResult.ok,
-          skipped: !!historyResult.skipped,
-          examId: finalPayload.examId,
-          error: historyResult.ok ? "" : String(historyResult.message || historyResult.error?.message || historyResult.error || ""),
-        });
-
-        const endpoint = String(R().ADMIN_API_PATH || "").trim();
-        let sheetsSaved = false;
-        let submissionWarning = "";
-        if (endpoint) {
-          try {
-            const token = await getSubmissionAccessToken();
-            if (!token) throw new Error("Missing student access token.");
-            const submitUrl = R().buildAdminApiUrl?.({ action: "submitExam" });
-            if (!submitUrl) throw new Error("Submission endpoint is missing.");
-
-            const res = await fetchWithTimeout(submitUrl.toString(), {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(finalPayload)
-            }, Number(R().TIMEOUTS?.submissionPostMs || 45000));
-
-            const text = await res.text();
-            let json = null;
-            try { json = JSON.parse(text); } catch (e) {}
-
-            const okResponse = res.ok && (
-              /^OK\b/i.test(String(text || "").trim()) ||
-              (json && json.ok === true)
-            );
-
-            if (!okResponse) {
-              throw new Error((json && json.error) || text || `HTTP ${res.status}`);
-            }
-            sheetsSaved = true;
-            console.info("[submission] apps script sheet result", {
-              ok: true,
-              examId: finalPayload.examId,
-              status: res.status,
-            });
-          } catch (sheetErr) {
-            console.error("Backend submission response failed:", sheetErr);
-            submissionWarning = String(sheetErr?.message || sheetErr || "Submission response failed");
-          }
-        }
+        // Mark any active assignment for this test as complete only after durable receipt.
+        try {
+          window.IELTS?.Assignments?.markAssignmentCompleteForTest?.(activeTestId);
+        } catch (e) {}
 
         if (hasWritingText) {
           try {
             const immediate = await fetchStudentResultFromBackend(finalPayload);
             if (immediate?.result) {
               try { window.IELTS?.History?.mergeResultIntoLocalRows?.(localHistoryRow, immediate.result); } catch (e) {}
-              await updateAttemptScoresInSupabase(finalPayload, immediate.result);
-              if (immediate?.graded) {
-                sheetsSaved = true;
-              } else {
-                startMarkedResultPolling(finalPayload);
-              }
-            } else {
-              startMarkedResultPolling(finalPayload);
             }
           } catch (err) {
             console.error("Immediate marked-result fetch failed:", err);
-            startMarkedResultPolling(finalPayload);
           }
         }
 
-        if (historyResult?.ok) {
-          try { window.IELTS?.History?.refresh?.(); } catch (e) {}
-        }
+        try { window.IELTS?.History?.refresh?.(); } catch (e) {}
 
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-        const submittedMessage = sheetsSaved
-          ? (historyResult?.ok
-              ? (hasWritingText
-                  ? "Submitted successfully. Opening your history now so you can review the saved attempt and any available scores."
-                  : "Submitted successfully. Opening your history now.")
-              : (localHistoryRow
-                  ? "Submitted successfully to Google Sheets. Opening your history now from this browser while the synced record catches up."
-                  : "Submitted successfully to Google Sheets. History may appear after a short delay."))
-          : (historyResult?.ok || localHistoryRow
-              ? (submissionWarning
-                  ? "Your attempt was saved and will open in history now, but the server response was unreliable. If it already appears in admin results, scores will sync here shortly."
-                  : "Your attempt was saved. Opening your history now.")
-              : "Saved locally on this browser.");
+        const submittedMessage = finalizeResult.status === "already_received"
+          ? "This submission was already safely received by the server. Opening your history now."
+          : (finalizeResult.processingStatus === "failed_processing" || finalizeResult.backupStatus === "failed"
+              ? "Submission safely received. Results are being processed and the admin reliability dashboard can retry any failed sync."
+              : "Submission safely received by the server. Opening your history now while results finish processing.");
 
         try {
           await window.IELTS?.History?.openHistory?.();
@@ -843,17 +886,18 @@
         console.error("submitFinalExam crashed:", err);
         hasSubmitted = false;
         S().set(W.keys.submitted, "false");
+        S().set(R().EXAM.keys.finalSubmitted, "false");
         try {
           if (!S().get(WRITING_DEADLINE_KEY, null)) {
             S().set(WRITING_DEADLINE_KEY, String(deadlineAt || (Date.now() + Math.max(0, Number(remainingSeconds) || 0) * 1000)));
           }
         } catch (e) {}
         window.__IELTS_FINAL_SUBMIT_REASON__ = "";
-        const message = err?.serverRecoveryFailed
-          ? "Your answers are still on this screen, but they were NOT safely saved to the server. Please check the internet connection and press submit again. Do not close or refresh this page until it submits successfully."
-          : "Something went wrong during submission. Your latest answers are still saved on this browser. Please refresh and try again.";
+        const message = err?.finalizeStatus === "failed_non_retryable"
+          ? "The server could not accept this submission because the payload needs review. Your latest answers are still saved on this browser. Please contact your teacher before closing this page."
+          : "Your answers are saved on this device and will retry when the connection returns. Please do not clear browser data. You can also press submit again when online.";
         Modal().showModal(
-          err?.serverRecoveryFailed ? "Submission not saved yet" : "Submission error",
+          err?.finalizeStatus === "failed_non_retryable" ? "Submission needs review" : "Submission saved locally",
           message,
           { mode: "confirm" }
         );

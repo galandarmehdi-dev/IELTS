@@ -185,7 +185,7 @@
   function resetExamAttempt() {
     const isAdmin = window.IELTS?.Access?.isAdmin?.() === true;
     if (!isAdmin) return;
-    try { S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-"]); } catch (e) {}
+    try { S().removeByPrefixes(["IELTS:", "ielts-reading-", "ielts-writing-", "ielts-full-", "imp-"]); } catch (e) {}
     try {
       S().remove(R().EXAM.keys.finalSubmission);
       S().remove(R().EXAM.keys.finalSubmitted);

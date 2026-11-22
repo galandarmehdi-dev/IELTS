@@ -109,6 +109,51 @@
     const prevBtn = () => $("listenPrevBtn");
     const nextBtn = () => $("listenNextBtn");
     const tabButtons = () => Array.from(document.querySelectorAll(".listenTab[data-listen-tab]"));
+    const volSlider = () => document.getElementById("listenVolumeSlider");
+    const volIcon  = () => document.getElementById("listenVolIcon");
+
+    function applyVolume(aud) {
+      const sl = volSlider();
+      if (!sl || !aud) return;
+      aud.volume = Number(sl.value) / 100;
+      const icon = volIcon();
+      if (icon) icon.classList.toggle("muted", Number(sl.value) === 0);
+    }
+
+    function initVolumeControl() {
+      const navActions = document.querySelector(".listen-nav-actions");
+      if (!navActions || document.getElementById("listenVolumeSlider")) return;
+
+      const wrap = document.createElement("div");
+      wrap.id = "listenVolumeControl";
+      wrap.setAttribute("aria-label", "Volume control");
+      wrap.style.cssText = "display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:4px;";
+
+      wrap.innerHTML =
+        '<svg id="listenVolIcon" width="18" height="18" viewBox="0 0 20 20" fill="none" ' +
+        'xmlns="http://www.w3.org/2000/svg" aria-hidden="true" ' +
+        'style="width:18px;height:18px;flex-shrink:0;cursor:pointer;opacity:.65;color:var(--navy,#17324d);">' +
+        '<path d="M10 3.5L6 7H3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h3l4 3.5V3.5Z" fill="currentColor"/>' +
+        '<path id="listenVolWave1" d="M13 7.5a4 4 0 0 1 0 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '<path id="listenVolWave2" d="M15.5 5a7 7 0 0 1 0 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>' +
+        '</svg>' +
+        '<input id="listenVolumeSlider" type="range" min="0" max="100" value="100" step="1" ' +
+        'aria-label="Audio volume" ' +
+        'style="width:80px;cursor:pointer;accent-color:#17324d;vertical-align:middle;">';
+
+      navActions.appendChild(wrap);
+
+      const sl = volSlider();
+      sl.addEventListener("input", () => { const aud = audio(); if (aud) applyVolume(aud); });
+
+      const icon = volIcon();
+      icon.addEventListener("click", () => {
+        sl.value = Number(sl.value) === 0 ? "100" : "0";
+        sl.dispatchEvent(new Event("input"));
+      });
+    }
+
+    initVolumeControl();
 
     const pages = () => [$("listenSec1"), $("listenSec2"), $("listenSec3"), $("listenSec4")].filter(Boolean);
     const readingContainer = () => $("container");
@@ -1063,7 +1108,7 @@ function applyActiveListeningContent() {
 
       try { aud.pause(); } catch (e) {}
       aud.muted = false;
-      aud.volume = 1;
+      applyVolume(aud);
 
       const resumeOffsetSeconds =
         startedAt > 0 && audioEndsAt > startedAt

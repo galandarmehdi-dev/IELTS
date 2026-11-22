@@ -98,6 +98,11 @@
   color: #92400e;
 }
 
+.assignment-badge.exam {
+  background: #eef9f4;
+  color: #439472;
+}
+
 .assignment-card-actions {
   display: flex;
   gap: 8px;

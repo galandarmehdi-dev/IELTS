@@ -1971,7 +1971,8 @@ async function handleAdminApi(request, env, ctx = null) {
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
-      return json(200, { ok: true, result: cached, cached: true });
+      const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(cached, overrides), cached: true });
     }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -1987,7 +1988,14 @@ async function handleAdminApi(request, env, ctx = null) {
       return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load objective detail." });
     }
     setCachedObjectiveDetail(cacheKey, data.result);
-    return json(200, { ok: true, result: data.result });
+    const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(data.result, overrides) });
+  }
+
+  if (request.method === "POST" && action === "adminObjectiveAnswerOverride") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminObjectiveAnswerOverride(request, env, auth);
   }
 
   if (request.method === "POST" && action === "studentSessionPing") {
@@ -2244,7 +2252,8 @@ async function handleAdminApi(request, env, ctx = null) {
     const cacheKey = buildObjectiveDetailCacheKey(url.searchParams);
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
-      return json(200, { ok: true, result: cached, cached: true });
+      const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(cached, overrides), cached: true });
     }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -2259,7 +2268,8 @@ async function handleAdminApi(request, env, ctx = null) {
       return json(response.ok ? 502 : response.status, { ok: false, error: data?.error || "Could not load objective detail." });
     }
     setCachedObjectiveDetail(cacheKey, data.result);
-    return json(200, { ok: true, result: data.result });
+    const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
+    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(data.result, overrides) });
   }
 
   if (request.method === "GET" && action === "practiceResultDetail") {
@@ -4808,6 +4818,107 @@ async function handleAdminMarkSubmissionReviewed(request, env, auth) {
 
 // Fetch the four component bands from exam_attempts and compute an updated overall.
 // Returns { listeningBand, readingBand, finalWritingBand, speakingBand, overallBand }.
+// ---------- Admin corrections to Listening/Reading answer marks ----------
+// Overrides live in the submission's score meta (KV) as { listening: { "12": true }, reading: { ... } }.
+async function readObjectiveAnswerOverrides(env, lookup) {
+  const meta = await readSubmissionScoreMeta(env, lookup).catch(() => ({}));
+  return meta?.answerOverrides && typeof meta.answerOverrides === "object" ? meta.answerOverrides : null;
+}
+
+function applyObjectiveAnswerOverrides(result, overrides) {
+  if (!result || !overrides) return result;
+  const out = { ...result };
+  ["listening", "reading"].forEach((skill) => {
+    const map = overrides?.[skill];
+    if (!Array.isArray(result?.[skill]) || !map || typeof map !== "object") return;
+    out[skill] = result[skill].map((item) => {
+      const key = String(item?.q ?? "");
+      if (!Object.prototype.hasOwnProperty.call(map, key)) return item;
+      return { ...item, mark: map[key] === true, originalMark: item?.mark === true, overridden: true };
+    });
+  });
+  return out;
+}
+
+async function fetchRawObjectiveDetail(request, env, lookup) {
+  const params = new URLSearchParams({
+    submittedAt: lookup.submittedAt || "",
+    studentFullName: lookup.studentFullName || "",
+    examId: lookup.examId || "",
+    reason: lookup.reason || "",
+  });
+  const cacheKey = buildObjectiveDetailCacheKey(params);
+  const cached = getCachedObjectiveDetail(cacheKey);
+  if (cached) return cached;
+  const backendUrl = new URL(env.ADMIN_BACKEND_URL);
+  params.forEach((value, key) => backendUrl.searchParams.set(key, value));
+  backendUrl.searchParams.set("action", "studentObjectiveDetail");
+  const signedBackendUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "GET", "", env);
+  const response = await fetch(signedBackendUrl, { method: "GET", headers: await filteredProxyHeaders(request, env, signedBackendUrl) });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data || data.ok !== true || !data.result) return null;
+  setCachedObjectiveDetail(cacheKey, data.result);
+  return data.result;
+}
+
+async function handleAdminObjectiveAnswerOverride(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const lookup = {
+    submittedAt: oneLine(payload?.submittedAt || ""),
+    studentFullName: oneLine(payload?.studentFullName || ""),
+    examId: oneLine(payload?.examId || ""),
+    reason: oneLine(payload?.reason || ""),
+  };
+  const skill = oneLine(payload?.skill || "").toLowerCase();
+  const q = Number(payload?.q);
+  const mark = payload?.mark === true ? true : payload?.mark === false ? false : null; // null = undo the correction
+  if (!lookup.submittedAt || !lookup.studentFullName || !lookup.examId) return json(400, { ok: false, error: "Missing result lookup fields." });
+  if (!["listening", "reading"].includes(skill)) return json(400, { ok: false, error: "Skill must be listening or reading." });
+  if (!Number.isInteger(q) || q < 1 || q > 40) return json(400, { ok: false, error: "Question number must be 1-40." });
+
+  const organizationId = await inferSubmissionOrganizationId(env, lookup, getActorOrganizationId(auth));
+  if (!canActorAccessOrganization(auth, organizationId)) {
+    return json(403, { ok: false, error: "This result does not belong to the current tenant." });
+  }
+  const raw = await fetchRawObjectiveDetail(request, env, lookup);
+  const rawItems = Array.isArray(raw?.[skill]) ? raw[skill] : [];
+  const rawItem = rawItems.find((item) => Number(item?.q) === q);
+  if (!rawItem) return json(404, { ok: false, error: "Answer review is not available for this result." });
+
+  const meta = await readSubmissionScoreMeta(env, lookup).catch(() => ({}));
+  const overrides = JSON.parse(JSON.stringify(meta?.answerOverrides && typeof meta.answerOverrides === "object" ? meta.answerOverrides : {}));
+  overrides[skill] = overrides[skill] && typeof overrides[skill] === "object" ? overrides[skill] : {};
+  if (mark === null || mark === (rawItem.mark === true)) delete overrides[skill][String(q)];
+  else overrides[skill][String(q)] = mark;
+
+  const adjusted = applyObjectiveAnswerOverrides(raw, overrides);
+  const total = (adjusted[skill] || []).filter((item) => item?.mark === true).length;
+  const band = objectiveBandFromRaw(skill, total, (adjusted[skill] || []).length);
+  const skillPatch = skill === "listening" ? { listeningTotal: total, listeningBand: band } : { readingTotal: total, readingBand: band };
+
+  await writeSubmissionScoreMeta(env, { ...lookup, organizationId }, { answerOverrides: overrides, ...skillPatch });
+
+  const examAttemptQuery = {
+    submitted_at: `eq.${lookup.submittedAt}`,
+    student_full_name: `eq.${lookup.studentFullName}`,
+    exam_id: `eq.${lookup.examId}`,
+  };
+  if (organizationId) examAttemptQuery.organization_id = `eq.${organizationId}`;
+  if (lookup.reason) examAttemptQuery.reason = `eq.${lookup.reason}`;
+  const { overallBand } = await deriveUpdatedOverallBand(env, examAttemptQuery, skill === "listening" ? { listeningBand: band } : { readingBand: band });
+  await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    method: "PATCH",
+    query: examAttemptQuery,
+    body: {
+      ...(skill === "listening" ? { listening_total: total, listening_band: band } : { reading_total: total, reading_band: band }),
+      ...(overallBand !== null ? { overall_band: overallBand } : {}),
+    },
+  }).catch(() => null);
+
+  try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+  return json(200, { ok: true, result: adjusted, skill, total, band, overallBand });
+}
+
 async function deriveUpdatedOverallBand(env, examAttemptQuery, overrides = {}) {
   try {
     const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
@@ -4931,14 +5042,23 @@ function mergeSummaryWithScoreMeta(summary, scoreMeta) {
     task2Band,
   });
   const speakingBand = toNullableBand(scoreMeta?.speakingBand ?? summary?.speakingBand);
+  // Admin answer corrections store recalculated Listening/Reading scores in the score meta.
+  const listeningBand = toNullableBand(scoreMeta?.listeningBand ?? summary?.listeningBand);
+  const readingBand = toNullableBand(scoreMeta?.readingBand ?? summary?.readingBand);
+  const listeningTotal = toNullableNumber(scoreMeta?.listeningTotal) ?? summary?.listeningTotal;
+  const readingTotal = toNullableNumber(scoreMeta?.readingTotal) ?? summary?.readingTotal;
   const overallBand = toRoundedOverallBand([
-    summary?.listeningBand,
-    summary?.readingBand,
+    listeningBand,
+    readingBand,
     finalWritingBand,
     speakingBand,
   ]);
   return {
     ...summary,
+    ...(listeningBand !== null ? { listeningBand } : {}),
+    ...(readingBand !== null ? { readingBand } : {}),
+    ...(listeningTotal !== undefined && listeningTotal !== null ? { listeningTotal } : {}),
+    ...(readingTotal !== undefined && readingTotal !== null ? { readingTotal } : {}),
     organizationId: normalizeOrganizationId(scoreMeta?.organizationId || summary?.organizationId || summary?.organization_id || ""),
     studentProfileId: scoreMeta?.studentProfileId || summary?.studentProfileId || "",
     studentIdCode: scoreMeta?.studentIdCode || summary?.studentIdCode || "",

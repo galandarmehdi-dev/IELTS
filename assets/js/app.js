@@ -1642,7 +1642,7 @@
       container.appendChild(block);
     }
 
-    function renderObjectiveReviewInto(container, items, emptyMessage) {
+    function renderObjectiveReviewInto(container, items, emptyMessage, options = {}) {
       if (!container) return;
       clearElement(container);
       const rows = Array.isArray(items) ? items : [];
@@ -1682,6 +1682,26 @@
         badge.className = `objective-review-mark ${item.mark ? "ok" : "bad"}`;
         badge.textContent = item.mark ? "Correct" : "Wrong";
         markTd.appendChild(badge);
+        if (item.overridden) {
+          const note = document.createElement("span");
+          note.className = "small";
+          note.style.marginLeft = "6px";
+          note.textContent = "(changed by admin)";
+          markTd.appendChild(note);
+        }
+        if (typeof options.onToggle === "function") {
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "btn secondary ui-row-action";
+          toggle.style.marginLeft = "8px";
+          toggle.textContent = item.mark ? "Mark wrong" : "Mark correct";
+          toggle.setAttribute("aria-label", `Question ${item.q}: ${toggle.textContent.toLowerCase()}`);
+          toggle.addEventListener("click", () => {
+            toggle.disabled = true;
+            Promise.resolve(options.onToggle(item)).finally(() => { toggle.disabled = false; });
+          });
+          markTd.appendChild(toggle);
+        }
         tr.appendChild(markTd);
         tbody.appendChild(tr);
       });
@@ -2023,11 +2043,53 @@
         });
     }
 
-    function renderObjectiveReview(prefix, result) {
+    function renderObjectiveReview(prefix, result, context = {}) {
       const listeningEl = $(`${prefix}ListeningReview`);
       const readingEl = $(`${prefix}ReadingReview`);
-      renderObjectiveReviewInto(listeningEl, result?.listening, "Listening answer review is not available for this submission yet.");
-      renderObjectiveReviewInto(readingEl, result?.reading, "Reading answer review is not available for this submission yet.");
+      const row = context?.row || null;
+      const editable = prefix === "adminDetail" && row && result;
+      const opts = (skill) => (editable ? { onToggle: (item) => toggleAdminObjectiveMark(row, result, skill, item) } : {});
+      renderObjectiveReviewInto(listeningEl, result?.listening, "Listening answer review is not available for this submission yet.", opts("listening"));
+      renderObjectiveReviewInto(readingEl, result?.reading, "Reading answer review is not available for this submission yet.", opts("reading"));
+    }
+
+    // Admin correction of a single Listening/Reading mark. The server recalculates the score,
+    // band and overall band, and keeps the change for the student's own result view too.
+    async function toggleAdminObjectiveMark(row, result, skill, item) {
+      const url = R()?.buildAdminApiUrl?.({ action: "adminObjectiveAnswerOverride" });
+      if (!url || !row || !item) return;
+      const nextMark = !item.mark;
+      const mark = item.overridden && nextMark === item.originalMark ? null : nextMark;
+      const res = await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({
+          submittedAt: row.submittedAt || "",
+          studentFullName: row.studentFullName || "",
+          examId: row.examId || "",
+          reason: row.reason || "",
+          skill,
+          q: Number(item.q),
+          mark,
+        }),
+      }).catch(() => null);
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        window.alert(data?.error || "Could not change this answer. Please try again.");
+        return;
+      }
+      const cacheKey = buildAdminResultCacheKey(row);
+      if (cacheKey) adminObjectiveDetailCache.set(cacheKey, data.result);
+      const updatedRow = {
+        ...row,
+        ...(skill === "listening" ? { listeningTotal: data.total, listeningBand: data.band } : { readingTotal: data.total, readingBand: data.band }),
+        ...(data.overallBand !== null && data.overallBand !== undefined ? { overallBand: data.overallBand } : {}),
+      };
+      mergeAdminRowIntoState(updatedRow, adminState.mode);
+      if (cacheKey) adminFullResultCache.set(cacheKey, updatedRow);
+      renderAdminDetailFields(updatedRow, { loadingDetail: false });
+      renderObjectiveReview("adminDetail", data.result, { row: updatedRow });
+      try { applyAdminFilters(); } catch (e) {}
     }
 
     function fillExamFilter(rows) {
@@ -3024,7 +3086,7 @@
           mergeAdminRowIntoState(detailRow, adminState.mode);
         }
         renderAdminDetailFields(detailRow, { submissionRecord: metaRecord, loadingDetail: !fullResult });
-        renderObjectiveReview("adminDetail", objectiveResult);
+        renderObjectiveReview("adminDetail", objectiveResult, { row: detailRow });
       } catch (e) {
         renderObjectiveReview("adminDetail", null);
       }

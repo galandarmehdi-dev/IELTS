@@ -20,3 +20,7 @@ wrangler.jsonc
 *.sql
 supabase
 /tests
+.claude
+scripts
+wrangler.staging.jsonc
+TRUSTED_STATE.md

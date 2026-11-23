@@ -6,6 +6,10 @@
   "observability": {
     "enabled": true
   },
+  // Sends any queued exam result emails that the submit request could not finish.
+  "triggers": {
+    "crons": ["*/2 * * * *"]
+  },
   "assets": {
     "directory": ".",
     "binding": "ASSETS",

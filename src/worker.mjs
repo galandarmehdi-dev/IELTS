@@ -117,10 +117,12 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    const retryWork = retryFailedInboxSubmissions(env, null, {
-      limit: 20,
-      reason: "scheduled",
-    });
+    const retryWork = controller?.cron === EXAM_EMAIL_CRON
+      ? sendPendingExamReportEmails(env)
+      : retryFailedInboxSubmissions(env, null, {
+          limit: 20,
+          reason: "scheduled",
+        });
     if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(retryWork);
     else await retryWork;
   },
@@ -4318,6 +4320,14 @@ async function processDurableSubmission(env, durable, auth, tenant, request, opt
     return { ok: false, status: "invalid_payload", error: validation.error };
   }
 
+  // Record the result email first (fast), so it is never lost if later steps are cut off.
+  const emailQueued = shouldSendResultEmail
+    ? await queueExamReportEmail(env, submissionId, finalPayload).catch((error) => {
+        console.warn("[exam-email] queue failed", error?.message || error);
+        return false;
+      })
+    : false;
+
   try {
     console.log("[submission-pipeline] processing_started", { submissionId, examId: summary.examId });
     await mirrorFullExamSubmissionToSupabase(env, finalPayload, {}, auth, tenant);
@@ -4370,12 +4380,17 @@ async function processDurableSubmission(env, durable, auth, tenant, request, opt
     }
   }
 
-  if (shouldSendResultEmail) {
-    sendExamReportEmail(env, finalPayload, {}).then((emailResult) => {
-      console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
-    }).catch((error) => {
-      console.warn("[exam-email] failed after durable finalize", error?.message || error);
-    });
+  if (shouldSendResultEmail && emailQueued) {
+    // Awaited so it stays inside waitUntil. If Cloudflare stops this work early
+    // (the Sheets/writing step can be slow), the queued email is sent by the cron sweep.
+    const emailResult = await deliverQueuedExamReportEmail(env, submissionId, { requireResult: false }).catch((error) => ({
+      ok: false,
+      error: error?.message || "threw",
+    }));
+    console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || emailResult.skipped || ""));
+  } else if (shouldSendResultEmail) {
+    const emailResult = await sendExamReportEmail(env, finalPayload, {}).catch((error) => ({ ok: false, error: error?.message || "threw" }));
+    console.log("[exam-email]", emailResult.recipient || "(no-recipient)", emailResult.ok ? "sent" : "failed:" + (emailResult.error || ""));
   }
 
   return { ok: true, status: "processed" };
@@ -9522,7 +9537,7 @@ function buildExamReportEmailText({ payload, result, objective }, targetEmail) {
   ].join("\n");
 }
 
-async function sendExamReportEmail(env, payload, appsResponse) {
+async function sendExamReportEmail(env, payload, appsResponse, options = {}) {
   const p = payload || {};
   const targetEmail = normalizeEmail(p.studentEmail || p.officialEmail || p.loginEmail || "");
   if (!targetEmail || !isValidEmail(targetEmail)) {
@@ -9539,12 +9554,106 @@ async function sendExamReportEmail(env, payload, appsResponse) {
     reason: oneLine(p.reason || p.writing?.reason || ""),
   }).catch(() => ({ result: null, objective: null }));
 
+  if (options.requireResult && !result) {
+    return { ok: false, waiting: true, error: "result-not-ready", recipient: targetEmail };
+  }
+
   const ctx = { payload: p, result, objective };
   const html = buildExamReportEmailHtml(ctx, targetEmail);
   const text = buildExamReportEmailText(ctx, targetEmail);
 
   const sendResult = await sendViaResend(env, { to: targetEmail, subject, html, text });
   return { ...sendResult, recipient: targetEmail };
+}
+
+// ── Result-email queue ──────────────────────────────────────────────────────
+// Submissions are processed in waitUntil, which Cloudflare stops ~30s after the
+// student gets their reply. The Sheets/writing step can take longer, so the email
+// is queued in KV first and a cron sweep sends anything still waiting.
+const EXAM_EMAIL_CRON = "*/2 * * * *";
+const EXAM_EMAIL_QUEUE_KEY = "exam_email_queue";
+const EXAM_EMAIL_ITEM_PREFIX = "exam_email_pending:";
+const EXAM_EMAIL_TTL_SECONDS = 3 * 24 * 60 * 60;
+const EXAM_EMAIL_MIN_AGE_MS = 3 * 60 * 1000;
+const EXAM_EMAIL_WAIT_FOR_RESULT_MS = 20 * 60 * 1000;
+const EXAM_EMAIL_MAX_ATTEMPTS = 6;
+
+async function updateExamEmailQueue(env, mutate) {
+  const kv = env?.STUDENT_REGISTRY;
+  if (!kv) return [];
+  const current = await readJsonKv(kv, EXAM_EMAIL_QUEUE_KEY);
+  const list = Array.isArray(current) ? current.filter(Boolean) : [];
+  const next = mutate(list.slice());
+  if (JSON.stringify(next) !== JSON.stringify(list)) await writeJsonKv(kv, EXAM_EMAIL_QUEUE_KEY, next.slice(-300));
+  return next;
+}
+
+async function queueExamReportEmail(env, submissionId, payload) {
+  const kv = env?.STUDENT_REGISTRY;
+  const id = oneLine(submissionId || "");
+  if (!kv || !id || !payload) return false;
+  const key = EXAM_EMAIL_ITEM_PREFIX + id;
+  const existing = await kv.get(key);
+  if (!existing) {
+    await kv.put(key, JSON.stringify({ submissionId: id, queuedAt: Date.now(), attempts: 0, sendingAt: 0, payload }), {
+      expirationTtl: EXAM_EMAIL_TTL_SECONDS,
+    });
+  }
+  await updateExamEmailQueue(env, (list) => (list.includes(id) ? list : [...list, id]));
+  return true;
+}
+
+async function deliverQueuedExamReportEmail(env, submissionId, { requireResult = false } = {}) {
+  const kv = env?.STUDENT_REGISTRY;
+  const id = oneLine(submissionId || "");
+  const key = EXAM_EMAIL_ITEM_PREFIX + id;
+  const item = kv && id ? await readJsonKv(kv, key) : null;
+  if (!item) {
+    await updateExamEmailQueue(env, (list) => list.filter((x) => x !== id)).catch(() => null);
+    return { ok: false, skipped: "not-queued" };
+  }
+  if (item.sendingAt && Date.now() - Number(item.sendingAt) < EXAM_EMAIL_MIN_AGE_MS) {
+    return { ok: false, skipped: "in-progress" };
+  }
+  const save = (next) => kv.put(key, JSON.stringify(next), { expirationTtl: EXAM_EMAIL_TTL_SECONDS });
+  await save({ ...item, sendingAt: Date.now() });
+  const result = await sendExamReportEmail(env, item.payload, {}, { requireResult }).catch((error) => ({
+    ok: false,
+    error: error?.message || "threw",
+  }));
+  const attempts = Number(item.attempts || 0) + (result.waiting ? 0 : 1);
+  const finished = result.ok || result.error === "no-email" || attempts >= EXAM_EMAIL_MAX_ATTEMPTS;
+  if (finished) {
+    await kv.delete(key).catch(() => null);
+    await updateExamEmailQueue(env, (list) => list.filter((x) => x !== id)).catch(() => null);
+  } else {
+    await save({ ...item, attempts, sendingAt: 0, lastError: oneLine(result.error || "") }).catch(() => null);
+  }
+  return result;
+}
+
+async function sendPendingExamReportEmails(env, { limit = 8 } = {}) {
+  const kv = env?.STUDENT_REGISTRY;
+  if (!kv) return { ok: false, sent: 0 };
+  const queue = await readJsonKv(kv, EXAM_EMAIL_QUEUE_KEY);
+  const ids = Array.isArray(queue) ? queue.filter(Boolean) : [];
+  let sent = 0;
+  let checked = 0;
+  for (const id of ids) {
+    if (checked >= limit) break;
+    const item = await readJsonKv(kv, EXAM_EMAIL_ITEM_PREFIX + id);
+    if (!item) {
+      await updateExamEmailQueue(env, (list) => list.filter((x) => x !== id)).catch(() => null);
+      continue;
+    }
+    const age = Date.now() - Number(item.queuedAt || 0);
+    if (age < EXAM_EMAIL_MIN_AGE_MS) continue;
+    checked += 1;
+    const result = await deliverQueuedExamReportEmail(env, id, { requireResult: age < EXAM_EMAIL_WAIT_FOR_RESULT_MS });
+    if (result.ok) sent += 1;
+    console.log("[exam-email-sweep]", id, result.recipient || "", result.ok ? "sent" : result.waiting ? "waiting-for-result" : result.skipped || result.error || "failed");
+  }
+  return { ok: true, sent, checked, queued: ids.length };
 }
 
 function json(status, payload, extraHeaders = {}) {

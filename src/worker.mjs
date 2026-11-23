@@ -997,7 +997,8 @@ async function handleImportedExamAdmin(request, env, url, action) {
   const listColumns = "test_id,title,skill,module,status,source_name,source_hash,rights_confirmed,validation,created_at,updated_at,published_at";
 
   if (request.method === "GET" && action === "importedExamList") {
-    await ensureImportedTestNumbers(env, request).catch((error) => console.warn("[imported-numbers]", error?.message || error));
+    // Opening the list only hands out numbers; answers go to the sheet on publish, on edit, or via "Send answers to sheet".
+    await ensureImportedTestNumbers(env, request, "", { push: false }).catch((error) => console.warn("[imported-numbers]", error?.message || error));
     const res = await supabaseServiceRequest(env, table, {
       query: { select: listColumns, organization_id: `eq.${organizationId}`, order: "updated_at.desc", limit: "1000" },
     });
@@ -1277,7 +1278,7 @@ const IMPORTED_NUMBER_HIGH_WATER_KEY = "imported_exam_last_test_number";
 // Gives every published imported exam a test number and keeps its answers in the sheet.
 // New numbers go to full exams first, then single-skill exams, each oldest first.
 // pushFor: a test id to (re)send to the sheet, "*" for all numbered published exams, or "" for new ones only.
-async function ensureImportedTestNumbers(env, request, pushFor = "") {
+async function ensureImportedTestNumbers(env, request, pushFor = "", options = {}) {
   const res = await supabaseServiceRequest(env, "/rest/v1/imported_exams", {
     query: { select: "test_id,skill,status,answer_keys,validation,created_at,organization_id", limit: "2000" },
   });
@@ -1306,7 +1307,7 @@ async function ensureImportedTestNumbers(env, request, pushFor = "") {
   }
   rows.forEach((row) => { const n = getImportedTestNumber(row); if (n) testNumbers[row.test_id] = n; });
   const sheet = {};
-  for (const row of rows) {
+  for (const row of options.push === false ? [] : rows) {
     const number = getImportedTestNumber(row);
     if (!number || row.status !== "published") continue;
     if (!(assigned.has(row.test_id) || pushFor === "*" || pushFor === row.test_id)) continue;

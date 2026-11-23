@@ -8174,7 +8174,12 @@ async function handleAdminAnswerKeyFix(request, env, auth) {
   if (!original) return json(404, { ok: false, error: "This test has no answer key for that question." });
   const previous = oneLine(buildObjectiveAnswerMap(testId, skill)?.[q] || original);
   const next = requested || original;
-  if (next === previous) return json(200, { ok: true, unchanged: true, answer: next, original, changed: [] });
+  if (next === previous) {
+    // Nothing to re-mark, but make sure the sheet matches (e.g. it failed the first time).
+    const number = answerKeyTestNumber(testId);
+    const sheet = number ? await pushAnswerKeyCellToSheet(env, number, skill, q, next) : { ok: false, error: "No sheet column for this test." };
+    return json(200, { ok: true, unchanged: true, answer: next, original, changed: [], sheet });
+  }
 
   // Save the correction (or remove it when it goes back to the original answer).
   const fixes = JSON.parse(JSON.stringify(ANSWER_KEY_FIXES || {}));

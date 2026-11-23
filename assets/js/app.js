@@ -3399,12 +3399,9 @@
         setQuestionAnalyticsStatus("Type the correct answer first.", "error");
         return;
       }
-      if (answer === String(row.correctAnswer || "")) {
-        renderQuestionAnalyticsRows(questionAnalyticsState.rows);
-        return;
-      }
       const label = `${String(row.testId || "").toUpperCase()} ${String(row.section || "").toUpperCase()} Q${row.questionNumber}`;
-      const ok = window.confirm(
+      const same = answer === String(row.correctAnswer || "");
+      const ok = same ? true : window.confirm(
         `Change the answer key for ${label} from "${row.correctAnswer}" to "${answer}"?\n\n` +
         `Every student who took this test will be re-marked on this question and their scores updated. You can change it back later.`
       );
@@ -3424,7 +3421,9 @@
       }
       await loadQuestionAnalytics(true);
       const parts = [`${label}: answer key is now "${data.answer}".`];
-      if (!data.unchanged) {
+      if (data.unchanged) {
+        parts.push(data.sheet?.ok ? `Answer Key sheet checked (${data.sheet.cell}).` : `Sheet not updated: ${data.sheet?.error || "unknown error"}`);
+      } else {
         parts.push(`${Number(data.gained || 0)} student(s) gained a mark, ${Number(data.lost || 0)} lost one.`);
         if (data.skippedManual) parts.push(`${data.skippedManual} left as they were because an admin had already marked that answer by hand.`);
         if (data.skippedNoScore) parts.push(`${data.skippedNoScore} had no saved score to update.`);

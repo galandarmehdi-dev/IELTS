@@ -3330,7 +3330,11 @@
             <td>${escapeHtml(`${Number(row.wrongRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.blankRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(row.difficulty || "—")}${row.needsReview ? ` <span class="badge badge-warning">Needs review</span>` : ""}</td>
-            <td>${escapeHtml(row.correctAnswer || "—")}</td>
+            <td data-qa-key-cell="${escapeHtml(solvedKey)}">
+              <strong>${escapeHtml(row.correctAnswer || "—")}</strong>
+              ${row.originalAnswer ? `<div class="small" style="color:#166534;">Corrected (was ${escapeHtml(row.originalAnswer)})</div>` : ""}
+              ${row.correctAnswer ? `<div><button type="button" class="btn secondary small" data-qa-edit-key="${escapeHtml(solvedKey)}" style="margin-top:4px;padding:2px 10px;font-size:12px;">Fix key</button></div>` : ""}
+            </td>
             <td>${escapeHtml(commonWrong)}</td>
             <td>
               <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
@@ -3342,6 +3346,15 @@
         `;
       }).join("") || `<tr class="ui-table-state-row"><td colspan="11">No analytics rows matched these filters.</td></tr>`;
 
+      Array.from(tbody.querySelectorAll("[data-qa-edit-key]")).forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = String(button.getAttribute("data-qa-edit-key") || "");
+          const row = safeRows.find((item) => buildQuestionAnalyticsRowSolvedKey(item) === key);
+          const cell = button.closest("[data-qa-key-cell]");
+          if (row && cell) openQuestionAnalyticsKeyEditor(row, cell);
+        });
+      });
+
       Array.from(tbody.querySelectorAll("[data-qa-solved]")).forEach((input) => {
         input.addEventListener("change", () => {
           const key = String(input.getAttribute("data-qa-solved") || "");
@@ -3352,6 +3365,74 @@
           if (label) label.textContent = input.checked ? "Solved" : "Mark solved";
         });
       });
+    }
+
+    // Inline editor for a wrong answer key. Saving re-marks every student who took the test.
+    function openQuestionAnalyticsKeyEditor(row, cell) {
+      const suggestions = (Array.isArray(row.commonWrongAnswers) ? row.commonWrongAnswers : []).map((item) => String(item.answer || ""));
+      const listId = `qaKeyOptions_${Math.random().toString(36).slice(2)}`;
+      cell.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:6px;min-width:150px;">
+          <input type="text" class="input" value="${escapeHtml(row.correctAnswer || "")}" list="${listId}" aria-label="Correct answer for question ${escapeHtml(String(row.questionNumber || ""))}" style="padding:6px 8px;">
+          <datalist id="${listId}">${suggestions.map((answer) => `<option value="${escapeHtml(answer)}"></option>`).join("")}</datalist>
+          <span class="small" style="opacity:.8;">Use / for more than one accepted answer.</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="btn small" data-qa-key-save style="padding:4px 10px;font-size:12px;">Save</button>
+            ${row.originalAnswer ? `<button type="button" class="btn secondary small" data-qa-key-restore style="padding:4px 10px;font-size:12px;">Restore ${escapeHtml(row.originalAnswer)}</button>` : ""}
+            <button type="button" class="btn secondary small" data-qa-key-cancel style="padding:4px 10px;font-size:12px;">Cancel</button>
+          </div>
+        </div>`;
+      const input = cell.querySelector("input");
+      input?.focus();
+      input?.select();
+      cell.querySelector("[data-qa-key-cancel]")?.addEventListener("click", () => renderQuestionAnalyticsRows(questionAnalyticsState.rows));
+      cell.querySelector("[data-qa-key-save]")?.addEventListener("click", () => saveQuestionAnalyticsKeyFix(row, String(input?.value || "").trim()));
+      cell.querySelector("[data-qa-key-restore]")?.addEventListener("click", () => saveQuestionAnalyticsKeyFix(row, String(row.originalAnswer || "")));
+      input?.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") saveQuestionAnalyticsKeyFix(row, String(input.value || "").trim());
+        if (event.key === "Escape") renderQuestionAnalyticsRows(questionAnalyticsState.rows);
+      });
+    }
+
+    async function saveQuestionAnalyticsKeyFix(row, answer) {
+      if (!answer) {
+        setQuestionAnalyticsStatus("Type the correct answer first.", "error");
+        return;
+      }
+      if (answer === String(row.correctAnswer || "")) {
+        renderQuestionAnalyticsRows(questionAnalyticsState.rows);
+        return;
+      }
+      const label = `${String(row.testId || "").toUpperCase()} ${String(row.section || "").toUpperCase()} Q${row.questionNumber}`;
+      const ok = window.confirm(
+        `Change the answer key for ${label} from "${row.correctAnswer}" to "${answer}"?\n\n` +
+        `Every student who took this test will be re-marked on this question and their scores updated. You can change it back later.`
+      );
+      if (!ok) return;
+      setQuestionAnalyticsStatus(`Re-marking ${label}...`);
+      const url = R()?.buildAdminApiUrl?.({ action: "answerKeyFix" });
+      const res = url ? await fetch(url.toString(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await getAuthHeaders()) },
+        body: JSON.stringify({ testId: row.testId, skill: row.section, q: Number(row.questionNumber), answer }),
+      }).catch(() => null) : null;
+      const data = res ? await res.json().catch(() => null) : null;
+      if (!res || !res.ok || !data || data.ok !== true) {
+        setQuestionAnalyticsStatus(data?.error || "Could not change the answer key. Please try again.", "error");
+        renderQuestionAnalyticsRows(questionAnalyticsState.rows);
+        return;
+      }
+      await loadQuestionAnalytics(true);
+      const parts = [`${label}: answer key is now "${data.answer}".`];
+      if (!data.unchanged) {
+        parts.push(`${Number(data.gained || 0)} student(s) gained a mark, ${Number(data.lost || 0)} lost one.`);
+        if (data.skippedManual) parts.push(`${data.skippedManual} left as they were because an admin had already marked that answer by hand.`);
+        if (data.skippedNoScore) parts.push(`${data.skippedNoScore} had no saved score to update.`);
+        if (data.failedUpdates) parts.push(`${data.failedUpdates} could not be saved — try again.`);
+        parts.push(data.sheet?.ok ? `Answer Key sheet updated (${data.sheet.cell}).` : `Sheet not updated: ${data.sheet?.error || "unknown error"}`);
+      }
+      setQuestionAnalyticsStatus(parts.join(" "), data.failedUpdates || !data.sheet?.ok ? "error" : "success");
+      $("adminQuestionAnalyticsStatus")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     function populateQuestionAnalyticsClassroomFilter() {

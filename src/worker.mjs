@@ -36,6 +36,7 @@ export default {
     const unknownTenantResponse = rejectUnknownTenant(request, env);
     if (unknownTenantResponse) return unknownTenantResponse;
     if (url.pathname.startsWith("/api/")) await hydrateImportedExams(env, supabaseServiceRequest);
+    if (url.pathname.startsWith("/api/")) await hydrateAnswerKeyFixes(env).catch(() => null);
 
     if (url.pathname === "/api/contact") {
       return handleContactApi(request, env);
@@ -1419,6 +1420,12 @@ async function handleAdminApi(request, env, ctx = null) {
     return handleAdminQuestionAnalytics(request, env, auth);
   }
 
+  if (request.method === "POST" && action === "answerKeyFix") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminAnswerKeyFix(request, env, auth);
+  }
+
   if (request.method === "GET" && action === "submissionSyncMonitor") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -2099,7 +2106,7 @@ async function handleAdminApi(request, env, ctx = null) {
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
       const overrides = await readObjectiveAnswerOverrides(env, submissionLookup, submissionOrganizationId);
-      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(cached, overrides), cached: true });
+      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(applyAnswerKeyFixesToDetail(cached, submissionLookup.examId), overrides), cached: true });
     }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -2116,7 +2123,7 @@ async function handleAdminApi(request, env, ctx = null) {
     }
     setCachedObjectiveDetail(cacheKey, data.result);
     const overrides = await readObjectiveAnswerOverrides(env, submissionLookup, submissionOrganizationId);
-    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(data.result, overrides) });
+    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(applyAnswerKeyFixesToDetail(data.result, submissionLookup.examId), overrides) });
   }
 
   if (request.method === "POST" && action === "adminObjectiveAnswerOverride") {
@@ -2380,7 +2387,7 @@ async function handleAdminApi(request, env, ctx = null) {
     const cached = getCachedObjectiveDetail(cacheKey);
     if (cached) {
       const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
-      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(cached, overrides), cached: true });
+      return json(200, { ok: true, result: applyObjectiveAnswerOverrides(applyAnswerKeyFixesToDetail(cached, submissionLookup.examId), overrides), cached: true });
     }
 
     const backendUrl = new URL(env.ADMIN_BACKEND_URL);
@@ -2396,7 +2403,7 @@ async function handleAdminApi(request, env, ctx = null) {
     }
     setCachedObjectiveDetail(cacheKey, data.result);
     const overrides = await readObjectiveAnswerOverrides(env, submissionLookup);
-    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(data.result, overrides) });
+    return json(200, { ok: true, result: applyObjectiveAnswerOverrides(applyAnswerKeyFixesToDetail(data.result, submissionLookup.examId), overrides) });
   }
 
   if (request.method === "GET" && action === "practiceResultDetail") {
@@ -5047,7 +5054,7 @@ async function handleAdminObjectiveAnswerOverride(request, env, auth) {
   if (!canActorAccessOrganization(auth, organizationId)) {
     return json(403, { ok: false, error: "This result does not belong to the current tenant." });
   }
-  const raw = await fetchRawObjectiveDetail(request, env, lookup);
+  const raw = applyAnswerKeyFixesToDetail(await fetchRawObjectiveDetail(request, env, lookup), lookup.examId);
   const rawItems = Array.isArray(raw?.[skill]) ? raw[skill] : [];
   const rawItem = rawItems.find((item) => Number(item?.q) === q);
   if (!rawItem) return json(404, { ok: false, error: "Answer review is not available for this result." });
@@ -7215,7 +7222,8 @@ function applyQuestionAnalyticsReviewAttempt({
     const key = buildQuestionAnalyticsRecordKey(testId, section, q);
     const defaultCorrect = normalizeQuestionAnalyticsCorrectAnswer(answerMap[q]);
     const reviewCorrect = normalizeQuestionAnalyticsCorrectAnswer(item?.correct ?? item?.answerKey);
-    const effectiveCorrect = reviewCorrect || defaultCorrect;
+    const keyFix = normalizeQuestionAnalyticsCorrectAnswer(getAnswerKeyFixesFor(testId, section)[String(q)]);
+    const effectiveCorrect = keyFix || reviewCorrect || defaultCorrect;
     const existing = targetMap.get(key) || {
       testId,
       section,
@@ -7239,7 +7247,10 @@ function applyQuestionAnalyticsReviewAttempt({
     const rawStudentAnswer = String(item?.student ?? item?.studentAnswer ?? "").trim();
     const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
     const isBlank = !rawStudentAnswer;
-    const isCorrect = isObjectiveReviewItemCorrect(item) || matchesObjectiveAnswer(rawStudentAnswer, effectiveCorrect);
+    const isCorrect = keyFix
+      ? matchesObjectiveAnswer(rawStudentAnswer, keyFix)
+      : isObjectiveReviewItemCorrect(item) || matchesObjectiveAnswer(rawStudentAnswer, effectiveCorrect);
+    if (keyFix && !existing.originalAnswer) existing.originalAnswer = reviewCorrect || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(testId, section)[q]);
 
     if (isBlank) {
       existing.blankCount += 1;
@@ -7319,6 +7330,9 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
         blankRate: Number(blankRate.toFixed(1)),
         difficulty,
         correctAnswer: row.correctAnswer || "",
+        originalAnswer: getAnswerKeyFixesFor(row.testId, row.section)[String(row.questionNumber)]
+          ? (row.originalAnswer || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(row.testId, row.section)[row.questionNumber]))
+          : "",
         commonWrongAnswers,
         needsReview,
         studentRows: Array.from(row.students.values()),
@@ -7976,7 +7990,18 @@ function formatBand(value) {
   return /^band\s+/i.test(text) ? text : `Band ${text}`;
 }
 
+// The answer key a test uses, with any admin corrections made in Question analytics on top.
 function buildObjectiveAnswerMap(testId, skill) {
+  const base = buildBaseObjectiveAnswerMap(testId, skill);
+  const fixes = getAnswerKeyFixesFor(testId, skill);
+  const keys = Object.keys(fixes);
+  if (!keys.length || !Object.keys(base).length) return base;
+  const out = { ...base };
+  keys.forEach((q) => { if (Number(q) > 0) out[Number(q)] = fixes[q]; });
+  return out;
+}
+
+function buildBaseObjectiveAnswerMap(testId, skill) {
   const testKey = String(testId || "").trim().toLowerCase();
   const skillKey = String(skill || "").trim().toLowerCase();
   const imported = isImportedTestId(testKey) ? getImportedAnswerMap(testKey, skillKey) : null;
@@ -7999,6 +8024,287 @@ function buildObjectiveAnswerMap(testId, skill) {
     map[q] = next;
   });
   return map;
+}
+
+// ---------- Answer key corrections (Question analytics) ----------
+// Stored in KV as { "ielts21": { "reading": { "30": "C" } } }. They apply on top of the built-in or imported
+// key everywhere the Worker marks or shows answers, and the sheet's Answer Key cell is updated too.
+const ANSWER_KEY_FIXES_KV_KEY = "answer_key_fixes";
+const ANSWER_KEY_FIXES_TTL_MS = 30 * 1000;
+let ANSWER_KEY_FIXES = {};
+let ANSWER_KEY_FIXES_LOADED_AT = 0;
+
+async function hydrateAnswerKeyFixes(env, force = false) {
+  if (!force && Date.now() - ANSWER_KEY_FIXES_LOADED_AT < ANSWER_KEY_FIXES_TTL_MS) return ANSWER_KEY_FIXES;
+  const stored = await readJsonKv(env?.STUDENT_REGISTRY, ANSWER_KEY_FIXES_KV_KEY).catch(() => null);
+  ANSWER_KEY_FIXES = stored && typeof stored === "object" ? stored : {};
+  ANSWER_KEY_FIXES_LOADED_AT = Date.now();
+  return ANSWER_KEY_FIXES;
+}
+
+// Every id a test may be stored under: "ielts21", "ielts-full-021", and for imported exams both
+// their "imp-..." id and the "ielts24"-style number they were given.
+function answerKeyFixCandidates(testId) {
+  const raw = oneLine(testId || "").toLowerCase();
+  const out = new Set();
+  if (!raw) return [];
+  out.add(raw);
+  const inferred = inferObjectiveTestId({ exam_id: raw }, null);
+  if (inferred) out.add(inferred);
+  if (!isImportedTestId(raw)) {
+    const coverage = normalizeCoverageTestId(raw);
+    if (coverage) out.add(coverage);
+  }
+  Array.from(out).forEach((id) => {
+    if (isImportedTestId(id)) {
+      const number = getImportedTestNumber(getPublishedImportedExam(id));
+      if (number) out.add(`ielts${number}`);
+    } else {
+      const m = id.match(/^ielts(\d+)$/);
+      if (m && Number(m[1]) > BUILTIN_TEST_COUNT) {
+        const row = getPublishedImportedExamByNumber(Number(m[1]));
+        if (row?.test_id) out.add(String(row.test_id).toLowerCase());
+      }
+    }
+  });
+  return Array.from(out);
+}
+
+function canonicalAnswerKeyTestId(testId) {
+  const raw = oneLine(testId || "").toLowerCase();
+  if (isImportedTestId(raw)) return raw;
+  return inferObjectiveTestId({ exam_id: raw }, null) || normalizeCoverageTestId(raw) || raw;
+}
+
+function getAnswerKeyFixesFor(testId, skill) {
+  const skillKey = oneLine(skill || "").toLowerCase();
+  const out = {};
+  if (!ANSWER_KEY_FIXES || !Object.keys(ANSWER_KEY_FIXES).length) return out;
+  answerKeyFixCandidates(testId).forEach((id) => {
+    const map = ANSWER_KEY_FIXES?.[id]?.[skillKey];
+    if (map && typeof map === "object") Object.assign(out, map);
+  });
+  return out;
+}
+
+function answerKeyTestNumber(testId) {
+  for (const id of answerKeyFixCandidates(testId)) {
+    const m = id.match(/^ielts(\d+)$/);
+    if (m) return Number(m[1]);
+  }
+  return 0;
+}
+
+// Re-marks the corrected questions in an answer review that came from the sheet.
+function applyAnswerKeyFixesToDetail(result, examId) {
+  if (!result || typeof result !== "object") return result;
+  const testId = examId || result.examId || "";
+  let out = result;
+  ["listening", "reading"].forEach((skill) => {
+    const fixes = getAnswerKeyFixesFor(testId, skill);
+    if (!Array.isArray(result?.[skill]) || !Object.keys(fixes).length) return;
+    if (out === result) out = { ...result };
+    out[skill] = result[skill].map((item) => {
+      const fix = fixes[String(item?.q ?? "")];
+      if (!fix) return item;
+      return {
+        ...item,
+        correct: fix,
+        mark: matchesObjectiveAnswer(item?.student ?? "", fix),
+        keyCorrected: true,
+        originalCorrect: item?.originalCorrect ?? item?.correct ?? "",
+      };
+    });
+  });
+  return out;
+}
+
+async function pushAnswerKeyCellToSheet(env, testNumber, skill, q, value) {
+  const backend = String(env.ADMIN_BACKEND_URL || "").trim();
+  if (!backend) return { ok: false, error: "ADMIN_BACKEND_URL is not configured." };
+  const bodyText = JSON.stringify({ action: "setAnswerKeyCell", testNumber, skill, q, value });
+  const backendUrl = new URL(backend);
+  backendUrl.searchParams.set("action", "setAnswerKeyCell");
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "POST", bodyText, env);
+  const synthetic = new Request("https://worker.local/api/admin?action=setAnswerKeyCell", {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+  });
+  const upstream = await fetch(signedUrl, {
+    method: "POST",
+    headers: await buildAppsScriptHeaders(synthetic, env, signedUrl, bodyText),
+    body: bodyText,
+  }).catch(() => null);
+  const text = upstream ? await upstream.text().catch(() => "") : "";
+  let data = null;
+  try { data = JSON.parse(text); } catch (e) {}
+  if (!upstream || !upstream.ok || data?.ok !== true) {
+    return { ok: false, error: data?.error || "The sheet did not accept the change. Deploy the latest Apps Script (it needs setAnswerKeyCell)." };
+  }
+  return { ok: true, cell: data.cell || "" };
+}
+
+async function handleAdminAnswerKeyFix(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const testId = canonicalAnswerKeyTestId(payload?.testId || "");
+  const skill = oneLine(payload?.skill || payload?.section || "").toLowerCase();
+  const q = Number(payload?.q ?? payload?.questionNumber);
+  const requested = oneLine(payload?.answer ?? "");
+  if (!testId) return json(400, { ok: false, error: "Missing test." });
+  if (!["listening", "reading"].includes(skill)) return json(400, { ok: false, error: "Section must be listening or reading." });
+  if (!Number.isInteger(q) || q < 1 || q > 40) return json(400, { ok: false, error: "Question number must be 1-40." });
+  if (requested.length > 120) return json(400, { ok: false, error: "That answer is too long." });
+
+  // Built-in tests are shared by every site, so only the main site's admins may change them.
+  if (isImportedTestId(testId)) {
+    const exam = getPublishedImportedExam(testId);
+    if (exam && !canActorAccessOrganization(auth, exam.organization_id || "")) {
+      return json(403, { ok: false, error: "This exam belongs to another site." });
+    }
+  } else {
+    const number = answerKeyTestNumber(testId);
+    const imported = number > BUILTIN_TEST_COUNT ? getPublishedImportedExamByNumber(number) : null;
+    const allowed = auth?.isSuperAdmin
+      || (imported ? canActorAccessOrganization(auth, imported.organization_id || "") : getActorOrganizationId(auth) === getPrimaryOrganizationId(env));
+    if (!allowed) return json(403, { ok: false, error: "Only the main site's admins can change the answer key of a built-in test." });
+  }
+
+  await hydrateAnswerKeyFixes(env, true);
+  const original = oneLine(buildBaseObjectiveAnswerMap(testId, skill)?.[q] || "");
+  if (!original) return json(404, { ok: false, error: "This test has no answer key for that question." });
+  const previous = oneLine(buildObjectiveAnswerMap(testId, skill)?.[q] || original);
+  const next = requested || original;
+  if (next === previous) return json(200, { ok: true, unchanged: true, answer: next, original, changed: [] });
+
+  // Save the correction (or remove it when it goes back to the original answer).
+  const fixes = JSON.parse(JSON.stringify(ANSWER_KEY_FIXES || {}));
+  answerKeyFixCandidates(testId).forEach((id) => { if (fixes?.[id]?.[skill]) delete fixes[id][skill][String(q)]; });
+  if (next !== original) {
+    fixes[testId] = fixes[testId] || {};
+    fixes[testId][skill] = fixes[testId][skill] || {};
+    fixes[testId][skill][String(q)] = next;
+  }
+  Object.keys(fixes).forEach((id) => {
+    ["listening", "reading"].forEach((k) => { if (fixes[id]?.[k] && !Object.keys(fixes[id][k]).length) delete fixes[id][k]; });
+    if (!Object.keys(fixes[id] || {}).length) delete fixes[id];
+  });
+  await writeJsonKv(env.STUDENT_REGISTRY, ANSWER_KEY_FIXES_KV_KEY, fixes);
+  ANSWER_KEY_FIXES = fixes;
+  ANSWER_KEY_FIXES_LOADED_AT = Date.now();
+
+  const rescore = await rescoreAttemptsForAnswerKeyFix(env, { testId, skill, q, previous, next });
+
+  const testNumber = answerKeyTestNumber(testId);
+  const sheet = testNumber
+    ? await pushAnswerKeyCellToSheet(env, testNumber, skill, q, next)
+    : { ok: false, error: "No sheet column for this test." };
+
+  try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+  try { OBJECTIVE_DETAIL_CACHE.clear(); } catch (e) {}
+  return json(200, { ok: true, testId, skill, q, answer: next, previous, original, sheet, ...rescore });
+}
+
+// Moves each affected student's Listening/Reading total by one mark and saves the new band,
+// the same way a manual correction on a result does.
+async function rescoreAttemptsForAnswerKeyFix(env, { testId, skill, q, previous, next }) {
+  const changed = [];
+  let skippedManual = 0;
+  let skippedNoScore = 0;
+  let failedUpdates = 0;
+  const candidates = new Set(answerKeyFixCandidates(testId));
+  const totalCol = `${skill}_total`;
+  const bandCol = `${skill}_band`;
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    query: {
+      select: `id,submitted_at,student_full_name,exam_id,reason,organization_id,active_test_id,${skill}_test_id,listening_total,reading_total,listening_band,reading_band,final_writing_band,speaking_band,${skill}_total_questions`,
+      order: "submitted_at.desc",
+      limit: "5000",
+    },
+  });
+  if (!res.ok || !Array.isArray(res.data)) {
+    return { changed, error: "Could not load the results to rescore." };
+  }
+  const matching = res.data.filter((row) => {
+    const rowTestId = inferObjectiveTestId({ active_test_id: row?.[`${skill}_test_id`] || row?.active_test_id, exam_id: row?.exam_id }, null);
+    return rowTestId && candidates.has(String(rowTestId).toLowerCase());
+  });
+
+  const payloadById = new Map();
+  for (let i = 0; i < matching.length; i += 40) {
+    const ids = matching.slice(i, i + 40).map((row) => row.id).filter((id) => id !== undefined && id !== null);
+    if (!ids.length) continue;
+    const payloadRes = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      query: { select: "id,final_payload", id: `in.(${ids.join(",")})` },
+    });
+    (Array.isArray(payloadRes.data) ? payloadRes.data : []).forEach((row) => payloadById.set(String(row.id), parseFinalPayloadForAnalytics(row.final_payload)));
+  }
+
+  const patchGroups = new Map();
+  for (const row of matching) {
+    const finalPayload = payloadById.get(String(row.id)) || {};
+    const answers = extractObjectiveAnswersForSection(finalPayload, skill);
+    let studentAnswer = answers?.[q] ?? answers?.[String(q)];
+    if (studentAnswer === undefined) {
+      const reviewItem = extractObjectiveReviewForSection(finalPayload, skill).find((item) => Number(item?.q ?? item?.questionNumber) === q);
+      studentAnswer = reviewItem?.student ?? reviewItem?.studentAnswer ?? "";
+    }
+    const wasCorrect = matchesObjectiveAnswer(studentAnswer, previous);
+    const isCorrect = matchesObjectiveAnswer(studentAnswer, next);
+    if (wasCorrect === isCorrect) continue;
+
+    const organizationId = normalizeOrganizationId(row.organization_id || "");
+    const lookup = {
+      submittedAt: oneLine(row.submitted_at || ""),
+      studentFullName: oneLine(row.student_full_name || ""),
+      examId: oneLine(row.exam_id || ""),
+      reason: oneLine(row.reason || ""),
+    };
+    const meta = await readSubmissionScoreMeta(env, { ...lookup, organizationId }).catch(() => ({}));
+    if (meta?.answerOverrides?.[skill] && Object.prototype.hasOwnProperty.call(meta.answerOverrides[skill], String(q))) {
+      skippedManual += 1; // an admin already decided this student's mark by hand
+      continue;
+    }
+    const toScore = (value) => (value === null || value === undefined || value === "" ? NaN : Number(value));
+    const metaTotal = toScore(meta?.[`${skill}Total`]);
+    const base = Number.isFinite(metaTotal) ? metaTotal : toScore(row?.[totalCol]);
+    if (!Number.isFinite(base)) { skippedNoScore += 1; continue; }
+    const totalQuestions = Number(row?.[`${skill}_total_questions`]) || 40;
+    const total = Math.min(totalQuestions, Math.max(0, base + (isCorrect ? 1 : -1)));
+    const band = objectiveBandFromRaw(skill, total, totalQuestions);
+    const skillPatch = skill === "listening" ? { listeningTotal: total, listeningBand: band } : { readingTotal: total, readingBand: band };
+    await writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, skillPatch).catch(() => { failedUpdates += 1; });
+
+    const overallBand = toRoundedOverallBand([
+      toNullableBand(skill === "listening" ? band : row.listening_band),
+      toNullableBand(skill === "reading" ? band : row.reading_band),
+      toNullableBand(row.final_writing_band),
+      toNullableBand(row.speaking_band),
+    ]);
+    const body = { [totalCol]: total, [bandCol]: band, ...(overallBand !== null && overallBand !== undefined ? { overall_band: overallBand } : {}) };
+    const groupKey = JSON.stringify(body);
+    if (!patchGroups.has(groupKey)) patchGroups.set(groupKey, { body, ids: [] });
+    patchGroups.get(groupKey).ids.push(row.id);
+    changed.push({ studentFullName: lookup.studentFullName, answer: oneLine(studentAnswer), from: base, to: total, band, gained: isCorrect });
+  }
+
+  for (const { body, ids } of patchGroups.values()) {
+    const patchRes = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+      method: "PATCH",
+      query: { id: `in.(${ids.join(",")})` },
+      body,
+    }).catch(() => ({ ok: false }));
+    if (!patchRes?.ok) failedUpdates += ids.length;
+  }
+
+  return {
+    changed,
+    gained: changed.filter((item) => item.gained).length,
+    lost: changed.filter((item) => !item.gained).length,
+    checked: matching.length,
+    skippedManual,
+    skippedNoScore,
+    failedUpdates,
+  };
 }
 
 function isPracticeExamId(examId) {
@@ -9539,6 +9845,7 @@ function buildExamReportEmailText({ payload, result, objective }, targetEmail) {
 
 async function sendExamReportEmail(env, payload, appsResponse, options = {}) {
   const p = payload || {};
+  await hydrateAnswerKeyFixes(env).catch(() => null);
   const targetEmail = normalizeEmail(p.studentEmail || p.officialEmail || p.loginEmail || "");
   if (!targetEmail || !isValidEmail(targetEmail)) {
     return { ok: false, error: "no-email", recipient: "" };
@@ -9554,11 +9861,12 @@ async function sendExamReportEmail(env, payload, appsResponse, options = {}) {
     reason: oneLine(p.reason || p.writing?.reason || ""),
   }).catch(() => ({ result: null, objective: null }));
 
+  const fixedObjective = applyAnswerKeyFixesToDetail(objective, examId);
   if (options.requireResult && !result) {
     return { ok: false, waiting: true, error: "result-not-ready", recipient: targetEmail };
   }
 
-  const ctx = { payload: p, result, objective };
+  const ctx = { payload: p, result, objective: fixedObjective };
   const html = buildExamReportEmailHtml(ctx, targetEmail);
   const text = buildExamReportEmailText(ctx, targetEmail);
 

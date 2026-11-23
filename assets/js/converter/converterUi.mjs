@@ -273,7 +273,11 @@ export function mountExamConverter(root, { getToken }) {
     const res = await api(action, { method: "POST", json: { testId: exam.test_id, ...extra } });
     state.message = res.ok ? "" : (res.data.error || "Action failed.") + (res.data.validation?.errors?.length ? ` ${res.data.validation.errors.join(" ")}` : "");
     const sheet = res.ok ? res.data.answerKeySheet : null;
-    if (sheet && sheet.ok === false) state.message = `Saved${res.data.testNumber ? ` as Test ${res.data.testNumber}` : ""}, but the answers could not be written to the Answer Key sheet: ${sheet.error} Then click "Send answers to sheet".`;
+    if (action === "importedExamDelete" && res.ok && res.data.testNumber) {
+      state.message = sheet && sheet.ok === false
+        ? `Deleted. Test ${res.data.testNumber}'s answers could not be removed from the Answer Key sheet (${sheet.error}). Clear those two columns by hand.`
+        : `Deleted. Test ${res.data.testNumber}'s answers were removed from the Answer Key sheet; that number will not be reused.`;
+    } else if (sheet && sheet.ok === false) state.message = `Saved${res.data.testNumber ? ` as Test ${res.data.testNumber}` : ""}, but the answers could not be written to the Answer Key sheet: ${sheet.error} Then click "Send answers to sheet".`;
     await loadLibrary();
   }
 

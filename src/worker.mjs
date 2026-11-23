@@ -1190,11 +1190,13 @@ async function handleImportedExamAdmin(request, env, url, action) {
 
   if (action === "importedExamUnpublish" || action === "importedExamDelete") {
     const isDelete = action === "importedExamDelete";
+    let deletedRow = null;
     if (isDelete) {
-      const cur = await supabaseServiceRequest(env, table, { query: { select: "status", ...scope, limit: "1" } });
+      const cur = await supabaseServiceRequest(env, table, { query: { select: "status,skill,validation", ...scope, limit: "1" } });
       if (cur.data?.[0]?.status === "published") {
         return json(409, { ok: false, error: "Unpublish before deleting." });
       }
+      deletedRow = cur.data?.[0] || null;
     }
     const res = await supabaseServiceRequest(env, table, {
       method: isDelete ? "DELETE" : "PATCH",
@@ -1204,7 +1206,13 @@ async function handleImportedExamAdmin(request, env, url, action) {
     });
     if (!res.ok) return json(500, { ok: false, error: res.error });
     invalidateImportedExamCache();
-    return json(200, { ok: true, testId });
+    // A deleted exam's answers must not stay in the Answer Key sheet. Its number is not reused.
+    let answerKeySheet = null;
+    const deletedNumber = getImportedTestNumber(deletedRow);
+    if (isDelete && deletedNumber) {
+      answerKeySheet = await clearImportedAnswerKeysInSheet(env, request, deletedNumber, deletedRow.skill).catch((error) => ({ ok: false, error: error?.message || String(error) }));
+    }
+    return json(200, { ok: true, testId, answerKeySheet, testNumber: deletedNumber });
   }
 
   return json(404, { ok: false, error: "Unknown imported exam action." });
@@ -1225,14 +1233,14 @@ function importedSkillKeyArray(row, skill) {
 }
 
 // Writes an imported exam's answers into its Answer Key sheet columns, exactly where a built-in test's live.
-async function pushImportedAnswerKeysToSheet(env, request, testNumber, row) {
+async function pushImportedAnswerKeysToSheet(env, request, testNumber, row, explicit = null) {
   const backend = String(env.ADMIN_BACKEND_URL || "").trim();
   if (!backend) return { ok: false, error: "ADMIN_BACKEND_URL is not configured." };
   const bodyText = JSON.stringify({
     action: "upsertAnswerKeyColumns",
     testNumber,
-    listening: importedSkillKeyArray(row, "listening"),
-    reading: importedSkillKeyArray(row, "reading"),
+    listening: explicit ? explicit.listening : importedSkillKeyArray(row, "listening"),
+    reading: explicit ? explicit.reading : importedSkillKeyArray(row, "reading"),
   });
   const backendUrl = new URL(backend);
   backendUrl.searchParams.set("action", "upsertAnswerKeyColumns");
@@ -1255,6 +1263,17 @@ async function pushImportedAnswerKeysToSheet(env, request, testNumber, row) {
   return { ok: true, columns: data.columns || null };
 }
 
+// Empties the sheet columns of a deleted imported exam (only the skills it had).
+async function clearImportedAnswerKeysInSheet(env, request, testNumber, skill) {
+  const blank = Array.from({ length: 40 }, () => "");
+  return pushImportedAnswerKeysToSheet(env, request, testNumber, null, {
+    listening: skill === "full" || skill === "listening" ? blank : null,
+    reading: skill === "full" || skill === "reading" ? blank : null,
+  });
+}
+
+const IMPORTED_NUMBER_HIGH_WATER_KEY = "imported_exam_last_test_number";
+
 // Gives every published imported exam a test number and keeps its answers in the sheet.
 // New numbers go to full exams first, then single-skill exams, each oldest first.
 // pushFor: a test id to (re)send to the sheet, "*" for all numbered published exams, or "" for new ones only.
@@ -1264,7 +1283,9 @@ async function ensureImportedTestNumbers(env, request, pushFor = "") {
   });
   if (!res.ok) throw new Error(res.error || "Could not load imported exams.");
   const rows = Array.isArray(res.data) ? res.data : [];
-  let next = Math.max(BUILTIN_TEST_COUNT, ...rows.map((row) => getImportedTestNumber(row) || 0)) + 1;
+  // Never hand out a number twice, even after the exam that had it was deleted.
+  const highWater = Number(await env?.STUDENT_REGISTRY?.get(IMPORTED_NUMBER_HIGH_WATER_KEY).catch(() => null)) || 0;
+  let next = Math.max(BUILTIN_TEST_COUNT, highWater, ...rows.map((row) => getImportedTestNumber(row) || 0)) + 1;
   const waiting = rows
     .filter((row) => row.status === "published" && !getImportedTestNumber(row) && row.skill !== "writing")
     .sort((a, b) => (a.skill === "full" ? 0 : 1) - (b.skill === "full" ? 0 : 1) || String(a.created_at || "").localeCompare(String(b.created_at || "")));
@@ -1291,6 +1312,8 @@ async function ensureImportedTestNumbers(env, request, pushFor = "") {
     if (!(assigned.has(row.test_id) || pushFor === "*" || pushFor === row.test_id)) continue;
     sheet[row.test_id] = await pushImportedAnswerKeysToSheet(env, request, number, row).catch((error) => ({ ok: false, error: error?.message || String(error) }));
   }
+  const used = Math.max(highWater, ...rows.map((row) => getImportedTestNumber(row) || 0));
+  if (used > highWater && env?.STUDENT_REGISTRY) await env.STUDENT_REGISTRY.put(IMPORTED_NUMBER_HIGH_WATER_KEY, String(used)).catch(() => null);
   if (assigned.size) invalidateImportedExamCache();
   return { testNumbers, assigned: Array.from(assigned), sheet };
 }

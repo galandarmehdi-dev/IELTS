@@ -1420,6 +1420,15 @@ async function handleAdminApi(request, env, ctx = null) {
     return handleAdminQuestionAnalytics(request, env, auth);
   }
 
+  if (request.method === "POST" && action === "recountObjectiveScores") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin && getActorOrganizationId(auth) !== getPrimaryOrganizationId(env)) {
+      return json(403, { ok: false, error: "Only the main site's admins can recount scores." });
+    }
+    return handleAdminRecountObjectiveScores(request, env);
+  }
+
   if (request.method === "POST" && action === "answerKeyFix") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -8311,6 +8320,264 @@ async function rescoreAttemptsForAnswerKeyFix(env, { testId, skill, q, previous,
     skippedNoScore,
     failedUpdates,
   };
+}
+
+// ---------- Score recount ----------
+// The sheet's own answer matching (copied from the Apps Script), so a recount gives exactly the marks
+// shown in the answer review, which the Apps Script builds with these same rules.
+function sheetMark_cleanBasic_(
+  s,
+) {
+  return String(s || "")
+    .replace(/[’‘]/g, "'")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+function sheetMark_cleanForCompare_(s) {
+  const basic = sheetMark_cleanBasic_(s);
+  if (!basic) return "";
+  return basic.replace(/([A-Za-z])\.(?=\s|$)/g, "$1").replace(/\s*\/\s*/g, "/");
+}
+function sheetMark_isAllCapsAnswer_(s) {
+  const t = sheetMark_cleanBasic_(s);
+  return !!t && /[A-Za-z]/.test(t) && t === t.toUpperCase();
+}
+function sheetMark_splitTopLevelSlashAlternatives_(s) {
+  s = sheetMark_cleanBasic_(s);
+  if (!s) return [""];
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "(") {
+      depth++;
+      current += ch;
+      continue;
+    }
+    if (ch === ")") {
+      depth = Math.max(0, depth - 1);
+      current += ch;
+      continue;
+    }
+    if (ch === "/" && depth === 0) {
+      parts.push(sheetMark_cleanBasic_(current));
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  parts.push(sheetMark_cleanBasic_(current));
+  return parts.filter(Boolean);
+}
+function sheetMark_expandParenthesesVariants_(text) {
+  let variants = [sheetMark_cleanBasic_(text)];
+  const parenRegex = /\(([^()]+)\)/;
+  while (true) {
+    let changed = false;
+    const next = [];
+    for (const v of variants) {
+      const m = v.match(parenRegex);
+      if (!m) {
+        next.push(sheetMark_cleanBasic_(v));
+        continue;
+      }
+      changed = true;
+      const inside = sheetMark_cleanBasic_(m[1]);
+      const before = v.slice(0, m.index);
+      const after = v.slice(m.index + m[0].length);
+      next.push(sheetMark_cleanBasic_(before + " " + after));
+      inside
+        .split("/")
+        .map((x) => sheetMark_cleanBasic_(x))
+        .filter(Boolean)
+        .forEach((alt) => {
+          next.push(sheetMark_cleanBasic_(before + " " + alt + " " + after));
+        });
+    }
+    variants = Array.from(
+      new Set(next.map((x) => sheetMark_cleanBasic_(x)).filter(Boolean)),
+    );
+    if (!changed) break;
+  }
+  return variants.length ? variants : [""];
+}
+function sheetMark_expandCorrectVariants_(correctRaw) {
+  const s0 = sheetMark_cleanBasic_(correctRaw);
+  if (!s0) return [""];
+  const final = new Set();
+  sheetMark_splitTopLevelSlashAlternatives_(s0).forEach((alt) => {
+    sheetMark_expandParenthesesVariants_(alt).forEach((item) => {
+      const cleaned = sheetMark_cleanBasic_(item);
+      if (cleaned) final.add(cleaned);
+    });
+  });
+  const extra = new Set();
+  final.forEach((phrase) => {
+    const tokens = sheetMark_cleanBasic_(phrase).split(" ").filter(Boolean);
+    const optionsPerToken = tokens.map((tok) =>
+      tok.includes("/") && !tok.includes("(") && !tok.includes(")")
+        ? tok
+            .split("/")
+            .map((x) => sheetMark_cleanBasic_(x))
+            .filter(Boolean)
+        : [tok],
+    );
+    let acc = [""];
+    optionsPerToken.forEach((opts) => {
+      const tmp = [];
+      acc.forEach((prefix) => {
+        opts.forEach((opt) => tmp.push(sheetMark_cleanBasic_(prefix + " " + opt)));
+      });
+      acc = tmp;
+    });
+    acc.forEach((x) => {
+      if (sheetMark_cleanBasic_(x)) extra.add(sheetMark_cleanBasic_(x));
+    });
+  });
+  extra.forEach((x) => final.add(x));
+  return Array.from(final);
+}
+function sheetMark_isAnswerCorrect_(studentRaw, correctRaw) {
+  const student0 = sheetMark_cleanForCompare_(studentRaw);
+  if (!student0) return false;
+  const correctVariants =
+    sheetMark_expandCorrectVariants_(correctRaw).map(sheetMark_cleanForCompare_);
+  const studentIsOneLetter = /^[A-Za-z]$/.test(student0);
+  if (studentIsOneLetter || sheetMark_isAllCapsAnswer_(studentRaw)) {
+    const sLower = student0.toLowerCase();
+    return correctVariants.some((c) => String(c).toLowerCase() === sLower);
+  }
+  return correctVariants.some((c) => c === student0);
+}
+
+// Sets every saved Listening/Reading total to the number of correct answers under the current keys:
+// the built-in or imported key, Question analytics corrections, choose-TWO/THREE groups and any
+// per-student manual marks. It writes absolute totals, so running it again changes nothing.
+// Payload: { dryRun = true, testIds?: ["ielts23", ...] }.
+async function handleAdminRecountObjectiveScores(request, env) {
+  const payload = await request.json().catch(() => null);
+  const dryRun = payload?.dryRun !== false;
+  // Older results keep the answers only in the sheet; fetch them from there when the database has none.
+  const useSheet = payload?.useSheet !== false;
+  const sheetDetailById = new Map();
+  let fetchedFromSheet = 0;
+  const onlyTests = Array.isArray(payload?.testIds) && payload.testIds.length
+    ? new Set(payload.testIds.map((id) => canonicalAnswerKeyTestId(id)))
+    : null;
+  await hydrateAnswerKeyFixes(env, true);
+
+  const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
+    query: {
+      select: "id,submitted_at,student_full_name,exam_id,reason,organization_id,active_test_id,listening_test_id,reading_test_id,listening_total,reading_total,listening_band,reading_band,final_writing_band,speaking_band,listening_total_questions,reading_total_questions",
+      order: "submitted_at.desc",
+      limit: "5000",
+    },
+  });
+  if (!res.ok || !Array.isArray(res.data)) return json(500, { ok: false, error: "Could not load the results." });
+
+  const work = [];
+  res.data.forEach((row) => {
+    ["listening", "reading"].forEach((skill) => {
+      const rowTestId = inferObjectiveTestId({ active_test_id: row?.[`${skill}_test_id`] || row?.active_test_id, exam_id: row?.exam_id }, null);
+      const testId = rowTestId ? canonicalAnswerKeyTestId(rowTestId) : "";
+      if (!testId || (onlyTests && !onlyTests.has(testId))) return;
+      const map = buildObjectiveAnswerMap(testId, skill);
+      if (Object.keys(map).length) work.push({ row, skill, testId, map });
+    });
+  });
+
+  const payloadById = new Map();
+  const ids = [...new Set(work.map((w) => w.row.id))];
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40);
+    const payloadRes = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", { query: { select: "id,final_payload", id: `in.(${chunk.join(",")})` } });
+    (Array.isArray(payloadRes.data) ? payloadRes.data : []).forEach((r) => payloadById.set(String(r.id), parseFinalPayloadForAnalytics(r.final_payload)));
+  }
+
+  const metaCache = new Map();
+  const pending = new Map();
+  const changed = [];
+  let skippedNoAnswers = 0;
+  let unchanged = 0;
+  for (const { row, skill, testId, map } of work) {
+    const finalPayload = payloadById.get(String(row.id)) || {};
+    const answers = { ...extractObjectiveAnswersForSection(finalPayload, skill) };
+    extractObjectiveReviewForSection(finalPayload, skill).forEach((item) => {
+      const q = Number(item?.q ?? item?.questionNumber);
+      if (q > 0 && answers[q] === undefined && answers[String(q)] === undefined) answers[q] = item?.student ?? item?.studentAnswer ?? "";
+    });
+    const organizationId = normalizeOrganizationId(row.organization_id || "");
+    const lookup = {
+      submittedAt: oneLine(row.submitted_at || ""),
+      studentFullName: oneLine(row.student_full_name || ""),
+      examId: oneLine(row.exam_id || ""),
+      reason: oneLine(row.reason || ""),
+    };
+    if (!Object.values(answers).some((v) => String(v ?? "").trim()) && useSheet) {
+      if (!sheetDetailById.has(String(row.id))) {
+        sheetDetailById.set(String(row.id), await fetchRawObjectiveDetail(request, env, lookup).catch(() => null));
+        fetchedFromSheet += 1;
+      }
+      const detail = sheetDetailById.get(String(row.id));
+      (Array.isArray(detail?.[skill]) ? detail[skill] : []).forEach((item) => {
+        const q = Number(item?.q);
+        if (q > 0) answers[q] = item?.student ?? "";
+      });
+    }
+    if (!Object.values(answers).some((v) => String(v ?? "").trim())) { skippedNoAnswers += 1; continue; }
+    if (!metaCache.has(String(row.id))) metaCache.set(String(row.id), await readSubmissionScoreMeta(env, { ...lookup, organizationId }).catch(() => ({})));
+    const meta = metaCache.get(String(row.id)) || {};
+    const manual = meta?.answerOverrides?.[skill] || {};
+    const aligned = alignGroupedObjectiveAnswerMap(map, answers);
+    let total = 0;
+    Object.keys(map).forEach((q) => {
+      if (Object.prototype.hasOwnProperty.call(manual, String(q))) { if (manual[String(q)] === true) total += 1; return; }
+      const student = String(answers?.[q] ?? answers?.[String(q)] ?? "");
+      if (sheetMark_isAnswerCorrect_(student, aligned[q])) total += 1;
+    });
+    const toScore = (value) => (value === null || value === undefined || value === "" ? NaN : Number(value));
+    const metaTotal = toScore(meta?.[`${skill}Total`]);
+    const stored = Number.isFinite(metaTotal) ? metaTotal : toScore(row?.[`${skill}_total`]);
+    const rowTotal = toScore(row?.[`${skill}_total`]);
+    if (stored === total && rowTotal === total) { unchanged += 1; continue; }
+    const totalQuestions = Number(row?.[`${skill}_total_questions`]) || 40;
+    const band = objectiveBandFromRaw(skill, total, totalQuestions);
+    const entry = pending.get(String(row.id)) || { row, lookup, organizationId, patch: {} };
+    entry.patch[skill] = { total, band };
+    pending.set(String(row.id), entry);
+    changed.push({ student: lookup.studentFullName, test: testId, skill, from: Number.isFinite(stored) ? stored : null, to: total, band, submittedAt: lookup.submittedAt, examId: lookup.examId, reason: lookup.reason, organizationId });
+  }
+
+  let failedUpdates = 0;
+  if (!dryRun) {
+    for (const { row, lookup, organizationId, patch } of pending.values()) {
+      const metaPatch = {};
+      const body = {};
+      if (patch.listening) { metaPatch.listeningTotal = patch.listening.total; metaPatch.listeningBand = patch.listening.band; body.listening_total = patch.listening.total; body.listening_band = patch.listening.band; }
+      if (patch.reading) { metaPatch.readingTotal = patch.reading.total; metaPatch.readingBand = patch.reading.band; body.reading_total = patch.reading.total; body.reading_band = patch.reading.band; }
+      await writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, metaPatch).catch(() => { failedUpdates += 1; });
+      const overall = toRoundedOverallBand([
+        toNullableBand(patch.listening ? patch.listening.band : row.listening_band),
+        toNullableBand(patch.reading ? patch.reading.band : row.reading_band),
+        toNullableBand(row.final_writing_band),
+        toNullableBand(row.speaking_band),
+      ]);
+      if (overall !== null && overall !== undefined) body.overall_band = overall;
+      const patchRes = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", { method: "PATCH", query: { id: `eq.${row.id}` }, body }).catch(() => ({ ok: false }));
+      if (!patchRes?.ok) failedUpdates += 1;
+    }
+    ADMIN_RESULTS_SUMMARY_CACHE.clear();
+    OBJECTIVE_DETAIL_CACHE.clear();
+  }
+
+  const byTest = {};
+  changed.forEach((c) => {
+    const k = `${c.test} ${c.skill}`;
+    byTest[k] = byTest[k] || { up: 0, down: 0 };
+    byTest[k][c.to > (c.from ?? -1) ? "up" : "down"] += 1;
+  });
+  return json(200, { ok: true, dryRun, checked: work.length, unchanged, skippedNoAnswers, fetchedFromSheet, changedCount: changed.length, byTest, failedUpdates, changed: changed.slice(0, 600) });
 }
 
 function isPracticeExamId(examId) {

@@ -96,6 +96,22 @@ The AnswerKey sheet cells were updated to match (AP10, AR28, AR29, Y36; Test 6 c
 - Key validation: no critical errors in any built-in key; 61 warnings (mostly duplicate alternatives
   like `health/Health`, harmless) and 3 lone slash-letter keys (IELTS5 R25, R32, R33).
 
+## Historical regrade (applied 25 Nov 2026, approved by the site owner)
+
+- Dry run first (all 23 tests, including 548 older results whose answers exist only in the sheet):
+  1,206 saved Listening/Reading results checked, 159 to change, 0 decreases, 46 with no saved answers
+  (left as they were).
+- Largest gains checked answer by answer (e.g. 14→29, 14→27, 19→32, 15→31): first-letter capitals
+  ("Kitchen" for "kitchen") rejected by the old case-sensitive sheet rules. The only other forgiven
+  answers in those tests were quotation marks, optional key words and "07:30" for "7:30".
+- Applied: **159 results corrected for 118 students, 0 failed updates**. Bands and overall bands
+  recalculated; results caches cleared.
+- Backups: one `recount_backup:<time>` KV entry per test that changed (20), listed in `recount_log`;
+  `undoObjectiveRecount { backupKey }` restores them.
+- Verification: a fresh dry run over all 23 tests reports 0 results out of date.
+- Practice-session results are stored separately and were not rewritten; Question analytics already
+  marks them with the current keys.
+
 ## Verified as correct keys (students misled by distractors — not changed)
 
 IELTS13 R14 (ten minutes; "100 miles apart" is always true, the question is about time before time

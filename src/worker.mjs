@@ -1,5 +1,6 @@
 import { EmailMessage } from "cloudflare:email";
 import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
+import { isAnswerCorrect, alignGroupedAnswerMap, canonicalAnswer, cleanAnswerText, findAnswerGroups, acceptedAnswers, validateAnswerKeyMap } from "./grading.mjs";
 import { getProtectedTestContent } from "./protectedTestContent.mjs";
 import {
   getImportedAnswerMap,
@@ -1418,6 +1419,24 @@ async function handleAdminApi(request, env, ctx = null) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     return handleAdminQuestionAnalytics(request, env, auth);
+  }
+
+  if (request.method === "POST" && (action === "undoObjectiveRecount" || action === "pushAnswerKeysToSheet")) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin && getActorOrganizationId(auth) !== getPrimaryOrganizationId(env)) {
+      return json(403, { ok: false, error: "Only the main site's admins can do this." });
+    }
+    return action === "undoObjectiveRecount" ? handleAdminUndoObjectiveRecount(request, env) : handleAdminPushAnswerKeysToSheet(request, env);
+  }
+
+  if (request.method === "POST" && action === "exportObjectiveResponses") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin && getActorOrganizationId(auth) !== getPrimaryOrganizationId(env)) {
+      return json(403, { ok: false, error: "Only the main site's admins can export responses." });
+    }
+    return handleAdminExportObjectiveResponses(env, auth);
   }
 
   if (request.method === "POST" && action === "recountObjectiveScores") {
@@ -7128,6 +7147,9 @@ function shouldIncludeSectionForAnalytics(sectionFilter, section) {
   return wanted === String(section || "").toLowerCase();
 }
 
+// Question analytics always marks with the CURRENT key (built-in or imported key + Question analytics
+// corrections) through the shared engine. Reviews saved at submit time are used only for the student's
+// answers; their saved marks are compared with today's to count historical results that are out of date.
 function applyQuestionAnalyticsAttempt({
   targetMap,
   testId,
@@ -7137,9 +7159,13 @@ function applyQuestionAnalyticsAttempt({
   studentIdCode,
   submittedAt,
   answers,
+  storedMarks = null,
 }) {
   const answerMap = buildObjectiveAnswerMap(testId, section);
   const markingMap = alignGroupedObjectiveAnswerMap(answerMap, answers);
+  const groups = findAnswerGroups(answerMap);
+  const groupOf = {};
+  groups.forEach((g) => g.questions.forEach((q) => { groupOf[q] = g.questions; }));
   const questions = Object.keys(answerMap)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0)
@@ -7160,17 +7186,26 @@ function applyQuestionAnalyticsAttempt({
       practiceAttempts: 0,
       correctAnswer: String(answerMap[q] || "").trim(),
       wrongAnswerCounts: new Map(),
+      wrongAnswerLabels: new Map(),
+      storedMismatch: 0,
+      storedWrongNowCorrect: 0,
+      groupQuestions: groupOf[q] || null,
       lastSubmittedAt: "",
       students: new Map(),
     };
+    existing.correctAnswer = String(answerMap[q] || "").trim();
     existing.attempts += 1;
     if (mode === "practice") existing.practiceAttempts += 1;
     else existing.fullMockAttempts += 1;
 
-    const rawStudentAnswer = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
-    const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
-    const isBlank = !rawStudentAnswer;
+    const rawStudentAnswer = String(answers?.[q] ?? answers?.[String(q)] ?? "");
+    const isBlank = !cleanAnswerText(rawStudentAnswer);
     const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, markingMap[q] ?? existing.correctAnswer);
+
+    if (storedMarks && typeof storedMarks[q] === "boolean" && storedMarks[q] !== isCorrect) {
+      existing.storedMismatch += 1;
+      if (isCorrect) existing.storedWrongNowCorrect += 1;
+    }
 
     if (isBlank) {
       existing.blankCount += 1;
@@ -7179,10 +7214,10 @@ function applyQuestionAnalyticsAttempt({
       existing.correctCount += 1;
     } else {
       existing.wrongCount += 1;
-      existing.wrongAnswerCounts.set(
-        answerLabel,
-        Number(existing.wrongAnswerCounts.get(answerLabel) || 0) + 1
-      );
+      // Group spelling variants of one answer ("Documents", "documents ") but show it as students wrote it.
+      const canon = canonicalAnswer(rawStudentAnswer);
+      existing.wrongAnswerCounts.set(canon, Number(existing.wrongAnswerCounts.get(canon) || 0) + 1);
+      if (!existing.wrongAnswerLabels.has(canon)) existing.wrongAnswerLabels.set(canon, cleanAnswerText(rawStudentAnswer).toUpperCase());
     }
 
     const studentKey = oneLine(studentIdCode || studentName || "");
@@ -7211,103 +7246,133 @@ function applyQuestionAnalyticsAttempt({
   });
 }
 
-function applyQuestionAnalyticsReviewAttempt({
-  targetMap,
-  testId,
-  section,
-  mode,
-  studentName,
-  studentIdCode,
-  submittedAt,
-  reviewRows,
-}) {
-  const answerMap = buildObjectiveAnswerMap(testId, section);
+// A practice part covers only some questions: questions missing from the review were never shown to the
+// student, so they are not counted as blank.
+function applyQuestionAnalyticsReviewAttempt({ reviewRows, targetMap, ...rest }) {
   const safeReviewRows = Array.isArray(reviewRows) ? reviewRows : [];
   if (!safeReviewRows.length) return;
-
+  const answers = {};
+  const storedMarks = {};
   safeReviewRows.forEach((item) => {
     const q = Number(item?.q ?? item?.questionNumber ?? item?.question ?? 0);
     if (!Number.isFinite(q) || q <= 0) return;
-
-    const key = buildQuestionAnalyticsRecordKey(testId, section, q);
-    const defaultCorrect = normalizeQuestionAnalyticsCorrectAnswer(answerMap[q]);
-    const reviewCorrect = normalizeQuestionAnalyticsCorrectAnswer(item?.correct ?? item?.answerKey);
-    const keyFix = normalizeQuestionAnalyticsCorrectAnswer(getAnswerKeyFixesFor(testId, section)[String(q)]);
-    const effectiveCorrect = keyFix || reviewCorrect || defaultCorrect;
-    const existing = targetMap.get(key) || {
-      testId,
-      section,
-      questionNumber: q,
-      attempts: 0,
-      correctCount: 0,
-      wrongCount: 0,
-      blankCount: 0,
-      fullMockAttempts: 0,
-      practiceAttempts: 0,
-      correctAnswer: effectiveCorrect,
-      wrongAnswerCounts: new Map(),
-      lastSubmittedAt: "",
-      students: new Map(),
-    };
-    existing.attempts += 1;
-    if (mode === "practice") existing.practiceAttempts += 1;
-    else existing.fullMockAttempts += 1;
-    if (effectiveCorrect) existing.correctAnswer = effectiveCorrect;
-
-    const rawStudentAnswer = String(item?.student ?? item?.studentAnswer ?? "").trim();
-    const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
-    const isBlank = !rawStudentAnswer;
-    const isCorrect = keyFix
-      ? matchesObjectiveAnswer(rawStudentAnswer, keyFix)
-      : isObjectiveReviewItemCorrect(item) || matchesObjectiveAnswer(rawStudentAnswer, effectiveCorrect);
-    if (keyFix && !existing.originalAnswer) existing.originalAnswer = reviewCorrect || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(testId, section)[q]);
-
-    if (isBlank) {
-      existing.blankCount += 1;
-      existing.wrongCount += 1;
-    } else if (isCorrect) {
-      existing.correctCount += 1;
-    } else {
-      existing.wrongCount += 1;
-      existing.wrongAnswerCounts.set(
-        answerLabel,
-        Number(existing.wrongAnswerCounts.get(answerLabel) || 0) + 1
-      );
-    }
-
-    const studentKey = oneLine(studentIdCode || studentName || "");
-    if (studentKey) {
-      const prev = existing.students.get(studentKey) || {
-        name: oneLine(studentName || "Student"),
-        studentIdCode: oneLine(studentIdCode || ""),
-        fullMock: false,
-        practice: false,
-        submitted: false,
-        submittedAt: "",
-      };
-      if (mode === "practice") prev.practice = true;
-      else prev.fullMock = true;
-      prev.submitted = prev.submitted || !!oneLine(submittedAt || "");
-      if (submittedAt && (!prev.submittedAt || Date.parse(submittedAt) > Date.parse(prev.submittedAt || ""))) {
-        prev.submittedAt = submittedAt;
-      }
-      existing.students.set(studentKey, prev);
-    }
-
-    if (submittedAt && (!existing.lastSubmittedAt || Date.parse(submittedAt) > Date.parse(existing.lastSubmittedAt || ""))) {
-      existing.lastSubmittedAt = submittedAt;
-    }
-    targetMap.set(key, existing);
+    answers[q] = String(item?.student ?? item?.studentAnswer ?? "");
+    storedMarks[q] = isObjectiveReviewItemCorrect(item);
   });
+  const shown = new Set(Object.keys(answers).map(Number));
+  const tmp = new Map();
+  applyQuestionAnalyticsAttempt({ ...rest, targetMap: tmp, answers, storedMarks });
+  tmp.forEach((value, key) => {
+    if (shown.has(Number(value.questionNumber))) mergeQuestionAnalyticsRecord(targetMap, key, value);
+  });
+}
+
+function mergeQuestionAnalyticsRecord(targetMap, key, add) {
+  const existing = targetMap.get(key);
+  if (!existing) { targetMap.set(key, add); return; }
+  ["attempts", "correctCount", "wrongCount", "blankCount", "fullMockAttempts", "practiceAttempts", "storedMismatch", "storedWrongNowCorrect"]
+    .forEach((f) => { existing[f] = Number(existing[f] || 0) + Number(add[f] || 0); });
+  add.wrongAnswerCounts.forEach((count, canon) => {
+    existing.wrongAnswerCounts.set(canon, Number(existing.wrongAnswerCounts.get(canon) || 0) + count);
+    if (!existing.wrongAnswerLabels.has(canon)) existing.wrongAnswerLabels.set(canon, add.wrongAnswerLabels.get(canon));
+  });
+  add.students.forEach((st, k) => {
+    const prev = existing.students.get(k);
+    if (!prev) { existing.students.set(k, st); return; }
+    prev.fullMock = prev.fullMock || st.fullMock;
+    prev.practice = prev.practice || st.practice;
+    prev.submitted = prev.submitted || st.submitted;
+    if (st.submittedAt && (!prev.submittedAt || Date.parse(st.submittedAt) > Date.parse(prev.submittedAt))) prev.submittedAt = st.submittedAt;
+  });
+  if (add.lastSubmittedAt && (!existing.lastSubmittedAt || Date.parse(add.lastSubmittedAt) > Date.parse(existing.lastSubmittedAt))) {
+    existing.lastSubmittedAt = add.lastSubmittedAt;
+  }
+}
+
+// Operational confidence labels by number of answered (non-blank) responses. Not statistical guarantees.
+function questionAnalyticsConfidence(answered) {
+  const n = Number(answered || 0);
+  if (n < 5) return "insufficient";
+  if (n < 10) return "low";
+  if (n < 20) return "moderate";
+  if (n < 50) return "higher";
+  return "strongest";
+}
+
+// Could this rejected answer be a legitimate variant an admin should look at? Never used for marking.
+function looksLikeKeyVariant(wrongCanon, acceptedList) {
+  const strip = (v) => v.replace(/^(the|a|an) /, "");
+  const words = (v) => v.split(" ").filter(Boolean);
+  return acceptedList.some((acc) => {
+    if (!acc || acc === wrongCanon) return false;
+    if (strip(acc) === strip(wrongCanon)) return "article";
+    if (acc.replace(/ /g, "") === wrongCanon.replace(/ /g, "")) return "spacing";
+    if (acc.replace(/(es|s)$/, "") === wrongCanon.replace(/(es|s)$/, "")) return "plural";
+    const a = words(acc);
+    const w = words(wrongCanon);
+    if (Math.abs(a.length - w.length) === 1) {
+      const [shorter, longer] = a.length < w.length ? [a, w] : [w, a];
+      if (shorter.length && shorter.every((x) => longer.includes(x))) return "extra-or-missing-word";
+    }
+    return false;
+  });
+}
+
+const QUESTION_ANALYTICS_FLAG_INFO = {
+  "grading-anomaly": { label: "Critical grading anomaly", action: "Saved marks differ from today's marking. Run Recount scores so students get the right totals." },
+  "key-issue": { label: "Possible answer-key issue", action: "Many students give the same rejected answer. Check the passage/recording; change the key only if the source supports it." },
+  "alignment": { label: "Possible question alignment issue", action: "The most common wrong answer is the key of a neighbouring question. Check for swapped or shifted keys." },
+  "variant": { label: "Possible accepted variant", action: "A rejected answer differs only in form (plural, article, spacing, one word). Accept it via Fix key only if the question and source allow it." },
+  "multiple-answer": { label: "Multiple-answer check", action: "Slash key on one question accepts any listed letter. If this is a choose-TWO/THREE item, put the same key on every question of the group." },
+  "high-blank": { label: "High blank rate", action: "Many attempts left this blank. Check the question renders and the answer box saves." },
+  "technical": { label: "Possible technical issue", action: "Most attempts are blank. Check rendering, audio, numbering and answer saving for this question." },
+  "insufficient-data": { label: "Insufficient data", action: "Fewer than 5 answered responses: too few to judge difficulty." },
+  "genuine-difficulty": { label: "Genuine academic difficulty", action: "No grading or key problem detected; students find this question hard." },
+};
+
+// neighbours: [{ key, topWrong }] for the questions just before and after (outside its own group).
+function buildQuestionAnalyticsFlags(row, neighbours) {
+  const flags = [];
+  const answered = Number(row.answeredCount || 0);
+  const totalAttempts = Number(row.totalAttempts || 0);
+  const blankRate = totalAttempts ? (Number(row.blankCount || 0) / totalAttempts) * 100 : 0;
+  const top = row.commonWrongAnswers?.[0] || null;
+  const accepted = acceptedAnswers(row.correctAnswer || "");
+  if (Number(row.storedWrongNowCorrect || 0) > 0) flags.push("grading-anomaly");
+  if (top && neighbours.length && top.count >= 3 && answered && top.count / answered >= 0.25) {
+    const topCanon = canonicalAnswer(top.answer);
+    // Letters, numerals and TRUE/FALSE/YES/NO repeat across questions by chance, so for those only a swap
+    // (each question's top wrong answer is the other's key) counts. A word answer matching a
+    // neighbour's key is suspicious on its own.
+    const shortAnswer = /^([a-z]|[ivx]+|true|false|yes|no|not given)$/.test(topCanon);
+    const hit = neighbours.some((n) => acceptedAnswers(n.key).includes(topCanon)
+      && (!shortAnswer || (n.topWrong && accepted.includes(canonicalAnswer(n.topWrong)))));
+    if (hit) flags.push("alignment");
+  }
+  if (top && !flags.includes("alignment") && top.count >= 5 && answered && top.count / answered >= 0.3 && top.count >= Number(row.correctCount || 0)) {
+    flags.push("key-issue");
+  }
+  if ((row.commonWrongAnswers || []).some((w) => w.count >= 2 && looksLikeKeyVariant(canonicalAnswer(w.answer), accepted))) flags.push("variant");
+  if (!row.groupQuestions && /^\s*[A-Za-z]\s*(\/\s*[A-Za-z]\s*)+$/.test(row.correctAnswer || "")) flags.push("multiple-answer");
+  if (totalAttempts >= 8 && blankRate >= 70) flags.push("technical");
+  else if (totalAttempts >= 5 && blankRate >= 30) flags.push("high-blank");
+  if (answered < 5) flags.push("insufficient-data");
+  const anomaly = flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f));
+  if (!anomaly && answered >= 10 && Number(row.wrongRate || 0) >= 60) flags.push("genuine-difficulty");
+  return flags;
 }
 
 function serializeQuestionAnalyticsRows(records, filters = {}) {
   const minAttempts = Math.max(0, Number(filters.minAttempts || 0));
   const difficultyFilter = String(filters.difficulty || "").trim().toLowerCase();
   const questionFilter = Number(filters.questionNumber || 0);
+  const issueFilter = String(filters.issue || "").trim().toLowerCase();
   // excludeBlank: unanswered questions are left out entirely, so Correct % and
   // Wrong % are out of the students who actually wrote an answer.
   const excludeBlank = !!filters.excludeBlank;
+
+  const keyLookup = new Map();
+  records.forEach((row) => keyLookup.set(`${row.testId}::${row.section}::${row.questionNumber}`, row.correctAnswer || ""));
 
   const rows = Array.from(records.values())
     .map((row) => {
@@ -7324,16 +7389,17 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
       const wrongRate = attempts > 0 ? (wrongCount / attempts) * 100 : 0;
       const blankRate = totalAttempts > 0 ? (blankCount / totalAttempts) * 100 : 0;
       const difficulty = toDifficultyLabelFromWrongRate(wrongRate);
+      const labels = row.wrongAnswerLabels || new Map();
       const commonWrongAnswers = Array.from(row.wrongAnswerCounts.entries())
-        .map(([answer, count]) => ({
-          answer,
+        .map(([canon, count]) => ({
+          answer: labels.get(canon) || String(canon || "").toUpperCase(),
           count: Number(count || 0),
-          rate: attempts > 0 ? (Number(count || 0) / attempts) * 100 : 0,
+          rate: answeredCount > 0 ? (Number(count || 0) / answeredCount) * 100 : 0,
         }))
         .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
         .slice(0, 5);
       const needsReview = wrongRate >= 60 && attempts >= 5;
-      return {
+      const out = {
         testId: row.testId,
         section: row.section,
         questionNumber: row.questionNumber,
@@ -7350,15 +7416,31 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
         wrongRate: Number(wrongRate.toFixed(1)),
         blankRate: Number(blankRate.toFixed(1)),
         difficulty,
+        confidence: questionAnalyticsConfidence(answeredCount),
         correctAnswer: row.correctAnswer || "",
+        acceptedAnswers: acceptedAnswers(row.correctAnswer || "").slice(0, 12),
+        groupQuestions: row.groupQuestions || null,
         originalAnswer: getAnswerKeyFixesFor(row.testId, row.section)[String(row.questionNumber)]
           ? (row.originalAnswer || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(row.testId, row.section)[row.questionNumber]))
           : "",
         commonWrongAnswers,
+        storedMismatch: Number(row.storedMismatch || 0),
+        storedWrongNowCorrect: Number(row.storedWrongNowCorrect || 0),
         needsReview,
         studentRows: Array.from(row.students.values()),
       };
-    })
+      return out;
+    });
+  const topWrongLookup = new Map(rows.map((r) => [`${r.testId}::${r.section}::${r.questionNumber}`, r.commonWrongAnswers?.[0]?.answer || ""]));
+  rows.forEach((out) => {
+    const neighbours = [out.questionNumber - 1, out.questionNumber + 1]
+      .filter((n) => !(out.groupQuestions || []).includes(n))
+      .map((n) => ({ key: keyLookup.get(`${out.testId}::${out.section}::${n}`), topWrong: topWrongLookup.get(`${out.testId}::${out.section}::${n}`) }))
+      .filter((n) => n.key);
+    out.flags = buildQuestionAnalyticsFlags(out, neighbours);
+    out.flagDetails = out.flags.map((f) => ({ id: f, ...QUESTION_ANALYTICS_FLAG_INFO[f] }));
+  });
+  return rows
     .filter((row) => (excludeBlank ? row.attempts > 0 : true))
     .filter((row) => (minAttempts ? row.attempts >= minAttempts : true))
     .filter((row) => (questionFilter > 0 ? row.questionNumber === questionFilter : true))
@@ -7366,13 +7448,17 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
       if (!difficultyFilter) return true;
       return String(row.difficulty || "").toLowerCase().replace(/\s+/g, "-") === difficultyFilter;
     })
+    .filter((row) => {
+      if (!issueFilter) return true;
+      if (issueFilter === "any") return row.flags.some((f) => !["insufficient-data", "genuine-difficulty"].includes(f));
+      if (issueFilter === "clean") return !row.flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f));
+      return row.flags.includes(issueFilter);
+    })
     .sort((a, b) => {
       const wrongDelta = Number(b.wrongRate || 0) - Number(a.wrongRate || 0);
       if (wrongDelta) return wrongDelta;
       return Number(b.attempts || 0) - Number(a.attempts || 0);
     });
-
-  return rows;
 }
 
 function buildQuestionAnalyticsExamSummary(rows) {
@@ -7418,6 +7504,80 @@ function buildQuestionAnalyticsExamSummary(rows) {
   }).sort((a, b) => Number(b.averageWrongRate || 0) - Number(a.averageWrongRate || 0));
 }
 
+// Audit export: every stored Listening/Reading response (answers plus the key and mark each review saved
+// at submit time) is written to KV under "audit:objective_responses" for offline auditing.
+async function handleAdminExportObjectiveResponses(env, auth) {
+  const out = [];
+  const pushReviewOrAnswers = (base, section, review, answers) => {
+    const rec = { ...base, section, answers: {}, reviewKey: {}, reviewMark: {} };
+    if (Array.isArray(review) && review.length) {
+      review.forEach((item) => {
+        const q = Number(item?.q ?? item?.questionNumber ?? item?.question ?? 0);
+        if (!Number.isFinite(q) || q <= 0) return;
+        rec.answers[q] = String(item?.student ?? item?.studentAnswer ?? "");
+        rec.reviewKey[q] = String(item?.correct ?? item?.answerKey ?? "");
+        rec.reviewMark[q] = isObjectiveReviewItemCorrect(item);
+      });
+      rec.from = "review";
+    } else if (answers && typeof answers === "object" && Object.keys(answers).length) {
+      Object.entries(answers).forEach(([q, v]) => { rec.answers[Number(q)] = String(v ?? ""); });
+      rec.from = "answers";
+    } else return;
+    out.push(rec);
+  };
+  const fullRows = await getFullAttemptsForQuestionAnalytics(env, auth, {});
+  fullRows.forEach((row) => {
+    const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
+    const testId = normalizeCoverageTestId(
+      inferObjectiveTestId(row, finalPayload) || row?.active_test_id || row?.exam_id || finalPayload?.examId
+    );
+    if (!testId) return;
+    const base = {
+      key: oneLine(row?.submission_key || ""),
+      testId,
+      mode: "full",
+      org: oneLine(row?.organization_id || ""),
+      student: oneLine(row?.student_id_code || row?.student_full_name || ""),
+      submittedAt: oneLine(row?.submitted_at || ""),
+    };
+    ["listening", "reading"].forEach((section) => {
+      const review = extractObjectiveReviewForSection(finalPayload, section);
+      const merged = review.length ? review : extractObjectiveReviewFromSummary(row?.summary, section);
+      pushReviewOrAnswers(base, section, merged, extractObjectiveAnswersForSection(finalPayload, section));
+    });
+  });
+  const practiceRows = await getPracticeAttemptsForQuestionAnalytics(env, auth, {});
+  practiceRows.forEach((row) => {
+    const section = String(row?.practice_section || "").toLowerCase();
+    if (!["listening", "reading"].includes(section)) return;
+    const testId = normalizeCoverageTestId(oneLine(row?.active_test_id || row?.exam_id || ""));
+    if (!testId) return;
+    pushReviewOrAnswers({
+      key: oneLine(row?.submission_key || ""),
+      testId,
+      mode: "practice",
+      org: oneLine(row?.organization_id || ""),
+      student: oneLine(row?.student_id_code || row?.student_full_name || ""),
+      submittedAt: oneLine(row?.submitted_at || ""),
+    }, section, Array.isArray(row?.summary?.review) ? row.summary.review : [], null);
+  });
+  await hydrateAnswerKeyFixes(env, true).catch(() => null);
+  const keys = {};
+  new Set(out.map((r) => r.testId)).forEach((testId) => {
+    keys[testId] = {
+      listening: buildObjectiveAnswerMap(testId, "listening"),
+      reading: buildObjectiveAnswerMap(testId, "reading"),
+    };
+  });
+  await env.STUDENT_REGISTRY.put("audit:objective_responses", JSON.stringify({
+    generatedAt: new Date().toISOString(),
+    fixes: ANSWER_KEY_FIXES,
+    keys,
+    records: out,
+  }));
+  return json(200, { ok: true, records: out.length, full: fullRows.length, practice: practiceRows.length });
+}
+
 async function handleAdminQuestionAnalytics(request, env, auth) {
   try {
     const url = new URL(request.url);
@@ -7428,10 +7588,13 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
     const difficulty = String(url.searchParams.get("difficulty") || "").trim();
     const questionNumber = Number(url.searchParams.get("questionNumber") || 0);
     const excludeBlank = url.searchParams.get("excludeBlank") === "1";
+    const issue = String(url.searchParams.get("issue") || "").trim().toLowerCase();
+    const modeFilter = String(url.searchParams.get("mode") || "").trim().toLowerCase();
+    await hydrateAnswerKeyFixes(env).catch(() => null);
 
     const records = new Map();
 
-    const fullRows = await getFullAttemptsForQuestionAnalytics(env, auth, { classroomId });
+    const fullRows = modeFilter === "practice" ? [] : await getFullAttemptsForQuestionAnalytics(env, auth, { classroomId });
     for (const row of fullRows) {
       const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
       const testId = normalizeCoverageTestId(
@@ -7507,7 +7670,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       }
     }
 
-    if (!fullRows.length) {
+    if (!fullRows.length && modeFilter !== "practice") {
       const legacyRows = await getObjectiveAttemptsForQuestionAnalytics(env, auth, { classroomId, limit: 3000 });
       legacyRows.forEach((row) => {
         const finalPayload = parseFinalPayloadForAnalytics(row?.final_payload);
@@ -7580,7 +7743,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       });
     }
 
-    const practiceRows = await getPracticeAttemptsForQuestionAnalytics(env, auth, { classroomId });
+    const practiceRows = modeFilter === "full" ? [] : await getPracticeAttemptsForQuestionAnalytics(env, auth, { classroomId });
     practiceRows.forEach((row) => {
       const practiceSection = String(row?.practice_section || row?.practiceSection || "").toLowerCase();
       if (!["listening", "reading"].includes(practiceSection)) return;
@@ -7609,14 +7772,18 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       difficulty,
       questionNumber,
       excludeBlank,
+      issue,
     });
-    const examSummary = buildQuestionAnalyticsExamSummary(rows);
+    // Questions with unresolved grading/key/technical problems or too little data do not decide which
+    // exam or question is "hardest".
+    const reliableRows = rows.filter((row) => !row.flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical", "insufficient-data"].includes(f)));
+    const examSummary = buildQuestionAnalyticsExamSummary(reliableRows);
     const tests = Array.from(new Set(rows.map((row) => String(row.testId || "")))).sort((a, b) => {
       const ax = Number(String(a).replace(/[^\d]/g, "")) || 0;
       const bx = Number(String(b).replace(/[^\d]/g, "")) || 0;
       return ax - bx;
     });
-    const mostMissed = rows[0] || null;
+    const mostMissed = reliableRows[0] || null;
     const hardestExam = examSummary[0] || null;
     const averageWrongRate = rows.length
       ? Number((rows.reduce((sum, row) => sum + Number(row.wrongRate || 0), 0) / rows.length).toFixed(1))
@@ -7640,7 +7807,10 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
             }
           : null,
         averageWrongRate,
+        flagged: rows.filter((row) => row.flags.some((f) => !["insufficient-data", "genuine-difficulty"].includes(f))).length,
+        flagCounts: rows.reduce((acc, row) => { row.flags.forEach((f) => { acc[f] = (acc[f] || 0) + 1; }); return acc; }, {}),
       },
+      flagInfo: QUESTION_ANALYTICS_FLAG_INFO,
       tests,
       examSummary,
       rows,
@@ -8338,132 +8508,9 @@ async function rescoreAttemptsForAnswerKeyFix(env, { testId, skill, q, previous,
 }
 
 // ---------- Score recount ----------
-// The sheet's own answer matching (copied from the Apps Script), so a recount gives exactly the marks
-// shown in the answer review, which the Apps Script builds with these same rules.
-function sheetMark_cleanBasic_(
-  s,
-) {
-  return String(s || "")
-    .replace(/[’‘]/g, "'")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-function sheetMark_cleanForCompare_(s) {
-  const basic = sheetMark_cleanBasic_(s);
-  if (!basic) return "";
-  return basic.replace(/([A-Za-z])\.(?=\s|$)/g, "$1").replace(/\s*\/\s*/g, "/");
-}
-function sheetMark_isAllCapsAnswer_(s) {
-  const t = sheetMark_cleanBasic_(s);
-  return !!t && /[A-Za-z]/.test(t) && t === t.toUpperCase();
-}
-function sheetMark_splitTopLevelSlashAlternatives_(s) {
-  s = sheetMark_cleanBasic_(s);
-  if (!s) return [""];
-  const parts = [];
-  let depth = 0;
-  let current = "";
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (ch === "(") {
-      depth++;
-      current += ch;
-      continue;
-    }
-    if (ch === ")") {
-      depth = Math.max(0, depth - 1);
-      current += ch;
-      continue;
-    }
-    if (ch === "/" && depth === 0) {
-      parts.push(sheetMark_cleanBasic_(current));
-      current = "";
-      continue;
-    }
-    current += ch;
-  }
-  parts.push(sheetMark_cleanBasic_(current));
-  return parts.filter(Boolean);
-}
-function sheetMark_expandParenthesesVariants_(text) {
-  let variants = [sheetMark_cleanBasic_(text)];
-  const parenRegex = /\(([^()]+)\)/;
-  while (true) {
-    let changed = false;
-    const next = [];
-    for (const v of variants) {
-      const m = v.match(parenRegex);
-      if (!m) {
-        next.push(sheetMark_cleanBasic_(v));
-        continue;
-      }
-      changed = true;
-      const inside = sheetMark_cleanBasic_(m[1]);
-      const before = v.slice(0, m.index);
-      const after = v.slice(m.index + m[0].length);
-      next.push(sheetMark_cleanBasic_(before + " " + after));
-      inside
-        .split("/")
-        .map((x) => sheetMark_cleanBasic_(x))
-        .filter(Boolean)
-        .forEach((alt) => {
-          next.push(sheetMark_cleanBasic_(before + " " + alt + " " + after));
-        });
-    }
-    variants = Array.from(
-      new Set(next.map((x) => sheetMark_cleanBasic_(x)).filter(Boolean)),
-    );
-    if (!changed) break;
-  }
-  return variants.length ? variants : [""];
-}
-function sheetMark_expandCorrectVariants_(correctRaw) {
-  const s0 = sheetMark_cleanBasic_(correctRaw);
-  if (!s0) return [""];
-  const final = new Set();
-  sheetMark_splitTopLevelSlashAlternatives_(s0).forEach((alt) => {
-    sheetMark_expandParenthesesVariants_(alt).forEach((item) => {
-      const cleaned = sheetMark_cleanBasic_(item);
-      if (cleaned) final.add(cleaned);
-    });
-  });
-  const extra = new Set();
-  final.forEach((phrase) => {
-    const tokens = sheetMark_cleanBasic_(phrase).split(" ").filter(Boolean);
-    const optionsPerToken = tokens.map((tok) =>
-      tok.includes("/") && !tok.includes("(") && !tok.includes(")")
-        ? tok
-            .split("/")
-            .map((x) => sheetMark_cleanBasic_(x))
-            .filter(Boolean)
-        : [tok],
-    );
-    let acc = [""];
-    optionsPerToken.forEach((opts) => {
-      const tmp = [];
-      acc.forEach((prefix) => {
-        opts.forEach((opt) => tmp.push(sheetMark_cleanBasic_(prefix + " " + opt)));
-      });
-      acc = tmp;
-    });
-    acc.forEach((x) => {
-      if (sheetMark_cleanBasic_(x)) extra.add(sheetMark_cleanBasic_(x));
-    });
-  });
-  extra.forEach((x) => final.add(x));
-  return Array.from(final);
-}
+// Uses the shared marking engine (src/grading.mjs), the same rules the Apps Script copy applies.
 function sheetMark_isAnswerCorrect_(studentRaw, correctRaw) {
-  const student0 = sheetMark_cleanForCompare_(studentRaw);
-  if (!student0) return false;
-  const correctVariants =
-    sheetMark_expandCorrectVariants_(correctRaw).map(sheetMark_cleanForCompare_);
-  const studentIsOneLetter = /^[A-Za-z]$/.test(student0);
-  if (studentIsOneLetter || sheetMark_isAllCapsAnswer_(studentRaw)) {
-    const sLower = student0.toLowerCase();
-    return correctVariants.some((c) => String(c).toLowerCase() === sLower);
-  }
-  return correctVariants.some((c) => c === student0);
+  return isAnswerCorrect(studentRaw, correctRaw);
 }
 
 // Sets every saved Listening/Reading total to the number of correct answers under the current keys:
@@ -8484,7 +8531,7 @@ async function handleAdminRecountObjectiveScores(request, env) {
 
   const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", {
     query: {
-      select: "id,submitted_at,student_full_name,exam_id,reason,organization_id,active_test_id,listening_test_id,reading_test_id,listening_total,reading_total,listening_band,reading_band,final_writing_band,speaking_band,listening_total_questions,reading_total_questions",
+      select: "id,submitted_at,student_full_name,exam_id,reason,organization_id,active_test_id,listening_test_id,reading_test_id,listening_total,reading_total,listening_band,reading_band,overall_band,final_writing_band,speaking_band,listening_total_questions,reading_total_questions",
       order: "submitted_at.desc",
       limit: "5000",
     },
@@ -8565,6 +8612,27 @@ async function handleAdminRecountObjectiveScores(request, env) {
   }
 
   let failedUpdates = 0;
+  let backupKey = "";
+  if (!dryRun && pending.size) {
+    // Backup first: every value this run overwrites, so undoObjectiveRecount can put it back.
+    backupKey = `recount_backup:${new Date().toISOString()}`;
+    const backup = [];
+    for (const [id, { row, lookup, organizationId, patch }] of pending.entries()) {
+      const meta = metaCache.get(id) || {};
+      backup.push({
+        id,
+        lookup,
+        organizationId,
+        skills: Object.keys(patch),
+        row: { listening_total: row.listening_total, listening_band: row.listening_band, reading_total: row.reading_total, reading_band: row.reading_band, overall_band: row.overall_band },
+        meta: { listeningTotal: meta.listeningTotal ?? null, listeningBand: meta.listeningBand ?? null, readingTotal: meta.readingTotal ?? null, readingBand: meta.readingBand ?? null },
+      });
+    }
+    await env.STUDENT_REGISTRY.put(backupKey, JSON.stringify({ createdAt: new Date().toISOString(), testIds: onlyTests ? [...onlyTests] : "all", changes: changed, backup }));
+    const log = (await readJsonKv(env.STUDENT_REGISTRY, "recount_log").catch(() => null)) || [];
+    log.unshift({ backupKey, at: new Date().toISOString(), changed: changed.length, testIds: onlyTests ? [...onlyTests] : "all" });
+    await env.STUDENT_REGISTRY.put("recount_log", JSON.stringify(log.slice(0, 50)));
+  }
   if (!dryRun) {
     for (const { row, lookup, organizationId, patch } of pending.values()) {
       const metaPatch = {};
@@ -8592,7 +8660,55 @@ async function handleAdminRecountObjectiveScores(request, env) {
     byTest[k] = byTest[k] || { up: 0, down: 0 };
     byTest[k][c.to > (c.from ?? -1) ? "up" : "down"] += 1;
   });
-  return json(200, { ok: true, dryRun, checked: work.length, unchanged, skippedNoAnswers, fetchedFromSheet, changedCount: changed.length, byTest, failedUpdates, changed: changed.slice(0, 600) });
+  return json(200, { ok: true, dryRun, backupKey, checked: work.length, unchanged, skippedNoAnswers, fetchedFromSheet, changedCount: changed.length, byTest, failedUpdates, changed: changed.slice(0, 600) });
+}
+
+// Puts back every total a recount run changed, from the backup that run saved. Payload: { backupKey }.
+async function handleAdminUndoObjectiveRecount(request, env) {
+  const payload = await request.json().catch(() => null);
+  const backupKey = String(payload?.backupKey || "");
+  if (!backupKey.startsWith("recount_backup:")) return json(400, { ok: false, error: "backupKey is required." });
+  const saved = await readJsonKv(env.STUDENT_REGISTRY, backupKey).catch(() => null);
+  if (!saved || !Array.isArray(saved.backup)) return json(404, { ok: false, error: "Backup not found." });
+  let restored = 0;
+  let failed = 0;
+  for (const item of saved.backup) {
+    const metaPatch = {};
+    if (item.skills.includes("listening")) { metaPatch.listeningTotal = item.meta.listeningTotal ?? item.row.listening_total; metaPatch.listeningBand = item.meta.listeningBand ?? item.row.listening_band; }
+    if (item.skills.includes("reading")) { metaPatch.readingTotal = item.meta.readingTotal ?? item.row.reading_total; metaPatch.readingBand = item.meta.readingBand ?? item.row.reading_band; }
+    await writeObjectiveScoreMetaEverywhere(env, item.lookup, item.organizationId, metaPatch).catch(() => { failed += 1; });
+    const body = { overall_band: item.row.overall_band };
+    if (item.skills.includes("listening")) { body.listening_total = item.row.listening_total; body.listening_band = item.row.listening_band; }
+    if (item.skills.includes("reading")) { body.reading_total = item.row.reading_total; body.reading_band = item.row.reading_band; }
+    const res = await supabaseServiceRequest(env, "/rest/v1/exam_attempts", { method: "PATCH", query: { id: `eq.${item.id}` }, body }).catch(() => ({ ok: false }));
+    if (res?.ok) restored += 1; else failed += 1;
+  }
+  ADMIN_RESULTS_SUMMARY_CACHE.clear();
+  OBJECTIVE_DETAIL_CACHE.clear();
+  const log = (await readJsonKv(env.STUDENT_REGISTRY, "recount_log").catch(() => null)) || [];
+  log.unshift({ undoOf: backupKey, at: new Date().toISOString(), restored, failed });
+  await env.STUDENT_REGISTRY.put("recount_log", JSON.stringify(log.slice(0, 50)));
+  return json(200, { ok: true, restored, failed });
+}
+
+// Writes the website's current answer key into the AnswerKey sheet cells, so the Apps Script marks new
+// submissions with the same key. Payload: { cells: [{ testId: "ielts21", skill: "reading", q: 10 }, ...] }.
+async function handleAdminPushAnswerKeysToSheet(request, env) {
+  const payload = await request.json().catch(() => null);
+  const cells = Array.isArray(payload?.cells) ? payload.cells.slice(0, 80) : [];
+  await hydrateAnswerKeyFixes(env, true).catch(() => null);
+  const results = [];
+  for (const cell of cells) {
+    const testId = canonicalAnswerKeyTestId(cell?.testId || "");
+    const skill = String(cell?.skill || "").toLowerCase();
+    const q = Number(cell?.q);
+    const value = buildObjectiveAnswerMap(testId, skill)[q];
+    const testNumber = answerKeyTestNumber(testId);
+    if (!value || !testNumber) { results.push({ testId, skill, q, ok: false, error: "No key for this question." }); continue; }
+    const res = await pushAnswerKeyCellToSheet(env, testNumber, skill, q, value);
+    results.push({ testId, skill, q, value, ...res });
+  }
+  return json(200, { ok: results.every((r) => r.ok), results });
 }
 
 function isPracticeExamId(examId) {
@@ -8639,99 +8755,12 @@ function objectiveBandFromRaw(skill, rawScore, totalQuestions) {
 // "Choose TWO/THREE" questions share one key on every question of the group, e.g. "C/E" on Q21 and Q22.
 // Each correct letter scores once, in any order, and the same letter never scores twice. Returns a copy of
 // the answer map where each grouped question holds the single letter it is marked with for this student.
-function groupedLetterSet(raw) {
-  const parts = String(raw || "").split("/").map((x) => x.trim().toUpperCase()).filter(Boolean);
-  if (parts.length < 2 || !parts.every((x) => /^[A-Z]$/.test(x))) return null;
-  return parts;
-}
-
 function alignGroupedObjectiveAnswerMap(answerMap, answers) {
-  const map = answerMap && typeof answerMap === "object" ? answerMap : {};
-  const qs = Object.keys(map).map(Number).filter((q) => Number.isFinite(q) && q > 0).sort((a, b) => a - b);
-  const out = { ...map };
-  const norm = (v) => String(v || "").replace(/\s*\/\s*/g, "/").trim().toUpperCase();
-  let i = 0;
-  while (i < qs.length) {
-    const letters = groupedLetterSet(map[qs[i]]);
-    let j = i;
-    if (letters) {
-      while (j + 1 < qs.length && qs[j + 1] === qs[j] + 1 && norm(map[qs[j + 1]]) === norm(map[qs[i]])) j += 1;
-    }
-    const size = j - i + 1;
-    if (!letters || size < 2 || size > letters.length) { i = j + 1; continue; }
-    const used = new Set();
-    const pending = [];
-    for (let k = i; k <= j; k += 1) {
-      const q = qs[k];
-      const st = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim().toUpperCase();
-      if (letters.includes(st) && !used.has(st)) { used.add(st); out[q] = st; } else pending.push(q);
-    }
-    const spare = letters.filter((l) => !used.has(l));
-    pending.forEach((q, idx) => { out[q] = spare[idx] || spare[spare.length - 1] || ""; });
-    i = j + 1;
-  }
-  return out;
+  return alignGroupedAnswerMap(answerMap, answers);
 }
 
 function matchesObjectiveAnswer(studentValue, correctValue) {
-  const student = normalizeObjectiveValue(studentValue);
-  if (!student) return false;
-
-  const options = splitObjectiveCandidates(correctValue);
-  if (!options.length) return false;
-  return options.some((candidate) => candidate === student);
-}
-
-function splitObjectiveCandidates(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return [];
-  const out = new Set();
-  raw
-    .split(/\s*\/\s*/)
-    .map((part) => String(part || "").trim())
-    .filter(Boolean)
-    .forEach((part) => {
-      expandOptionalObjectiveVariants(part).forEach((variant) => {
-        const normalized = normalizeObjectiveValue(variant);
-        if (normalized) out.add(normalized);
-      });
-    });
-  return Array.from(out);
-}
-
-function normalizeObjectiveValue(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function expandOptionalObjectiveVariants(value) {
-  const source = String(value || "").trim();
-  if (!source) return [];
-  let variants = new Set([source]);
-  const optionalGroupRegex = /\(([^)]+)\)/;
-  for (let guard = 0; guard < 10; guard += 1) {
-    let expanded = false;
-    const next = new Set();
-    variants.forEach((entry) => {
-      const match = String(entry).match(optionalGroupRegex);
-      if (!match) {
-        next.add(entry);
-        return;
-      }
-      expanded = true;
-      const whole = String(match[0] || "");
-      const inner = String(match[1] || "");
-      next.add(String(entry).replace(whole, ` ${inner} `));
-      next.add(String(entry).replace(whole, " "));
-    });
-    variants = next;
-    if (!expanded) break;
-  }
-  return Array.from(variants);
+  return isAnswerCorrect(studentValue, correctValue);
 }
 
 function sanitizeObjectiveOverrideMap(value) {

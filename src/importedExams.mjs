@@ -1,3 +1,5 @@
+import { validateAnswerKeyMap } from "./grading.mjs";
+
 const CACHE_TTL_MS = 60 * 1000;
 const published = { at: 0, byId: new Map() };
 
@@ -92,8 +94,13 @@ export function validateImportedExam(exam) {
   const expected = Number(exam?.expectedQuestions) || 40;
   if (count === 0) errors.push("No answer keys were extracted.");
   else if (count !== expected) warnings.push(`Expected ${expected} answers but found ${count}.`);
-  for (let q = 1; q <= expected; q += 1) {
-    if (!keys[String(q)]) warnings.push(`Question ${q} has no answer key.`);
+  // Answer-key checks shared with the marking engine. A missing key or a key the engine cannot parse
+  // (unbalanced brackets, empty alternatives, a choose-TWO group with too few letters) blocks publishing.
+  if (count > 0) {
+    validateAnswerKeyMap(keys, { expectedCount: expected }).forEach((issue) => {
+      const text = issue.message === "No answer key." ? `Question ${issue.q} has no answer key.` : `Question ${issue.q}: ${issue.message} (key: "${keys[String(issue.q)] ?? ""}")`;
+      (issue.level === "error" ? errors : warnings).push(text);
+    });
   }
 
   if (skill === "listening") {

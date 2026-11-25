@@ -1610,6 +1610,29 @@
             </select>
           </label>
           <label class="admin-field"><span>Question #</span><input id="qaQuestionFilter" type="number" min="1" max="40" step="1" placeholder="Any"></label>
+          <label class="admin-field"><span>Attempts from</span>
+            <select id="qaModeFilter">
+              <option value="">Full mocks + practice</option>
+              <option value="full">Full mocks only</option>
+              <option value="practice">Practice only</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Issue</span>
+            <select id="qaIssueFilter">
+              <option value="">All questions</option>
+              <option value="any">Any issue flagged</option>
+              <option value="clean">No unresolved issue</option>
+              <option value="grading-anomaly">Critical grading anomaly</option>
+              <option value="key-issue">Possible answer-key issue</option>
+              <option value="alignment">Possible alignment issue</option>
+              <option value="variant">Possible accepted variant</option>
+              <option value="multiple-answer">Multiple-answer check</option>
+              <option value="high-blank">High blank rate</option>
+              <option value="technical">Possible technical issue</option>
+              <option value="insufficient-data">Insufficient data</option>
+              <option value="genuine-difficulty">Genuine difficulty</option>
+            </select>
+          </label>
           <label class="admin-field"><span>Unanswered</span>
             <select id="qaBlankFilter">
               <option value="count">Count as wrong</option>
@@ -1642,6 +1665,7 @@
                 <th>Difficulty</th>
                 <th>Answer key</th>
                 <th>Common wrong answers</th>
+                <th>Flags</th>
                 <th>Solved</th>
               </tr>
             </thead>
@@ -2598,7 +2622,7 @@
 <script src="/assets/js/placement-test.js"></script>
 <script src="/assets/js/resources-page.js"></script>
 <script src="/assets/js/recent-questions.js"></script>
-<script src="/assets/js/app.js?v=20261125a"></script>
+<script src="/assets/js/app.js?v=20261125b"></script>
 <script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

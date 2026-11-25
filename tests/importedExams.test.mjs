@@ -29,12 +29,28 @@ test("reading exam with 3 passages and 40 answers is publishable", () => {
   assert.equal(v.warnings.length, 0);
 });
 
-test("never fabricates: missing answers warn, no answers blocks", () => {
+test("never fabricates: a missing answer or no answers blocks publishing", () => {
   const partial = { ...keys40 }; delete partial["7"];
   const v = validateImportedExam({ skill: "reading", title: "T", content: { reading: { parts: [{}, {}, {}] } }, answerKeys: partial });
-  assert.equal(v.ok, true);
-  assert.ok(v.warnings.some((w) => w.includes("Question 7")));
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("Question 7")));
   assert.equal(validateImportedExam({ skill: "reading", title: "T", content: { reading: {} }, answerKeys: {} }).ok, false);
+});
+
+test("malformed answer keys block publishing; doubtful ones warn", () => {
+  const reading = { parts: [{}, {}, {}] };
+  const bad = { ...keys40, 3: "(certain disease", 4: "a //b" };
+  const v = validateImportedExam({ skill: "reading", title: "T", content: { reading }, answerKeys: bad });
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.startsWith("Question 3") && e.includes("brackets")));
+  assert.ok(v.errors.some((e) => e.startsWith("Question 4") && e.includes("Empty alternative")));
+  const group = { ...keys40, 10: "C/E", 11: "C/E", 12: "C/E" };
+  assert.equal(validateImportedExam({ skill: "reading", title: "T", content: { reading }, answerKeys: group }).ok, false);
+  const doubtful = { ...keys40, 5: "TRUE / FALSE", 6: "B / C" };
+  const w = validateImportedExam({ skill: "reading", title: "T", content: { reading }, answerKeys: doubtful });
+  assert.equal(w.ok, true);
+  assert.ok(w.warnings.some((x) => x.startsWith("Question 5") && x.includes("contradict")));
+  assert.ok(w.warnings.some((x) => x.startsWith("Question 6") && x.includes("single question")));
 });
 
 test("listening without audio is blocked", () => {

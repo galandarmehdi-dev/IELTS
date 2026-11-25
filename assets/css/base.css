@@ -534,3 +534,23 @@ th, td { text-align: left; }
   .auth-full-btn,
   .auth-code-btn { width: 100%; justify-content: center; }
 }
+
+/* Small status labels (Question analytics flags). */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--soft);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  cursor: help;
+}
+.badge-warning {
+  border-color: var(--warning);
+  color: var(--warning);
+  background: transparent;
+  font-weight: 600;
+}

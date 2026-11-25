@@ -3310,6 +3310,14 @@
       }
     }
 
+    const QA_CONFIDENCE_LABELS = {
+      insufficient: "insufficient data",
+      low: "low confidence",
+      moderate: "moderate confidence",
+      higher: "higher confidence",
+      strongest: "strongest evidence",
+    };
+
     function sortQuestionAnalyticsRows(rows) {
       const mode = String($("qaSortFilter")?.value || "wrong-desc");
       const num = (v) => Number(v || 0);
@@ -3346,17 +3354,23 @@
             <td>${escapeHtml(String(row.questionNumber || ""))}</td>
             <td>${escapeHtml(row.excludeBlank
               ? `${Number(row.answeredCount || 0)} answered of ${Number(row.totalAttempts || 0)}`
-              : `${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}</td>
+              : `${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}
+              <div class="small" title="Based on answered responses: 1-4 insufficient, 5-9 low, 10-19 moderate, 20-49 higher, 50+ strongest">${escapeHtml(`${Number(row.answeredCount || 0)} answered · ${Number(row.blankCount || 0)} blank · ${QA_CONFIDENCE_LABELS[row.confidence] || "—"}`)}</div></td>
             <td>${escapeHtml(`${Number(row.correctRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.wrongRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.blankRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(row.difficulty || "—")}${row.needsReview ? ` <span class="badge badge-warning">Needs review</span>` : ""}</td>
             <td data-qa-key-cell="${escapeHtml(solvedKey)}">
               <strong>${escapeHtml(row.correctAnswer || "—")}</strong>
+              ${Array.isArray(row.groupQuestions) && row.groupQuestions.length ? `<div class="small">Choose-${row.groupQuestions.length === 2 ? "TWO" : row.groupQuestions.length === 3 ? "THREE" : row.groupQuestions.length} group: Q${escapeHtml(row.groupQuestions.join("–Q"))}, any order</div>` : ""}
+              ${Array.isArray(row.acceptedAnswers) && row.acceptedAnswers.length > 1 ? `<details class="small"><summary>Accepts ${row.acceptedAnswers.length} forms</summary>${escapeHtml(row.acceptedAnswers.join(" · "))}</details>` : ""}
               ${row.originalAnswer ? `<div class="small" style="color:#166534;">Corrected (was ${escapeHtml(row.originalAnswer)})</div>` : ""}
               ${row.correctAnswer ? `<div><button type="button" class="btn secondary small" data-qa-edit-key="${escapeHtml(solvedKey)}" style="margin-top:4px;padding:2px 10px;font-size:12px;">Fix key</button></div>` : ""}
             </td>
             <td>${escapeHtml(commonWrong)}</td>
+            <td>${(Array.isArray(row.flagDetails) ? row.flagDetails : []).map((flag) => `<div style="margin-bottom:4px;"><span class="badge ${["grading-anomaly", "key-issue", "alignment", "technical"].includes(flag.id) ? "badge-warning" : ""}" title="${escapeHtml(flag.action || "")}">${escapeHtml(flag.label || flag.id)}</span></div>`).join("") || "—"}
+              ${Number(row.storedWrongNowCorrect || 0) > 0 ? `<div class="small" style="color:#991b1b;">${Number(row.storedWrongNowCorrect)} saved result(s) marked this wrong but it is correct now</div>` : ""}
+              ${isSolved && (row.flags || []).some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f)) ? `<div class="small" style="color:#991b1b;">Marked solved, but the issue is still detected</div>` : ""}</td>
             <td>
               <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
                 <input type="checkbox" data-qa-solved="${escapeHtml(solvedKey)}" ${isSolved ? "checked" : ""}>
@@ -3365,7 +3379,7 @@
             </td>
           </tr>
         `;
-      }).join("") || `<tr class="ui-table-state-row"><td colspan="11">No analytics rows matched these filters.</td></tr>`;
+      }).join("") || `<tr class="ui-table-state-row"><td colspan="12">No analytics rows matched these filters.</td></tr>`;
 
       Array.from(tbody.querySelectorAll("[data-qa-edit-key]")).forEach((button) => {
         button.addEventListener("click", () => {
@@ -3497,6 +3511,8 @@
         const difficulty = String($("qaDifficultyFilter")?.value || "");
         const questionNumber = Number($("qaQuestionFilter")?.value || 0);
         const excludeBlank = String($("qaBlankFilter")?.value || "count") === "exclude";
+        const issue = String($("qaIssueFilter")?.value || "");
+        const mode = String($("qaModeFilter")?.value || "");
         const url = R()?.buildAdminApiUrl?.({
           action: "questionAnalytics",
           section,
@@ -3506,6 +3522,8 @@
           difficulty,
           questionNumber: questionNumber > 0 ? String(questionNumber) : "",
           excludeBlank: excludeBlank ? "1" : "",
+          issue,
+          mode,
           refresh: forceRefresh ? "1" : "",
         });
         if (!url) throw new Error("Could not build analytics URL.");
@@ -3520,7 +3538,8 @@
         populateQuestionAnalyticsTestFilter();
         renderQuestionAnalyticsSummary(questionAnalyticsState.summary);
         renderQuestionAnalyticsRows(questionAnalyticsState.rows);
-        setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.`, "success");
+        const flagged = Number(data.summary?.flagged || 0);
+        setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.${flagged ? ` ${flagged} question(s) flagged; hover a flag for the suggested action.` : ""}`, "success");
       } catch (error) {
         renderQuestionAnalyticsSummary(null);
         renderQuestionAnalyticsRows([]);
@@ -6863,6 +6882,8 @@ function startFreshExam() {
     if (qaDifficultyFilter) qaDifficultyFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (qaQuestionFilter) qaQuestionFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     $("qaBlankFilter")?.addEventListener("change", () => loadQuestionAnalytics(false));
+    $("qaIssueFilter")?.addEventListener("change", () => loadQuestionAnalytics(false));
+    $("qaModeFilter")?.addEventListener("change", () => loadQuestionAnalytics(false));
     $("qaSortFilter")?.addEventListener("change", () => renderQuestionAnalyticsRows(questionAnalyticsState.rows));
     if (adminSubmissionSyncRefreshBtn) adminSubmissionSyncRefreshBtn.onclick = () => loadSubmissionSyncMonitor(true);
     if (adminSubmissionSyncRetryMissingBtn) adminSubmissionSyncRetryMissingBtn.onclick = () => retryAllMissingSubmissionRows();

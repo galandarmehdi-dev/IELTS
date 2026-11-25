@@ -60,21 +60,34 @@ function removeFunction(text, name) {
   return text;
 }
 
-const original = readFileSync(target, "utf8");
-const block = buildGradingBlock();
-let next;
-if (original.includes(START)) {
-  const i = original.indexOf(START);
-  const j = original.indexOf(END, i) + END.length;
-  next = original.slice(0, i) + block + original.slice(j);
-} else {
-  next = removeFunction(removeFunction(removeFunction(original, "isAnswerCorrect_"), "alignGroupedAnswerKeys_"), "groupLetterSet_");
-  next = next.replace(/\s*$/, "\n\n") + block + "\n";
+// The Writing assessment module (prompt, schema, validator, band calculation) as WRITING_.
+const W_START = "// >>> WRITING ASSESSMENT (generated from src/writingAssessment.mjs by scripts/build-appsscript-grading.mjs; do not edit here)";
+const W_END = "// <<< WRITING ASSESSMENT";
+export function buildWritingBlock() {
+  const source = readFileSync(path.join(root, "src/writingAssessment.mjs"), "utf8");
+  const exported = [...source.matchAll(/^export (?:function|const) ([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
+  return [W_START, "var WRITING_ = (function () {", source.replace(/^export /gm, "").trim(), `return { ${exported.join(", ")} };`, "})();", W_END].join("\n");
 }
+
+function replaceBlock(text, start, end, block) {
+  if (text.includes(start)) {
+    const i = text.indexOf(start);
+    const j = text.indexOf(end, i) + end.length;
+    return text.slice(0, i) + block + text.slice(j);
+  }
+  return text.replace(/\s*$/, "\n\n") + block + "\n";
+}
+
+const original = readFileSync(target, "utf8");
+let next = original.includes(START)
+  ? original
+  : removeFunction(removeFunction(removeFunction(original, "isAnswerCorrect_"), "alignGroupedAnswerKeys_"), "groupLetterSet_");
+next = replaceBlock(next, START, END, buildGradingBlock());
+next = replaceBlock(next, W_START, W_END, buildWritingBlock());
 if (check) {
-  if (next !== original) { console.error(`${target} has an out-of-date grading engine. Run: node scripts/build-appsscript-grading.mjs`); process.exit(1); }
-  console.log("Apps Script grading engine is up to date.");
+  if (next !== original) { console.error(`${target} has an out-of-date generated block. Run: node scripts/build-appsscript-grading.mjs`); process.exit(1); }
+  console.log("Apps Script generated blocks (grading engine, writing assessment) are up to date.");
 } else {
   writeFileSync(target, next);
-  console.log(`Wrote grading engine into ${target}`);
+  console.log(`Wrote grading engine and writing assessment into ${target}`);
 }

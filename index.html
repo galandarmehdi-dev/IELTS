@@ -1610,6 +1610,22 @@
             </select>
           </label>
           <label class="admin-field"><span>Question #</span><input id="qaQuestionFilter" type="number" min="1" max="40" step="1" placeholder="Any"></label>
+          <label class="admin-field"><span>Unanswered</span>
+            <select id="qaBlankFilter">
+              <option value="count">Count as wrong</option>
+              <option value="exclude">Don't count (answered only)</option>
+            </select>
+          </label>
+          <label class="admin-field"><span>Sort by</span>
+            <select id="qaSortFilter">
+              <option value="wrong-desc">Wrong % (high → low)</option>
+              <option value="wrong-asc">Wrong % (low → high)</option>
+              <option value="correct-desc">Correct % (high → low)</option>
+              <option value="blank-desc">Blank % (high → low)</option>
+              <option value="attempts-desc">Attempts (most first)</option>
+              <option value="question">Test &amp; question #</option>
+            </select>
+          </label>
         </div>
 
         <div class="admin-results-table-wrap">
@@ -2582,7 +2598,7 @@
 <script src="/assets/js/placement-test.js"></script>
 <script src="/assets/js/resources-page.js"></script>
 <script src="/assets/js/recent-questions.js"></script>
-<script src="/assets/js/app.js?v=20261028a"></script>
+<script src="/assets/js/app.js?v=20261125a"></script>
 <script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

@@ -7305,16 +7305,24 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
   const minAttempts = Math.max(0, Number(filters.minAttempts || 0));
   const difficultyFilter = String(filters.difficulty || "").trim().toLowerCase();
   const questionFilter = Number(filters.questionNumber || 0);
+  // excludeBlank: unanswered questions are left out entirely, so Correct % and
+  // Wrong % are out of the students who actually wrote an answer.
+  const excludeBlank = !!filters.excludeBlank;
 
   const rows = Array.from(records.values())
     .map((row) => {
-      const attempts = Number(row.attempts || 0);
+      const totalAttempts = Number(row.attempts || 0);
       const correctCount = Number(row.correctCount || 0);
-      const wrongCount = Number(row.wrongCount || 0);
       const blankCount = Number(row.blankCount || 0);
+      // wrongCount from the collectors already includes blanks.
+      const wrongCount = excludeBlank
+        ? Math.max(0, Number(row.wrongCount || 0) - blankCount)
+        : Number(row.wrongCount || 0);
+      const answeredCount = Math.max(0, totalAttempts - blankCount);
+      const attempts = excludeBlank ? answeredCount : totalAttempts;
       const correctRate = attempts > 0 ? (correctCount / attempts) * 100 : 0;
       const wrongRate = attempts > 0 ? (wrongCount / attempts) * 100 : 0;
-      const blankRate = attempts > 0 ? (blankCount / attempts) * 100 : 0;
+      const blankRate = totalAttempts > 0 ? (blankCount / totalAttempts) * 100 : 0;
       const difficulty = toDifficultyLabelFromWrongRate(wrongRate);
       const commonWrongAnswers = Array.from(row.wrongAnswerCounts.entries())
         .map(([answer, count]) => ({
@@ -7330,6 +7338,9 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
         section: row.section,
         questionNumber: row.questionNumber,
         attempts,
+        totalAttempts,
+        answeredCount,
+        excludeBlank,
         fullMockAttempts: Number(row.fullMockAttempts || 0),
         practiceAttempts: Number(row.practiceAttempts || 0),
         correctCount,
@@ -7348,6 +7359,7 @@ function serializeQuestionAnalyticsRows(records, filters = {}) {
         studentRows: Array.from(row.students.values()),
       };
     })
+    .filter((row) => (excludeBlank ? row.attempts > 0 : true))
     .filter((row) => (minAttempts ? row.attempts >= minAttempts : true))
     .filter((row) => (questionFilter > 0 ? row.questionNumber === questionFilter : true))
     .filter((row) => {
@@ -7415,6 +7427,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
     const minAttempts = Number(url.searchParams.get("minAttempts") || 0);
     const difficulty = String(url.searchParams.get("difficulty") || "").trim();
     const questionNumber = Number(url.searchParams.get("questionNumber") || 0);
+    const excludeBlank = url.searchParams.get("excludeBlank") === "1";
 
     const records = new Map();
 
@@ -7595,6 +7608,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       minAttempts,
       difficulty,
       questionNumber,
+      excludeBlank,
     });
     const examSummary = buildQuestionAnalyticsExamSummary(rows);
     const tests = Array.from(new Set(rows.map((row) => String(row.testId || "")))).sort((a, b) => {
@@ -7611,7 +7625,8 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
     return json(200, {
       ok: true,
       summary: {
-        totalAttempts: rows.reduce((sum, row) => sum + Number(row.attempts || 0), 0),
+        totalAttempts: rows.reduce((sum, row) => sum + Number(row.totalAttempts || row.attempts || 0), 0),
+        excludeBlank,
         testsAnalyzed: tests.length,
         questionsAnalyzed: rows.length,
         hardestExam,

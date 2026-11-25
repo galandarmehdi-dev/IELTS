@@ -3310,10 +3310,29 @@
       }
     }
 
+    function sortQuestionAnalyticsRows(rows) {
+      const mode = String($("qaSortFilter")?.value || "wrong-desc");
+      const num = (v) => Number(v || 0);
+      const testNum = (row) => Number(String(row.testId || "").replace(/[^\d]/g, "")) || 0;
+      const byQuestion = (a, b) =>
+        testNum(a) - testNum(b) ||
+        String(a.section || "").localeCompare(String(b.section || "")) ||
+        num(a.questionNumber) - num(b.questionNumber);
+      const sorters = {
+        "wrong-desc": (a, b) => num(b.wrongRate) - num(a.wrongRate) || num(b.attempts) - num(a.attempts),
+        "wrong-asc": (a, b) => num(a.wrongRate) - num(b.wrongRate) || num(b.attempts) - num(a.attempts),
+        "correct-desc": (a, b) => num(b.correctRate) - num(a.correctRate) || num(b.attempts) - num(a.attempts),
+        "blank-desc": (a, b) => num(b.blankRate) - num(a.blankRate) || num(b.attempts) - num(a.attempts),
+        "attempts-desc": (a, b) => num(b.attempts) - num(a.attempts) || num(b.wrongRate) - num(a.wrongRate),
+        question: byQuestion,
+      };
+      return (Array.isArray(rows) ? rows.slice() : []).sort(sorters[mode] || sorters["wrong-desc"]);
+    }
+
     function renderQuestionAnalyticsRows(rows) {
       const tbody = $("qaRowsTbody");
       if (!tbody) return;
-      const safeRows = Array.isArray(rows) ? rows : [];
+      const safeRows = sortQuestionAnalyticsRows(rows);
       tbody.innerHTML = safeRows.map((row) => {
         const solvedKey = buildQuestionAnalyticsRowSolvedKey(row);
         const isSolved = !!questionAnalyticsState.solvedByKey?.[solvedKey];
@@ -3325,7 +3344,9 @@
             <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
             <td>${escapeHtml(String(row.section || "").toUpperCase())}</td>
             <td>${escapeHtml(String(row.questionNumber || ""))}</td>
-            <td>${escapeHtml(`${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}</td>
+            <td>${escapeHtml(row.excludeBlank
+              ? `${Number(row.answeredCount || 0)} answered of ${Number(row.totalAttempts || 0)}`
+              : `${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}</td>
             <td>${escapeHtml(`${Number(row.correctRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.wrongRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.blankRate || 0).toFixed(1)}%`)}</td>
@@ -3475,6 +3496,7 @@
         const minAttempts = Number($("qaMinAttemptsFilter")?.value || 1);
         const difficulty = String($("qaDifficultyFilter")?.value || "");
         const questionNumber = Number($("qaQuestionFilter")?.value || 0);
+        const excludeBlank = String($("qaBlankFilter")?.value || "count") === "exclude";
         const url = R()?.buildAdminApiUrl?.({
           action: "questionAnalytics",
           section,
@@ -3483,6 +3505,7 @@
           minAttempts: Number.isFinite(minAttempts) ? String(minAttempts) : "1",
           difficulty,
           questionNumber: questionNumber > 0 ? String(questionNumber) : "",
+          excludeBlank: excludeBlank ? "1" : "",
           refresh: forceRefresh ? "1" : "",
         });
         if (!url) throw new Error("Could not build analytics URL.");
@@ -6839,6 +6862,8 @@ function startFreshExam() {
     if (qaMinAttemptsFilter) qaMinAttemptsFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (qaDifficultyFilter) qaDifficultyFilter.addEventListener("change", () => loadQuestionAnalytics(false));
     if (qaQuestionFilter) qaQuestionFilter.addEventListener("change", () => loadQuestionAnalytics(false));
+    $("qaBlankFilter")?.addEventListener("change", () => loadQuestionAnalytics(false));
+    $("qaSortFilter")?.addEventListener("change", () => renderQuestionAnalyticsRows(questionAnalyticsState.rows));
     if (adminSubmissionSyncRefreshBtn) adminSubmissionSyncRefreshBtn.onclick = () => loadSubmissionSyncMonitor(true);
     if (adminSubmissionSyncRetryMissingBtn) adminSubmissionSyncRetryMissingBtn.onclick = () => retryAllMissingSubmissionRows();
     if (submissionSyncStatusFilter) submissionSyncStatusFilter.addEventListener("change", () => loadSubmissionSyncMonitor(false));

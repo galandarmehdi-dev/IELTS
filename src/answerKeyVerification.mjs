@@ -26,7 +26,7 @@ export const ANSWER_KEY_VERIFICATION = {
     },
     listening: {
       2: { status: "verified", key: "RI6 GH7 / RI6GH7", evidence: "Approved by the site administrator on 2026-11-25. Capital I then digit 6; R16 GH7 (digit 1) is wrong." },
-      3: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (07754 → 07754897432); needs the recording." },
+      3: { status: "verified", key: "07754897432", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording). Full number; the old key 07754 was truncated." },
     },
   },
   ielts12: {
@@ -87,13 +87,14 @@ export const ANSWER_KEY_VERIFICATION = {
   ielts3: { listening: { 6: { status: "verified", key: "Mairead", evidence: "Approved by the site administrator on 2026-11-25. Maired is wrong; no other spellings." } } },
   ielts1: {
     listening: {
-      11: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (c → a; Q11/13/14 shifted c,a,b → a,b,c); needs the recording." },
-      13: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (a → b); needs the recording." },
-      14: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (b → c); needs the recording." },
+      11: { status: "verified", key: "a", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording). Q11–14 = A, C, B, C; the June 2026 sheet sync was right." },
+      12: { status: "verified", key: "c", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording)." },
+      13: { status: "verified", key: "b", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording)." },
+      14: { status: "verified", key: "c", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording)." },
     },
   },
   ielts10: { listening: { 6: { status: "verified", key: "b.russell64@xmail.co.uk", evidence: "Approved by the site administrator on 2026-11-25. The domain is xmail.co.uk; mail.co.uk and misspellings of Russell are wrong." } } },
-  ielts15: { listening: { 3: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (chastens → Chastons); needs the recording." } } },
+  ielts15: { listening: { 3: { status: "verified", key: "Chastons", evidence: "Approved by the site administrator on 2026-11-25 (checked against the recording). chastens is wrong." } } },
   ielts16: { reading: { 31: { status: "verified", evidence: "Q31 'widespread occurrence of writer's block in literature' = para A: 'A common phenomenon in literature, writer's block… Few are the writers… who can profess to never…'. F is Q29 (historical cases). Restored A (June sheet sync had copied F)." } } },
   ielts4: { listening: { 31: { status: "unverifiable", evidence: "religion vs religions: needs the recording." } } },
   ielts5: {

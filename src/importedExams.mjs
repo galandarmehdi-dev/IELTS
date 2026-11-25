@@ -1,7 +1,10 @@
 import { validateAnswerKeyMap } from "./grading.mjs";
 
 const CACHE_TTL_MS = 60 * 1000;
-const published = { at: 0, byId: new Map() };
+// A refresh that takes longer than this is abandoned for the current request, so a slow or
+// unreachable Supabase cannot hold up every /api/ call (login included).
+const REFRESH_TIMEOUT_MS = 4 * 1000;
+const published = { at: 0, byId: new Map(), loaded: false, inflight: null };
 
 export const IMPORTED_ID_PREFIX = "imp-";
 
@@ -132,11 +135,44 @@ async function refresh(env, serviceRequest) {
   }
   published.byId = next;
   published.at = Date.now();
+  published.loaded = true;
 }
 
-export async function hydrateImportedExams(env, serviceRequest) {
+function startRefresh(env, serviceRequest) {
+  if (!published.inflight) {
+    published.inflight = refresh(env, serviceRequest)
+      .catch(() => {
+        // Imported exams are optional; back off for one TTL instead of retrying on every request.
+        published.at = Date.now();
+      })
+      .finally(() => {
+        published.inflight = null;
+      });
+  }
+  return published.inflight;
+}
+
+// Keeps the published imported exams cached in this isolate.
+// - Fresh cache: returns at once.
+// - Stale cache that has loaded before: serves the cached exams and refreshes in the background
+//   (through ctx.waitUntil when given), so requests never wait on Supabase.
+// - Nothing loaded yet: waits for the first load, but at most REFRESH_TIMEOUT_MS.
+export async function hydrateImportedExams(env, serviceRequest, ctx) {
   try {
-    await refresh(env, serviceRequest);
+    if (Date.now() - published.at < CACHE_TTL_MS) return;
+    const pending = startRefresh(env, serviceRequest);
+    if (published.loaded) {
+      if (typeof ctx?.waitUntil === "function") ctx.waitUntil(pending);
+      return;
+    }
+    let timer;
+    await Promise.race([
+      pending,
+      new Promise((resolve) => {
+        timer = setTimeout(resolve, REFRESH_TIMEOUT_MS);
+      }),
+    ]);
+    clearTimeout(timer);
   } catch {
     // Imported exams are optional; never break the request path.
   }

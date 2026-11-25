@@ -41,7 +41,7 @@ export default {
     }
     const unknownTenantResponse = rejectUnknownTenant(request, env);
     if (unknownTenantResponse) return unknownTenantResponse;
-    if (url.pathname.startsWith("/api/")) await hydrateImportedExams(env, supabaseServiceRequest);
+    if (url.pathname.startsWith("/api/")) await hydrateImportedExams(env, supabaseServiceRequest, ctx);
     if (url.pathname.startsWith("/api/")) await hydrateAnswerKeyFixes(env).catch(() => null);
 
     if (url.pathname === "/api/contact") {

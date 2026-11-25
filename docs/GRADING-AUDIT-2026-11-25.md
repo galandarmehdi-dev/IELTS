@@ -329,3 +329,13 @@ action) and records conflicts in KV and Question analytics without adopting the 
 
 Analytics: version-1 and version-2 attempts of revised questions are separate rows (with their own accuracy and
 discrimination); version-2 rows appear once students answer the new wording.
+
+## Historical regrade for the approved corrections (applied 25 Nov 2026, approved by the administrator)
+
+Policy as in the table above, with IELTS12 R27 (old wording) crediting YES or NOT GIVEN.
+- Practice: 59 sessions for 52 students (52 up, 3 down, 4 net unchanged); 62 marks gained, 9 lost; 0 failed updates.
+- Full mocks: 60 results for 55 students — Test 12: 13 up; Test 13: 19 up, 3 down (NOT GIVEN on R5); Test 11: 14 up;
+  Test 17: 9 up; Test 10: 2 up; Test 3: none. 0 failed updates. Bands and overall bands recalculated.
+- Backups saved for every run (KV `recount_log`); undo available.
+- Verification: fresh dry runs show 0 remaining changes for practice and for all six tests. Saved discrepancies
+  fell from 79 to 8, all on the five keys still disputed (IELTS1 L11/L13/L14, IELTS11 L3), kept as saved.

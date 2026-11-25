@@ -1703,10 +1703,10 @@ async function handleAdminApi(request, env, ctx = null) {
       return json(400, { ok: false, error: "Missing grading inputs." });
     }
 
-    const answerMap = {
+    const answerMap = alignGroupedObjectiveAnswerMap({
       ...buildObjectiveAnswerMap(testId, skill),
       ...sanitizeObjectiveOverrideMap(overrideMap),
-    };
+    }, answers);
     const review = questionNumbers
       .sort((a, b) => a - b)
       .map((q) => {
@@ -3872,11 +3872,11 @@ function scoreObjectiveSectionFromFinalPayload(finalPayload, section) {
     finalPayload?.examId ||
     ""
   );
-  const answerMap = buildObjectiveAnswerMap(testId, normalizedSection);
+  const answers = getObjectiveAnswersFromFinalPayload(finalPayload, normalizedSection);
+  const answerMap = alignGroupedObjectiveAnswerMap(buildObjectiveAnswerMap(testId, normalizedSection), answers);
   const questions = Object.keys(answerMap);
   if (!questions.length) return { total: null, band: null, totalQuestions: null };
 
-  const answers = getObjectiveAnswersFromFinalPayload(finalPayload, normalizedSection);
   let total = 0;
   questions.forEach((q) => {
     const studentValue = answers?.[q] ?? answers?.[String(q)] ?? "";
@@ -7130,6 +7130,7 @@ function applyQuestionAnalyticsAttempt({
   answers,
 }) {
   const answerMap = buildObjectiveAnswerMap(testId, section);
+  const markingMap = alignGroupedObjectiveAnswerMap(answerMap, answers);
   const questions = Object.keys(answerMap)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0)
@@ -7160,7 +7161,7 @@ function applyQuestionAnalyticsAttempt({
     const rawStudentAnswer = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim();
     const answerLabel = formatQuestionAnalyticsAnswerLabel(rawStudentAnswer);
     const isBlank = !rawStudentAnswer;
-    const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, existing.correctAnswer);
+    const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, markingMap[q] ?? existing.correctAnswer);
 
     if (isBlank) {
       existing.blankCount += 1;
@@ -8353,6 +8354,43 @@ function objectiveBandFromRaw(skill, rawScore, totalQuestions) {
   return found ? found[1] : null;
 }
 
+// "Choose TWO/THREE" questions share one key on every question of the group, e.g. "C/E" on Q21 and Q22.
+// Each correct letter scores once, in any order, and the same letter never scores twice. Returns a copy of
+// the answer map where each grouped question holds the single letter it is marked with for this student.
+function groupedLetterSet(raw) {
+  const parts = String(raw || "").split("/").map((x) => x.trim().toUpperCase()).filter(Boolean);
+  if (parts.length < 2 || !parts.every((x) => /^[A-Z]$/.test(x))) return null;
+  return parts;
+}
+
+function alignGroupedObjectiveAnswerMap(answerMap, answers) {
+  const map = answerMap && typeof answerMap === "object" ? answerMap : {};
+  const qs = Object.keys(map).map(Number).filter((q) => Number.isFinite(q) && q > 0).sort((a, b) => a - b);
+  const out = { ...map };
+  const norm = (v) => String(v || "").replace(/\s*\/\s*/g, "/").trim().toUpperCase();
+  let i = 0;
+  while (i < qs.length) {
+    const letters = groupedLetterSet(map[qs[i]]);
+    let j = i;
+    if (letters) {
+      while (j + 1 < qs.length && qs[j + 1] === qs[j] + 1 && norm(map[qs[j + 1]]) === norm(map[qs[i]])) j += 1;
+    }
+    const size = j - i + 1;
+    if (!letters || size < 2 || size > letters.length) { i = j + 1; continue; }
+    const used = new Set();
+    const pending = [];
+    for (let k = i; k <= j; k += 1) {
+      const q = qs[k];
+      const st = String(answers?.[q] ?? answers?.[String(q)] ?? "").trim().toUpperCase();
+      if (letters.includes(st) && !used.has(st)) { used.add(st); out[q] = st; } else pending.push(q);
+    }
+    const spare = letters.filter((l) => !used.has(l));
+    pending.forEach((q, idx) => { out[q] = spare[idx] || spare[spare.length - 1] || ""; });
+    i = j + 1;
+  }
+  return out;
+}
+
 function matchesObjectiveAnswer(studentValue, correctValue) {
   const student = normalizeObjectiveValue(studentValue);
   if (!student) return false;
@@ -8590,7 +8628,7 @@ async function savePracticeObjectiveResult(payload, auth, request, env) {
     return { ok: false, status: 400, error: "Missing practice submission inputs." };
   }
 
-  const answerMap = buildObjectiveAnswerMap(activeTestId, section);
+  const answerMap = alignGroupedObjectiveAnswerMap(buildObjectiveAnswerMap(activeTestId, section), answers);
   const questionNumbers = Object.keys(answers)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0)
@@ -9408,7 +9446,7 @@ function inferObjectiveTestId(row, finalPayload) {
 }
 
 function deriveObjectiveSummary(skill, testId, answers) {
-  const answerMap = buildObjectiveAnswerMap(testId, skill);
+  const answerMap = alignGroupedObjectiveAnswerMap(buildObjectiveAnswerMap(testId, skill), answers);
   const totalQuestions = Object.keys(answerMap).length;
   if (!totalQuestions || !answers || typeof answers !== "object") {
     return { total: null, band: null };

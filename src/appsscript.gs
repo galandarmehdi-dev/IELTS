@@ -2451,12 +2451,13 @@ function callOpenAIIELTS_(writingJson) {
             model: model,
             max_tokens: Math.max((req.params && req.params.max_tokens) || 0, 12000),
             system: systemText,
-            messages: [{ role: "user", content: userBlocks }],
-            // A forced tool call makes the API hand back the assessment as an
-            // already-parsed object, so a stray quote in the reply can no longer
-            // break JSON parsing.
+            messages: [{ role: "user", content: userBlocks.concat([{ type: "text", text: "Give your complete assessment by calling the " + WRITING_RESULT_TOOL_.name + " tool once, with exactly the JSON object described in the instructions as its input. Do not reply with plain text." }]) }],
+            // The assessment comes back through a tool call, so the API hands it over as an
+            // already-parsed object and a stray quote can no longer break JSON parsing.
+            // Current models reject a forced tool_choice ("tool"/"any"), so it is "auto" plus
+            // an instruction; a plain-text JSON reply is still accepted below.
             tools: [WRITING_RESULT_TOOL_],
-            tool_choice: { type: "tool", name: WRITING_RESULT_TOOL_.name },
+            tool_choice: { type: "auto" },
           }),
           muteHttpExceptions: true,
         });
@@ -3580,6 +3581,53 @@ function reGradeUngradedSubmissions() {
  * Safe to run from the Apps Script editor — will never touch old past-exam essays.
  * Change RECENT_COUNT to look further back if needed.
  */
+/**
+ * Grades every essay submitted in the last DAYS days that has no Writing band yet, newest first.
+ * Run it once from the editor. Apps Script stops a run after 6 minutes, so this grades for about
+ * 4.5 minutes, then schedules itself to continue a minute later until nothing is left.
+ * Change DAYS to reach further back.
+ */
+function reGradeLastWeek() {
+  const DAYS = 7;
+  const TIME_BUDGET_MS = 270 * 1000;
+  const started = Date.now();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh || sh.getLastRow() < 2) { Logger.log("No submissions found."); return; }
+  const cutoff = Date.now() - DAYS * 24 * 60 * 60 * 1000;
+  let graded = 0, alreadyGraded = 0, failed = 0, remaining = 0;
+  for (let rowNumber = sh.getLastRow(); rowNumber >= 2; rowNumber--) {
+    const row = getSubmissionRowObject_(sh, rowNumber);
+    const when = row.submittedAt instanceof Date ? row.submittedAt.getTime() : Date.parse(String(row.submittedAt || ""));
+    if (Number.isFinite(when) && when < cutoff) break; // rows are in submission order
+    if (!hasRealWritingContent_(row.writing_json || "")) continue;
+    if (isSubmissionAlreadyGraded_(ss, rowNumber)) { alreadyGraded++; continue; }
+    if (Date.now() - started > TIME_BUDGET_MS) { remaining++; continue; }
+    try {
+      Logger.log("Grading row " + rowNumber + ": " + (row.studentFullName || "unknown"));
+      const res = tryGradeSubmissionNow_(rowNumber);
+      if (res && String(res.finalWritingBand || "").trim()) graded++;
+      else { failed++; Logger.log("  no band yet (see System Logs): " + JSON.stringify(res)); }
+    } catch (err) {
+      failed++;
+      logSystem_("reGradeLastWeek", "Grading failed", { row: rowNumber, error: String(err) });
+      Logger.log("  failed: " + err);
+    }
+  }
+  clearAdminResultsCaches_();
+  // Clear any earlier continuation trigger, then schedule the next batch if work is left.
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      if (t.getHandlerFunction() === "reGradeLastWeek") ScriptApp.deleteTrigger(t);
+    });
+    if (remaining > 0) ScriptApp.newTrigger("reGradeLastWeek").timeBased().after(60 * 1000).create();
+  } catch (e) {
+    if (remaining > 0) Logger.log("Could not schedule the next batch (" + e + "). Run reGradeLastWeek again.");
+  }
+  const summary = "reGradeLastWeek: graded=" + graded + ", failed=" + failed + ", alreadyGraded=" + alreadyGraded + ", stillToDo=" + remaining;
+  Logger.log(summary);
+  logSystem_("reGradeLastWeek", summary, { graded: graded, failed: failed, alreadyGraded: alreadyGraded, remaining: remaining });
+}
 function reGradeRecentUngraded() {
   const RECENT_COUNT = 20; // only inspect the last N submissions
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);

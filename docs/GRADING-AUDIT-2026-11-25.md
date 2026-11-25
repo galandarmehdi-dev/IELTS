@@ -339,3 +339,15 @@ Policy as in the table above, with IELTS12 R27 (old wording) crediting YES or NO
 - Backups saved for every run (KV `recount_log`); undo available.
 - Verification: fresh dry runs show 0 remaining changes for practice and for all six tests. Saved discrepancies
   fell from 79 to 8, all on the five keys still disputed (IELTS1 L11/L13/L14, IELTS11 L3), kept as saved.
+
+## Last disputed keys resolved (25 Nov 2026, 18:31 UTC)
+
+Administrator checked the recordings: IELTS1 L11–14 = A, C, B, C; IELTS11 L3 = 07754897432; IELTS15 L3 = Chastons.
+These already matched the website keys, so no key changed; all six are now `verified` (pinned) in
+`src/answerKeyVerification.mjs`. No disputed keys remain.
+
+- Full mocks (Tests 1, 11, 15): dry run found no saved score to change.
+- Practice: 5 sessions regraded with approval (backup `practice_recount_backup:2026-11-25T18:31:46.042Z`, 0 failures):
+  IELTS1 Listening 29→32 and 2→2 (Q11 gained, Q13 lost); IELTS11 Listening 32→33, 30→31, 22→23 (Q3 full number).
+- Verification dry run: 0 remaining changes, 0 disputed marks skipped.
+- Sheet conflict check against the newly deployed Apps Script: ok, 0 conflicts.

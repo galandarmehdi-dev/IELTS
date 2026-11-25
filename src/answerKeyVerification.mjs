@@ -22,20 +22,20 @@ export const ANSWER_KEY_VERIFICATION = {
   },
   ielts11: {
     reading: {
-      20: { status: "disputed", evidence: "Para C 'increased infertility' vs para D 'breeding pools'; original key D, sheet key C; letters may repeat." },
+      20: { status: "verified", key: "C", evidence: "Approved by the site administrator on 2026-11-25. Question reworded (see src/questionVersions.mjs): chemical pollutants reducing reproductive ability = paragraph C only. Original wording credits C or D." },
     },
     listening: {
-      2: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (R16 GH7 → RI6 GH7); needs the recording." },
+      2: { status: "verified", key: "RI6 GH7 / RI6GH7", evidence: "Approved by the site administrator on 2026-11-25. Capital I then digit 6; R16 GH7 (digit 1) is wrong." },
       3: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (07754 → 07754897432); needs the recording." },
     },
   },
   ielts12: {
     reading: {
-      10: { status: "disputed", evidence: "Choose-TWO on the @ sign: original key C/E, sheet key A/E." },
-      11: { status: "disputed", evidence: "Choose-TWO on the @ sign: original key C/E, sheet key A/E." },
+      10: { status: "verified", key: "C / E", evidence: "Approved by the site administrator on 2026-11-25. Options reworded (A now refers to written documents; 14th-century Florentine documents contradict it). Choose-TWO C and E in either order." },
+      11: { status: "verified", key: "C / E", evidence: "Approved by the site administrator on 2026-11-25. Second question of the C/E choose-TWO group." },
       22: { status: "verified", evidence: "Gap already contains 'from the seabed' and needs a plural noun: 'grains' (passage: 'the water has insulated the grains')." },
-      27: { status: "disputed", evidence: "'this seemingly looming crisis'; original key NO, sheet key YES." },
-      36: { status: "disputed", evidence: "Original key NO, sheet key NOT GIVEN." },
+      27: { status: "verified", key: "YES", evidence: "Approved by the site administrator on 2026-11-25. Reworded to reflect the author's 'seemingly looming crisis'." },
+      36: { status: "verified", key: "NO", evidence: "Approved by the site administrator on 2026-11-25. Reworded: loneliness and homesickness belong to the negotiation period, after the honeymoon period." },
     },
   },
   ielts13: {
@@ -43,12 +43,12 @@ export const ANSWER_KEY_VERIFICATION = {
       10: { status: "verified", evidence: "'making ___ responsible'; passage: 'shifting the responsibility onto the individual by encouraging their employees' → the individual / employees. Bare 'individual' is ungrammatical here." },
       14: { status: "verified", evidence: "Bristol 'approximately ten minutes behind the capital'; '100 miles apart' is not about time zones." },
       15: { status: "verified", evidence: "Passage: 'little call for exact measurements of duration'; 'measurements' alone loses the meaning." },
-      5: { status: "disputed", evidence: "Key NOT GIVEN. Passage: mindfulness can 'shrink the amygdala' (fight or flight) so stress does 'not … affect us so much' — contradicts 'increase', which suggests FALSE. Needs an admin decision." },
+      5: { status: "verified", key: "FALSE", evidence: "Approved by the site administrator on 2026-11-25. Wording unchanged. Mindfulness shrinks the amygdala and reduces the stress response, contradicting 'increase'." },
     },
   },
   ielts17: {
     reading: {
-      19: { status: "disputed", evidence: "Key NOT GIVEN. Seals' 'bases' are on 'flat islets … which mirror' MacLeod's tables, not on the hills: FALSE is arguable. TRUE is clearly wrong." },
+      19: { status: "verified", key: "FALSE", evidence: "Approved by the site administrator on 2026-11-25. Reworded: the passage distinguishes the flat islets from MacLeod's Tables." },
       21: { status: "verified", evidence: "'climatic conditions'; 'climactic' is a misspelling." },
     },
   },
@@ -84,7 +84,7 @@ export const ANSWER_KEY_VERIFICATION = {
       29: { status: "verified", evidence: "'a straightforward [internet purchase = I] would not be possible'." },
     },
   },
-  ielts3: { listening: { 6: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (Maired → Mairead); needs the recording." } } },
+  ielts3: { listening: { 6: { status: "verified", key: "Mairead", evidence: "Approved by the site administrator on 2026-11-25. Maired is wrong; no other spellings." } } },
   ielts1: {
     listening: {
       11: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (c → a; Q11/13/14 shifted c,a,b → a,b,c); needs the recording." },
@@ -92,7 +92,7 @@ export const ANSWER_KEY_VERIFICATION = {
       14: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (b → c); needs the recording." },
     },
   },
-  ielts10: { listening: { 6: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (b.russell64@xmail.co.uk → @mail.co.uk); needs the recording." } } },
+  ielts10: { listening: { 6: { status: "verified", key: "b.russell64@xmail.co.uk", evidence: "Approved by the site administrator on 2026-11-25. The domain is xmail.co.uk; mail.co.uk and misspellings of Russell are wrong." } } },
   ielts15: { listening: { 3: { status: "disputed", evidence: "Key changed by the June 2026 sheet sync without verification (chastens → Chastons); needs the recording." } } },
   ielts16: { reading: { 31: { status: "verified", evidence: "Q31 'widespread occurrence of writer's block in literature' = para A: 'A common phenomenon in literature, writer's block… Few are the writers… who can profess to never…'. F is Q29 (historical cases). Restored A (June sheet sync had copied F)." } } },
   ielts4: { listening: { 31: { status: "unverifiable", evidence: "religion vs religions: needs the recording." } } },

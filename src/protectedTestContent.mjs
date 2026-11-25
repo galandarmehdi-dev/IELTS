@@ -4800,7 +4800,7 @@ Environmentalists like these believe that ocean clean-up solutions are pointless
               { q: 17, text: "The public’s role in marine pollution solutions." },
               { q: 18, text: "The ineffectiveness of marine rubbish collectors." },
               { q: 19, text: "Problematic travel area for ships." },
-              { q: 20, text: "Negative effect on breeding in marine organisms." },
+              { q: 20, text: "Reduced reproductive ability in marine organisms caused by chemical pollutants." },
               { q: 21, text: "The spreading of species to new areas of the ocean." }
             ]
           },
@@ -5261,10 +5261,10 @@ While both symbols have garnered an array of creative names over the course of t
               "Which TWO statements are true of the 'at' sign (@)?"
             ],
             choices: [
-              { letter: "A", text: "Its first appearance in communications came in the twentieth century." },
+              { letter: "A", text: "Its earliest recorded use in written documents dates back to the twentieth century." },
               { letter: "B", text: "It was used in a system which anticipated the development of computer programming." },
               { letter: "C", text: "Online use of the symbol evolved as a natural extension of earlier usage." },
-              { letter: "D", text: "The development of the 'at sign' has received less attention than its social media partner, the hashtag." },
+              { letter: "D", text: "The development of the 'at' sign has received less attention than its social media partner, the hashtag." },
               { letter: "E", text: "Its cultural significance has received official recognition." }
             ],
             items: [
@@ -5366,7 +5366,7 @@ So, are there any measures we can take to avert this seemingly looming crisis? C
             items: [
               { q: 25, text: "Calculations for future sand usage show we will need more than exists on the entire planet." },
               { q: 26, text: "The only complete solution is to research alternative sand-free building materials." },
-              { q: 27, text: "The catastrophic effects of running out of sand are close to happening." }
+              { q: 27, text: "The author suggests that humanity may be approaching a crisis concerning the availability of sand." }
             ]
           }
         ]
@@ -5436,7 +5436,7 @@ As more research into the condition becomes available, maybe combating it will l
               "NOT GIVEN if it is impossible to say what the writer thinks about this"
             ],
             items: [
-              { q: 36, text: "Expatriates feel a sense of isolation in new countries because everything is so new." },
+              { q: 36, text: "Feelings of loneliness and homesickness generally emerge during the honeymoon period rather than the subsequent negotiation period." },
               { q: 37, text: "There are four stages to the process of readjusting back to your home culture." },
               { q: 38, text: "People don’t anticipate reverse culture shock, which makes it harder to deal with." },
               { q: 39, text: "Those who return to their home country are more sensitive to their fellow countrymen’s opinions." },
@@ -8020,7 +8020,7 @@ The vast windy open waters to the south-west of Skye mean it has great potential
             items: [
               { q: 17, text: "The changing location of Skye has allowed a diverse range of organisms to inhabit the island over history." },
               { q: 18, text: "The highest peaks of the Cuillin hills are completely devoid of animal life." },
-              { q: 19, text: "Grey and common seals live on the flat-topped hills known as MacLeod’s Tables." },
+              { q: 19, text: "The flat islets where grey and common seals have their bases are known as MacLeod’s Tables." },
               { q: 20, text: "Visitors to the island provide a greater source of income than fishing or energy production." }
             ]
           },

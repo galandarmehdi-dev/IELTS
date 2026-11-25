@@ -1205,6 +1205,15 @@ function upsertAnswerKeyColumns_(data) {
  * Changes one answer in the Answer Key sheet. Called by the Worker when an admin corrects a wrong key
  * in Question analytics, so later submissions are marked with the right answer.
  */
+// Read-only: the AnswerKey sheet's 40 answer rows, so the website can detect cells that conflict with its
+// verified keys (the website never adopts a sheet value automatically).
+function getAnswerKeySheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sh = ss.getSheetByName(ANSWER_KEY_SHEET_NAME);
+  if (!sh) return { ok: false, error: "Sheet not found: " + ANSWER_KEY_SHEET_NAME };
+  const lastColumn = Math.max(1, sh.getLastColumn());
+  return { ok: true, values: sh.getRange(1, 1, 40, lastColumn).getDisplayValues() };
+}
 function setAnswerKeyCell_(data) {
   const testNumber = Number(data && data.testNumber);
   const q = Number(data && data.q);
@@ -3857,6 +3866,9 @@ function doPost(e) {
     }
     if (action === "setAnswerKeyCell") {
       return jsonOutput(setAnswerKeyCell_(data || {}));
+    }
+    if (action === "getAnswerKeySheet") {
+      return jsonOutput(getAnswerKeySheet_());
     }
     if (action === "assignmentNotify") {
       return jsonOutput(sendAssignmentNotificationEmail_(data));

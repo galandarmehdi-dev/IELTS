@@ -300,3 +300,32 @@ the matching rules.
 ## Tests
 `npm test`: 86/86 pass (grading engine, TRUE/YES policy and question-type coverage, verification registry,
 analytics labels, imports). Syntax check and `wrangler deploy --dry-run` pass.
+
+---
+
+# Administrator-approved corrections (25 Nov 2026, evening)
+
+Live since 2026-11-25T16:47Z (version cut-off `QUESTION_REVISIONS_AT` = 16:46:30Z). Keys are in
+`src/objectiveAnswerKeys.mjs` and the AnswerKey sheet; wording in `src/protectedTestContent.mjs`; versions and
+historical policies in `src/questionVersions.mjs`; verification (with pinned keys) in `src/answerKeyVerification.mjs`.
+
+| Question | Category | Original wording | Revised wording | Old key | Approved key | Historical policy (v1 attempts) |
+|---|---|---|---|---|---|---|
+| IELTS10 L6 | A | unchanged | — | b.russell64@mail.co.uk | b.russell64@xmail.co.uk | approved key |
+| IELTS3 L6 | A | unchanged | — | Mairead (Maired before June) | Mairead | approved key |
+| IELTS11 L2 | A | unchanged | — | RI6 GH7 / RI6GH7 (R16 GH7 before June) | RI6 GH7 / RI6GH7 | approved key |
+| IELTS13 R5 | A | unchanged | — | NOT GIVEN | FALSE | approved key |
+| IELTS11 R20 | B | Negative effect on breeding in marine organisms. | Reduced reproductive ability in marine organisms caused by chemical pollutants. | C (D before June) | C | C or D |
+| IELTS17 R19 | B | Grey and common seals live on the flat-topped hills known as MacLeod's Tables. | The flat islets where grey and common seals have their bases are known as MacLeod's Tables. | NOT GIVEN | FALSE | FALSE or NOT GIVEN |
+| IELTS12 R10–11 | B | options A ("first appearance in communications…") and D ('at sign') | A "earliest recorded use in written documents…", D 'at' sign | A/E (C/E before June) | C/E, any order | any two of A, C, E (each once) |
+| IELTS12 R27 | B | The catastrophic effects of running out of sand are close to happening. | The author suggests that humanity may be approaching a crisis concerning the availability of sand. | YES (NO before June) | YES | **proposed** YES or NOT GIVEN |
+| IELTS12 R36 | B | Expatriates feel a sense of isolation in new countries because everything is so new. | Feelings of loneliness and homesickness generally emerge during the honeymoon period rather than the subsequent negotiation period. | NOT GIVEN (NO before June) | NO | NOT GIVEN |
+
+Protection: verified keys are pinned (a test fails if a sync changes one); the Worker compares the AnswerKey
+sheet with the website keys every 6 hours (`checkSheetAnswerKeys`, needs the Apps Script `getAnswerKeySheet`
+action) and records conflicts in KV and Question analytics without adopting the sheet value;
+`resolveSheetConflict { keep: "website" }` writes the website key back. Adopting a sheet value requires Fix key
+(and, for a verified key, a change to the verification registry).
+
+Analytics: version-1 and version-2 attempts of revised questions are separate rows (with their own accuracy and
+discrimination); version-2 rows appear once students answer the new wording.

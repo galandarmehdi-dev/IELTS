@@ -4,6 +4,7 @@ import { isAnswerCorrect, alignGroupedAnswerMap, canonicalAnswer, cleanAnswerTex
 import { QUESTION_TYPES } from "./questionTypes.mjs";
 import { getKeyVerification } from "./answerKeyVerification.mjs";
 import { classifyRejectedAnswer } from "./analyticsHelpers.mjs";
+import { applyQuestionVersionKeys, questionVersionFor, getQuestionVersionInfo } from "./questionVersions.mjs";
 import { getProtectedTestContent } from "./protectedTestContent.mjs";
 import {
   getImportedAnswerMap,
@@ -124,6 +125,13 @@ export default {
 
   async scheduled(controller, env, ctx) {
     setTfngPolicy(env);
+    // AnswerKey sheet conflict check, at most every 6 hours.
+    try {
+      const last = await readJsonKv(env.STUDENT_REGISTRY, SHEET_CONFLICTS_KV_KEY).catch(() => null);
+      if (!last?.checkedAt || Date.now() - Date.parse(last.checkedAt) > 6 * 3600 * 1000) {
+        ctx.waitUntil(checkSheetAnswerKeys(env).catch((e) => console.warn("[answer-key-sheet-check]", e?.message || e)));
+      }
+    } catch (e) {}
     const retryWork = controller?.cron === EXAM_EMAIL_CRON
       ? sendPendingExamReportEmails(env)
       : retryFailedInboxSubmissions(env, null, {
@@ -1424,6 +1432,19 @@ async function handleAdminApi(request, env, ctx = null) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     return handleAdminQuestionAnalytics(request, env, auth);
+  }
+
+  if (request.method === "POST" && (action === "checkSheetAnswerKeys" || action === "resolveSheetConflict")) {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin && getActorOrganizationId(auth) !== getPrimaryOrganizationId(env)) {
+      return json(403, { ok: false, error: "Only the main site's admins can do this." });
+    }
+    if (action === "checkSheetAnswerKeys") {
+      const result = await checkSheetAnswerKeys(env);
+      return json(result.ok ? 200 : 502, result);
+    }
+    return handleAdminResolveSheetConflict(request, env);
   }
 
   if (request.method === "POST" && action === "recountPracticeScores") {
@@ -7175,7 +7196,7 @@ function applyQuestionAnalyticsAttempt({
   answers,
   storedMarks = null,
 }) {
-  const answerMap = buildObjectiveAnswerMap(testId, section);
+  const answerMap = buildObjectiveAnswerMap(testId, section, { asOf: submittedAt || null });
   const markingMap = alignGroupedObjectiveAnswerMap(answerMap, answers);
   const groups = findAnswerGroups(answerMap);
   const groupOf = {};
@@ -7197,11 +7218,14 @@ function applyQuestionAnalyticsAttempt({
   const attemptCorrect = questions.filter((q) => marks[q]).length;
 
   questions.forEach((q) => {
-    const key = buildQuestionAnalyticsRecordKey(testId, section, q);
+    // Materially revised questions keep separate statistics per version.
+    const version = questionVersionFor(canonicalAnswerKeyTestId(testId), section, q, submittedAt || null);
+    const key = buildQuestionAnalyticsRecordKey(testId, section, q) + (version ? `::v${version}` : "");
     const existing = targetMap.get(key) || {
       testId,
       section,
       questionNumber: q,
+      questionVersion: version,
       attempts: 0,
       correctCount: 0,
       wrongCount: 0,
@@ -7395,7 +7419,8 @@ function buildQuestionAnalyticsFlags(row, neighbours) {
     flags.push("key-disputed");
     reasons["key-disputed"] = `${row.keyEvidence || ""}${row.storedMismatch ? ` Saved marks differ from the current key on ${row.storedMismatch} response(s); they stay as saved until the key is decided.` : ""}`;
   }
-  if (top && neighbours.length && top.count >= 3 && answered && top.count / answered >= 0.25) {
+  // A key verified against the source (or decided by the administrator) is not re-flagged as misaligned.
+  if (row.keyStatus !== "verified" && top && neighbours.length && top.count >= 3 && answered && top.count / answered >= 0.25) {
     const topCanon = canonicalAnswer(top.answer);
     const shortAnswer = /^([a-z]|[ivx]+|true|false|yes|no|not given)$/.test(topCanon);
     const hit = neighbours.find((n) => acceptedAnswers(n.key).includes(topCanon)
@@ -7419,7 +7444,8 @@ function buildQuestionAnalyticsFlags(row, neighbours) {
   }
   const variants = (row.commonWrongAnswers || []).filter((w) => String(w.category || "").startsWith("variant:") && w.count >= 2);
   if (variants.length) { flags.push("variant"); reasons.variant = variants.map((w) => `${w.answer} (${w.category.slice(8)}) ×${w.count}`).join(", "); }
-  if (!row.groupQuestions && /^\s*[A-Za-z]\s*(\/\s*[A-Za-z]\s*)+$/.test(row.correctAnswer || "")) flags.push("multiple-answer");
+  // A version-1 historical policy that credits several letters ("C / D") is a decision, not a misconfiguration.
+  if (!row.groupQuestions && row.questionVersion !== 1 && /^\s*[A-Za-z]\s*(\/\s*[A-Za-z]\s*)+$/.test(row.correctAnswer || "")) flags.push("multiple-answer");
   if (totalAttempts >= 8 && blankRate >= 70) flags.push("technical");
   else if (totalAttempts >= 5 && blankRate >= 30) flags.push("high-blank");
   if (answered < 5) flags.push("insufficient-data");
@@ -7464,6 +7490,8 @@ function buildQuestionAnalyticsRows(records, { excludeBlank = false } = {}) {
       testId: row.testId,
       section: row.section,
       questionNumber: row.questionNumber,
+      questionVersion: row.questionVersion || null,
+      questionText: row.questionVersion ? (getQuestionVersionInfo(canonicalAnswerKeyTestId(row.testId), row.section, row.questionNumber)?.[`v${row.questionVersion}`]?.text || "") : "",
       attempts,
       totalAttempts,
       answeredCount,
@@ -7896,6 +7924,7 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
         keyStatusCounts: allRows.reduce((acc, row) => { acc[row.keyStatus] = (acc[row.keyStatus] || 0) + 1; return acc; }, {}),
       },
       flagInfo: QUESTION_ANALYTICS_FLAG_INFO,
+      sheetConflicts: await readJsonKv(env.STUDENT_REGISTRY, SHEET_CONFLICTS_KV_KEY).catch(() => null),
       tests,
       examSummary,
       rows,
@@ -8278,11 +8307,14 @@ function setTfngPolicy(env) {
   TFNG_POLICY = String(env?.TFNG_POLICY || "").trim().toLowerCase() === "lenient" ? "lenient" : "strict";
 }
 
-function buildObjectiveAnswerMap(testId, skill, { tfPolicy = TFNG_POLICY } = {}) {
+// asOf: the attempt's submission time. Questions whose wording was revised (src/questionVersions.mjs) are
+// marked with their version-1 policy for attempts made before the revision; omit asOf for live marking.
+function buildObjectiveAnswerMap(testId, skill, { tfPolicy = TFNG_POLICY, asOf } = {}) {
   const base = buildBaseObjectiveAnswerMap(testId, skill);
   const fixes = getAnswerKeyFixesFor(testId, skill);
-  const out = { ...base };
+  let out = { ...base };
   Object.keys(fixes).forEach((q) => { if (Number(q) > 0 && Object.keys(base).length) out[Number(q)] = fixes[q]; });
+  if (asOf !== undefined && Object.keys(out).length) out = applyQuestionVersionKeys(canonicalAnswerKeyTestId(testId), skill, out, asOf);
   const types = QUESTION_TYPES?.[canonicalAnswerKeyTestId(testId)]?.[String(skill || "").toLowerCase()] || {};
   Object.keys(out).forEach((q) => {
     out[q] = resolveKeyForQuestion(out[q], { questionType: types[q] || "", tfPolicy });
@@ -8431,6 +8463,82 @@ async function pushAnswerKeyCellToSheet(env, testNumber, skill, q, value) {
     return { ok: false, error: data?.error || "The sheet did not accept the change. Deploy the latest Apps Script (it needs setAnswerKeyCell)." };
   }
   return { ok: true, cell: data.cell || "" };
+}
+
+// ---------- AnswerKey sheet conflict protection ----------
+// The Apps Script marks full mocks with the AnswerKey sheet, so a hand edit there silently changes marking.
+// This compares every sheet cell of the built-in tests with the website key (current version). The website
+// never adopts a sheet value automatically: conflicts are stored for an administrator, verified keys are
+// marked as protected, and a conflict is resolved only by an explicit decision.
+const SHEET_CONFLICTS_KV_KEY = "answer_key_sheet_conflicts";
+
+async function postAppsScriptAction(env, payload) {
+  const backend = String(env.ADMIN_BACKEND_URL || "").trim();
+  if (!backend) return { ok: false, error: "ADMIN_BACKEND_URL is not configured." };
+  const bodyText = JSON.stringify(payload);
+  const backendUrl = new URL(backend);
+  backendUrl.searchParams.set("action", payload.action);
+  const signedUrl = await buildSignedAppsScriptUrl(backendUrl.toString(), "POST", bodyText, env);
+  const synthetic = new Request(`https://worker.local/api/admin?action=${payload.action}`, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" } });
+  const upstream = await fetch(signedUrl, { method: "POST", headers: await buildAppsScriptHeaders(synthetic, env, signedUrl, bodyText), body: bodyText }).catch(() => null);
+  const text = upstream ? await upstream.text().catch(() => "") : "";
+  try { return JSON.parse(text); } catch (e) { return { ok: false, error: upstream ? `Apps Script returned ${upstream.status}` : "Apps Script unreachable." }; }
+}
+
+function sameAcceptedSet(a, b) {
+  const x = acceptedAnswers(a).sort().join("|");
+  const y = acceptedAnswers(b).sort().join("|");
+  return x === y;
+}
+
+async function checkSheetAnswerKeys(env) {
+  await hydrateAnswerKeyFixes(env, true).catch(() => null);
+  const sheet = await postAppsScriptAction(env, { action: "getAnswerKeySheet" });
+  if (!sheet?.ok || !Array.isArray(sheet.values)) return { ok: false, error: sheet?.error || "Could not read the AnswerKey sheet (deploy the latest Apps Script: it needs getAnswerKeySheet)." };
+  const previous = (await readJsonKv(env.STUDENT_REGISTRY, SHEET_CONFLICTS_KV_KEY).catch(() => null)) || {};
+  const firstSeen = new Map((previous.conflicts || []).map((c) => [`${c.testId}|${c.skill}|${c.q}|${c.sheet}`, c.firstSeenAt]));
+  const conflicts = [];
+  for (let n = 1; n <= BUILTIN_TEST_COUNT; n += 1) {
+    const testId = `ielts${n}`;
+    ["listening", "reading"].forEach((skill, si) => {
+      const col = (n - 1) * 2 + si;
+      const map = buildObjectiveAnswerMap(testId, skill);
+      for (let q = 1; q <= 40; q += 1) {
+        const website = map[q];
+        const cell = String(sheet.values?.[q - 1]?.[col] ?? "").trim();
+        if (!website || sameAcceptedSet(website, cell)) continue;
+        const verification = getKeyVerification(testId, skill, q);
+        const id = `${testId}|${skill}|${q}|${cell}`;
+        conflicts.push({ testId, skill, q, website, sheet: cell, protected: verification?.status === "verified", firstSeenAt: firstSeen.get(id) || new Date().toISOString() });
+      }
+    });
+  }
+  const record = { checkedAt: new Date().toISOString(), conflicts };
+  await env.STUDENT_REGISTRY.put(SHEET_CONFLICTS_KV_KEY, JSON.stringify(record));
+  return { ok: true, ...record };
+}
+
+// Payload: { testId, skill, q, keep: "website" }. Writes the website key back into the sheet cell.
+// Adopting the sheet value is deliberately not automatic: use Fix key in Question analytics (it re-marks
+// students and records the change), and for a verified key also update src/answerKeyVerification.mjs.
+async function handleAdminResolveSheetConflict(request, env) {
+  const payload = await request.json().catch(() => null);
+  const testId = canonicalAnswerKeyTestId(payload?.testId || "");
+  const skill = String(payload?.skill || "").toLowerCase();
+  const q = Number(payload?.q);
+  if (payload?.keep !== "website") {
+    return json(400, { ok: false, error: "Only keep: \"website\" is automatic. To adopt the sheet value, use Fix key in Question analytics; a verified key must also be updated in src/answerKeyVerification.mjs." });
+  }
+  const value = buildObjectiveAnswerMap(testId, skill)[q];
+  const number = answerKeyTestNumber(testId);
+  if (!value || !number) return json(404, { ok: false, error: "No website key for this question." });
+  const res = await pushAnswerKeyCellToSheet(env, number, skill, q, value);
+  if (!res.ok) return json(502, res);
+  const record = (await readJsonKv(env.STUDENT_REGISTRY, SHEET_CONFLICTS_KV_KEY).catch(() => null)) || { conflicts: [] };
+  record.conflicts = (record.conflicts || []).filter((c) => !(c.testId === testId && c.skill === skill && Number(c.q) === q));
+  record.resolutions = [{ testId, skill, q, keep: "website", value, at: new Date().toISOString() }].concat(record.resolutions || []).slice(0, 200);
+  await env.STUDENT_REGISTRY.put(SHEET_CONFLICTS_KV_KEY, JSON.stringify(record));
+  return json(200, { ok: true, cell: res.cell, value });
 }
 
 async function handleAdminAnswerKeyFix(request, env, auth) {
@@ -8643,7 +8751,7 @@ async function handleAdminRecountObjectiveScores(request, env) {
       const rowTestId = inferObjectiveTestId({ active_test_id: row?.[`${skill}_test_id`] || row?.active_test_id, exam_id: row?.exam_id }, null);
       const testId = rowTestId ? canonicalAnswerKeyTestId(rowTestId) : "";
       if (!testId || (onlyTests && !onlyTests.has(testId))) return;
-      const map = buildObjectiveAnswerMap(testId, skill, { tfPolicy });
+      const map = buildObjectiveAnswerMap(testId, skill, { tfPolicy, asOf: oneLine(row?.submitted_at || "") || null });
       if (Object.keys(map).length) work.push({ row, skill, testId, map });
     });
   });
@@ -8834,7 +8942,7 @@ async function handleAdminRecountPracticeScores(request, env, auth) {
     if (!testId || (onlyTests && !onlyTests.has(testId))) continue;
     const review = Array.isArray(row?.summary?.review) ? row.summary.review : [];
     if (!review.length) continue;
-    const map = buildObjectiveAnswerMap(testId, section, { tfPolicy });
+    const map = buildObjectiveAnswerMap(testId, section, { tfPolicy, asOf: oneLine(row?.submitted_at || "") || null });
     if (!Object.keys(map).length) continue;
     checked += 1;
     const answers = {};

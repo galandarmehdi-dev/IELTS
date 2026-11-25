@@ -3371,7 +3371,7 @@
           <tr class="ui-data-row">
             <td>${escapeHtml(String(row.testId || "").toUpperCase())}</td>
             <td>${escapeHtml(String(row.section || "").toUpperCase())}</td>
-            <td>${escapeHtml(String(row.questionNumber || ""))}</td>
+            <td>${escapeHtml(String(row.questionNumber || ""))}${row.questionVersion ? `<div class="small" title="${escapeHtml(row.questionText || "")}">${row.questionVersion === 1 ? "v1 · original wording" : "v2 · revised wording"}</div>` : ""}</td>
             <td>${escapeHtml(row.excludeBlank
               ? `${Number(row.answeredCount || 0)} answered of ${Number(row.totalAttempts || 0)}`
               : `${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}
@@ -3564,7 +3564,11 @@
         renderQuestionAnalyticsRows(questionAnalyticsState.rows);
         renderQuestionAnalyticsExams(data.examSummary);
         const flagged = Number(data.summary?.flagged || 0);
-        setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.${flagged ? ` ${flagged} question(s) flagged; hover a flag for the suggested action.` : ""}`, "success");
+        const conflicts = Array.isArray(data.sheetConflicts?.conflicts) ? data.sheetConflicts.conflicts : [];
+        const conflictText = conflicts.length
+          ? ` ${conflicts.length} AnswerKey sheet cell(s) differ from the website key${conflicts.some((c) => c.protected) ? " (including verified keys)" : ""}; the website key is kept: ${conflicts.slice(0, 6).map((c) => `${String(c.testId).toUpperCase()} ${c.skill[0].toUpperCase()}${c.q} sheet "${c.sheet}" vs "${c.website}"`).join("; ")}${conflicts.length > 6 ? "…" : ""}.`
+          : "";
+        setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.${flagged ? ` ${flagged} question(s) flagged; hover a flag for the suggested action.` : ""}${conflictText}`, conflicts.length ? "error" : "success");
       } catch (error) {
         renderQuestionAnalyticsSummary(null);
         renderQuestionAnalyticsRows([]);

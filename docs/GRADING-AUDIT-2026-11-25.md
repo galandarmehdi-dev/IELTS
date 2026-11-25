@@ -227,3 +227,76 @@ Use Question analytics → Issue filter to work through these; Fix key re-marks 
 | ielts15 R8 | gardening | gardening | 1 |
 | ielts10 L2 | 13th September / 13 September / September 13 / September 13th | 13 september | 1 |
 | ielts17 R14 | 1.1 billion years | 1,1 billion years (now rejected) | 1 |
+
+---
+
+# Follow-up audit — 25 Nov 2026 (afternoon)
+
+## What the "52 saved grading discrepancies" were
+They are **practice sessions**. A practice session stores its own per-question marks and total, made with
+the key that applied on the day. The morning regrade covered full mocks only. Every discrepancy comes from
+a key that changed after the session was taken (June/November sheet syncs, verified corrections), not from
+the matching rules.
+
+## Changes
+- **Practice recount** (`recountPracticeScores`): re-marks every saved practice review with the current key,
+  reports false negatives (saved wrong, correct now) and false positives (saved correct, wrong now), keeps
+  questions with a **disputed** key exactly as saved, backs up every row before writing, and has an undo.
+- **TRUE/FALSE vs YES/NO** — strict by default (`TFNG_POLICY` in wrangler.jsonc; `lenient` is opt-in).
+  Question types come from each block's own instructions (`scripts/build-question-types.mjs` →
+  `src/questionTypes.mjs`, 189 questions in 21 tests). All 28 keys that accepted both forms
+  ("TRUE / yes", "false / no", "Not given / Not Given") were on YES/NO questions; they now hold one value,
+  on the website and in the AnswerKey sheet. **Historical regrades keep the lenient rule**: older test pages
+  offered TRUE/FALSE/NOT GIVEN on some YES/NO questions (e.g. IELTS1 R33, where saved full mocks contain
+  "TRUE"), so a strict regrade would have removed 59 marks for the page's wording.
+- **Key verification registry** (`src/answerKeyVerification.mjs`): 18 verified, 15 disputed, 7 need the
+  recording — each with quoted evidence. Every key changed by a sheet sync without verification is
+  disputed.
+- **IELTS16 R31 restored to A**: Q31 "a reference to the widespread occurrence of writer's block in
+  literature" = paragraph A ("A common phenomenon in literature… Few are the writers… who can profess to
+  never…"). F is Q29 (historical cases). The June sheet sync had copied Q29's F into Q31.
+- **Analytics flags**
+  - *Genuine academic difficulty* only for a verified key with no open issue; otherwise *Potential academic
+    difficulty*.
+  - *Possible answer-key issue* no longer follows from low accuracy: it needs ≥10 answers, the top wrong
+    answer ≥5 times and at least as popular as the key, wrong answers concentrated well beyond chance for
+    the question type (TRUE/FALSE/NG: 3 options; letters: the options seen; open answers), and no positive
+    discrimination. Flags fell from 78 to 21.
+  - *Discrimination*: rest-of-section score of students answering correctly minus those answering wrongly.
+  - Spelling mistakes are counted separately from possible variants (labels only; marking unchanged).
+  - *Disputed answer key* flag with the evidence; disputed questions are not shown as grading anomalies.
+- **Grouped answers**: a correct letter already used elsewhere in its choose-TWO/THREE group is shown as
+  "duplicate in group (counted once)". IELTS13 R27: the one "D" was a duplicate (Q25–27 = A/D/E).
+- **Test difficulty**: computed over **all** questions of each test, with observed accuracy, reliable
+  wrong rate (≥5 answers, no open issue), verified-key wrong rate, blank rate, open-issue count, attempts
+  and unique students reported separately. Unresolved issues never decide the ranking.
+
+## Suspicious keys reviewed
+| Question | Result |
+|---|---|
+| IELTS20 L8 Wednesday/Wednesdays | Needs the recording ("Held on ___"; a weekly class suggests the plural). Unchanged. |
+| IELTS9 L9 movement/movements | Needs the recording. Unchanged. |
+| IELTS13 R10 individual | Verified: "making ___ responsible" needs "the individual" or "employees". |
+| IELTS4 L31 religion/religions | Needs the recording. Unchanged. |
+| IELTS5 L30 grass/grasses | Needs the recording. Unchanged. |
+| IELTS13 R5 FALSE/NOT GIVEN | **Disputed**: passage ("shrink the amygdala… not let it affect us so much") contradicts "increase" → suggests FALSE. Key (NOT GIVEN) unchanged pending your decision. |
+| IELTS17 R19 TRUE/NOT GIVEN | **Disputed**: seals' bases are on islets that "mirror" MacLeod's tables → FALSE arguable; TRUE is wrong. |
+| IELTS21 R36 TRUE/FALSE | Verified FALSE (students were "instructed"/"assigned"). |
+| IELTS20 R28–29 | Verified D and C; not reversed. |
+| IELTS5 L27–28 | Needs the recording. |
+| IELTS7 R40 music/rhyme | Verified music ("sound similar" already = rhyme; passage "music and rhyme"). |
+| IELTS6 L1 white/stripes | Needs the recording. |
+
+## Dry runs (nothing written yet)
+| | Checked | Changed | Up | Down | False negatives fixed | False positives fixed | Kept as saved (disputed) |
+|---|---|---|---|---|---|---|---|
+| Practice sessions | 468 | 41 sessions, 35 students | 40 | 1 | 87 marks | 1 mark | 73 marks |
+| Full mocks | all 23 tests | 17 results (Test 16 only) | 7 | 10 | 7 | 10 | — |
+
+- The one practice decrease: "1,1 billion years" for "1.1 billion years" (decimal comma), previously accepted.
+- The 10 full-mock decreases: students who answered F to IELTS16 R31 (the wrong sheet key), −1 mark each.
+- All other tests: 0 changes; the morning regrade already matches.
+
+## Tests
+`npm test`: 86/86 pass (grading engine, TRUE/YES policy and question-type coverage, verification registry,
+analytics labels, imports). Syntax check and `wrangler deploy --dry-run` pass.

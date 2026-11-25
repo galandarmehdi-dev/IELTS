@@ -8278,14 +8278,14 @@ function setTfngPolicy(env) {
   TFNG_POLICY = String(env?.TFNG_POLICY || "").trim().toLowerCase() === "lenient" ? "lenient" : "strict";
 }
 
-function buildObjectiveAnswerMap(testId, skill) {
+function buildObjectiveAnswerMap(testId, skill, { tfPolicy = TFNG_POLICY } = {}) {
   const base = buildBaseObjectiveAnswerMap(testId, skill);
   const fixes = getAnswerKeyFixesFor(testId, skill);
   const out = { ...base };
   Object.keys(fixes).forEach((q) => { if (Number(q) > 0 && Object.keys(base).length) out[Number(q)] = fixes[q]; });
   const types = QUESTION_TYPES?.[canonicalAnswerKeyTestId(testId)]?.[String(skill || "").toLowerCase()] || {};
   Object.keys(out).forEach((q) => {
-    out[q] = resolveKeyForQuestion(out[q], { questionType: types[q] || "", tfPolicy: TFNG_POLICY });
+    out[q] = resolveKeyForQuestion(out[q], { questionType: types[q] || "", tfPolicy });
   });
   return out;
 }
@@ -8613,6 +8613,11 @@ function sheetMark_isAnswerCorrect_(studentRaw, correctRaw) {
 // Payload: { dryRun = true, testIds?: ["ielts23", ...] }.
 async function handleAdminRecountObjectiveScores(request, env) {
   const payload = await request.json().catch(() => null);
+  // Historical results: older test pages offered TRUE/FALSE/NOT GIVEN on some YES/NO questions, so a saved
+  // "TRUE" there was the student's honest choice. Recounts therefore use the lenient TRUE/YES rule unless a
+  // run asks for { tfPolicy: "strict" }. New submissions are marked with TFNG_POLICY (strict by default).
+  // Passed explicitly (never through the shared TFNG_POLICY) so parallel requests cannot change it mid-run.
+  const tfPolicy = payload?.tfPolicy === "strict" ? "strict" : "lenient";
   const dryRun = payload?.dryRun !== false;
   // Older results keep the answers only in the sheet; fetch them from there when the database has none.
   const useSheet = payload?.useSheet !== false;
@@ -8638,7 +8643,7 @@ async function handleAdminRecountObjectiveScores(request, env) {
       const rowTestId = inferObjectiveTestId({ active_test_id: row?.[`${skill}_test_id`] || row?.active_test_id, exam_id: row?.exam_id }, null);
       const testId = rowTestId ? canonicalAnswerKeyTestId(rowTestId) : "";
       if (!testId || (onlyTests && !onlyTests.has(testId))) return;
-      const map = buildObjectiveAnswerMap(testId, skill);
+      const map = buildObjectiveAnswerMap(testId, skill, { tfPolicy });
       if (Object.keys(map).length) work.push({ row, skill, testId, map });
     });
   });
@@ -8720,6 +8725,12 @@ async function handleAdminRecountObjectiveScores(request, env) {
     const totalQuestions = Number(row?.[`${skill}_total_questions`]) || 40;
     const band = objectiveBandFromRaw(skill, total, totalQuestions);
     // explain: answers counted correct that are not a letter-for-letter copy of a key alternative.
+    const tfRejected = payload?.explain ? Object.keys(map).flatMap((q) => {
+      const student = String(answers?.[q] ?? answers?.[String(q)] ?? "");
+      if (!student.trim() || sheetMark_isAnswerCorrect_(student, aligned[q])) return [];
+      const lenient = resolveKeyForQuestion(aligned[q], { questionType: "", tfPolicy: "lenient" });
+      return lenient !== aligned[q] && sheetMark_isAnswerCorrect_(student, lenient) ? [`${q}:${JSON.stringify(student)}≠${JSON.stringify(aligned[q])}`] : [];
+    }) : undefined;
     const forgiven = payload?.explain ? Object.keys(map).flatMap((q) => {
       const student = String(answers?.[q] ?? answers?.[String(q)] ?? "");
       if (Object.prototype.hasOwnProperty.call(manual, String(q)) || !sheetMark_isAnswerCorrect_(student, aligned[q])) return [];
@@ -8729,7 +8740,7 @@ async function handleAdminRecountObjectiveScores(request, env) {
     const entry = pending.get(String(row.id)) || { row, lookup, organizationId, patch: {} };
     entry.patch[skill] = { total, band };
     pending.set(String(row.id), entry);
-    changed.push({ student: lookup.studentFullName, test: testId, skill, from: Number.isFinite(stored) ? stored : null, to: total, band, submittedAt: lookup.submittedAt, examId: lookup.examId, reason: lookup.reason, organizationId, forgiven });
+    changed.push({ student: lookup.studentFullName, test: testId, skill, from: Number.isFinite(stored) ? stored : null, to: total, band, submittedAt: lookup.submittedAt, examId: lookup.examId, reason: lookup.reason, organizationId, forgiven, tfRejected });
   }
 
   let failedUpdates = 0;
@@ -8801,6 +8812,8 @@ async function handleAdminRecountPracticeScores(request, env, auth) {
     return json(200, { ok: true, restored, failed });
   }
   const dryRun = payload?.dryRun !== false;
+  // Same historical TRUE/YES rule as the full-mock recount, passed explicitly.
+  const tfPolicy = payload?.tfPolicy === "strict" ? "strict" : "lenient";
   // Questions whose key is disputed keep their saved marks until an admin decides the key.
   const skipDisputed = payload?.skipDisputed !== false;
   let skippedDisputed = 0;
@@ -8821,7 +8834,7 @@ async function handleAdminRecountPracticeScores(request, env, auth) {
     if (!testId || (onlyTests && !onlyTests.has(testId))) continue;
     const review = Array.isArray(row?.summary?.review) ? row.summary.review : [];
     if (!review.length) continue;
-    const map = buildObjectiveAnswerMap(testId, section);
+    const map = buildObjectiveAnswerMap(testId, section, { tfPolicy });
     if (!Object.keys(map).length) continue;
     checked += 1;
     const answers = {};

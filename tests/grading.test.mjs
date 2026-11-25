@@ -213,6 +213,17 @@ test("verified answer-key corrections (regressions)", () => {
   ok("July 2", OBJECTIVE_ANSWER_KEYS.ielts2.listening[16]);
   ok("diseases", OBJECTIVE_ANSWER_KEYS.ielts2.listening[39]);
   ok("10 minutes", OBJECTIVE_ANSWER_KEYS.ielts13.reading[14]);
+  // IELTS6 Reading Q13: passage "outbreaks of bark beetle", limit TWO WORDS. Q17 asks "Which kind of whale".
+  ok("bark beetle", OBJECTIVE_ANSWER_KEYS.ielts6.reading[13]);
+  ok("beetle", OBJECTIVE_ANSWER_KEYS.ielts6.reading[13]);
+  ok("sperm whale", OBJECTIVE_ANSWER_KEYS.ielts6.reading[17]);
+  ok("sperm whales", OBJECTIVE_ANSWER_KEYS.ielts6.reading[17]);
+  ok("sperm", OBJECTIVE_ANSWER_KEYS.ielts6.reading[17]);
+  // Verified as still incorrect (meaning lost or word limit broken).
+  no("measurements", OBJECTIVE_ANSWER_KEYS.ielts13.reading[15]);   // passage: "exact measurements of duration"
+  no("Beatrice Russell", OBJECTIVE_ANSWER_KEYS.ielts10.listening[4]); // ONE WORD AND/OR A NUMBER
+  no("6", OBJECTIVE_ANSWER_KEYS.ielts13.listening[4]);             // "valid for a minimum of 6" has no unit
+  no("gunshot", OBJECTIVE_ANSWER_KEYS.ielts19.reading[38]);        // passage: "a gunshot wound to the head"
 });
 
 test("every built-in answer key parses and has no critical validation errors", () => {

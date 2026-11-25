@@ -1630,7 +1630,11 @@
               <option value="high-blank">High blank rate</option>
               <option value="technical">Possible technical issue</option>
               <option value="insufficient-data">Insufficient data</option>
-              <option value="genuine-difficulty">Genuine difficulty</option>
+              <option value="key-disputed">Disputed answer key</option>
+              <option value="genuine-difficulty">Genuine difficulty (key verified)</option>
+              <option value="potential-difficulty">Potential difficulty (key not verified)</option>
+              <option value="verified">Verified keys only</option>
+              <option value="unverified">Unverified keys only</option>
             </select>
           </label>
           <label class="admin-field"><span>Unanswered</span>
@@ -1650,6 +1654,16 @@
             </select>
           </label>
         </div>
+
+        <details style="margin:12px 0;">
+          <summary><strong>Test difficulty</strong> <span class="small">— over all questions of each test; unresolved issues and questions with fewer than 5 answers excluded from the ranking</span></summary>
+          <div class="admin-results-table-wrap">
+            <table class="admin-results-table">
+              <thead><tr><th>Test</th><th>Section</th><th>Attempts · students</th><th>Observed accuracy</th><th>Reliable wrong rate</th><th>Verified-key wrong rate</th><th>Blank rate</th><th>Questions with open issues</th></tr></thead>
+              <tbody id="qaExamTbody"></tbody>
+            </table>
+          </div>
+        </details>
 
         <div class="admin-results-table-wrap">
           <table class="admin-results-table">
@@ -2622,7 +2636,7 @@
 <script src="/assets/js/placement-test.js"></script>
 <script src="/assets/js/resources-page.js"></script>
 <script src="/assets/js/recent-questions.js"></script>
-<script src="/assets/js/app.js?v=20261125b"></script>
+<script src="/assets/js/app.js?v=20261125c"></script>
 <script src="/assets/js/bootstrap-init.js"></script>
 
 <section id="speakingSection" class="hidden notranslate" aria-label="Speaking Exam" translate="no">

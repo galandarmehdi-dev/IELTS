@@ -36,6 +36,8 @@
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_Me6QK361KcAjS8KdUmql1Q_yGHHn_3Z",
     "PRIMARY_TENANT_HOST": "ieltsmock.org",
     "PRIMARY_ORGANIZATION_ID": "ieltsmock",
+    // TRUE/FALSE vs YES/NO marking: "strict" (IELTS rules) or "lenient" (accept the counterpart word).
+    "TFNG_POLICY": "strict",
     "TENANT_HOST_MAP": "{\"leznikmock.online\":{\"organizationId\":\"leznikmock\",\"name\":\"Leznik Mock\"}}"
   },
   "compatibility_flags": [

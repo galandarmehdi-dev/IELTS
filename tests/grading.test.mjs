@@ -214,6 +214,9 @@ test("verified answer-key corrections (regressions)", () => {
   ok("diseases", OBJECTIVE_ANSWER_KEYS.ielts2.listening[39]);
   ok("10 minutes", OBJECTIVE_ANSWER_KEYS.ielts13.reading[14]);
   // IELTS6 Reading Q13: passage "outbreaks of bark beetle", limit TWO WORDS. Q17 asks "Which kind of whale".
+  // IELTS16 Reading Q31: para A "A common phenomenon in literature"; F belongs to Q29.
+  ok("A", OBJECTIVE_ANSWER_KEYS.ielts16.reading[31]);
+  no("F", OBJECTIVE_ANSWER_KEYS.ielts16.reading[31]);
   ok("bark beetle", OBJECTIVE_ANSWER_KEYS.ielts6.reading[13]);
   ok("beetle", OBJECTIVE_ANSWER_KEYS.ielts6.reading[13]);
   ok("sperm whale", OBJECTIVE_ANSWER_KEYS.ielts6.reading[17]);
@@ -241,4 +244,68 @@ test("canonical form keeps meaningful characters", () => {
   assert.equal(canonicalAnswer("£3.25"), "£3.25");
   no("3.25", "£3.25");
   no("1,1 billion years", "1.1 billion years"); // a decimal comma is not reinterpreted
+});
+
+import { resolveKeyForQuestion } from "../src/grading.mjs";
+import { QUESTION_TYPES } from "../src/questionTypes.mjs";
+
+test("TRUE/FALSE vs YES/NO: strict by default, lenient only when asked", () => {
+  const ynng = { questionType: "ynng" };
+  const tfng = { questionType: "tfng" };
+  assert.equal(resolveKeyForQuestion("TRUE / yes", ynng), "YES");
+  assert.equal(resolveKeyForQuestion("false / no", ynng), "NO");
+  assert.equal(resolveKeyForQuestion("TRUE / yes", tfng), "TRUE");
+  assert.equal(resolveKeyForQuestion("Not given / Not Given", ynng), "NOT GIVEN");
+  assert.equal(resolveKeyForQuestion("TRUE", ynng), "YES"); // a TRUE key on a YES/NO question means YES
+  no("TRUE", resolveKeyForQuestion("TRUE / yes", ynng));
+  ok("yes", resolveKeyForQuestion("TRUE / yes", ynng));
+  no("yes", resolveKeyForQuestion("TRUE / yes", tfng));
+  ok("TRUE", resolveKeyForQuestion("TRUE / yes", { questionType: "ynng", tfPolicy: "lenient" }));
+  // Non-TF keys and unknown question types are untouched.
+  assert.equal(resolveKeyForQuestion("C / E", ynng), "C / E");
+  assert.equal(resolveKeyForQuestion("TRUE / yes", {}), "TRUE / YES");
+});
+
+test("every TRUE/yes-style built-in key sits on a question of known type and resolves to one value", () => {
+  const tf = new Set(["true", "false", "not given", "yes", "no"]);
+  for (const [testId, sections] of Object.entries(OBJECTIVE_ANSWER_KEYS)) {
+    for (const [q, key] of Object.entries(sections.reading || {})) {
+      const parts = String(key).toLowerCase().split("/").map((x) => x.trim());
+      if (parts.length < 2 || !parts.every((p) => tf.has(p))) continue;
+      const type = QUESTION_TYPES[testId]?.reading?.[q];
+      assert.ok(type, `${testId} R${q} has no detected question type`);
+      assert.ok(!resolveKeyForQuestion(key, { questionType: type }).includes("/"), `${testId} R${q} still has two values`);
+    }
+  }
+});
+
+import { classifyRejectedAnswer } from "../src/analyticsHelpers.mjs";
+
+test("analytics labels: legitimate variants vs spelling mistakes (labels only, never marks)", () => {
+  const acc = (key) => acceptedAnswers(key);
+  assert.equal(classifyRejectedAnswer("wednesday", acc("Wednesdays")), "variant:plural");
+  assert.equal(classifyRejectedAnswer("secret garden", acc("The Secret Garden")), "variant:article");
+  assert.equal(classifyRejectedAnswer("phoneline", acc("phone line")), "variant:spacing");
+  assert.equal(classifyRejectedAnswer("middle ages", acc("late Middle Ages")), "variant:extra-or-missing-word");
+  assert.equal(classifyRejectedAnswer("wensday", acc("Wednesday")), "spelling");
+  assert.equal(classifyRejectedAnswer("satelites", acc("satellites")), "spelling");
+  assert.equal(classifyRejectedAnswer("rhyme", acc("music")), "");
+  assert.equal(classifyRejectedAnswer("d", acc("C")), "");
+  // Labelled or not, these stay wrong.
+  no("wensday", "Wednesday");
+  no("wednesday", "Wednesdays");
+});
+
+import { ANSWER_KEY_VERIFICATION } from "../src/answerKeyVerification.mjs";
+
+test("verification registry points at real keys and every entry has evidence", () => {
+  for (const [testId, sections] of Object.entries(ANSWER_KEY_VERIFICATION)) {
+    for (const [section, qs] of Object.entries(sections)) {
+      for (const [q, entry] of Object.entries(qs)) {
+        assert.ok(OBJECTIVE_ANSWER_KEYS[testId]?.[section]?.[q], `${testId} ${section} Q${q} has no key`);
+        assert.ok(["verified", "disputed", "unverifiable"].includes(entry.status), `${testId} ${section} Q${q} bad status`);
+        assert.ok(String(entry.evidence || "").length > 10, `${testId} ${section} Q${q} needs evidence`);
+      }
+    }
+  }
 });

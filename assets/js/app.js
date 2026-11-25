@@ -3310,6 +3310,26 @@
       }
     }
 
+    const QA_KEY_STATUS_LABELS = { verified: "verified", disputed: "disputed", unverifiable: "needs recording", unverified: "not yet verified" };
+
+    function renderQuestionAnalyticsExams(exams) {
+      const tbody = $("qaExamTbody");
+      if (!tbody) return;
+      const list = Array.isArray(exams) ? exams : [];
+      const pct = (v) => (v === null || v === undefined ? "—" : `${Number(v).toFixed(1)}%`);
+      tbody.innerHTML = list.map((e) => `
+        <tr class="ui-data-row">
+          <td>${escapeHtml(String(e.testId || "").toUpperCase())}</td>
+          <td>${escapeHtml(String(e.section || "").toUpperCase())}</td>
+          <td>${escapeHtml(`${e.attempts} · ${e.uniqueStudents}`)}</td>
+          <td>${escapeHtml(pct(e.observedAccuracy))}</td>
+          <td>${escapeHtml(`${pct(e.reliableWrongRate)} (${e.reliableQuestions} q)`)}</td>
+          <td>${escapeHtml(e.verifiedQuestions ? `${pct(e.verifiedWrongRate)} (${e.verifiedQuestions} q)` : "—")}</td>
+          <td>${escapeHtml(pct(e.blankRate))}</td>
+          <td>${escapeHtml(String(e.unresolvedConcerns))}</td>
+        </tr>`).join("") || `<tr class="ui-table-state-row"><td colspan="8">No tests matched these filters.</td></tr>`;
+    }
+
     const QA_CONFIDENCE_LABELS = {
       insufficient: "insufficient data",
       low: "low confidence",
@@ -3355,22 +3375,26 @@
             <td>${escapeHtml(row.excludeBlank
               ? `${Number(row.answeredCount || 0)} answered of ${Number(row.totalAttempts || 0)}`
               : `${Number(row.attempts || 0)} (F:${Number(row.fullMockAttempts || 0)} / P:${Number(row.practiceAttempts || 0)})`)}
-              <div class="small" title="Based on answered responses: 1-4 insufficient, 5-9 low, 10-19 moderate, 20-49 higher, 50+ strongest">${escapeHtml(`${Number(row.answeredCount || 0)} answered · ${Number(row.blankCount || 0)} blank · ${QA_CONFIDENCE_LABELS[row.confidence] || "—"}`)}</div></td>
+              <div class="small" title="Based on answered responses: 1-4 insufficient, 5-9 low, 10-19 moderate, 20-49 higher, 50+ strongest">${escapeHtml(`${Number(row.answeredCount || 0)} answered · ${Number(row.blankCount || 0)} blank · ${QA_CONFIDENCE_LABELS[row.confidence] || "—"}`)}</div>
+              ${row.discrimination !== null && row.discrimination !== undefined ? `<div class="small" title="Average rest-of-section score of students who got this right minus those who got it wrong. Negative values suggest a key problem.">Discrimination ${row.discrimination > 0 ? "+" : ""}${escapeHtml(String(row.discrimination))} pts</div>` : ""}</td>
             <td>${escapeHtml(`${Number(row.correctRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.wrongRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(`${Number(row.blankRate || 0).toFixed(1)}%`)}</td>
             <td>${escapeHtml(row.difficulty || "—")}${row.needsReview ? ` <span class="badge badge-warning">Needs review</span>` : ""}</td>
             <td data-qa-key-cell="${escapeHtml(solvedKey)}">
               <strong>${escapeHtml(row.correctAnswer || "—")}</strong>
+              <div class="small" title="${escapeHtml(row.keyEvidence || "Not yet checked against the passage/recording.")}">Key: ${escapeHtml(QA_KEY_STATUS_LABELS[row.keyStatus] || row.keyStatus || "unverified")}</div>
               ${Array.isArray(row.groupQuestions) && row.groupQuestions.length ? `<div class="small">Choose-${row.groupQuestions.length === 2 ? "TWO" : row.groupQuestions.length === 3 ? "THREE" : row.groupQuestions.length} group: Q${escapeHtml(row.groupQuestions.join("–Q"))}, any order</div>` : ""}
               ${Array.isArray(row.acceptedAnswers) && row.acceptedAnswers.length > 1 ? `<details class="small"><summary>Accepts ${row.acceptedAnswers.length} forms</summary>${escapeHtml(row.acceptedAnswers.join(" · "))}</details>` : ""}
               ${row.originalAnswer ? `<div class="small" style="color:#166534;">Corrected (was ${escapeHtml(row.originalAnswer)})</div>` : ""}
               ${row.correctAnswer ? `<div><button type="button" class="btn secondary small" data-qa-edit-key="${escapeHtml(solvedKey)}" style="margin-top:4px;padding:2px 10px;font-size:12px;">Fix key</button></div>` : ""}
             </td>
-            <td>${escapeHtml(commonWrong)}</td>
-            <td>${(Array.isArray(row.flagDetails) ? row.flagDetails : []).map((flag) => `<div style="margin-bottom:4px;"><span class="badge ${["grading-anomaly", "key-issue", "alignment", "technical"].includes(flag.id) ? "badge-warning" : ""}" title="${escapeHtml(flag.action || "")}">${escapeHtml(flag.label || flag.id)}</span></div>`).join("") || "—"}
-              ${Number(row.storedWrongNowCorrect || 0) > 0 ? `<div class="small" style="color:#991b1b;">${Number(row.storedWrongNowCorrect)} saved result(s) marked this wrong but it is correct now</div>` : ""}
-              ${isSolved && (row.flags || []).some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f)) ? `<div class="small" style="color:#991b1b;">Marked solved, but the issue is still detected</div>` : ""}</td>
+            <td>${escapeHtml(commonWrong)}
+              ${(row.duplicateGroupAnswers || []).length ? `<div class="small">Duplicate in group (counted once): ${escapeHtml(row.duplicateGroupAnswers.map((d) => `${d.letter}: ${d.count}`).join(" · "))}</div>` : ""}
+              ${row.spellingMistakes?.count ? `<div class="small">Spelling mistakes (stay wrong): ${escapeHtml(String(row.spellingMistakes.count))} — ${escapeHtml(row.spellingMistakes.examples.join(", "))}</div>` : ""}</td>
+            <td>${(Array.isArray(row.flagDetails) ? row.flagDetails : []).map((flag) => `<div style="margin-bottom:4px;"><span class="badge ${["grading-anomaly", "key-issue", "key-disputed", "alignment", "technical"].includes(flag.id) ? "badge-warning" : ""}" title="${escapeHtml([flag.reason, flag.action].filter(Boolean).join(" — "))}">${escapeHtml(flag.label || flag.id)}</span>${flag.reason ? `<div class="small">${escapeHtml(flag.reason)}</div>` : ""}</div>`).join("") || "—"}
+
+              ${isSolved && Number(row.unresolvedConcerns || 0) > 0 ? `<div class="small" style="color:#991b1b;">Marked solved, but the issue is still detected</div>` : ""}</td>
             <td>
               <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
                 <input type="checkbox" data-qa-solved="${escapeHtml(solvedKey)}" ${isSolved ? "checked" : ""}>
@@ -3538,6 +3562,7 @@
         populateQuestionAnalyticsTestFilter();
         renderQuestionAnalyticsSummary(questionAnalyticsState.summary);
         renderQuestionAnalyticsRows(questionAnalyticsState.rows);
+        renderQuestionAnalyticsExams(data.examSummary);
         const flagged = Number(data.summary?.flagged || 0);
         setQuestionAnalyticsStatus(`Loaded ${questionAnalyticsState.rows.length} rows from ${questionAnalyticsState.tests.length} tests.${flagged ? ` ${flagged} question(s) flagged; hover a flag for the suggested action.` : ""}`, "success");
       } catch (error) {

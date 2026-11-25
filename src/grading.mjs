@@ -337,3 +337,26 @@ export function validateAnswerKeyMap(answerMap, { expectedCount = 40 } = {}) {
   }
   return issues;
 }
+
+// ---------- TRUE/FALSE/NOT GIVEN vs YES/NO/NOT GIVEN ----------
+// Some keys list both forms ("TRUE / yes"). In strict IELTS mode a TRUE/FALSE/NOT GIVEN question accepts
+// only TRUE/FALSE/NOT GIVEN and a YES/NO/NOT GIVEN question only YES/NO/NOT GIVEN. "lenient" is an explicit
+// opt-in (e.g. for practice) that accepts the counterpart word too. Keys that are not TF/YN keys, or questions
+// whose type is unknown, are returned unchanged.
+const TF_WORDS = { tfng: ["true", "false", "not given"], ynng: ["yes", "no", "not given"] };
+const TF_COUNTERPART = { true: "yes", false: "no", yes: "true", no: "false", "not given": "not given" };
+
+export function resolveKeyForQuestion(key, { questionType = "", tfPolicy = "strict" } = {}) {
+  const raw = String(key ?? "");
+  const parts = splitTopLevelAlternatives(raw.replace(INVISIBLE_RE, "").replace(SPACE_RE, " ").trim());
+  const canon = parts.map((p) => canonicalAnswer(p));
+  if (!canon.length || !canon.every((p) => p in TF_COUNTERPART)) return raw;
+  const type = TF_WORDS[questionType] ? questionType : "";
+  let values = Array.from(new Set(canon));
+  if (type) {
+    // Map every value into the question's own vocabulary, then keep only that vocabulary.
+    values = Array.from(new Set(values.map((v) => (TF_WORDS[type].includes(v) ? v : TF_COUNTERPART[v]))));
+  }
+  if (tfPolicy === "lenient") values = Array.from(new Set(values.concat(values.map((v) => TF_COUNTERPART[v]))));
+  return values.map((v) => v.toUpperCase()).join(" / ");
+}

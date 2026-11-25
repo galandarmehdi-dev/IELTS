@@ -1,6 +1,9 @@
 import { EmailMessage } from "cloudflare:email";
 import { OBJECTIVE_ANSWER_KEYS } from "./objectiveAnswerKeys.mjs";
-import { isAnswerCorrect, alignGroupedAnswerMap, canonicalAnswer, cleanAnswerText, findAnswerGroups, acceptedAnswers, validateAnswerKeyMap } from "./grading.mjs";
+import { isAnswerCorrect, alignGroupedAnswerMap, canonicalAnswer, cleanAnswerText, findAnswerGroups, acceptedAnswers, validateAnswerKeyMap, resolveKeyForQuestion } from "./grading.mjs";
+import { QUESTION_TYPES } from "./questionTypes.mjs";
+import { getKeyVerification } from "./answerKeyVerification.mjs";
+import { classifyRejectedAnswer } from "./analyticsHelpers.mjs";
 import { getProtectedTestContent } from "./protectedTestContent.mjs";
 import {
   getImportedAnswerMap,
@@ -30,6 +33,7 @@ const DEFAULT_PRIMARY_TENANT_HOST = "ieltsmock.org";
 
 export default {
   async fetch(request, env, ctx) {
+    setTfngPolicy(env);
     const url = new URL(request.url);
     if (isSensitiveAssetPath(url.pathname)) {
       return json(404, { ok: false, error: "Not found." });
@@ -119,6 +123,7 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
+    setTfngPolicy(env);
     const retryWork = controller?.cron === EXAM_EMAIL_CRON
       ? sendPendingExamReportEmails(env)
       : retryFailedInboxSubmissions(env, null, {
@@ -1419,6 +1424,15 @@ async function handleAdminApi(request, env, ctx = null) {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
     return handleAdminQuestionAnalytics(request, env, auth);
+  }
+
+  if (request.method === "POST" && action === "recountPracticeScores") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    if (!auth.isSuperAdmin && getActorOrganizationId(auth) !== getPrimaryOrganizationId(env)) {
+      return json(403, { ok: false, error: "Only the main site's admins can recount practice scores." });
+    }
+    return handleAdminRecountPracticeScores(request, env, auth);
   }
 
   if (request.method === "POST" && (action === "undoObjectiveRecount" || action === "pushAnswerKeysToSheet")) {
@@ -7165,12 +7179,22 @@ function applyQuestionAnalyticsAttempt({
   const markingMap = alignGroupedObjectiveAnswerMap(answerMap, answers);
   const groups = findAnswerGroups(answerMap);
   const groupOf = {};
-  groups.forEach((g) => g.questions.forEach((q) => { groupOf[q] = g.questions; }));
+  groups.forEach((g) => g.questions.forEach((q) => { groupOf[q] = g; }));
+  // Practice reviews (storedMarks given) cover only the questions shown to the student.
   const questions = Object.keys(answerMap)
     .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0)
+    .filter((value) => !storedMarks || answers?.[value] !== undefined || answers?.[String(value)] !== undefined)
     .sort((a, b) => a - b);
   if (!questions.length) return;
+
+  // Mark the whole attempt first: the section score is each student's "ability" for discrimination.
+  const marks = {};
+  questions.forEach((q) => {
+    const raw = String(answers?.[q] ?? answers?.[String(q)] ?? "");
+    marks[q] = !!cleanAnswerText(raw) && matchesObjectiveAnswer(raw, markingMap[q] ?? answerMap[q]);
+  });
+  const attemptCorrect = questions.filter((q) => marks[q]).length;
 
   questions.forEach((q) => {
     const key = buildQuestionAnalyticsRecordKey(testId, section, q);
@@ -7187,9 +7211,15 @@ function applyQuestionAnalyticsAttempt({
       correctAnswer: String(answerMap[q] || "").trim(),
       wrongAnswerCounts: new Map(),
       wrongAnswerLabels: new Map(),
+      duplicateGroupCounts: new Map(),
       storedMismatch: 0,
       storedWrongNowCorrect: 0,
-      groupQuestions: groupOf[q] || null,
+      storedRightNowWrong: 0,
+      abilityCorrectSum: 0,
+      abilityCorrectN: 0,
+      abilityWrongSum: 0,
+      abilityWrongN: 0,
+      groupQuestions: groupOf[q] ? groupOf[q].questions : null,
       lastSubmittedAt: "",
       students: new Map(),
     };
@@ -7200,11 +7230,18 @@ function applyQuestionAnalyticsAttempt({
 
     const rawStudentAnswer = String(answers?.[q] ?? answers?.[String(q)] ?? "");
     const isBlank = !cleanAnswerText(rawStudentAnswer);
-    const isCorrect = !isBlank && matchesObjectiveAnswer(rawStudentAnswer, markingMap[q] ?? existing.correctAnswer);
+    const isCorrect = marks[q];
 
     if (storedMarks && typeof storedMarks[q] === "boolean" && storedMarks[q] !== isCorrect) {
       existing.storedMismatch += 1;
-      if (isCorrect) existing.storedWrongNowCorrect += 1;
+      if (isCorrect) existing.storedWrongNowCorrect += 1; else existing.storedRightNowWrong += 1;
+    }
+
+    // Rest-of-section score (this question excluded), for answered responses only.
+    if (!isBlank && questions.length > 1) {
+      const rest = ((attemptCorrect - (isCorrect ? 1 : 0)) / (questions.length - 1)) * 100;
+      if (isCorrect) { existing.abilityCorrectSum += rest; existing.abilityCorrectN += 1; }
+      else { existing.abilityWrongSum += rest; existing.abilityWrongN += 1; }
     }
 
     if (isBlank) {
@@ -7214,10 +7251,17 @@ function applyQuestionAnalyticsAttempt({
       existing.correctCount += 1;
     } else {
       existing.wrongCount += 1;
-      // Group spelling variants of one answer ("Documents", "documents ") but show it as students wrote it.
       const canon = canonicalAnswer(rawStudentAnswer);
-      existing.wrongAnswerCounts.set(canon, Number(existing.wrongAnswerCounts.get(canon) || 0) + 1);
-      if (!existing.wrongAnswerLabels.has(canon)) existing.wrongAnswerLabels.set(canon, cleanAnswerText(rawStudentAnswer).toUpperCase());
+      const group = groupOf[q];
+      const letter = cleanAnswerText(rawStudentAnswer).toUpperCase();
+      if (group && group.letters.includes(letter)) {
+        // A correct letter of a choose-TWO/THREE group that this student already used on another question
+        // of the group: it scores once only, so this one is not an ordinary wrong answer.
+        existing.duplicateGroupCounts.set(letter, Number(existing.duplicateGroupCounts.get(letter) || 0) + 1);
+      } else {
+        existing.wrongAnswerCounts.set(canon, Number(existing.wrongAnswerCounts.get(canon) || 0) + 1);
+        if (!existing.wrongAnswerLabels.has(canon)) existing.wrongAnswerLabels.set(canon, cleanAnswerText(rawStudentAnswer).toUpperCase());
+      }
     }
 
     const studentKey = oneLine(studentIdCode || studentName || "");
@@ -7270,8 +7314,12 @@ function applyQuestionAnalyticsReviewAttempt({ reviewRows, targetMap, ...rest })
 function mergeQuestionAnalyticsRecord(targetMap, key, add) {
   const existing = targetMap.get(key);
   if (!existing) { targetMap.set(key, add); return; }
-  ["attempts", "correctCount", "wrongCount", "blankCount", "fullMockAttempts", "practiceAttempts", "storedMismatch", "storedWrongNowCorrect"]
+  ["attempts", "correctCount", "wrongCount", "blankCount", "fullMockAttempts", "practiceAttempts", "storedMismatch", "storedWrongNowCorrect", "storedRightNowWrong", "abilityCorrectSum", "abilityCorrectN", "abilityWrongSum", "abilityWrongN"]
     .forEach((f) => { existing[f] = Number(existing[f] || 0) + Number(add[f] || 0); });
+  (add.duplicateGroupCounts || new Map()).forEach((count, letter) => {
+    if (!existing.duplicateGroupCounts) existing.duplicateGroupCounts = new Map();
+    existing.duplicateGroupCounts.set(letter, Number(existing.duplicateGroupCounts.get(letter) || 0) + count);
+  });
   add.wrongAnswerCounts.forEach((count, canon) => {
     existing.wrongAnswerCounts.set(canon, Number(existing.wrongAnswerCounts.get(canon) || 0) + count);
     if (!existing.wrongAnswerLabels.has(canon)) existing.wrongAnswerLabels.set(canon, add.wrongAnswerLabels.get(canon));
@@ -7299,209 +7347,246 @@ function questionAnalyticsConfidence(answered) {
   return "strongest";
 }
 
-// Could this rejected answer be a legitimate variant an admin should look at? Never used for marking.
-function looksLikeKeyVariant(wrongCanon, acceptedList) {
-  const strip = (v) => v.replace(/^(the|a|an) /, "");
-  const words = (v) => v.split(" ").filter(Boolean);
-  return acceptedList.some((acc) => {
-    if (!acc || acc === wrongCanon) return false;
-    if (strip(acc) === strip(wrongCanon)) return "article";
-    if (acc.replace(/ /g, "") === wrongCanon.replace(/ /g, "")) return "spacing";
-    if (acc.replace(/(es|s)$/, "") === wrongCanon.replace(/(es|s)$/, "")) return "plural";
-    const a = words(acc);
-    const w = words(wrongCanon);
-    if (Math.abs(a.length - w.length) === 1) {
-      const [shorter, longer] = a.length < w.length ? [a, w] : [w, a];
-      if (shorter.length && shorter.every((x) => longer.includes(x))) return "extra-or-missing-word";
-    }
-    return false;
-  });
+// Number of answer options a guesser chooses from (0 = open answer).
+function questionOptionCount(row) {
+  const accepted = row.acceptedAnswers || [];
+  const tf = ["true", "false", "not given", "yes", "no"];
+  if (accepted.length && accepted.every((a) => tf.includes(a))) return 3;
+  const seen = new Set();
+  const add = (v) => { const c = String(v || "").trim().toLowerCase(); if (c) seen.add(c); };
+  accepted.forEach(add);
+  (row.commonWrongAnswers || []).forEach((w) => add(w.answer));
+  const all = Array.from(seen);
+  if (all.length && all.every((a) => /^[a-z]$/.test(a))) return Math.max(4, all.length);
+  if (all.length && all.every((a) => /^[ivx]+$/.test(a))) return Math.max(5, all.length);
+  return 0;
 }
 
 const QUESTION_ANALYTICS_FLAG_INFO = {
-  "grading-anomaly": { label: "Critical grading anomaly", action: "Saved marks differ from today's marking. Run Recount scores so students get the right totals." },
-  "key-issue": { label: "Possible answer-key issue", action: "Many students give the same rejected answer. Check the passage/recording; change the key only if the source supports it." },
-  "alignment": { label: "Possible question alignment issue", action: "The most common wrong answer is the key of a neighbouring question. Check for swapped or shifted keys." },
-  "variant": { label: "Possible accepted variant", action: "A rejected answer differs only in form (plural, article, spacing, one word). Accept it via Fix key only if the question and source allow it." },
-  "multiple-answer": { label: "Multiple-answer check", action: "Slash key on one question accepts any listed letter. If this is a choose-TWO/THREE item, put the same key on every question of the group." },
+  "grading-anomaly": { label: "Critical grading anomaly", action: "Saved marks differ from today's marking (wrong saved as right or right saved as wrong). Run the practice/full-mock recount so saved scores match." },
+  "key-disputed": { label: "Disputed answer key", action: "The key was checked and the sources disagree. Decide the key (see evidence), then use Fix key." },
+  "key-issue": { label: "Possible answer-key issue", action: "Wrong answers concentrate on one option far beyond chance, and students choosing the key are not stronger overall. Check the source; change the key only if it supports this." },
+  "alignment": { label: "Possible question alignment issue", action: "The most common wrong answer is a neighbouring question's key (for letters/TFNG: a swap pattern). Check for swapped or shifted keys." },
+  "variant": { label: "Possible accepted variant", action: "Rejected answers differ only by article, spacing, plural ending or one word. Accept via Fix key only if the question and source allow it. Spelling mistakes are listed separately and stay wrong." },
+  "multiple-answer": { label: "Multiple-answer check", action: "A slash key on one question accepts any listed letter. If this is a choose-TWO/THREE item, put the same key on every question of the group." },
   "high-blank": { label: "High blank rate", action: "Many attempts left this blank. Check the question renders and the answer box saves." },
   "technical": { label: "Possible technical issue", action: "Most attempts are blank. Check rendering, audio, numbering and answer saving for this question." },
   "insufficient-data": { label: "Insufficient data", action: "Fewer than 5 answered responses: too few to judge difficulty." },
-  "genuine-difficulty": { label: "Genuine academic difficulty", action: "No grading or key problem detected; students find this question hard." },
+  "genuine-difficulty": { label: "Genuine academic difficulty", action: "Key verified against the source and no grading, key, variant, alignment or technical issue: students find this question hard." },
+  "potential-difficulty": { label: "Potential academic difficulty", action: "Low accuracy, but the key has not been verified against the source (or another issue is open). Verify the key before treating this as real difficulty." },
 };
+const QA_UNRESOLVED_FLAGS = ["grading-anomaly", "key-disputed", "key-issue", "alignment", "variant", "multiple-answer", "technical", "high-blank"];
 
 // neighbours: [{ key, topWrong }] for the questions just before and after (outside its own group).
 function buildQuestionAnalyticsFlags(row, neighbours) {
   const flags = [];
+  const reasons = {};
   const answered = Number(row.answeredCount || 0);
+  const correct = Number(row.correctCount || 0);
   const totalAttempts = Number(row.totalAttempts || 0);
   const blankRate = totalAttempts ? (Number(row.blankCount || 0) / totalAttempts) * 100 : 0;
   const top = row.commonWrongAnswers?.[0] || null;
-  const accepted = acceptedAnswers(row.correctAnswer || "");
-  if (Number(row.storedWrongNowCorrect || 0) > 0) flags.push("grading-anomaly");
+  const accepted = row.acceptedAnswers || [];
+  if (Number(row.storedMismatch || 0) > 0 && row.keyStatus !== "disputed") {
+    flags.push("grading-anomaly");
+    reasons["grading-anomaly"] = `${row.storedWrongNowCorrect} saved wrong but correct now, ${row.storedRightNowWrong} saved correct but wrong now.`;
+  }
+  if (row.keyStatus === "disputed") {
+    flags.push("key-disputed");
+    reasons["key-disputed"] = `${row.keyEvidence || ""}${row.storedMismatch ? ` Saved marks differ from the current key on ${row.storedMismatch} response(s); they stay as saved until the key is decided.` : ""}`;
+  }
   if (top && neighbours.length && top.count >= 3 && answered && top.count / answered >= 0.25) {
     const topCanon = canonicalAnswer(top.answer);
-    // Letters, numerals and TRUE/FALSE/YES/NO repeat across questions by chance, so for those only a swap
-    // (each question's top wrong answer is the other's key) counts. A word answer matching a
-    // neighbour's key is suspicious on its own.
     const shortAnswer = /^([a-z]|[ivx]+|true|false|yes|no|not given)$/.test(topCanon);
-    const hit = neighbours.some((n) => acceptedAnswers(n.key).includes(topCanon)
+    const hit = neighbours.find((n) => acceptedAnswers(n.key).includes(topCanon)
       && (!shortAnswer || (n.topWrong && accepted.includes(canonicalAnswer(n.topWrong)))));
-    if (hit) flags.push("alignment");
+    if (hit) { flags.push("alignment"); reasons.alignment = `Top wrong answer "${top.answer}" is the key of a neighbouring question.`; }
   }
-  if (top && !flags.includes("alignment") && top.count >= 5 && answered && top.count / answered >= 0.3 && top.count >= Number(row.correctCount || 0)) {
-    flags.push("key-issue");
+  // Answer-key issue: never from low accuracy alone. Needs enough answers, one wrong answer far more
+  // concentrated than guessing among the distractors would give, at least as popular as the key, and no
+  // sign that stronger students pick the key.
+  const wrongAnswered = Math.max(0, answered - correct);
+  if (top && !flags.includes("alignment") && row.keyStatus !== "verified" && answered >= 10 && top.count >= 5 && top.count >= correct && wrongAnswered > 0) {
+    const options = questionOptionCount(row);
+    const chanceShare = options ? 1 / (options - 1) : 0.15;
+    const concentration = top.count / wrongAnswered;
+    const needed = Math.min(0.95, Math.max(0.5, chanceShare * 1.5));
+    const d = row.discrimination;
+    if (concentration >= needed && (d === null || d <= 5)) {
+      flags.push("key-issue");
+      reasons["key-issue"] = `"${top.answer}" is ${Math.round(concentration * 100)}% of wrong answers (chance ≈ ${Math.round(chanceShare * 100)}%), chosen ${top.count}× vs key ${correct}×${d === null ? "" : `; discrimination ${d > 0 ? "+" : ""}${d.toFixed(0)} pts`}.`;
+    }
   }
-  if ((row.commonWrongAnswers || []).some((w) => w.count >= 2 && looksLikeKeyVariant(canonicalAnswer(w.answer), accepted))) flags.push("variant");
+  const variants = (row.commonWrongAnswers || []).filter((w) => String(w.category || "").startsWith("variant:") && w.count >= 2);
+  if (variants.length) { flags.push("variant"); reasons.variant = variants.map((w) => `${w.answer} (${w.category.slice(8)}) ×${w.count}`).join(", "); }
   if (!row.groupQuestions && /^\s*[A-Za-z]\s*(\/\s*[A-Za-z]\s*)+$/.test(row.correctAnswer || "")) flags.push("multiple-answer");
   if (totalAttempts >= 8 && blankRate >= 70) flags.push("technical");
   else if (totalAttempts >= 5 && blankRate >= 30) flags.push("high-blank");
   if (answered < 5) flags.push("insufficient-data");
-  const anomaly = flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f));
-  if (!anomaly && answered >= 10 && Number(row.wrongRate || 0) >= 60) flags.push("genuine-difficulty");
-  return flags;
+  const accuracy = answered ? (correct / answered) * 100 : 0;
+  if (answered >= 10 && accuracy <= 40) {
+    const unresolved = flags.some((f) => QA_UNRESOLVED_FLAGS.includes(f));
+    flags.push(!unresolved && row.keyStatus === "verified" ? "genuine-difficulty" : "potential-difficulty");
+  }
+  return { flags, reasons };
 }
 
-function serializeQuestionAnalyticsRows(records, filters = {}) {
-  const minAttempts = Math.max(0, Number(filters.minAttempts || 0));
-  const difficultyFilter = String(filters.difficulty || "").trim().toLowerCase();
-  const questionFilter = Number(filters.questionNumber || 0);
-  const issueFilter = String(filters.issue || "").trim().toLowerCase();
-  // excludeBlank: unanswered questions are left out entirely, so Correct % and
-  // Wrong % are out of the students who actually wrote an answer.
-  const excludeBlank = !!filters.excludeBlank;
-
+// Builds every question row (with flags), unfiltered.
+function buildQuestionAnalyticsRows(records, { excludeBlank = false } = {}) {
   const keyLookup = new Map();
   records.forEach((row) => keyLookup.set(`${row.testId}::${row.section}::${row.questionNumber}`, row.correctAnswer || ""));
-
-  const rows = Array.from(records.values())
-    .map((row) => {
-      const totalAttempts = Number(row.attempts || 0);
-      const correctCount = Number(row.correctCount || 0);
-      const blankCount = Number(row.blankCount || 0);
-      // wrongCount from the collectors already includes blanks.
-      const wrongCount = excludeBlank
-        ? Math.max(0, Number(row.wrongCount || 0) - blankCount)
-        : Number(row.wrongCount || 0);
-      const answeredCount = Math.max(0, totalAttempts - blankCount);
-      const attempts = excludeBlank ? answeredCount : totalAttempts;
-      const correctRate = attempts > 0 ? (correctCount / attempts) * 100 : 0;
-      const wrongRate = attempts > 0 ? (wrongCount / attempts) * 100 : 0;
-      const blankRate = totalAttempts > 0 ? (blankCount / totalAttempts) * 100 : 0;
-      const difficulty = toDifficultyLabelFromWrongRate(wrongRate);
-      const labels = row.wrongAnswerLabels || new Map();
-      const commonWrongAnswers = Array.from(row.wrongAnswerCounts.entries())
-        .map(([canon, count]) => ({
-          answer: labels.get(canon) || String(canon || "").toUpperCase(),
-          count: Number(count || 0),
-          rate: answeredCount > 0 ? (Number(count || 0) / answeredCount) * 100 : 0,
-        }))
-        .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
-        .slice(0, 5);
-      const needsReview = wrongRate >= 60 && attempts >= 5;
-      const out = {
-        testId: row.testId,
-        section: row.section,
-        questionNumber: row.questionNumber,
-        attempts,
-        totalAttempts,
-        answeredCount,
-        excludeBlank,
-        fullMockAttempts: Number(row.fullMockAttempts || 0),
-        practiceAttempts: Number(row.practiceAttempts || 0),
-        correctCount,
-        wrongCount,
-        blankCount,
-        correctRate: Number(correctRate.toFixed(1)),
-        wrongRate: Number(wrongRate.toFixed(1)),
-        blankRate: Number(blankRate.toFixed(1)),
-        difficulty,
-        confidence: questionAnalyticsConfidence(answeredCount),
-        correctAnswer: row.correctAnswer || "",
-        acceptedAnswers: acceptedAnswers(row.correctAnswer || "").slice(0, 12),
-        groupQuestions: row.groupQuestions || null,
-        originalAnswer: getAnswerKeyFixesFor(row.testId, row.section)[String(row.questionNumber)]
-          ? (row.originalAnswer || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(row.testId, row.section)[row.questionNumber]))
-          : "",
-        commonWrongAnswers,
-        storedMismatch: Number(row.storedMismatch || 0),
-        storedWrongNowCorrect: Number(row.storedWrongNowCorrect || 0),
-        needsReview,
-        studentRows: Array.from(row.students.values()),
-      };
-      return out;
-    });
+  const rows = Array.from(records.values()).map((row) => {
+    const totalAttempts = Number(row.attempts || 0);
+    const correctCount = Number(row.correctCount || 0);
+    const blankCount = Number(row.blankCount || 0);
+    // wrongCount from the collectors already includes blanks.
+    const wrongCount = excludeBlank ? Math.max(0, Number(row.wrongCount || 0) - blankCount) : Number(row.wrongCount || 0);
+    const answeredCount = Math.max(0, totalAttempts - blankCount);
+    const attempts = excludeBlank ? answeredCount : totalAttempts;
+    const correctRate = attempts > 0 ? (correctCount / attempts) * 100 : 0;
+    const wrongRate = attempts > 0 ? (wrongCount / attempts) * 100 : 0;
+    const blankRate = totalAttempts > 0 ? (blankCount / totalAttempts) * 100 : 0;
+    const observedAccuracy = answeredCount > 0 ? (correctCount / answeredCount) * 100 : null;
+    const accepted = acceptedAnswers(row.correctAnswer || "");
+    const labels = row.wrongAnswerLabels || new Map();
+    const allWrong = Array.from(row.wrongAnswerCounts.entries()).map(([canon, count]) => ({
+      answer: labels.get(canon) || String(canon || "").toUpperCase(),
+      count: Number(count || 0),
+      rate: answeredCount > 0 ? (Number(count || 0) / answeredCount) * 100 : 0,
+      category: classifyRejectedAnswer(canon, accepted),
+    })).sort((a, b) => b.count - a.count);
+    const spelling = allWrong.filter((w) => w.category === "spelling");
+    const discrimination = row.abilityCorrectN >= 3 && row.abilityWrongN >= 3
+      ? Number((row.abilityCorrectSum / row.abilityCorrectN - row.abilityWrongSum / row.abilityWrongN).toFixed(1))
+      : null;
+    const verification = getKeyVerification(canonicalAnswerKeyTestId(row.testId), row.section, row.questionNumber);
+    const out = {
+      testId: row.testId,
+      section: row.section,
+      questionNumber: row.questionNumber,
+      attempts,
+      totalAttempts,
+      answeredCount,
+      excludeBlank,
+      fullMockAttempts: Number(row.fullMockAttempts || 0),
+      practiceAttempts: Number(row.practiceAttempts || 0),
+      uniqueStudents: row.students.size,
+      correctCount,
+      wrongCount,
+      blankCount,
+      correctRate: Number(correctRate.toFixed(1)),
+      wrongRate: Number(wrongRate.toFixed(1)),
+      blankRate: Number(blankRate.toFixed(1)),
+      observedAccuracy: observedAccuracy === null ? null : Number(observedAccuracy.toFixed(1)),
+      difficulty: toDifficultyLabelFromWrongRate(wrongRate),
+      confidence: questionAnalyticsConfidence(answeredCount),
+      discrimination,
+      keyStatus: verification?.status || "unverified",
+      keyEvidence: verification?.evidence || "",
+      correctAnswer: row.correctAnswer || "",
+      acceptedAnswers: accepted.slice(0, 12),
+      groupQuestions: row.groupQuestions || null,
+      duplicateGroupAnswers: Array.from((row.duplicateGroupCounts || new Map()).entries()).map(([letter, count]) => ({ letter, count })),
+      originalAnswer: getAnswerKeyFixesFor(row.testId, row.section)[String(row.questionNumber)]
+        ? (row.originalAnswer || normalizeQuestionAnalyticsCorrectAnswer(buildBaseObjectiveAnswerMap(row.testId, row.section)[row.questionNumber]))
+        : "",
+      commonWrongAnswers: allWrong.slice(0, 5),
+      spellingMistakes: { count: spelling.reduce((n, w) => n + w.count, 0), examples: spelling.slice(0, 4).map((w) => w.answer) },
+      storedMismatch: Number(row.storedMismatch || 0),
+      storedWrongNowCorrect: Number(row.storedWrongNowCorrect || 0),
+      storedRightNowWrong: Number(row.storedRightNowWrong || 0),
+      needsReview: wrongRate >= 60 && attempts >= 5,
+      studentRows: Array.from(row.students.values()),
+    };
+    return out;
+  });
   const topWrongLookup = new Map(rows.map((r) => [`${r.testId}::${r.section}::${r.questionNumber}`, r.commonWrongAnswers?.[0]?.answer || ""]));
   rows.forEach((out) => {
     const neighbours = [out.questionNumber - 1, out.questionNumber + 1]
       .filter((n) => !(out.groupQuestions || []).includes(n))
       .map((n) => ({ key: keyLookup.get(`${out.testId}::${out.section}::${n}`), topWrong: topWrongLookup.get(`${out.testId}::${out.section}::${n}`) }))
       .filter((n) => n.key);
-    out.flags = buildQuestionAnalyticsFlags(out, neighbours);
-    out.flagDetails = out.flags.map((f) => ({ id: f, ...QUESTION_ANALYTICS_FLAG_INFO[f] }));
+    const { flags, reasons } = buildQuestionAnalyticsFlags(out, neighbours);
+    out.flags = flags;
+    out.unresolvedConcerns = flags.filter((f) => QA_UNRESOLVED_FLAGS.includes(f)).length;
+    out.flagDetails = flags.map((f) => ({ id: f, ...QUESTION_ANALYTICS_FLAG_INFO[f], reason: reasons[f] || "" }));
   });
-  return rows
-    .filter((row) => (excludeBlank ? row.attempts > 0 : true))
-    .filter((row) => (minAttempts ? row.attempts >= minAttempts : true))
-    .filter((row) => (questionFilter > 0 ? row.questionNumber === questionFilter : true))
-    .filter((row) => {
-      if (!difficultyFilter) return true;
-      return String(row.difficulty || "").toLowerCase().replace(/\s+/g, "-") === difficultyFilter;
-    })
-    .filter((row) => {
-      if (!issueFilter) return true;
-      if (issueFilter === "any") return row.flags.some((f) => !["insufficient-data", "genuine-difficulty"].includes(f));
-      if (issueFilter === "clean") return !row.flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical"].includes(f));
-      return row.flags.includes(issueFilter);
-    })
-    .sort((a, b) => {
-      const wrongDelta = Number(b.wrongRate || 0) - Number(a.wrongRate || 0);
-      if (wrongDelta) return wrongDelta;
-      return Number(b.attempts || 0) - Number(a.attempts || 0);
-    });
+  return rows;
 }
 
+function filterQuestionAnalyticsRows(rows, filters = {}) {
+  const minAttempts = Math.max(0, Number(filters.minAttempts || 0));
+  const difficultyFilter = String(filters.difficulty || "").trim().toLowerCase();
+  const questionFilter = Number(filters.questionNumber || 0);
+  const issueFilter = String(filters.issue || "").trim().toLowerCase();
+  return rows
+    .filter((row) => (filters.excludeBlank ? row.attempts > 0 : true))
+    .filter((row) => (minAttempts ? row.attempts >= minAttempts : true))
+    .filter((row) => (questionFilter > 0 ? row.questionNumber === questionFilter : true))
+    .filter((row) => !difficultyFilter || String(row.difficulty || "").toLowerCase().replace(/\s+/g, "-") === difficultyFilter)
+    .filter((row) => {
+      if (!issueFilter) return true;
+      if (issueFilter === "any") return row.unresolvedConcerns > 0;
+      if (issueFilter === "clean") return row.unresolvedConcerns === 0;
+      if (issueFilter === "unverified") return row.keyStatus !== "verified";
+      if (issueFilter === "verified") return row.keyStatus === "verified";
+      return row.flags.includes(issueFilter);
+    })
+    .sort((a, b) => Number(b.wrongRate || 0) - Number(a.wrongRate || 0) || Number(b.attempts || 0) - Number(a.attempts || 0));
+}
+
+// Kept for callers that only need filtered rows.
+function serializeQuestionAnalyticsRows(records, filters = {}) {
+  return filterQuestionAnalyticsRows(buildQuestionAnalyticsRows(records, filters), filters);
+}
+
+// Per test and section, over ALL its questions (not just hard ones):
+//   observedAccuracy      mean per-question accuracy of answered responses
+//   reliableWrongRate     mean wrong rate over questions with ≥5 answers and no unresolved concern
+//   verifiedWrongRate     the same over questions whose key is verified (null when none)
+//   blankRate, unresolvedConcerns, uniqueStudents, attempts, meanTakerScore (proficiency of its takers)
+// Ranked by reliableWrongRate; unresolved anomalies never decide the ranking.
 function buildQuestionAnalyticsExamSummary(rows) {
   const grouped = new Map();
   (Array.isArray(rows) ? rows : []).forEach((row) => {
     const key = `${String(row.testId || "").toLowerCase()}::${String(row.section || "").toLowerCase()}`;
-    const bucket = grouped.get(key) || {
-      testId: row.testId,
-      section: row.section,
-      attempts: 0,
-      questionCount: 0,
-      wrongRateSum: 0,
-      correctRateSum: 0,
-      hardestQuestion: null,
-      easiestQuestion: null,
-    };
-    bucket.attempts = Math.max(bucket.attempts, Number(row.attempts || 0));
-    bucket.questionCount += 1;
-    bucket.wrongRateSum += Number(row.wrongRate || 0);
-    bucket.correctRateSum += Number(row.correctRate || 0);
-    if (!bucket.hardestQuestion || Number(row.wrongRate || 0) > Number(bucket.hardestQuestion.wrongRate || 0)) {
-      bucket.hardestQuestion = { questionNumber: row.questionNumber, wrongRate: row.wrongRate };
+    const b = grouped.get(key) || { testId: row.testId, section: row.section, questions: 0, accSum: 0, accN: 0, reliableSum: 0, reliableN: 0, verifiedSum: 0, verifiedN: 0, blankSum: 0, unresolved: 0, attempts: 0, students: new Set(), abilitySum: 0, abilityN: 0, hardest: null, easiest: null };
+    b.questions += 1;
+    b.attempts = Math.max(b.attempts, Number(row.totalAttempts || 0));
+    b.blankSum += Number(row.blankRate || 0);
+    (row.studentRows || []).forEach((st) => b.students.add(st.studentIdCode || st.name));
+    if (row.observedAccuracy !== null && row.observedAccuracy !== undefined) { b.accSum += row.observedAccuracy; b.accN += 1; }
+    if (row.unresolvedConcerns > 0) b.unresolved += 1;
+    const wrong = row.observedAccuracy === null ? null : 100 - row.observedAccuracy;
+    if (wrong !== null && row.answeredCount >= 5 && row.unresolvedConcerns === 0) {
+      b.reliableSum += wrong; b.reliableN += 1;
+      if (!b.hardest || wrong > b.hardest.wrongRate) b.hardest = { questionNumber: row.questionNumber, wrongRate: Number(wrong.toFixed(1)) };
+      if (!b.easiest || wrong < b.easiest.wrongRate) b.easiest = { questionNumber: row.questionNumber, wrongRate: Number(wrong.toFixed(1)) };
+      if (row.keyStatus === "verified") { b.verifiedSum += wrong; b.verifiedN += 1; }
     }
-    if (!bucket.easiestQuestion || Number(row.wrongRate || 0) < Number(bucket.easiestQuestion.wrongRate || 0)) {
-      bucket.easiestQuestion = { questionNumber: row.questionNumber, wrongRate: row.wrongRate };
-    }
-    grouped.set(key, bucket);
+    grouped.set(key, b);
   });
-
-  return Array.from(grouped.values()).map((bucket) => {
-    const avgWrongRate = bucket.questionCount > 0 ? bucket.wrongRateSum / bucket.questionCount : 0;
-    const avgCorrectRate = bucket.questionCount > 0 ? bucket.correctRateSum / bucket.questionCount : 0;
+  return Array.from(grouped.values()).map((b) => {
+    const reliable = b.reliableN ? b.reliableSum / b.reliableN : null;
     return {
-      testId: bucket.testId,
-      section: bucket.section,
-      attempts: bucket.attempts,
-      averageWrongRate: Number(avgWrongRate.toFixed(1)),
-      averageCorrectRate: Number(avgCorrectRate.toFixed(1)),
-      hardestQuestion: bucket.hardestQuestion,
-      easiestQuestion: bucket.easiestQuestion,
-      difficulty: toDifficultyLabelFromWrongRate(avgWrongRate),
+      testId: b.testId,
+      section: b.section,
+      questions: b.questions,
+      attempts: b.attempts,
+      uniqueStudents: b.students.size,
+      observedAccuracy: b.accN ? Number((b.accSum / b.accN).toFixed(1)) : null,
+      reliableQuestions: b.reliableN,
+      reliableWrongRate: reliable === null ? null : Number(reliable.toFixed(1)),
+      verifiedQuestions: b.verifiedN,
+      verifiedWrongRate: b.verifiedN ? Number((b.verifiedSum / b.verifiedN).toFixed(1)) : null,
+      blankRate: b.questions ? Number((b.blankSum / b.questions).toFixed(1)) : 0,
+      unresolvedConcerns: b.unresolved,
+      averageWrongRate: reliable === null ? 0 : Number(reliable.toFixed(1)),
+      hardestQuestion: b.hardest,
+      easiestQuestion: b.easiest,
+      difficulty: reliable === null ? "—" : toDifficultyLabelFromWrongRate(reliable),
     };
-  }).sort((a, b) => Number(b.averageWrongRate || 0) - Number(a.averageWrongRate || 0));
+  }).sort((a, b) => Number(b.reliableWrongRate ?? -1) - Number(a.reliableWrongRate ?? -1));
 }
 
 // Audit export: every stored Listening/Reading response (answers plus the key and mark each review saved
@@ -7767,24 +7852,21 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
       });
     });
 
-    const rows = serializeQuestionAnalyticsRows(records, {
-      minAttempts,
-      difficulty,
-      questionNumber,
-      excludeBlank,
-      issue,
-    });
-    // Questions with unresolved grading/key/technical problems or too little data do not decide which
-    // exam or question is "hardest".
-    const reliableRows = rows.filter((row) => !row.flags.some((f) => ["grading-anomaly", "key-issue", "alignment", "technical", "insufficient-data"].includes(f)));
-    const examSummary = buildQuestionAnalyticsExamSummary(reliableRows);
+    const filters = { minAttempts, difficulty, questionNumber, excludeBlank, issue };
+    const allRows = buildQuestionAnalyticsRows(records, filters);
+    const rows = filterQuestionAnalyticsRows(allRows, filters);
+    // Test difficulty uses every question of each test (not just the filtered or hard ones); questions with
+    // unresolved concerns or too few answers never decide the ranking.
+    const examSummary = buildQuestionAnalyticsExamSummary(allRows);
+    const reliableRows = allRows.filter((row) => row.unresolvedConcerns === 0 && row.answeredCount >= 5)
+      .sort((a, b) => (100 - (b.observedAccuracy ?? 100)) - (100 - (a.observedAccuracy ?? 100)));
     const tests = Array.from(new Set(rows.map((row) => String(row.testId || "")))).sort((a, b) => {
       const ax = Number(String(a).replace(/[^\d]/g, "")) || 0;
       const bx = Number(String(b).replace(/[^\d]/g, "")) || 0;
       return ax - bx;
     });
     const mostMissed = reliableRows[0] || null;
-    const hardestExam = examSummary[0] || null;
+    const hardestExam = examSummary.find((e) => e.reliableQuestions >= 10) || examSummary[0] || null;
     const averageWrongRate = rows.length
       ? Number((rows.reduce((sum, row) => sum + Number(row.wrongRate || 0), 0) / rows.length).toFixed(1))
       : 0;
@@ -7802,13 +7884,16 @@ async function handleAdminQuestionAnalytics(request, env, auth) {
               testId: mostMissed.testId,
               section: mostMissed.section,
               questionNumber: mostMissed.questionNumber,
-              wrongRate: mostMissed.wrongRate,
+              wrongRate: Number((100 - (mostMissed.observedAccuracy ?? 100)).toFixed(1)),
               attempts: mostMissed.attempts,
             }
           : null,
         averageWrongRate,
-        flagged: rows.filter((row) => row.flags.some((f) => !["insufficient-data", "genuine-difficulty"].includes(f))).length,
-        flagCounts: rows.reduce((acc, row) => { row.flags.forEach((f) => { acc[f] = (acc[f] || 0) + 1; }); return acc; }, {}),
+        flagged: rows.filter((row) => row.unresolvedConcerns > 0).length,
+        flagCounts: allRows.reduce((acc, row) => { row.flags.forEach((f) => { acc[f] = (acc[f] || 0) + 1; }); return acc; }, {}),
+        savedDiscrepancies: allRows.reduce((n, row) => n + row.storedMismatch, 0),
+        savedDiscrepancyQuestions: allRows.filter((row) => row.storedMismatch > 0).length,
+        keyStatusCounts: allRows.reduce((acc, row) => { acc[row.keyStatus] = (acc[row.keyStatus] || 0) + 1; return acc; }, {}),
       },
       flagInfo: QUESTION_ANALYTICS_FLAG_INFO,
       tests,
@@ -8186,13 +8271,22 @@ function formatBand(value) {
 }
 
 // The answer key a test uses, with any admin corrections made in Question analytics on top.
+// TRUE/FALSE vs YES/NO policy: "strict" (default, IELTS exam rules) or "lenient" (accept the counterpart
+// word too). Set with the TFNG_POLICY variable in wrangler.jsonc.
+let TFNG_POLICY = "strict";
+function setTfngPolicy(env) {
+  TFNG_POLICY = String(env?.TFNG_POLICY || "").trim().toLowerCase() === "lenient" ? "lenient" : "strict";
+}
+
 function buildObjectiveAnswerMap(testId, skill) {
   const base = buildBaseObjectiveAnswerMap(testId, skill);
   const fixes = getAnswerKeyFixesFor(testId, skill);
-  const keys = Object.keys(fixes);
-  if (!keys.length || !Object.keys(base).length) return base;
   const out = { ...base };
-  keys.forEach((q) => { if (Number(q) > 0) out[Number(q)] = fixes[q]; });
+  Object.keys(fixes).forEach((q) => { if (Number(q) > 0 && Object.keys(base).length) out[Number(q)] = fixes[q]; });
+  const types = QUESTION_TYPES?.[canonicalAnswerKeyTestId(testId)]?.[String(skill || "").toLowerCase()] || {};
+  Object.keys(out).forEach((q) => {
+    out[q] = resolveKeyForQuestion(out[q], { questionType: types[q] || "", tfPolicy: TFNG_POLICY });
+  });
   return out;
 }
 
@@ -8688,6 +8782,99 @@ async function handleAdminRecountObjectiveScores(request, env) {
     byTest[k][c.to > (c.from ?? -1) ? "up" : "down"] += 1;
   });
   return json(200, { ok: true, dryRun, backupKey, checked: work.length, unchanged, skippedNoAnswers, fetchedFromSheet, changedCount: changed.length, byTest, failedUpdates, changed: changed.slice(0, 600) });
+}
+
+// Practice sessions store their own per-question marks and total. Re-marks every saved practice review with
+// the current key and engine. Payload: { dryRun = true, testIds?: ["ielts12"], undoBackupKey? }.
+// Reports false negatives (saved wrong, correct now) and false positives (saved correct, wrong now).
+async function handleAdminRecountPracticeScores(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const table = getSubmissionRecoveryTableName();
+  if (payload?.undoBackupKey) {
+    const saved = await readJsonKv(env.STUDENT_REGISTRY, String(payload.undoBackupKey)).catch(() => null);
+    if (!saved || !Array.isArray(saved.backup)) return json(404, { ok: false, error: "Backup not found." });
+    let restored = 0; let failed = 0;
+    for (const item of saved.backup) {
+      const res = await supabaseServiceRequest(env, `/rest/v1/${table}`, { method: "PATCH", query: { submission_key: `eq.${item.submissionKey}` }, body: { summary: item.summary, final_payload: item.finalPayload }, headers: { Prefer: "return=minimal" } }).catch(() => ({ ok: false }));
+      if (res?.ok) restored += 1; else failed += 1;
+    }
+    return json(200, { ok: true, restored, failed });
+  }
+  const dryRun = payload?.dryRun !== false;
+  // Questions whose key is disputed keep their saved marks until an admin decides the key.
+  const skipDisputed = payload?.skipDisputed !== false;
+  let skippedDisputed = 0;
+  const onlyTests = Array.isArray(payload?.testIds) && payload.testIds.length ? new Set(payload.testIds.map((t) => normalizeCoverageTestId(t))) : null;
+  await hydrateAnswerKeyFixes(env, true).catch(() => null);
+  const res = await supabaseServiceRequest(env, `/rest/v1/${table}`, {
+    query: { select: "submission_key,submitted_at,student_full_name,exam_id,active_test_id,practice_section,summary,final_payload", attempt_kind: "eq.practice", order: "submitted_at.desc", limit: "5000" },
+  });
+  if (!res.ok || !Array.isArray(res.data)) return json(500, { ok: false, error: "Could not load practice results." });
+  const changed = [];
+  const backup = [];
+  const perQuestion = {};
+  let checked = 0; let falseNegatives = 0; let falsePositives = 0;
+  for (const row of res.data) {
+    const section = String(row?.practice_section || "").toLowerCase();
+    if (!["listening", "reading"].includes(section)) continue;
+    const testId = normalizeCoverageTestId(oneLine(row?.active_test_id || row?.exam_id || ""));
+    if (!testId || (onlyTests && !onlyTests.has(testId))) continue;
+    const review = Array.isArray(row?.summary?.review) ? row.summary.review : [];
+    if (!review.length) continue;
+    const map = buildObjectiveAnswerMap(testId, section);
+    if (!Object.keys(map).length) continue;
+    checked += 1;
+    const answers = {};
+    review.forEach((item) => { const q = Number(item?.q); if (q > 0) answers[q] = String(item?.student ?? ""); });
+    const aligned = alignGroupedObjectiveAnswerMap(map, answers);
+    let diff = 0;
+    const nextReview = review.map((item) => {
+      const q = Number(item?.q);
+      if (!(q > 0) || aligned[q] === undefined) return item;
+      if (skipDisputed && getKeyVerification(testId, section, q)?.status === "disputed") {
+        if (isObjectiveReviewItemCorrect(item) !== matchesObjectiveAnswer(item?.student ?? "", aligned[q])) skippedDisputed += 1;
+        return item;
+      }
+      const was = isObjectiveReviewItemCorrect(item);
+      const now = matchesObjectiveAnswer(item?.student ?? "", aligned[q]);
+      const key = String(aligned[q] || "").trim() || "—";
+      if (was !== now) {
+        diff += 1;
+        if (now) falseNegatives += 1; else falsePositives += 1;
+        const pq = `${testId} ${section} ${q}`;
+        perQuestion[pq] = perQuestion[pq] || { falseNegatives: 0, falsePositives: 0, oldKeys: {}, key };
+        perQuestion[pq][now ? "falseNegatives" : "falsePositives"] += 1;
+        perQuestion[pq].oldKeys[String(item?.correct ?? "")] = (perQuestion[pq].oldKeys[String(item?.correct ?? "")] || 0) + 1;
+      }
+      return { ...item, correct: key, mark: now };
+    });
+    if (!diff) continue;
+    const before = Number(row?.summary?.totalCorrect || 0);
+    const after = nextReview.filter((item) => item.mark === true).length;
+    changed.push({ student: oneLine(row.student_full_name || ""), test: testId, section, submittedAt: oneLine(row.submitted_at || ""), from: before, to: after, outOf: nextReview.length, questionsChanged: diff });
+    backup.push({ submissionKey: row.submission_key, summary: row.summary, finalPayload: row.final_payload });
+    if (!dryRun) {
+      const summary = { ...(row.summary || {}), review: nextReview, totalCorrect: after, totalQuestions: nextReview.length };
+      const finalPayload = row.final_payload && typeof row.final_payload === "object" ? { ...row.final_payload, review: nextReview, totalCorrect: after, totalQuestions: nextReview.length } : row.final_payload;
+      row._patch = { summary, final_payload: finalPayload };
+    }
+  }
+  let backupKey = "";
+  let failedUpdates = 0;
+  if (!dryRun && backup.length) {
+    backupKey = `practice_recount_backup:${new Date().toISOString()}`;
+    await env.STUDENT_REGISTRY.put(backupKey, JSON.stringify({ createdAt: new Date().toISOString(), changes: changed, backup }));
+    const log = (await readJsonKv(env.STUDENT_REGISTRY, "recount_log").catch(() => null)) || [];
+    log.unshift({ backupKey, at: new Date().toISOString(), practiceChanged: changed.length });
+    await env.STUDENT_REGISTRY.put("recount_log", JSON.stringify(log.slice(0, 50)));
+    for (const row of res.data) {
+      if (!row._patch) continue;
+      const r = await supabaseServiceRequest(env, `/rest/v1/${table}`, { method: "PATCH", query: { submission_key: `eq.${row.submission_key}` }, body: row._patch, headers: { Prefer: "return=minimal" } }).catch(() => ({ ok: false }));
+      if (!r?.ok) failedUpdates += 1;
+    }
+    ADMIN_RESULTS_SUMMARY_CACHE.clear();
+  }
+  return json(200, { ok: true, dryRun, backupKey, checked, changedCount: changed.length, falseNegatives, falsePositives, skippedDisputed, failedUpdates, perQuestion, changed: changed.slice(0, 600) });
 }
 
 // Puts back every total a recount run changed, from the backup that run saved. Payload: { backupKey }.

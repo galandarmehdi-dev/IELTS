@@ -8557,6 +8557,26 @@ async function handleAdminRecountObjectiveScores(request, env) {
     (Array.isArray(payloadRes.data) ? payloadRes.data : []).forEach((r) => payloadById.set(String(r.id), parseFinalPayloadForAnalytics(r.final_payload)));
   }
 
+  // Results whose answers exist only in the sheet: fetch them up front, 6 at a time (each call takes seconds).
+  const hasDbAnswers = (row, skill) => {
+    const fp = payloadById.get(String(row.id)) || {};
+    const ans = extractObjectiveAnswersForSection(fp, skill);
+    if (Object.values(ans).some((v) => String(v ?? "").trim())) return true;
+    return extractObjectiveReviewForSection(fp, skill).some((item) => String(item?.student ?? item?.studentAnswer ?? "").trim());
+  };
+  if (useSheet) {
+    const needSheet = [...new Map(work.filter(({ row, skill }) => !hasDbAnswers(row, skill)).map((w) => [String(w.row.id), w.row])).values()];
+    let cursor = 0;
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      while (cursor < needSheet.length) {
+        const row = needSheet[cursor++];
+        const lookup = { submittedAt: oneLine(row.submitted_at || ""), studentFullName: oneLine(row.student_full_name || ""), examId: oneLine(row.exam_id || ""), reason: oneLine(row.reason || "") };
+        sheetDetailById.set(String(row.id), await fetchRawObjectiveDetail(request, env, lookup).catch(() => null));
+        fetchedFromSheet += 1;
+      }
+    }));
+  }
+
   const metaCache = new Map();
   const pending = new Map();
   const changed = [];
@@ -8605,10 +8625,17 @@ async function handleAdminRecountObjectiveScores(request, env) {
     if (stored === total && rowTotal === total) { unchanged += 1; continue; }
     const totalQuestions = Number(row?.[`${skill}_total_questions`]) || 40;
     const band = objectiveBandFromRaw(skill, total, totalQuestions);
+    // explain: answers counted correct that are not a letter-for-letter copy of a key alternative.
+    const forgiven = payload?.explain ? Object.keys(map).flatMap((q) => {
+      const student = String(answers?.[q] ?? answers?.[String(q)] ?? "");
+      if (Object.prototype.hasOwnProperty.call(manual, String(q)) || !sheetMark_isAnswerCorrect_(student, aligned[q])) return [];
+      const literal = String(aligned[q] || "").split("/").map((x) => x.trim());
+      return literal.includes(student.trim()) ? [] : [`${q}:${JSON.stringify(student)}=${JSON.stringify(aligned[q])}`];
+    }) : undefined;
     const entry = pending.get(String(row.id)) || { row, lookup, organizationId, patch: {} };
     entry.patch[skill] = { total, band };
     pending.set(String(row.id), entry);
-    changed.push({ student: lookup.studentFullName, test: testId, skill, from: Number.isFinite(stored) ? stored : null, to: total, band, submittedAt: lookup.submittedAt, examId: lookup.examId, reason: lookup.reason, organizationId });
+    changed.push({ student: lookup.studentFullName, test: testId, skill, from: Number.isFinite(stored) ? stored : null, to: total, band, submittedAt: lookup.submittedAt, examId: lookup.examId, reason: lookup.reason, organizationId, forgiven });
   }
 
   let failedUpdates = 0;

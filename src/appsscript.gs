@@ -2762,7 +2762,10 @@ function reGradeUngradedSubmissions() {
  */
 function reGradeLastWeek() {
   const DAYS = 7;
-  const TIME_BUDGET_MS = 270 * 1000;
+  // Apps Script stops a run at 6 minutes. One essay takes 1.5–3 minutes (two calls when it is flagged
+  // for a second opinion), so only start an essay when the longest one so far would still finish in time.
+  const RUN_LIMIT_MS = 330 * 1000;
+  let longestEssayMs = 200 * 1000;
   const started = Date.now();
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sh = ss.getSheetByName(SHEET_NAME);
@@ -2775,10 +2778,13 @@ function reGradeLastWeek() {
     if (Number.isFinite(when) && when < cutoff) break; // rows are in submission order
     if (!hasRealWritingContent_(row.writing_json || "")) continue;
     if (isSubmissionAlreadyGraded_(ss, rowNumber)) { alreadyGraded++; continue; }
-    if (Date.now() - started > TIME_BUDGET_MS) { remaining++; continue; }
+    const elapsed = Date.now() - started;
+    if (graded + failed > 0 && elapsed + longestEssayMs * 1.1 > RUN_LIMIT_MS) { remaining++; continue; }
+    const essayStarted = Date.now();
     try {
       Logger.log("Grading row " + rowNumber + ": " + (row.studentFullName || "unknown"));
       const res = tryGradeSubmissionNow_(rowNumber);
+      longestEssayMs = graded + failed === 0 ? Date.now() - essayStarted : Math.max(longestEssayMs, Date.now() - essayStarted);
       if (res && String(res.finalWritingBand || "").trim()) graded++;
       else { failed++; Logger.log("  no band yet (see System Logs): " + JSON.stringify(res)); }
     } catch (err) {

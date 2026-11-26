@@ -266,7 +266,9 @@ function extractBlanks(html, range) {
 const HEADER_RE = /^\s*(?:(?:part|section)\s*(\d)\s*[:.\-]?\s*)?questions?\s+(\d{1,2})(?:\s*(?:[-\u2013\u2014]|to|and|&)\s*(\d{1,2}))?/i;
 const PART_RE = /^\s*(?:part|section)\s*(\d)\b/i;
 const OPTION_RE = /^\s*(?:\u27E6CK\u27E7\s*)?([A-O])(?:\s*[.)]\s*|\s+)(\S.*)$/;
-const NUMBERED_RE = /^\s*(?:\u27E6CK\u27E7\s*)?(\d{1,2})\s*[.)]?\s+(\S.*)$/;
+// "28. text", "28) text", "28 text" and also "28.text" with no space (reading test 313 dropped Q28-29 that way);
+// a letter or quote must follow a bare "28." so decimals such as "1.5 million" are not read as question 1.
+const NUMBERED_RE = /^\s*(?:\u27E6CK\u27E7\s*)?(\d{1,2})(?:\s*[.)]?\s+|\s*[.)](?=[A-Za-z"'\u2018\u201C(]))(\S.*)$/;
 
 function letterRange(text) {
   const m = String(text).match(/\b([A-O])\s*[-\u2013\u2014]\s*([A-Ol])\b/);
@@ -316,7 +318,7 @@ function optionRuns(lines) {
 function stripLead(html) {
   return html
     .replace(new RegExp(CK, "g"), "")
-    .replace(/^(\s*<(strong|em|u)>)?\s*(\d{1,2}|[A-O])\s*[.)]?(<\/\2>)?\s+/, "")
+    .replace(/^(\s*<(strong|em|u)>)?\s*(\d{1,2}|[A-O])(?:\s*[.)]?(<\/\2>)?\s+|[.)](<\/\2>)?(?=[A-Za-z"'\u2018\u201C(]))/, "")
     .trim();
 }
 

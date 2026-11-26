@@ -216,3 +216,12 @@ test("a passage's title and short lead-in paragraph after the previous questions
   assert.equal(groupAt(r, 23).items.length, 4);
   assert.deepEqual(r.parts.map((p) => p.groups.map((g) => g.range.join("-")).join(",")), ["1-7,8-13", "14-17,18-22,23-26", "27-31,32-36,37-40"]);
 });
+
+test("question lines written without a space after the number ('28.an …') are kept (reading test 313)", () => {
+  const r = load("ielts-reading-test-313.html");
+  const items = groupAt(r, 27).items;
+  assert.deepEqual(items.map((i) => i.q), [27, 28, 29, 30, 31]);
+  assert.match(items.find((i) => i.q === 28).html, /^an optimistic suggestion about the possible positive developments/);
+  assert.match(items.find((i) => i.q === 29).html, /^a description of how the methods used by livestock guard dogs/);
+  assert.equal(r.issues.filter((i) => i.code === "question_not_found").length, 0);
+});

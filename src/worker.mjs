@@ -3931,15 +3931,26 @@ function scoreObjectiveSectionFromFinalPayload(finalPayload, section) {
     return { total: null, band: null, totalQuestions: null };
   }
   const sectionPayload = finalPayload?.[normalizedSection] || {};
-  const testId = normalizeCoverageTestId(
-    sectionPayload?.activeTestId ||
-    sectionPayload?.testId ||
-    finalPayload?.activeTestId ||
-    finalPayload?.examId ||
-    ""
-  );
+  // Imported exams store their own id ("imp-full-…") as the section test id. normalizeCoverageTestId
+  // turns that into "", which left the section unscored (Test 25 Reading, 26 Nov 2026). Keep imported
+  // ids as they are and fall back to the exam number (ielts-full-025 → ielts25).
+  const candidates = [
+    sectionPayload?.activeTestId,
+    sectionPayload?.testId,
+    finalPayload?.activeTestId,
+    finalPayload?.examId,
+  ]
+    .map((value) => oneLine(value || "").toLowerCase())
+    .filter(Boolean)
+    .map((value) => (isImportedTestId(value) ? value : normalizeCoverageTestId(value)))
+    .filter(Boolean);
+  let baseMap = {};
+  for (const candidate of candidates) {
+    baseMap = buildObjectiveAnswerMap(candidate, normalizedSection);
+    if (Object.keys(baseMap).length) break;
+  }
   const answers = getObjectiveAnswersFromFinalPayload(finalPayload, normalizedSection);
-  const answerMap = alignGroupedObjectiveAnswerMap(buildObjectiveAnswerMap(testId, normalizedSection), answers);
+  const answerMap = alignGroupedObjectiveAnswerMap(baseMap, answers);
   const questions = Object.keys(answerMap);
   if (!questions.length) return { total: null, band: null, totalQuestions: null };
 

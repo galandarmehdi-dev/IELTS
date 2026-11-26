@@ -16,3 +16,9 @@ Between the dry run and the apply the administrator manually marked Q24 correct 
 Kazim Shirinli (B), Farhad Sadiq (D) and Fatima Huseynzada (blank). Final Listening totals, including those manual marks:
 Zeynab 22, Kazim 26, Farhad 24, Fatima 34, Aydan Maharramova 34, Galandar Mehdiyev 1.
 Without the manual Q24 marks: Zeynab 21, Kazim 25, Farhad 23, Fatima 33.
+
+## Test 25 / "Test 203" (imp-full-full-exam-ielts-reading-test-312-be9ff084) Listening Q27–30 content
+The imported card had only the A–F box and four unlabelled dropdowns: the instruction and the show names
+(Ruy Blas, Man of La Mancha, The Tragedy of Jane Shore, The Sailors' Festival) were lost on import. Added them
+in the existing markup style (same as Q17–20); answer keys unchanged (F, E, B, D). Verified live via /api/test-content.
+No other unlabelled dropdowns in either imported exam.

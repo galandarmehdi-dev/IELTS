@@ -10,7 +10,122 @@
 
 export const QUESTION_REVISIONS_AT = "2026-11-25T16:46:30Z";
 
+// Test 5 Reading was replaced on 8 Apr 2026 (commit cc779ed): new headings lists, options and questions.
+// Attempts before the cut-over keep the keys they were marked with (the double keys accepted the old
+// heading number first, the new one second); later attempts use the corrected keys (content audit, 26 Nov 2026).
+export const TEST5_READING_REPLACED_AT = "2026-04-08T08:05:00Z";
+
 export const QUESTION_VERSIONS = {
+  ielts5: {
+    reading: {
+      1: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Flexible teaching within a national framework", "ii": "Professional respect in the wider community", "iii": "Early links between education and national ambition", "iv": "Practical support for pupils with difficulties", "v": "An overview of a high-performing system", "vi": "Selective entry into teacher education", "vii": "A tradition of strict school ranking", "viii": "Educational reform as economic strategy"}, key: "v / vi", historicalKey: "v / vi", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "vi" },
+      },
+      2: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Flexible teaching within a national framework", "ii": "Professional respect in the wider community", "iii": "Early links between education and national ambition", "iv": "Practical support for pupils with difficulties", "v": "An overview of a high-performing system", "vi": "Selective entry into teacher education", "vii": "A tradition of strict school ranking", "viii": "Educational reform as economic strategy"}, key: "viii / vii", historicalKey: "viii / vii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "vii" },
+      },
+      4: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Flexible teaching within a national framework", "ii": "Professional respect in the wider community", "iii": "Early links between education and national ambition", "iv": "Practical support for pupils with difficulties", "v": "An overview of a high-performing system", "vi": "Selective entry into teacher education", "vii": "A tradition of strict school ranking", "viii": "Educational reform as economic strategy"}, key: "vi / iv", historicalKey: "vi / iv", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "iv" },
+      },
+      5: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Flexible teaching within a national framework", "ii": "Professional respect in the wider community", "iii": "Early links between education and national ambition", "iv": "Practical support for pupils with difficulties", "v": "An overview of a high-performing system", "vi": "Selective entry into teacher education", "vii": "A tradition of strict school ranking", "viii": "Educational reform as economic strategy"}, key: "iv / viii", historicalKey: "iv / viii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "viii" },
+      },
+      14: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "ii / viii", historicalKey: "ii / viii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "viii" },
+      },
+      15: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "iv / iii", historicalKey: "iv / iii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "iii" },
+      },
+      16: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "vi / vii", historicalKey: "vi / vii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "vii" },
+      },
+      17: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "iii / iv", historicalKey: "iii / iv", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "i" },
+      },
+      18: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "vii / vi", historicalKey: "vii / vi", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "vi" },
+      },
+      19: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "viii / ix", historicalKey: "viii / ix", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "ix" },
+      },
+      20: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026 (new headings lists and questions). The old double key accepted the old heading number; for current attempts it wrongly credited it, and Q17 did not accept the correct heading.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Matching headings, list in use before 8 Apr 2026", options: {"i": "Commercial growth and concerns about authenticity", "ii": "A drink with growing global interest", "iii": "Why some people find production surprising", "iv": "The structure of kefir grains", "v": "Scientific doubts about all health claims", "vi": "What happens during fermentation", "vii": "How the final product is often described", "viii": "Research interest in possible benefits", "ix": "An ancient method no longer used"}, key: "i / ii", historicalKey: "i / ii", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Matching headings, current list", key: "ii" },
+      },
+      25: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026. Current question: products NOT mentioned as kefir replacements = C and E (B, buttermilk, is a stated substitute).",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        group: [25, 26],
+        v1: { text: "Which TWO statements are true of kefir? (version before 8 Apr 2026)", options: {"A": "Kefir is traditionally made with living grains.", "B": "All claimed health benefits of kefir have been scientifically proven.", "C": "Industrial production may reduce complexity.", "D": "Kefir has become more popular internationally.", "E": "Plant-based versions are now impossible to produce."}, key: "B / C", historicalKey: "B / C", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Which TWO products are NOT mentioned as things which kefir can replace?", key: "C / E" },
+      },
+      26: {
+        approvedBy: "site administrator",
+        reason: "Choose-TWO group with Q25.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "Second answer of Q25-26 (version before 8 Apr 2026)", options: {"A": "Kefir is traditionally made with living grains.", "B": "All claimed health benefits of kefir have been scientifically proven.", "C": "Industrial production may reduce complexity.", "D": "Kefir has become more popular internationally.", "E": "Plant-based versions are now impossible to produce."}, key: "E", historicalKey: "E", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Second answer of Q25-26", key: "C / E" },
+      },
+      32: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026. Current question: focused attention blocks associations → C only.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "The Swiffer case suggests innovation often succeeds when", key: "D / C", historicalKey: "D / C", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Mental connections are much harder to make", key: "C" },
+      },
+      33: {
+        approvedBy: "site administrator",
+        reason: "Test 5 Reading was replaced on 8 Apr 2026. Current question: companies give time out to help find answers → D only.",
+        revisedAt: TEST5_READING_REPLACED_AT,
+        v1: { text: "One criticism of disposable systems is that", key: "E / D", historicalKey: "E / D", historicalPolicy: "Marked as before the replacement." },
+        v2: { text: "Some companies require their employees to stop working", key: "D" },
+      },
+    },
+  },
   ielts11: {
     reading: {
       20: {

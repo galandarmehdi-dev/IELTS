@@ -5056,9 +5056,14 @@ function submittedAtKeyVariants(value) {
   return Array.from(new Set(out.filter(Boolean)));
 }
 
+function canonicalSubmittedAt(value) {
+  const raw = oneLine(value || "");
+  const t = Date.parse(raw);
+  return raw && Number.isFinite(t) ? new Date(t).toISOString() : raw;
+}
+
 function canonicalSubmissionLookup(lookup) {
-  const variants = submittedAtKeyVariants(lookup?.submittedAt);
-  return { ...lookup, submittedAt: variants[1] || variants[0] || "" };
+  return { ...lookup, submittedAt: canonicalSubmittedAt(lookup?.submittedAt) };
 }
 
 // One canonical home for admin corrections, independent of timestamp spelling and organization.

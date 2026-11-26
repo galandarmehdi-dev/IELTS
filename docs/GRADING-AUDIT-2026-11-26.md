@@ -22,3 +22,9 @@ The imported card had only the A–F box and four unlabelled dropdowns: the inst
 (Ruy Blas, Man of La Mancha, The Tragedy of Jane Shore, The Sailors' Festival) were lost on import. Added them
 in the existing markup style (same as Q17–20); answer keys unchanged (F, E, B, D). Verified live via /api/test-content.
 No other unlabelled dropdowns in either imported exam.
+
+## Test 25 Reading not scored on submission (Turan Jafarli)
+
+- Cause: imported exams save their own id (`imp-full-…`) as the section test id. The worker normalized it to an empty id, so Reading had no key and was saved blank. The other Test 25 students got Reading from the sheet; Turan's row never reached it.
+- Fix: commit 1f8c337 keeps imported ids and falls back to the exam number. Committed and pushed. **Not deployed yet**: Cloudflare authentication is failing for the account (dashboard included).
+- Score: with the administrator's approval, Turan Jafarli's Test 25 Reading was set to 25/40 (Band 6.0) from his saved answers. Backup `recount_backup:2026-11-26T15:54:26.149Z`. The other 15 Test 25 Reading results already matched.

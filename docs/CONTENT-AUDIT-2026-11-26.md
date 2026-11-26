@@ -58,3 +58,34 @@ Q25–26 C / E, Q32 C, Q33 D. Options: regrade everyone, or keep past credit for
 
 ### 4. Test 24 Reading Q28–29 for earlier takers
 Nobody could answer them until today. Same choice as Test 25 Listening Q27–30: credit them for all earlier attempts?
+
+## Applied (administrator: "fix all", 26 Nov 2026)
+
+- **Keys**: all choose-TWO groups in section 2 now share one key (built-in in `objectiveAnswerKeys.mjs`, imported via
+  importedExamUpdate); Test 5 Reading keys corrected as in section 3. Built-in changes pushed to the AnswerKey sheet
+  (39 cells) and pinned in `answerKeyVerification.mjs`.
+- **Test 5 Reading before 8 Apr 2026**: the dry run showed drops of 9–14 marks for attempts from 6 Apr. Test 5 Reading
+  was replaced on 8 Apr (commit cc779ed: new headings lists, options and questions); the double keys had been accepting
+  the old heading numbers. Attempts submitted before 2026-04-08T08:05Z (one attempt at 07:59 still used the old page)
+  keep the keys they were marked with, through `questionVersions.mjs` (TEST5_READING_REPLACED_AT); later attempts use
+  the corrected keys.
+- **Test 24 Reading Q28–29** credited to all 13 earlier attempts (admin corrections, +2 each; the four manual Listening
+  Q24 marks kept).
+- **Regrade** (per test, answers from database/sheet, 0 failed updates):
+
+| Test | Change |
+|---|---|
+| 4 Listening | 13 up (+1, stored "religion" fix) |
+| 4 Reading | 15 up (Q37–40 shared keys) |
+| 5 Listening | 12 up (Q35–40 shared keys) |
+| 5 Reading | 10 up, 17 down (attempts after 8 Apr: wrongly credited old heading numbers removed, Q17 i accepted, Q25–26/32/33) |
+| 7 Listening | 3 up |
+| 8 Reading | 5 up |
+| 20 Listening | Mehin A. 10 → 17 |
+| 21 Listening | Mishel M. 32 → 33 |
+| 24 Listening | 4 up (Q11–14 shared keys) |
+| 24 Reading | 13 × +2 (Q28–29 credited) |
+| 25 Reading | 7 up (Q20–23 shared keys) |
+
+Backups: `recount_backup:2026-11-26T17:45:28.626Z` … `17:46:36.089Z` (one per test) and the Test 24 Q28–29
+corrections in `answer_overrides:` records. Ali Hamidzada's Test 25 Listening stays at the key count (31).

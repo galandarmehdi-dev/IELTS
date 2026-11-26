@@ -1503,10 +1503,14 @@ const WRITING_MAX_TOKENS = 16000;
 
 /**
  * One Messages API call for a prepared request. Returns { ok, data, usage, error, retryable }.
- * The assessment comes back as JSON constrained by the request's schema (output_config.format).
+ * The assessment comes back as JSON matching the schema given in the message; it is validated, not trusted.
  */
 function callClaudeWritingOnce_(apiKey, model, req, imageBlock) {
-  const content = [{ type: "text", text: req.userText }];
+  // The schema is sent as text, not as output_config: the API rejects it as a strict grammar
+  // ("The compiled grammar is too large", 400 on every essay since 25 Nov 2026). The reply is still
+  // checked by WRITING_.validateWritingAssessment and retried if it does not fit.
+  const schemaText = "\n\nReturn ONLY one JSON object (no markdown fences, no text before or after it) that matches this JSON Schema exactly: every listed property present, no extra properties, enum values spelled exactly, integers for bands.\n" + JSON.stringify(req.schema);
+  const content = [{ type: "text", text: req.userText + schemaText }];
   if (imageBlock) content.push(imageBlock);
   let response;
   try {
@@ -1521,7 +1525,6 @@ function callClaudeWritingOnce_(apiKey, model, req, imageBlock) {
         // submissions arrive close together).
         system: [{ type: "text", text: req.system, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: content }],
-        output_config: { format: { type: "json_schema", schema: req.schema } },
       }),
       muteHttpExceptions: true,
     });
@@ -1540,7 +1543,10 @@ function callClaudeWritingOnce_(apiKey, model, req, imageBlock) {
   if (parsed.stop_reason === "refusal") return { ok: false, error: "Model declined the request", retryable: false, usage: usage };
   const textOut = (parsed.content || []).filter(function (b) { return b && b.type === "text"; }).map(function (b) { return b.text; }).join("");
   let data;
-  try { data = JSON.parse(textOut); } catch (e) { return { ok: false, error: "Assessment JSON did not parse: " + String(e).slice(0, 200), retryable: true, usage: usage }; }
+  const jsonStart = textOut.indexOf("{");
+  const jsonEnd = textOut.lastIndexOf("}");
+  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart ? textOut.slice(jsonStart, jsonEnd + 1) : textOut;
+  try { data = JSON.parse(jsonText); } catch (e) { return { ok: false, error: "Assessment JSON did not parse: " + String(e).slice(0, 200), retryable: true, usage: usage }; }
   return { ok: true, data: data, usage: usage };
 }
 

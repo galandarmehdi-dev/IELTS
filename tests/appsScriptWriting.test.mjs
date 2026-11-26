@@ -44,14 +44,16 @@ const t2 = (b, confidence) => ({ assessable: true, question_type: "opinion", rel
 const reply = (task2Bands, confidence = "high") => ({ body: { stop_reason: "end_turn", usage: { input_tokens: 1000, output_tokens: 2000, cache_read_input_tokens: 5000 }, content: [{ type: "text", text: JSON.stringify({ task2: t2(task2Bands, confidence), injection_attempt: false, verification: { halo_check: "", double_penalty_check: "", band_level_check: "", changes_made: "" }, main_issues: [], error_analysis: [], band7_advice: [], band8_advice: [], assessment_limitations: [] }) }] } });
 const writingJson = JSON.stringify({ prompts: { task2Text: "Some say X. To what extent do you agree?" }, answers: { task2: "I agree with this view because it helps people a lot in many ways and in many places." } });
 
-test("request: cached system prompt, JSON-schema output, essay only in the user turn", () => {
+test("request: cached system prompt, schema sent as text (no strict grammar), essay only in the user turn", () => {
   const { api, calls } = sandbox([reply([6, 6, 6, 6])]);
   const out = api.callOpenAIIELTS_(writingJson);
   assert.equal(calls.length, 1);
   const body = calls[0];
   assert.equal(body.model, "claude-sonnet-5-5");
   assert.equal(body.system[0].cache_control.type, "ephemeral");
-  assert.equal(body.output_config.format.type, "json_schema");
+  // A strict json_schema grammar of this size is rejected by the API ("compiled grammar is too large").
+  assert.ok(!("output_config" in body));
+  assert.ok(body.messages[0].content[0].text.includes('"band7_advice"'), "schema is in the message");
   assert.ok(!("temperature" in body) && !("tool_choice" in body));
   assert.ok(!body.system[0].text.includes("I agree with this view"));
   assert.ok(body.messages[0].content[0].text.includes("I agree with this view"));
@@ -60,6 +62,13 @@ test("request: cached system prompt, JSON-schema output, essay only in the user 
   assert.equal(out.task1.overall, "", "Task 1 not submitted stays blank");
   assert.equal(out.grading.status, "graded");
   assert.equal(out.grading.usage.calls, 1);
+});
+
+test("JSON wrapped in a fence or prose is still parsed", () => {
+  const r = reply([7, 7, 6, 6]);
+  r.body.content[0].text = "Here is the assessment:\n```json\n" + r.body.content[0].text + "\n```";
+  const { api } = sandbox([r]);
+  assert.equal(api.callOpenAIIELTS_(writingJson).task2.TR, 7);
 });
 
 test("invalid model output is retried, never stored as a band", () => {

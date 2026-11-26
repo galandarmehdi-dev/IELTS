@@ -51,8 +51,11 @@ penalties, band level, quotes, feedback) that must fix problems, not rubber-stam
 guide covering Bands 0–9 for TA (Academic and GT), TR, CC, LR and GRA is appended (own wording; not the
 official text).
 
-**Structured output**: JSON outputs (`output_config.format`, schema built per request with only the
-submitted tasks; every object closed, every field required). Evidence and adjacent-band fields precede the
+**Structured output**: the JSON Schema (built per request with only the submitted tasks; every object
+closed, every field required) is sent as text in the user message, and every reply is checked by
+`validateWritingAssessment` and retried if it does not fit. It is not sent as `output_config.format`: the API
+rejects a strict grammar this large ("The compiled grammar is too large", 400), which failed every essay on
+26 Nov 2026. Evidence and adjacent-band fields precede the
 band in the schema.
 
 **Validation** (`validateWritingAssessment`): missing task/criterion, non-integer or out-of-range bands and

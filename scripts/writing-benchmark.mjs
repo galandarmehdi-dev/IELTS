@@ -60,11 +60,12 @@ async function gradeNew(c) {
   const { json, ms } = await callApi({
     model, max_tokens: 16000,
     system: [{ type: "text", text: req.system, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: [{ type: "text", text: req.userText }] }],
-    output_config: { format: { type: "json_schema", schema: req.schema } },
+    // Same as the Apps Script: the schema goes in the message (a strict grammar this size is rejected).
+    messages: [{ role: "user", content: [{ type: "text", text: req.userText + "\n\nReturn ONLY one JSON object (no markdown fences, no text before or after it) that matches this JSON Schema exactly: every listed property present, no extra properties, enum values spelled exactly, integers for bands.\n" + JSON.stringify(req.schema) }] }],
   });
   if (json.stop_reason !== "end_turn") return { ok: false, error: `stop_reason ${json.stop_reason}`, usage: json.usage, ms };
-  const data = JSON.parse(json.content.filter((b) => b.type === "text").map((b) => b.text).join(""));
+  const text = json.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  const data = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
   const v = validateWritingAssessment(data, req.meta);
   if (!v.ok) return { ok: false, error: v.fatal.join("; "), usage: json.usage, ms };
   const bands = computeWritingBands(v.result.tasks);

@@ -1889,7 +1889,10 @@ async function handleAdminApi(request, env, ctx = null) {
       ok: true,
       graded: resultData.graded === true,
       result: mergedResult,
-      objective: objectiveResult,
+      // The student sees the same marks as the admin: answer-key fixes and the admin's manual corrections.
+      objective: objectiveResult
+        ? applyObjectiveAnswerOverrides(applyAnswerKeyFixesToDetail(objectiveResult, submissionLookup.examId), await readObjectiveAnswerOverrides(env, submissionLookup).catch(() => null))
+        : null,
     });
   }
 
@@ -5032,19 +5035,89 @@ async function handleAdminMarkSubmissionReviewed(request, env, auth) {
 // Overrides live in the submission's score meta (KV) as { listening: { "12": true }, reading: { ... } }.
 // Corrections are written to both the site-scoped key and the plain key (see writeObjectiveScoreMetaEverywhere),
 // so every reader finds them whether or not it knows the organization.
-async function readObjectiveAnswerOverrides(env, lookup, organizationId = "") {
-  if (!env?.STUDENT_REGISTRY) return null;
-  for (const key of buildSubmissionLookupKeys(lookup, organizationId)) {
-    const record = await readJsonKv(env.STUDENT_REGISTRY, `score:${key}`).catch(() => null);
-    if (record?.answerOverrides && typeof record.answerOverrides === "object") return record.answerOverrides;
+// The same submission time reaches the worker in two spellings: the Apps Script sheet sends
+// "2026-11-24T11:17:13.446Z", Supabase sends "2026-11-24T11:17:13.446+00:00" (and trims trailing zeros:
+// "…06.34+00:00"). Score-meta keys were built from whichever spelling the caller had, so a correction
+// saved from one view was invisible to readers holding the other spelling (the admin page after a
+// reload, the student page, the recounts).
+function submittedAtKeyVariants(value) {
+  const raw = oneLine(value || "");
+  const out = [raw];
+  const t = Date.parse(raw);
+  if (raw && Number.isFinite(t)) {
+    const iso = new Date(t).toISOString(); // 2026-11-24T11:17:13.440Z
+    out.push(iso);
+    const [, head, frac] = iso.match(/^(.*T\d\d:\d\d:\d\d)\.(\d{3})Z$/) || [];
+    if (head) {
+      const trimmed = frac.replace(/0+$/, "");
+      out.push(`${head}${trimmed ? "." + trimmed : ""}+00:00`, `${head}.${frac}+00:00`);
+    }
   }
-  return null;
+  return Array.from(new Set(out.filter(Boolean)));
 }
 
+function canonicalSubmissionLookup(lookup) {
+  const variants = submittedAtKeyVariants(lookup?.submittedAt);
+  return { ...lookup, submittedAt: variants[1] || variants[0] || "" };
+}
+
+// One canonical home for admin corrections, independent of timestamp spelling and organization.
+function buildAnswerOverridesKey(lookup) {
+  const base = buildSubmissionMetaKey(canonicalSubmissionLookup(lookup));
+  return base ? `answer_overrides:${base}` : "";
+}
+
+function legacyScoreMetaKeys(lookup, organizationId = "") {
+  const keys = [];
+  submittedAtKeyVariants(lookup?.submittedAt).forEach((submittedAt) => {
+    buildSubmissionLookupKeys({ ...lookup, submittedAt }, organizationId).forEach((key) => keys.push(`score:${key}`));
+  });
+  return Array.from(new Set(keys));
+}
+
+async function readObjectiveAnswerOverrides(env, lookup, organizationId = "") {
+  if (!env?.STUDENT_REGISTRY) return null;
+  const canonicalKey = buildAnswerOverridesKey(lookup);
+  if (canonicalKey) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, canonicalKey).catch(() => null);
+    if (record?.overrides && typeof record.overrides === "object") return record.overrides;
+  }
+  // Corrections saved before the canonical key existed: newest record under any spelling wins.
+  let best = null;
+  for (const key of legacyScoreMetaKeys(lookup, organizationId)) {
+    const record = await readJsonKv(env.STUDENT_REGISTRY, key).catch(() => null);
+    if (!record?.answerOverrides || typeof record.answerOverrides !== "object") continue;
+    if (!best || String(record.updatedAt || "") > String(best.updatedAt || "")) best = record;
+  }
+  return best ? best.answerOverrides : null;
+}
+
+async function writeObjectiveAnswerOverrides(env, lookup, overrides, actor = "") {
+  const key = buildAnswerOverridesKey(lookup);
+  if (!env?.STUDENT_REGISTRY || !key) return;
+  await writeJsonKv(env.STUDENT_REGISTRY, key, { overrides, updatedAt: new Date().toISOString(), updatedBy: actor || undefined });
+}
+
+// Writes the score patch under the caller's spelling (plain + organization) and under every other
+// spelling that already has a record, so no reader keeps a stale total.
 async function writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, patch) {
-  const plain = { ...lookup, organizationId: "" };
-  await writeSubmissionScoreMeta(env, plain, patch);
-  if (organizationId) await writeSubmissionScoreMeta(env, { ...lookup, organizationId }, patch);
+  const targets = [{ ...lookup, organizationId: "" }];
+  if (organizationId) targets.push({ ...lookup, organizationId });
+  for (const submittedAt of submittedAtKeyVariants(lookup?.submittedAt)) {
+    if (submittedAt === lookup.submittedAt) continue;
+    for (const org of [organizationId, ""]) {
+      const row = { ...lookup, submittedAt, organizationId: org };
+      const key = buildSubmissionScoreKey(row);
+      if (key && (await readJsonKv(env.STUDENT_REGISTRY, key).catch(() => null))) targets.push(row);
+    }
+  }
+  const seen = new Set();
+  for (const row of targets) {
+    const key = buildSubmissionScoreKey(row);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    await writeSubmissionScoreMeta(env, row, patch);
+  }
 }
 
 function sanitizeObjectiveOverrides(value) {
@@ -5137,6 +5210,7 @@ async function handleAdminObjectiveAnswerOverride(request, env, auth) {
   const band = objectiveBandFromRaw(skill, total, (adjusted[skill] || []).length);
   const skillPatch = skill === "listening" ? { listeningTotal: total, listeningBand: band } : { readingTotal: total, readingBand: band };
 
+  await writeObjectiveAnswerOverrides(env, lookup, overrides, normalizeEmail(auth?.user?.email || ""));
   await writeObjectiveScoreMetaEverywhere(env, lookup, organizationId, { answerOverrides: overrides, ...skillPatch });
 
   const examAttemptQuery = {
@@ -8662,7 +8736,8 @@ async function rescoreAttemptsForAnswerKeyFix(env, { testId, skill, q, previous,
       reason: oneLine(row.reason || ""),
     };
     const meta = await readSubmissionScoreMeta(env, { ...lookup, organizationId }).catch(() => ({}));
-    if (meta?.answerOverrides?.[skill] && Object.prototype.hasOwnProperty.call(meta.answerOverrides[skill], String(q))) {
+    const manualOverrides = await readObjectiveAnswerOverrides(env, lookup, organizationId).catch(() => null);
+    if (manualOverrides?.[skill] && Object.prototype.hasOwnProperty.call(manualOverrides[skill], String(q))) {
       skippedManual += 1; // an admin already decided this student's mark by hand
       continue;
     }
@@ -8785,6 +8860,7 @@ async function handleAdminRecountObjectiveScores(request, env) {
   }
 
   const metaCache = new Map();
+  const overrideCache = new Map();
   const pending = new Map();
   const changed = [];
   let skippedNoAnswers = 0;
@@ -8817,7 +8893,8 @@ async function handleAdminRecountObjectiveScores(request, env) {
     if (!Object.values(answers).some((v) => String(v ?? "").trim())) { skippedNoAnswers += 1; continue; }
     if (!metaCache.has(String(row.id))) metaCache.set(String(row.id), await readSubmissionScoreMeta(env, { ...lookup, organizationId }).catch(() => ({})));
     const meta = metaCache.get(String(row.id)) || {};
-    const manual = meta?.answerOverrides?.[skill] || {};
+    if (!overrideCache.has(String(row.id))) overrideCache.set(String(row.id), await readObjectiveAnswerOverrides(env, lookup, organizationId).catch(() => null));
+    const manual = overrideCache.get(String(row.id))?.[skill] || {};
     const aligned = alignGroupedObjectiveAnswerMap(map, answers);
     let total = 0;
     Object.keys(map).forEach((q) => {

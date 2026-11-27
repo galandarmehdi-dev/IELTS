@@ -4575,6 +4575,18 @@ function readObjectiveResultsTable_() {
  * objective row by submission key, enriches with task bands + word counts,
  * and pushes a single upsert to Supabase.
  */
+// The Worker owns Listening/Reading scores: it marks them on submission with the same engine and applies
+// admin answer corrections, question versions and approved key fixes, none of which the sheet knows about.
+// Syncing the sheet's totals after a writing grade reverted those corrections (Test 25, 26 Nov 2026), so the
+// per-submission syncs send writing data only and leave the objective columns untouched in Supabase.
+function withoutObjectiveScores_(payload) {
+  delete payload.listening_total;
+  delete payload.listening_band;
+  delete payload.reading_total;
+  delete payload.reading_band;
+  return payload;
+}
+
 function syncSubmissionToSupabase_(rowNumber) {
   const cfg = getSupabaseConfig_();
   if (!cfg.url || !cfg.key)
@@ -4629,7 +4641,7 @@ function syncSubmissionToSupabase_(rowNumber) {
   payload.task1_words = t1Words > 0 ? t1Words : 0;
   payload.task2_words = t2Words > 0 ? t2Words : 0;
 
-  return postSupabaseUpsertBatch_(cfg, [payload]);
+  return postSupabaseUpsertBatch_(cfg, [withoutObjectiveScores_(payload)]);
 }
 
 /**
@@ -4724,7 +4736,7 @@ function resyncAllSubmissionsToSupabase() {
         payload.task1_words = t1Words > 0 ? t1Words : 0;
         payload.task2_words = t2Words > 0 ? t2Words : 0;
 
-        batch.push(payload);
+        batch.push(withoutObjectiveScores_(payload));
       } catch (rowErr) {
         logSystem_("resyncAll", "Row error", { row: r, error: String(rowErr) });
       }

@@ -1501,6 +1501,12 @@ async function handleAdminApi(request, env, ctx = null) {
     return handleAdminResyncSubmission(request, env, auth);
   }
 
+  if (request.method === "POST" && action === "resendSubmissionToSheet") {
+    const auth = await authenticateAdmin(request, env);
+    if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
+    return handleAdminResendSubmissionToSheet(request, env, auth);
+  }
+
   if (request.method === "POST" && action === "retrySubmissionProcessing") {
     const auth = await authenticateAdmin(request, env);
     if (!auth.ok) return json(auth.status, { ok: false, error: auth.error });
@@ -4921,6 +4927,39 @@ function buildSyntheticSubmissionAuthFromInbox(row, adminAuth) {
       user_metadata: { name: oneLine(row?.student_name || "") },
     },
   };
+}
+
+// Sends a stored submission to the Apps Script sheet again, without touching Supabase. For a submission
+// whose sheet write never finished (no answer review, no writing grade). Refuses if the sheet already has
+// the row (by submittedAt + name), so it cannot create a duplicate.
+async function handleAdminResendSubmissionToSheet(request, env, auth) {
+  const payload = await request.json().catch(() => null);
+  const submissionKey = oneLine(payload?.submissionKey || "");
+  if (!submissionKey) return json(400, { ok: false, error: "Missing submission key." });
+  const row = await getSubmissionRecoveryRow(env, submissionKey);
+  if (!row) return json(404, { ok: false, error: "Submission recovery row was not found." });
+  if (!canActorAccessOrganization(auth, row.organization_id || "")) {
+    return json(403, { ok: false, error: "This submission does not belong to the current tenant." });
+  }
+  const finalPayload = row.final_payload && typeof row.final_payload === "object" ? row.final_payload : null;
+  if (!finalPayload) return json(400, { ok: false, error: "No final payload is stored for this submission." });
+  const lookup = {
+    submittedAt: oneLine(row.submitted_at || finalPayload.submittedAt || ""),
+    studentFullName: oneLine(row.student_full_name || finalPayload.studentFullName || ""),
+    examId: oneLine(row.exam_id || finalPayload.examId || ""),
+    reason: oneLine(row.reason || finalPayload.reason || ""),
+  };
+  if (payload?.force !== true) {
+    const existing = await fetchRawObjectiveDetail(request, env, lookup).catch(() => null);
+    if (existing) return json(409, { ok: false, error: "The sheet already has this submission." });
+  }
+  const result = await writeFinalSubmissionToAppsScriptBackup(env, request, finalPayload);
+  await updateFallbackProcessingSummary(env, row, result.ok
+    ? { backupStatus: "written", backupLastError: "", last_backup_at: new Date().toISOString() }
+    : { backupStatus: "failed", backupLastError: result.error || "", last_backup_at: new Date().toISOString() }).catch(() => null);
+  if (!result.ok) return json(502, { ok: false, error: result.error || "Apps Script did not accept the submission." });
+  try { ADMIN_RESULTS_SUMMARY_CACHE.clear(); } catch (e) {}
+  return json(200, { ok: true, message: "Sent to the sheet.", appsScript: result.data || null });
 }
 
 async function handleAdminRetrySubmissionProcessing(request, env, auth) {

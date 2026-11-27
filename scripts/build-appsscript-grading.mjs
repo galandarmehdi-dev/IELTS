@@ -61,12 +61,16 @@ function removeFunction(text, name) {
 }
 
 // The Writing assessment module (prompt, schema, validator, band calculation) as WRITING_.
-const W_START = "// >>> WRITING ASSESSMENT (generated from src/writingAssessment.mjs by scripts/build-appsscript-grading.mjs; do not edit here)";
+const W_START = "// >>> WRITING ASSESSMENT (generated from src/writingTask1Facts.mjs + src/writingAssessment.mjs by scripts/build-appsscript-grading.mjs; do not edit here)";
 const W_END = "// <<< WRITING ASSESSMENT";
+// src/writingTask1Facts.mjs (Task 1 reference data) is placed first, inside the same closure; the module's
+// import line is dropped.
 export function buildWritingBlock() {
-  const source = readFileSync(path.join(root, "src/writingAssessment.mjs"), "utf8");
+  const facts = readFileSync(path.join(root, "src/writingTask1Facts.mjs"), "utf8");
+  const source = readFileSync(path.join(root, "src/writingAssessment.mjs"), "utf8").replace(/^import [^\n]*\n/gm, "");
   const exported = [...source.matchAll(/^export (?:function|const) ([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
-  return [W_START, "var WRITING_ = (function () {", source.replace(/^export /gm, "").trim(), `return { ${exported.join(", ")} };`, "})();", W_END].join("\n");
+  const body = [facts.replace(/^export /gm, "").trim(), source.replace(/^export /gm, "").trim()].join("\n\n");
+  return [W_START, "var WRITING_ = (function () {", body, `return { ${exported.join(", ")} };`, "})();", W_END].join("\n");
 }
 
 function replaceBlock(text, start, end, block) {

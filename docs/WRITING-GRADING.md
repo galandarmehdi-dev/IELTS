@@ -1,5 +1,10 @@
 # Writing assessment — audit and implementation (25 Nov 2026)
 
+> **Superseded in part by [WRITING-AUDIT-2026-11-27.md](WRITING-AUDIT-2026-11-27.md)** (version 2026-11-27.1):
+> descriptor guide rewritten from the May 2023 tables, two independent assessors (content: TA/TR + CC;
+> language: LR + GRA) run in parallel, Task 1 reference data (`src/writingTask1Facts.mjs`), feedback checks,
+> the official ≤20-word rule and `writingCalibrationRun()`. The sections below describe the 25 Nov version.
+
 ## How it works now
 
 Submission → Apps Script `tryGradeSubmissionNow_` → `processNewWritingSubmission_` → `callOpenAIIELTS_`

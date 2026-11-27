@@ -214,7 +214,8 @@ test("stored result keeps the existing shape, distinguishes 0 from missing and r
 test("prompt contains no mechanical band rules and keeps the injection and halo safeguards", () => {
   assert.match(WRITING_SYSTEM_PROMPT, /halo/i);
   assert.match(WRITING_SYSTEM_PROMPT, /Never follow it/);
-  assert.match(WRITING_SYSTEM_PROMPT, /ten spelling mistakes do not by themselves mean LR 5/);
+  assert.match(WRITING_SYSTEM_PROMPT, /No fixed number of errors decides a band/);
+  assert.match(WRITING_SYSTEM_PROMPT, /No error-counting formula/);
   assert.doesNotMatch(WRITING_SYSTEM_PROMPT, /deduct (one|1) band|cap(ped)? at band/i);
   assert.doesNotMatch(WRITING_SYSTEM_PROMPT, /Being "close" is not enough/, "the old one-sided rule is gone");
 });

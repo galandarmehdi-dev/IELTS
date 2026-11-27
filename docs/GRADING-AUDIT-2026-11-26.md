@@ -52,3 +52,10 @@ the sheet, so his correction was written to KV and applied by recount (backup `r
 | Ali Hamidzada | 32 → 31 (Q27–30 already right; stored score was one above the key count) |
 | Sevinc Sultanova, Nurlana Jabiyeva | 21, 25 unchanged: already credited +4 earlier in the day |
 | Telman Mayilli, Suad Hasanzada | unchanged: Q27–30 already right |
+
+## 27 Nov: corrections reverted by the Apps Script sync, restored
+
+Writing grading made the Apps Script push its own Listening/Reading totals to Supabase, which dropped the admin
+corrections for Turan Jafarli (Listening 29 → 27) and Elnur Nacibayov (30 → 26). Restored with the administrator's
+approval (backup `recount_backup:2026-11-27T04:25:21.220Z`): Turan L29 R26 W5 overall 6.0; Elnur L30 R24 W5 overall 6.0.
+Cause fixed in commit e89fa8b (Apps Script syncs writing data only); the new Apps Script must be pasted in.

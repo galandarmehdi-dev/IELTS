@@ -9680,9 +9680,26 @@ async function getPracticeResultsSummary(env, options = {}) {
     backendRows = [];
   }
 
+  // A submission can exist both as a sheet row (backend-practice) and as a Worker backup copy in the
+  // recovery table (e.g. source "durable-finalize-fallback" when the inbox was unavailable). Same
+  // submitted-at instant + exam + student = same attempt: keep the sheet row, which carries the scores.
+  const practiceRowKey = (row) => {
+    const ms = Date.parse(String(row?.submittedAt || ""));
+    if (!Number.isFinite(ms)) return "";
+    return [ms, String(row?.examId || "").trim().toLowerCase(), oneLine(row?.studentFullName || "").toLowerCase()].join("::");
+  };
+  const seenPracticeKeys = new Set();
+  const dedupedRows = [];
+  for (const row of [...backendRows, ...objectiveRows]) {
+    const key = practiceRowKey(row);
+    if (key && seenPracticeKeys.has(key)) continue;
+    if (key) seenPracticeKeys.add(key);
+    dedupedRows.push(row);
+  }
+
   const scopedRows = actor
-    ? await filterRowsForAdminActor([...backendRows, ...objectiveRows], actor, env)
-    : [...backendRows, ...objectiveRows];
+    ? await filterRowsForAdminActor(dedupedRows, actor, env)
+    : dedupedRows;
   const merged = await Promise.all(scopedRows.map(async (row) => {
     const scoreMeta = await readSubmissionScoreMeta(env, row);
     return mergeSummaryWithScoreMeta(row, scoreMeta);
